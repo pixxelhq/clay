@@ -4,3 +4,8 @@ init:
 
 test:
 	pytest tests/ -vv
+
+.PHONY: docs
+
+docs:
+		cd sphinx; make clean; make html
