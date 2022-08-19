@@ -1,4 +1,10 @@
+env
 .vscode
+.ipynb
 __pycache__
-docs
+.mypy_cache
 .pytest_cache
+tmp
+docs
+.coverage
+coverage.xml
