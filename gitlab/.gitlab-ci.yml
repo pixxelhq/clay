@@ -6,7 +6,7 @@ stages:
 .common_job_setup:
   image: "python:3.8"
   before_script:
-    - pip install -r requirements.txt
+    - pip install -r requirements/requirements-dev.txt
     - pip install coverage mypy flake8 isort sphinx pre-commit
 
 code-formatting-flake8:
