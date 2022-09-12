@@ -21,7 +21,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install Dependencies
         run: |
-           pip install -r requirements.txt
+           pip install -r requirements/requirements-dev.txt
            pip install coverage mypy flake8 isort sphinx pre-commit
       - name: Run Pytest
         env:
