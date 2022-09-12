@@ -1,0 +1,53 @@
+name: "GitHub CI/CD Pipelines for Matter"
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  ci-all-tests:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.8.1"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: |
+           pip install -r requirements.txt
+           pip install coverage mypy flake8 isort sphinx pre-commit
+      - name: Run Pytest
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          coverage run -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+      - name: Upload Pytest Results
+        if: ${{ !failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}
+          path: results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+      - name: Coverage
+        if: ${{ !failure() }}
+        run: |
+          coverage report
+          coverage xml
+      - name: Isort Check
+        run: |
+          isort . --check
+      - name: MyPy Check
+        run: |
+          mypy .
+      - name: Flake8 Check
+        run: |
+          flake8 . --config .flake8
+      - name: Docs Build Test
+        run: |
+          make docs
