@@ -1,0 +1,2 @@
+def afunc():
+    return "a"

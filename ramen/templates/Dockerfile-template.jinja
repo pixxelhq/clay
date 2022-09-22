@@ -1,0 +1,26 @@
+FROM crk2hub.azurecr.io/pygdal-ubuntu-small:latest
+
+{% for arg in args -%}
+ARG {{ arg }}
+{% endfor -%}
+
+{% for e in env -%}
+ENV {{ e.name }} {{ e.value }}
+{% endfor -%}
+
+COPY . app/
+WORKDIR app/
+
+RUN apt-get update
+
+RUN python3 -m pip install --upgrade pip &&\
+    python3 -m pip install -r {{ requirements }}
+
+{% if runs -%}
+{% for r in runs -%}
+RUN {{ r }}
+{% endfor -%}
+{% endif -%}
+
+RUN python3 main.py
+

@@ -1,0 +1,13 @@
+deployment:
+  storage:
+    - provider: azure
+      type: str
+      value: some-container
+model:
+  init:
+    - name: a
+      type: str
+      value: "hello world!"
+  inputs:
+    - name: i
+      type: str
