@@ -22,6 +22,7 @@ jobs:
       - name: Install Dependencies
         run: |
            pip install -r requirements/requirements-dev.txt
+           pip install --index-url ${{ secrets.MATTER_INDEX_URL }} matter
            pip install coverage mypy flake8 isort sphinx pre-commit
       - name: Run Pytest
         env:
