@@ -8,3 +8,5 @@ tmp
 docs
 .coverage
 coverage.xml
+dist/
+*.egg-info
