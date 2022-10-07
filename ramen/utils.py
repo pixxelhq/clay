@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 import yaml
 
@@ -16,12 +16,18 @@ class Converters:
     @staticmethod
     def type_array(value: list) -> list:
         """just for consistency"""
+        if not isinstance(value, list):
+            raise TypeError(f"`{value}` is not a `list`")
         return value
 
     @staticmethod
     def type_str(value: str) -> str:
         """just for consistency"""
         if not isinstance(value, str):
+            if isinstance(value, Iterable):
+                raise TypeError(
+                    f"`value` of {type(value)} cannot be typecasted to string"
+                )
             return str(value)
         return value
 

@@ -33,8 +33,23 @@ class ModelWrapper:
     def _parse_inputs(self, inputs: dict) -> dict:
         parsed_inputs = {}
         for k, v in inputs.items():
-            targ_type = self.configs.model.inputs[k]["type"]
-            parsed_inputs[k] = getattr(Converters, f"type_{targ_type}")(v)
+            orig_targ_type = self.configs.model.inputs[k]["type"]
+            targ_types = orig_targ_type.replace(" ", "").split(",")
+            _found_type = False
+            for ttype in targ_types:
+                try:
+                    parsed_inputs[k] = getattr(Converters, f"type_{ttype}")(v)
+                    _found_type = True
+                    if _found_type:
+                        break
+                except TypeError:
+                    pass
+                finally:
+                    if not _found_type:
+                        raise ValueError(
+                            f"`{k}` received {type(v)} arguments "
+                            f"while it expects `{orig_targ_type}`"
+                        )
         return parsed_inputs
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
