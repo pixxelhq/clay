@@ -59,7 +59,7 @@ async def test_mw_model_inference() -> None:
 @pytest.mark.asyncio
 async def test_mw_preprocess_returns_non_iterable() -> None:
     class M(ModelWrapper):
-        def setup(self, a: str):
+        def setup(self, a: str, x: list):
             pass
 
         async def preprocess(self, i: str) -> Any:
@@ -79,7 +79,7 @@ async def test_mw_preprocess_returns_non_iterable() -> None:
 @pytest.mark.asyncio
 async def test_mw_preprocess_returns_multiple_values() -> None:
     class M(ModelWrapper):
-        def setup(self, a: str):
+        def setup(self, a: str, x: list):
             pass
 
         async def preprocess(self, i: str) -> Any:
@@ -99,7 +99,7 @@ async def test_mw_preprocess_returns_multiple_values() -> None:
 @pytest.mark.asyncio
 async def test_mw_inference_returns_string() -> None:
     class M(ModelWrapper):
-        def setup(self, a: str):
+        def setup(self, a: str, x: list):
             pass
 
         async def preprocess(self, i: str) -> Any:
@@ -119,7 +119,7 @@ async def test_mw_inference_returns_string() -> None:
 @pytest.mark.asyncio
 async def test_mw_inference_returns_none() -> None:
     class M(ModelWrapper):
-        def setup(self, a: str):
+        def setup(self, a: str, x: list):
             pass
 
         async def preprocess(self, i: str) -> Any:
@@ -139,7 +139,7 @@ async def test_mw_inference_returns_none() -> None:
 @pytest.mark.asyncio
 async def test_mw_missing_inference_override() -> None:
     class M(ModelWrapper):
-        def setup(self, a: str):
+        def setup(self, a: str, x: list):
             pass
 
         async def preprocess(self, i: str) -> Any:

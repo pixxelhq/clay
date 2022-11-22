@@ -19,4 +19,4 @@ RUN apt-get update
 RUN python3 -m pip install --upgrade pip &&\
     python3 -m pip install -r a.txt
 
-RUN python3 main.py"""
+CMD ["python3", "entry.py"]"""

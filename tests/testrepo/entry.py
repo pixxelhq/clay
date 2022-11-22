@@ -4,7 +4,7 @@ from ramen import ModelWrapper, create_server
 
 
 class M(ModelWrapper):
-    def setup(self, a: str) -> None:
+    def setup(self, a: str, x: list) -> None:
         print("In setup: ", a)
 
     async def preprocess(self, i: str):

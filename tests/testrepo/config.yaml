@@ -8,6 +8,12 @@ model:
     - name: a
       type: str
       value: "hello world!"
+    - name: x
+      type: array
+      value:
+        - x
+        - y
+        - z
   inputs:
     - name: i
       type: str

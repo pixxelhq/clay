@@ -38,4 +38,6 @@ setup(
         "pydantic",
         "Jinja2",
     ],
+    package_data={"ramen": ["templates/*.jinja"]},
+    include_package_data=True,
 )

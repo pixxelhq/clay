@@ -17,7 +17,12 @@ def create_dockerfile(source_dir: str, docker_opts: dict) -> str:
     # all runs `custom run commands` will be run after all the template runs
     # are completed
 
-    environment = jinja2.Environment(loader=jinja2.FileSystemLoader("ramen/templates/"))
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    template_dir = os.path.join(dirname, "templates")
+    print(template_dir)
+    environment = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(searchpath=template_dir)
+    )
     template = environment.get_template("Dockerfile-template.jinja")
     content = template.render(docker_opts)
 

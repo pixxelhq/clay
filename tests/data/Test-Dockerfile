@@ -14,4 +14,4 @@ RUN python3 -m pip install --upgrade pip &&\
 
 RUN some random command
 RUN some other command
-RUN python3 main.py
+CMD ["python3", "entry.py"]

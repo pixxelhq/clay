@@ -22,5 +22,5 @@ RUN {{ r }}
 {% endfor -%}
 {% endif -%}
 
-RUN python3 main.py
+CMD ["python3", "entry.py"]
 
