@@ -1,5 +1,6 @@
 import inspect
 import typing
+from typing import Any, Dict, Union
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -14,10 +15,21 @@ class ServerWrapper:
         model_config: str,
         host: str = "0.0.0.0",
         port: int = 8000,
+        logging_config: Union[Dict[str, Any], None] = None,
     ) -> None:
         self.host = host
         self.port = port
         self.model_cls = model_cls
+
+        self.logging_config = uvicorn.config.LOGGING_CONFIG
+        if logging_config is not None:
+            assert all(
+                key in logging_config for key in ["formatters", "handlers", "loggers"]
+            )
+            self.logging_config["formatters"].update(logging_config["formatters"])
+            self.logging_config["handlers"].update(logging_config["handlers"])
+            self.logging_config["loggers"].update(logging_config["loggers"])
+
         self._init_model(model_config)
         self._init_fastapi_app()
 
@@ -93,8 +105,14 @@ class ServerWrapper:
         self._app.state.model = self._model
 
     def start(self) -> None:
-        uvicorn.run(self._app, host=self.host, port=self.port)
+        uvicorn.run(
+            self._app, host=self.host, port=self.port, log_config=self.logging_config
+        )
 
 
-def create_server(model: ModelWrapper, model_config: str) -> ServerWrapper:
-    return ServerWrapper(model, model_config)
+def create_server(
+    model: ModelWrapper,
+    model_config: str,
+    logging_config: Union[Dict[str, Any], None] = None,
+) -> ServerWrapper:
+    return ServerWrapper(model, model_config, logging_config=logging_config)
