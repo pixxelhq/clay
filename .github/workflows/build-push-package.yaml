@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - matter/__version__.py
+      - ramen/__version__.py
 
 jobs:
   build-and-push-package:
