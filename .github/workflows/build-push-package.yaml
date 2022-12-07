@@ -1,0 +1,32 @@
+name: "Build and push package to registry"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - matter/__version__.py
+
+jobs:
+  build-and-push-package:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.8.1"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{matrix.python-version}}
+      - name: Make Package
+        env:
+          RAMEN_REGISTRY_NAME: ${{ secrets.RAMEN_REGISTRY_NAME }}
+          RAMEN_REGISTRY_PASS: ${{ secrets.RAMEN_REGISTRY_PASS }}
+        run: |
+          echo $RAMEN_REGISTRY_NAME
+          echo $RAMEN_REGISTRY_PASS
+          make package

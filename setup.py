@@ -1,10 +1,17 @@
 from setuptools import find_packages, setup
 
-version_string = "0.0.1"
+
+def get_version() -> dict:
+    version = {}  # type: ignore
+    with open("ramen/__version__.py") as f:
+        exec(f.read(), version)
+    print(version)
+    return version["__VERSION__"]
+
 
 setup(
     name="ramen",
-    version=version_string,
+    version=str(get_version()),
     description="This is the SDK that would be used to deploy all models at pixxel.",
     # Author details
     author_email="ml@pixxel.co.in",
