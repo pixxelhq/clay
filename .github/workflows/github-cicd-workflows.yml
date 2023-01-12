@@ -23,7 +23,7 @@ jobs:
         run: |
            pip install -r requirements/requirements-dev.txt
            pip install --index-url ${{ secrets.MATTER_INDEX_URL }} matter
-           pip install coverage mypy flake8 isort sphinx pre-commit
+           pip install coverage mypy==0.971 flake8 isort sphinx pre-commit
       - name: Run Pytest
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}

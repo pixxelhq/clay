@@ -60,3 +60,24 @@ class AppConfig:
         ac.__setattr__("model", model)
 
         return ac
+
+
+class ModelRequestsEvent(pydantic.BaseModel):
+    emitter: str
+    inference_id: str
+    model_name: str
+    inference_parameters: Any
+    user_id: Union[str, None] = None
+    aoi_id: Union[str, None] = None
+
+
+class ModelResultsEvent(pydantic.BaseModel):
+    emitter: str
+    inference_id: str
+    model_recv_time: str
+    model_send_time: str
+    model_inf_start_time: str
+    model_inf_end_time: str
+    model_name: str
+    results: Any
+    status_code: int

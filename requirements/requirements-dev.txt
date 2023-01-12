@@ -12,3 +12,5 @@ pytest-asyncio==0.19.0
 uvicorn
 fastapi
 asynctest
+uvloop
+pika
