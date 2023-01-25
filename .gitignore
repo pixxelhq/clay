@@ -13,3 +13,7 @@ dist/
 build/
 charts/
 lulc
+*.pyc
+*.pyo
+tests/__pycache__
+tests/__pycache__/__init__.cpython-38.pyc

@@ -1,71 +1,105 @@
-import copy
+from __future__ import annotations
+
+import io
 import logging
 import logging.config
-from typing import Any, Dict, Union
+import logging.handlers
+import sys
+from typing import Any, TypeVar, Union
 
-# TODO: remove `uvicorn.logging.DefaultFormatter` and bring it inside ramen
-
-
-class _DefaultRamenLogConfig:
-
-    _DEFAULT_FORMATTER = {
-        "placeholder": {
-            "()": "uvicorn.logging.DefaultFormatter",
-            "fmt": "%(levelname)s -%(asctime)s - %(filename)s:%(lineno)s - %(name)s - %(message)s",  # noqa: E501
-        }
-    }
-    _DEFAULT_HANDLER = {
-        "placeholder": {
-            "formatter": "",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        }
-    }
-    _DEFAULT_LOGGER = {
-        "placeholder": {
-            "handlers": [""],
-            "level": "INFO",
-            "propogate": "True",
-        }
-    }
-
-    @classmethod
-    def log_config_builder(cls, logger_name: str) -> Dict[str, Any]:
-
-        _DEFAULT_FORMATTER = copy.deepcopy(cls._DEFAULT_FORMATTER)
-        _DEFAULT_HANDLER = copy.deepcopy(cls._DEFAULT_HANDLER)
-        _DEFAULT_LOGGER = copy.deepcopy(cls._DEFAULT_LOGGER)
-
-        # creating the formatter
-        _DEFAULT_FORMATTER[logger_name] = _DEFAULT_FORMATTER["placeholder"]
-        del _DEFAULT_FORMATTER["placeholder"]
-
-        # creating the handler
-        _DEFAULT_HANDLER["placeholder"]["formatter"] = logger_name
-        _DEFAULT_HANDLER[logger_name] = _DEFAULT_HANDLER["placeholder"]
-        del _DEFAULT_HANDLER["placeholder"]
-
-        # creating the logger
-        _DEFAULT_LOGGER[logger_name] = _DEFAULT_LOGGER["placeholder"]
-        _DEFAULT_LOGGER[logger_name]["handlers"] = [logger_name]
-        del _DEFAULT_LOGGER["placeholder"]
-
-        config = {
-            "version": 1,
-            "formatters": {logger_name: _DEFAULT_FORMATTER[logger_name]},
-            "handlers": {logger_name: _DEFAULT_HANDLER[logger_name]},
-            "loggers": {logger_name: _DEFAULT_LOGGER[logger_name]},
-        }
-
-        return config
+T = TypeVar("T", bound="RamenLogger")
 
 
-def get_logger(
-    identifier: str, log_config: Union[None, Dict[str, Any]] = None
-) -> logging.Logger:
-    if log_config is None:
-        if identifier is None:
-            raise ValueError("`identifier` cannot be None. Needs to be `str`")
-        log_config = _DefaultRamenLogConfig.log_config_builder(identifier)
-    logging.config.dictConfig(log_config)
-    return logging.getLogger(identifier)
+class RamenLogger(object):
+
+    _DEFAULT_HANDLER_NAME: str = "ramen_handler"
+
+    def __init__(
+        self, logger_name: str, propogate: bool, level: int = logging.INFO
+    ) -> None:
+
+        self._logger = logging.getLogger(logger_name)
+        self._default_formatter = logging.Formatter(
+            "%(levelname)s - %(asctime)s - %(filename)s:%(lineno)s - %(name)s - %(message)s"  # noqa: E501
+        )
+        self.level = level
+        self.set_propogate(propogate)
+        if level is not None:
+            self._logger.setLevel(level)
+
+    def set_propogate(self, val: bool = False) -> None:
+        # Disables propogating logs to the root handler and only
+        # logs using the explicit handlers.
+        self._logger.propagate = val
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self._logger
+
+    @property
+    def level(self) -> int:
+        return self._level
+
+    @level.setter
+    def level(self, val: int) -> None:
+        self._level = val
+
+    def info(self, msg: Any, exc_info: int = 0) -> None:
+        self.logger.info(msg=msg, exc_info=exc_info)  # type: ignore
+
+    def debug(self, msg: Any, exc_info: int = 0) -> None:
+        self.logger.debug(msg=msg, exc_info=exc_info)  # type: ignore
+
+    def warning(self, msg: Any, exc_info: int = 1) -> None:
+        self.logger.warn(msg, exc_info=exc_info)  # type: ignore
+
+    def error(self, msg: Any, exc_info: int = 1) -> None:
+        self.logger.error(msg, exc_info=exc_info)  # type: ignore
+
+    def critical(self, msg: Any, exc_info: int = 1) -> None:
+        self.logger.critical(msg=msg, exc_info=exc_info)  # type: ignore
+
+    def add_console_handler(self, level: Union[int, None] = None) -> RamenLogger:
+        # Method to add the `default_handler` to the logger. `default_handler` logs msgs
+        # to the standard `sys.stdout` which is then printed onto the console. Use this
+        # handler if you wish for your logs to be printed into `sys.stdout` from where
+        # the logs would be  displayed onto the console or captured by other file
+        # watchers.
+        h = logging.StreamHandler(sys.stdout)
+        h.set_name(self._DEFAULT_HANDLER_NAME)
+        h.setFormatter(self._default_formatter)
+        if level is None:
+            level = self.level
+        h.setLevel(level=level)
+        self._logger.addHandler(h)
+        return self
+
+    def add_buffer_handler(self, level: Union[int, None] = None) -> RamenLogger:
+        # Method to add the `buffer_handler` to the logger. `buffer_handler` logs msgs to
+        # an in-memory string buffer. The contents of this buffer can be retrieved by
+        # calling on `get_streamvalues()`.
+        self.stream = io.StringIO()
+        h = logging.StreamHandler(self.stream)
+        h.set_name("buffer_handler")
+        h.setFormatter(self._default_formatter)
+        if level is None:
+            level = self.level
+        h.setLevel(level)
+        self._logger.addHandler(h)
+        return self
+
+    @property
+    def stream(self) -> Any:
+        if not hasattr(self, "_stream"):
+            raise ValueError(f"{self.__class__} has no property `stream`")
+        return self._stream
+
+    @stream.setter
+    def stream(self, val: Any) -> None:
+        self._stream = val
+
+    def get_streamvalues(self) -> Any:
+        if not hasattr(self, "_stream"):
+            raise ValueError(f"{self.__class__} has no property `stream`")
+        self.stream.seek(0)
+        return self.stream.getvalue()

@@ -10,7 +10,7 @@ from matter import fs
 
 from ramen.config import get_config
 from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
-from ramen.logger import get_logger
+from ramen.logger import RamenLogger
 from ramen.utils import Converters, to_tuple_if_required
 
 
@@ -18,9 +18,14 @@ class ModelWrapper:
 
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
-    def __init__(self, config: str, protocol: str = "abfs") -> None:
+    def __init__(
+        self,
+        config: str,
+        protocol: str = "abfs",
+    ) -> None:
         self._fs = fs.filesystem(protocol=protocol)
         self.configs = get_config(config)
+        self._logger: Union[None, logging.Logger] = None
         self.setup(**self.configs.model.init)
 
     def __init_subclass__(cls) -> None:
@@ -42,6 +47,7 @@ class ModelWrapper:
 
     def _parse_inputs(self, inputs: dict) -> dict:
         parsed_inputs = {}
+
         for k, v in inputs.items():
             orig_targ_type = self.configs.model.inputs[k]["type"]
             targ_types = orig_targ_type.replace(" ", "").split(",")
@@ -75,13 +81,9 @@ class ModelWrapper:
 
         parsed_inputs = self._parse_inputs(inputs)
         _return_vals = await self.preprocess(**parsed_inputs)
-        print(_return_vals)
         _return_vals = to_tuple_if_required(_return_vals)
-        print(_return_vals)
         _return_vals = await self.inference(*_return_vals)
-        print(_return_vals)
         _return_vals = to_tuple_if_required(_return_vals)
-        print(_return_vals)
         if _return_vals is not None:
             _return_vals = await self.postprocess(*_return_vals)
         return _return_vals
@@ -97,7 +99,7 @@ class BaseRunner(object):
         run_mode: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
-        logger: Union[None, logging.Logger],
+        logger: Union[None, RamenLogger],
         enable_uvloop: bool = False,
     ) -> None:
         self.run_mode = run_mode
@@ -106,8 +108,10 @@ class BaseRunner(object):
         self._enable_uvloop = enable_uvloop
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
-            logger = get_logger(f"{self._run_mode}_model_runner")
-        self.logger = logger
+            logger = RamenLogger(
+                f"{self._run_mode}_model_runner", True
+            ).add_console_handler()
+        self._logger = logger
 
     @property
     def run_mode(self) -> str:
@@ -120,19 +124,20 @@ class BaseRunner(object):
         self._run_mode = value
 
     def _init_model(self) -> None:
-        self.logger.info("Starting model initialization ...")
+        self._logger.info("Starting model initialization ...")
         self._model = self._modelcls(**self._model_args)
-        self.logger.info("Model initialization complete.")
+        self._logger.info("Model initialization complete.")
 
     def _run_event_loop(self, _loop: asyncio.AbstractEventLoop) -> None:
-        self.logger.info("Start model inference event loop ...")
+
+        self._logger.info("Start model inference event loop ...")
         asyncio.set_event_loop(_loop)
         _loop.run_forever()
-        self.logger.info("Event loop stopped")
+        self._logger.info("Event loop stopped")
 
     def _init_model_inference_event_loop(self) -> None:
 
-        self.logger.info("Starting model inference thread ...")
+        self._logger.info("Starting model inference thread ...")
         asyncio.set_event_loop_policy(self._DEFAULT_EVENT_LOOP_POLICY)
         self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self._t = threading.Thread(
@@ -143,7 +148,7 @@ class BaseRunner(object):
         )
         self._t.start()
         time.sleep(1)
-        self.logger.info("Started model inference thread.")
+        self._logger.info("Started model inference thread.")
 
     def run_model_inference(self, inference_parameters: Dict[str, Any]) -> Any:
         try:

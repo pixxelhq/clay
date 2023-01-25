@@ -8,6 +8,8 @@ ignore =
     # shebang has extra meaning in fbcode lints, so I think it's not worth trying
     # to line this up with executable bit
     EXE001,
+    # Ignore hanging indents
+    E126,
     # these ignores are from flake8-bugbear; please fix!
     B007,B008,
     # these ignores are from flake8-comprehensions; please fix!
