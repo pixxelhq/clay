@@ -150,24 +150,31 @@ class BaseRunner(object):
         time.sleep(1)
         self._logger.info("Started model inference thread.")
 
-    def run_model_inference(self, inference_parameters: Dict[str, Any]) -> Any:
+    def run_model_inference(
+        self, inference_parameters: Dict[str, Any], *args: Any, **kwargs: Any
+    ) -> Any:
         try:
             res = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inference_parameters), self._loop
             )
             return res.result()
         except SuccessfulExecutionException as exc:
-            self.success(exc)
+            return self.success(exc, *args, **kwargs)
         except FailedExecutionException as exc:
-            self.failure(exc)
+            return self.failure(exc, *args, **kwargs)
 
     @abstractmethod
-    def success(self, exc: Union[Exception, SuccessfulExecutionException]) -> None:
+    def success(
+        self,
+        exc: SuccessfulExecutionException,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         # Accepts a ramen.exceptions.SuccessfulExecutionException
         pass
 
     @abstractmethod
-    def failure(self, exc: Union[Exception, FailedExecutionException]) -> None:
+    def failure(self, exc: FailedExecutionException, *args: Any, **kwargs: Any) -> Any:
         # Accepts a ramen.exceptions.FailedExecutionException
         pass
 

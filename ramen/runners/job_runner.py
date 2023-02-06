@@ -1,7 +1,7 @@
 import json
 import sys
 import time
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Union
 
 from ramen.core import BaseRunner, ModelWrapper
 from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
@@ -23,15 +23,22 @@ class JobRunner(BaseRunner):
         super().__init__(JobRunner.RUN_MODE, modelcls, model_args, logger, enable_uvloop)
         self.model_name = model_name
 
-    def success(self, exc: Union[Exception, SuccessfulExecutionException]) -> None:
+    def success(
+        self,
+        exc: Union[Exception, SuccessfulExecutionException],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         self._logger.info(f"Success: {exc}")
         sys.exit(0)
 
-    def failure(self, exc: Union[Exception, FailedExecutionException]) -> None:
+    def failure(
+        self, exc: Union[Exception, FailedExecutionException], *args: Any, **kwargs: Any
+    ) -> Any:
         self._logger.error(f"Failure: {exc}")
         sys.exit(1)
 
-    def start(self, args: List[str]) -> None:  # type: ignore
+    def start(self, *args: Any, **kwargs: Any) -> None:
         try:
             self._init_model()
             self._init_model_inference_event_loop()
@@ -44,7 +51,7 @@ class JobRunner(BaseRunner):
             self._logger.info(f"thread alive status: {self._t.is_alive()}")
             self.failure(exc)
         self._logger.info(args)
-        model_args = json.loads(args[0])
+        model_args = json.loads(args[0][0])
         res = self.run_model_inference(model_args)
         self._logger.info(f"Result: {res}")
         self.success(
