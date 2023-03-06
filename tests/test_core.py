@@ -56,7 +56,7 @@ async def test_mw_model_inference() -> None:
 
     toy_model = M("./tests/testrepo/config.yaml")
     toy_output = await toy_model.infer({"i": "1"})
-    assert toy_output == "ba1"
+    assert toy_output["result"] == "ba1"
 
 
 @pytest.mark.asyncio
@@ -76,7 +76,7 @@ async def test_mw_preprocess_returns_non_iterable() -> None:
 
     m = M("tests/testrepo/config.yaml")
     r = await m.infer({"i": "a"})
-    assert r is None
+    assert r["result"] is None
 
 
 @pytest.mark.asyncio
@@ -96,7 +96,7 @@ async def test_mw_preprocess_returns_multiple_values() -> None:
 
     m = M("tests/testrepo/config.yaml")
     r = await m.infer({"i": 1})
-    assert r == (1, 2, {"a": 123})
+    assert r["result"] == (1, 2, {"a": 123})
 
 
 @pytest.mark.asyncio
@@ -116,7 +116,7 @@ async def test_mw_inference_returns_string() -> None:
 
     m = M("tests/testrepo/config.yaml")
     r = await m.infer({"i": 1})
-    assert r == "123"
+    assert r["result"] == "123"
 
 
 @pytest.mark.asyncio
@@ -136,7 +136,7 @@ async def test_mw_inference_returns_none() -> None:
 
     m = M("tests/testrepo/config.yaml")
     r = await m.infer({"i": 1})
-    assert r is None
+    assert r["result"] is None
 
 
 @pytest.mark.asyncio

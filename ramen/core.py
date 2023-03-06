@@ -1,17 +1,26 @@
 import asyncio
-import logging
+import os
 import threading
 import time
 from abc import abstractmethod
-from typing import Any, Dict, List, Union
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
+import requests
 import uvloop
 from matter import fs
 
 from ramen.config import get_config
-from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
+from ramen.exceptions import FailedExecutionException
 from ramen.logger import RamenLogger
 from ramen.utils import Converters, to_tuple_if_required
+
+
+class ModelStates(Enum):
+    STARTED = "TaskStarted"
+    INPROGRESS = "TaskInprogress"
+    COMPLETED = "TaskCompleted"
+    FAILED = "TaskFailed"
 
 
 class ModelWrapper:
@@ -22,10 +31,14 @@ class ModelWrapper:
         self,
         config: str,
         protocol: str = "abfs",
+        logger: Optional[RamenLogger] = None,
     ) -> None:
         self._fs = fs.filesystem(protocol=protocol)
         self.configs = get_config(config)
-        self._logger: Union[None, logging.Logger] = None
+        if logger is None:
+            logger = RamenLogger("model_wrapper", False)
+            logger.add_buffer_handler().add_console_handler()
+        self.logger = logger
         self.setup(**self.configs.model.init)
 
     def __init_subclass__(cls) -> None:
@@ -77,8 +90,10 @@ class ModelWrapper:
     async def postprocess(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def infer(self, inputs: dict) -> Any:
+    async def infer(self, inputs: dict) -> Dict[str, Any]:
 
+        task_id = inputs.get("task_id", "")
+        inputs.pop("task_id", None)
         parsed_inputs = self._parse_inputs(inputs)
         _return_vals = await self.preprocess(**parsed_inputs)
         _return_vals = to_tuple_if_required(_return_vals)
@@ -86,7 +101,19 @@ class ModelWrapper:
         _return_vals = to_tuple_if_required(_return_vals)
         if _return_vals is not None:
             _return_vals = await self.postprocess(*_return_vals)
-        return _return_vals
+        res = {
+            "id": task_id,
+            "result": _return_vals,
+            "logs": self.logger.get_streamvalues(),
+        }
+        return res
+
+    async def get_logs(self) -> str:
+        """This method is used to extract logs from the main thread using
+        `asyncio.run_coroutine_threadsafe` since the model runs in a separate
+        thread from the main thread.
+        """
+        return self.logger.get_streamvalues()
 
 
 class BaseRunner(object):
@@ -106,6 +133,7 @@ class BaseRunner(object):
         self._modelcls = modelcls
         self._model_args = model_args
         self._enable_uvloop = enable_uvloop
+        self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
             logger = RamenLogger(
@@ -125,7 +153,7 @@ class BaseRunner(object):
 
     def _init_model(self) -> None:
         self._logger.info("Starting model initialization ...")
-        self._model = self._modelcls(**self._model_args)
+        self._model: ModelWrapper = self._modelcls(**self._model_args)
         self._logger.info("Model initialization complete.")
 
     def _run_event_loop(self, _loop: asyncio.AbstractEventLoop) -> None:
@@ -153,28 +181,80 @@ class BaseRunner(object):
     def run_model_inference(
         self, inference_parameters: Dict[str, Any], *args: Any, **kwargs: Any
     ) -> Any:
+
+        # fetching the task id for the current request
+        task_id = inference_parameters.get("task_id", "")
+
+        # setting the state of the current task state to `Inprogress`
+        self._fire_callback(state=ModelStates.INPROGRESS, id=task_id)
+
+        # Running the actual model inference
         try:
             res = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inference_parameters), self._loop
+            ).result()
+        except Exception as exc:
+            if hasattr(exc, "logs") and exc.logs != "":
+                logs = exc.logs
+            else:
+                logs = asyncio.run_coroutine_threadsafe(
+                    self._model.get_logs(),
+                    self._loop,
+                ).result()
+            res = {"id": task_id, "result": {}, "logs": logs}
+            return self.failure(exc, data=res)
+
+        return self.success(res)
+
+    def _fire_callback(
+        self,
+        state: ModelStates = ModelStates.INPROGRESS,
+        id: str = "",
+        result: Dict[str, Any] = {},
+        logs: Any = "",
+    ) -> bool:
+
+        if self._dexter_clb_url is None or self._dexter_clb_url == "":
+            self._logger.warning(
+                "`ORCHESTRATOR_URL` not set, and hence not firing callback"
             )
-            return res.result()
-        except SuccessfulExecutionException as exc:
-            return self.success(exc, *args, **kwargs)
-        except FailedExecutionException as exc:
-            return self.failure(exc, *args, **kwargs)
+            return False
+
+        # Responsible for firing the callback to orchestrator callback url.
+        data = {"state": state.value, "id": id, "result": result, "logs": logs}
+        self._logger.info(f"Data for callback: {data}")
+        resp = requests.post(
+            url=self._dexter_clb_url,
+            json=data,
+            headers={"Content-type": "application/json"},
+        ).json()
+
+        if resp["successful_update"]:
+            self._logger.info("Updated state successfully.")
+        else:
+            self._logger.error("State Update failed.")
+
+        return resp["successful_update"]
 
     @abstractmethod
     def success(
         self,
-        exc: SuccessfulExecutionException,
-        *args: Any,
-        **kwargs: Any,
+        result: Any,
+        # exc: SuccessfulExecutionException,
+        # *args: Any,
+        # **kwargs: Any,
     ) -> Any:
         # Accepts a ramen.exceptions.SuccessfulExecutionException
         pass
 
     @abstractmethod
-    def failure(self, exc: FailedExecutionException, *args: Any, **kwargs: Any) -> Any:
+    def failure(
+        self,
+        exc: Union[Exception, FailedExecutionException],
+        data: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         # Accepts a ramen.exceptions.FailedExecutionException
         pass
 

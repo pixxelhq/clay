@@ -5,6 +5,7 @@ import logging
 import logging.config
 import logging.handlers
 import sys
+import warnings
 from typing import Any, TypeVar, Union
 
 T = TypeVar("T", bound="RamenLogger")
@@ -100,6 +101,7 @@ class RamenLogger(object):
 
     def get_streamvalues(self) -> Any:
         if not hasattr(self, "_stream"):
-            raise ValueError(f"{self.__class__} has no property `stream`")
+            warnings.warn(f"{self.__class__} has no property `stream`", RuntimeWarning)
+            return ""
         self.stream.seek(0)
         return self.stream.getvalue()

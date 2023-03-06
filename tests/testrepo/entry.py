@@ -11,6 +11,7 @@ class M(ModelWrapper):
         return bfunc() + i
 
     async def inference(self, i: str):
+        self.logger.info("Something")
         return i
 
     async def postprocess(self, res):

@@ -43,10 +43,10 @@ async def test_input_config_with_multi_types() -> None:
 
     toy_model = M("./tests/testrepo/test.yaml")
     toy_output = await toy_model.infer({"i": 1})
-    assert toy_output == 1
+    assert toy_output["result"] == 1
 
     toy_output = await toy_model.infer({"i": [1, 2, 3]})
-    assert toy_output == [1, 2, 3]
+    assert toy_output["result"] == [1, 2, 3]
 
     os.remove("./tests/testrepo/test.yaml")
 

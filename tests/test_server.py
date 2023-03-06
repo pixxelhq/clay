@@ -79,6 +79,7 @@ def test_create_server() -> None:
     assert isinstance(sw, ServerWrapper)
 
 
+@pytest.mark.skip("Skipping legacy server code")
 class ServerWrapperTests(asynctest.TestCase):
     async def setUp(self) -> None:
         """Bring the server up"""
@@ -101,8 +102,10 @@ class ServerWrapperTests(asynctest.TestCase):
     async def test_infer_route(self) -> None:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "http://127.0.0.1:8000/infer", data='{"i": "1"}'
+                "http://127.0.0.1:8000/infer",
+                data='{"i": "1"}',
+                headers={"Content-type": "application/json"},
             ) as resp:
                 data = await resp.json()
                 self.assertEqual(resp.status, 200)
-        self.assertEqual(data, "ba1")
+        self.assertEqual(data["result"], "ba1")

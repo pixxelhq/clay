@@ -14,6 +14,7 @@ class StorageConfig(pydantic.BaseModel):
 
 class DeploymentConfig:
     storage: Union[StorageConfig, None] = None
+    dexter_clb_url: Union[str, None] = None
 
     @classmethod
     def parse(cls, config: dict) -> Any:
@@ -25,6 +26,7 @@ class DeploymentConfig:
             d["value"] = getattr(Converters, f"type_{item['type']}")(item["value"])
 
         dc = DeploymentConfig()
+        dc.__setattr__("dexter_clb_url", config.get("dexter_clb_url", None))
         dc.__setattr__("storage", StorageConfig.parse_obj(d))
         return dc
 

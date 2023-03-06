@@ -4,8 +4,8 @@ from typing import Any, Dict, Union
 import uvicorn
 from fastapi import FastAPI, Request, Response, status
 
-from ramen.core import BaseRunner, ModelWrapper
-from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
+from ramen.core import BaseRunner, ModelStates, ModelWrapper
+from ramen.exceptions import FailedExecutionException
 from ramen.logger import RamenLogger
 
 
@@ -36,16 +36,29 @@ class HTTPRunner(BaseRunner):
             self.logging_config["handlers"].update(logging_config["handlers"])
             self.logging_config["loggers"].update(logging_config["loggers"])
 
-    def failure(self, exc: FailedExecutionException, *args: Any, **kwargs: Any) -> Any:
+    def failure(
+        self,
+        exc: Union[Exception, FailedExecutionException],
+        data: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
 
+        if self._dexter_clb_url is None:
+            self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
+        else:
+            _ = self._fire_callback(
+                state=ModelStates.FAILED, id=data["id"], logs=data["logs"]
+            )
         self._logger.error(f"Failure: {exc}")
 
-        if exc.http_status_code == 400:
-            status_code = status.HTTP_400_BAD_REQUEST
-        elif exc.http_status_code == 500:
-            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        if not hasattr(exc, "http_status_code"):
+            status_code = 500
         else:
-            raise ValueError("Unsupported status code: ", exc.http_status_code)
+            if exc.http_status_code == 400:  # type: ignore
+                status_code = status.HTTP_400_BAD_REQUEST
+            else:
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
         response: Response = Response(
             content=f"status code: {status_code} message:{exc}",
@@ -55,16 +68,21 @@ class HTTPRunner(BaseRunner):
 
     def success(
         self,
-        exc: SuccessfulExecutionException,
-        *args: Any,
-        **kwargs: Any,
+        data: Dict[str, Any],
     ) -> Any:
-        if not exc.http_status_code == 200:
-            self._logger.error(f"Unidentified status code: {exc.http_status_code}")
-            raise ValueError("Unidentified status code: {exc.http_status_code}")
-        self._logger.info(f"Success: {exc}")
+        if self._dexter_clb_url is None:
+            self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
+        else:
+            _ = self._fire_callback(
+                state=ModelStates.COMPLETED,
+                id=data["id"],
+                result=data["result"],
+                logs=data["logs"],
+            )
+        self._logger.info(f"Success: {data}")
         response: Response = Response(
-            content=f"status code: {status.HTTP_200_OK} message:{exc}",
+            content=data["result"],
+            headers={"Content-type": "application/json"},
             status_code=status.HTTP_200_OK,
         )
         return response

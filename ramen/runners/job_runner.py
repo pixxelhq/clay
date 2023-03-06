@@ -3,8 +3,8 @@ import sys
 import time
 from typing import Any, Dict, Union
 
-from ramen.core import BaseRunner, ModelWrapper
-from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
+from ramen.core import BaseRunner, ModelStates, ModelWrapper
+from ramen.exceptions import FailedExecutionException
 from ramen.logger import RamenLogger
 
 
@@ -23,22 +23,42 @@ class JobRunner(BaseRunner):
         super().__init__(JobRunner.RUN_MODE, modelcls, model_args, logger, enable_uvloop)
         self.model_name = model_name
 
-    def success(
-        self,
-        exc: Union[Exception, SuccessfulExecutionException],
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        self._logger.info(f"Success: {exc}")
+    def success(self, output: Dict[str, Any]) -> Any:
+        if self._dexter_clb_url is None:
+            self._logger.warning("`ORCHESTRATOR_URL` not set, hence not firing callback.")
+        else:
+            _ = self._fire_callback(
+                ModelStates.COMPLETED,
+                output["id"],
+                output["result"],
+                output["logs"],
+            )
+        self._logger.info("Successful completion.")
         sys.exit(0)
 
     def failure(
-        self, exc: Union[Exception, FailedExecutionException], *args: Any, **kwargs: Any
+        self,
+        exc: Union[Exception, FailedExecutionException],
+        data: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
     ) -> Any:
+
+        if self._dexter_clb_url is None:
+            self._logger.warning(
+                "`ORCHESTRATOR_URL` is not set, hence not firing callback."
+            )
+        else:
+            _ = self._fire_callback(
+                state=ModelStates.FAILED,
+                id=data["id"],
+                logs=data["logs"],
+            )
         self._logger.error(f"Failure: {exc}")
         sys.exit(1)
 
     def start(self, *args: Any, **kwargs: Any) -> None:
+        model_args = json.loads(args[0][0])
         try:
             self._init_model()
             self._init_model_inference_event_loop()
@@ -49,11 +69,16 @@ class JobRunner(BaseRunner):
             time.sleep(2)
             self._logger.info(f"Event loop running status: {self._loop.is_running()}")
             self._logger.info(f"thread alive status: {self._t.is_alive()}")
-            self.failure(exc)
+
+            # Since every job run, is mapped to a particular `task_id`,
+            # incase if the model/event loop  fail to initialize, we can always fail
+            # the corressponding `task_id` and store the `runner logs` so far.
+            failure_data = {
+                "id": model_args.get("id", ""),
+                "result": {},
+                "logs": self._logger.get_streamvalues(),
+            }
+            self.failure(exc, failure_data)
         self._logger.info(args)
-        model_args = json.loads(args[0][0])
         res = self.run_model_inference(model_args)
         self._logger.info(f"Result: {res}")
-        self.success(
-            SuccessfulExecutionException("Model inference job completed successfully.")
-        )
