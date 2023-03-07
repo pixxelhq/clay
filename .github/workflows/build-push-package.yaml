@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - ramen/__version__.py
+      - python/ramen/__version__.py
 
 jobs:
   build-and-push-package:

@@ -1,4 +1,4 @@
-name: "GitHub CI/CD Pipelines for Matter"
+name: "GitHub CI/CD Pipelines for Ramen"
 
 on:
   pull_request:
@@ -29,7 +29,7 @@ jobs:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
           ORCHESTRATOR_URL: ${{ secrets.DUMMY_ORCHESTRATOR_URL }}
         run: |
-          coverage run -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+          coverage run -m python/pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       - name: Upload Pytest Results
         if: ${{ !failure() }}
         uses: actions/upload-artifact@v3

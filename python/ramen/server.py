@@ -5,7 +5,7 @@ from typing import Any, Dict, Union
 import uvicorn
 from fastapi import FastAPI, Request
 
-from ramen.core import ModelWrapper
+from .core import ModelWrapper
 
 
 class ServerWrapper:

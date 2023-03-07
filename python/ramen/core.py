@@ -10,10 +10,10 @@ import requests
 import uvloop
 from matter import fs
 
-from ramen.config import get_config
-from ramen.exceptions import FailedExecutionException
-from ramen.logger import RamenLogger
-from ramen.utils import Converters, to_tuple_if_required
+from .config import get_config
+from .exceptions import FailedExecutionException
+from .logger import RamenLogger
+from .utils import Converters, to_tuple_if_required
 
 
 class ModelStates(Enum):

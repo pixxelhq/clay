@@ -2,7 +2,7 @@ from typing import Any, Dict, TypeVar, Union
 
 import pydantic
 
-from ramen.utils import Converters, get_value
+from .utils import Converters, get_value
 
 T = TypeVar("T")
 

@@ -1,6 +1,6 @@
 from typing import Any
 
-from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
+from .exceptions import FailedExecutionException, SuccessfulExecutionException
 
 
 def success(message: Any = None, http_status_code: int = 200) -> None:

@@ -8,7 +8,6 @@ from ramen.core import ModelWrapper
 from ramen.logger import RamenLogger
 from ramen.runners import JobRunner
 
-
 class DemoSimpleModel(ModelWrapper):
     def setup(self, arg1: int, arg2: str) -> None:
         self.arg1 = arg1
