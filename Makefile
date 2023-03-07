@@ -8,7 +8,7 @@ package:
 
 build/package:
 		pip install build
-		python -m build
+		python -m build ./python
 
 push/package:
 		pip install twine
@@ -22,9 +22,9 @@ push/package:
 
 
 test:
-	pytest tests/ -vv
+	pytest python/tests/ -vv
 
 .PHONY: docs
 
 docs:
-		cd sphinx; make clean; make html
+		cd python/sphinx; make clean; make html
