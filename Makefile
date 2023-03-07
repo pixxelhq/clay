@@ -22,7 +22,7 @@ push/package:
 
 
 test:
-	pytest python/tests/ -vv
+	cd python; pytest -vv
 
 .PHONY: docs
 
