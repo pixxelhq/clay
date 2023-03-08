@@ -38,14 +38,17 @@ jobs:
           name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}
           path: python/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       - name: Coverage
+        working-directory: ./python
         if: ${{ !failure() }}
         run: |
           coverage report
           coverage xml
       - name: Isort Check
+        working-directory: ./python
         run: |
           isort . --check
       - name: MyPy Check
+        working-directory: ./python
         run: |
           mypy .
       - name: Flake8 Check
