@@ -8,6 +8,7 @@ from ramen.core import ModelWrapper
 from ramen.logger import RamenLogger
 from ramen.runners import JobRunner
 
+
 class DemoSimpleModel(ModelWrapper):
     def setup(self, arg1: int, arg2: str) -> None:
         self.arg1 = arg1
@@ -19,7 +20,7 @@ class DemoSimpleModel(ModelWrapper):
 
     async def preprocess(self, input1: str) -> Any:
         time.sleep(1)
-        self.logger.warning("was supposed to preprocss, but slept for a second there")
+        self.logger.warning("Was supposed to preprocss, but slept for a second there")
         return input1 + "B"
 
     async def inference(self, arg: str) -> Any:
