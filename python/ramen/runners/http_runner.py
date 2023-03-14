@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, Response, status
 
 from ramen.core import BaseRunner, ModelStates, ModelWrapper
 from ramen.exceptions import FailedExecutionException
-from ramen.logger import RamenLogger
+from logging import Logger
 
 
 class HTTPRunner(BaseRunner):
@@ -17,7 +17,7 @@ class HTTPRunner(BaseRunner):
         model_name: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
-        logger: Union[None, RamenLogger] = None,
+        logger: Union[None, Logger] = None,
         enable_uvloop: bool = False,
         host: str = "0.0.0.0",
         port: int = 8000,

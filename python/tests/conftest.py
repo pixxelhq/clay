@@ -2,10 +2,11 @@
 import os
 import shutil
 import sys
+from pathlib import Path
 
 import pytest
 
-sys.path.append("tests/testrepo")
+sys.path.append(str((Path(__file__).parent) / "testrepo"))
 from entry import M
 
 

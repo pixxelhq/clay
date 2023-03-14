@@ -1,11 +1,8 @@
-# type: ignore
-
-
 import time
-from typing import Any
+from typing import Any, cast
 
 from ramen.core import ModelWrapper
-from ramen.logger import RamenLogger
+from ramen.logger import RamenLogger, get_streamvalues
 from ramen.runners import JobRunner
 
 
@@ -14,8 +11,12 @@ class DemoSimpleModel(ModelWrapper):
         self.arg1 = arg1
         self.arg2 = arg2
         time.sleep(1)
-        self.logger = RamenLogger("demo_model_logger", False)
-        self.logger.add_console_handler().add_buffer_handler()
+        self.logger = RamenLogger(
+            "demo_model_logger",
+            False,
+            create_buffer_handler=True,
+            create_console_handler=True,
+        )
         self.logger.info("slept for a second there")
 
     async def preprocess(self, input1: str) -> Any:
@@ -30,7 +31,7 @@ class DemoSimpleModel(ModelWrapper):
 
     async def postprocess(self, arg: str) -> Any:
         self.logger.critical("that was quick!!")
-        logs = self.logger.get_streamvalues()
+        logs = get_streamvalues(self.logger)
         return arg, logs
 
 
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     # args = sys.argv[1]
     jr = JobRunner(
         "demo",
-        DemoSimpleModel,
+        cast(ModelWrapper, DemoSimpleModel),
         {"config": "demo/demo_simple_model_config.yaml"},
     )
 

@@ -10,13 +10,11 @@ import pika
 import pika.adapters.blocking_connection
 import pika.spec
 import uvloop
-
-from ramen.logger import RamenLogger
+from ramen.logger import Logger, RamenLogger
 from ramen.models import ModelRequestsEvent, ModelResultsEvent
 
 
 class RabbitModelRunner(object):
-
     _DEFAULT_EXCHANGE_NAME: str = "model_activity"
     _DEFAULT_EXCHANGE_TYPE: str = "topic"
 
@@ -52,7 +50,7 @@ class RabbitModelRunner(object):
             else asyncio.DefaultEventLoopPolicy()
         )
         if enable_ramen_logger:
-            self._logger = RamenLogger("rmq_logger", False).add_console_handler()
+            self._logger = RamenLogger("rmq_logger", True, create_console_handler=True)
 
     def _init_model(self) -> None:
         self._logger.info("Starting model initialization...")
@@ -167,7 +165,6 @@ class RabbitModelRunner(object):
         props: Any,
         body: Any,
     ) -> None:
-
         time_of_arrival = time.time()
         try:
             request: ModelRequestsEvent = ModelRequestsEvent(**json.loads(body.decode()))
