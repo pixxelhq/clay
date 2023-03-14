@@ -15,7 +15,7 @@ line-length = 90
 
 [tool.mypy]
 files = ["ramen"]
-exclude = ["tests", "build"]
+exclude = ["tests", "build", "env"]
 install_types = "True"
 non_interactive = "True"
 disallow_untyped_defs = "True"
