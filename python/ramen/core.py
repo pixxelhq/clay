@@ -4,11 +4,11 @@ import threading
 import time
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 import uvloop
-from matter import fs  # type: ignore[import]
+from matter import fs
 
 from .config import get_config
 from .exceptions import FailedExecutionException
@@ -41,7 +41,7 @@ class ModelWrapper:
                 create_buffer_handler=True,
                 create_console_handler=True,
             )
-        self.logger: Logger = cast(Logger, logger)
+        self.logger: Logger = logger
         self.setup(**self.configs.model.init)
 
     def __init_subclass__(cls) -> None:
