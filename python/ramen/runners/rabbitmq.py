@@ -10,7 +10,8 @@ import pika
 import pika.adapters.blocking_connection
 import pika.spec
 import uvloop
-from ramen.logger import Logger, RamenLogger
+
+from ramen.logger import RamenLogger
 from ramen.models import ModelRequestsEvent, ModelResultsEvent
 
 
