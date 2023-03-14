@@ -76,7 +76,6 @@ class TestJobRunner(unittest.TestCase):
 
     @mock.patch("ramen.core.requests.post")
     def test_jobrunner_failure(self, mock_post: Any) -> None:
-
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
         mock_response.status_code = 200

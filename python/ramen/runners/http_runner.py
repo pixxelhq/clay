@@ -43,7 +43,6 @@ class HTTPRunner(BaseRunner):
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-
         if self._dexter_clb_url is None:
             self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
         else:
@@ -105,11 +104,9 @@ class HTTPRunner(BaseRunner):
 
     def start(self, *args: Any, **kwargs: Any) -> None:
         try:
-
             self._init_model()
             self._init_model_inference_event_loop()
         except Exception as exc:
-
             self._logger.error(exc)
             if self._loop.is_running():
                 self._loop.call_soon_threadsafe(self._loop.stop)

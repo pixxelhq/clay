@@ -1,7 +1,7 @@
 from functools import lru_cache
 
-from .models import AppConfig
-from .utils import read_yaml
+from ramen.models import AppConfig
+from ramen.utils import read_yaml
 
 __SUPPORTED_CONFIG_OPTIONS__ = {"deployment": ["storage"], "model": ["init", "inputs"]}
 

@@ -1,5 +1,5 @@
 init:
-	pip install -r requirements/requirements-dev.txt
+	pip install -r python/requirements/requirements-dev.txt
 	pre-commit install
 
 package:
