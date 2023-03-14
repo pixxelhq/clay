@@ -1,15 +1,15 @@
 import json
 import sys
 import time
+from logging import Logger
 from typing import Any, Dict, Union
 
 from ramen.core import BaseRunner, ModelStates, ModelWrapper
 from ramen.exceptions import FailedExecutionException
-from ramen.logger import RamenLogger
+from ramen.logger import get_streamvalues
 
 
 class JobRunner(BaseRunner):
-
     RUN_MODE: str = "job"
 
     def __init__(
@@ -17,7 +17,7 @@ class JobRunner(BaseRunner):
         model_name: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
-        logger: Union[None, RamenLogger] = None,
+        logger: Union[None, Logger] = None,
         enable_uvloop: bool = True,
     ) -> None:
         super().__init__(JobRunner.RUN_MODE, modelcls, model_args, logger, enable_uvloop)
@@ -43,7 +43,6 @@ class JobRunner(BaseRunner):
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-
         if self._dexter_clb_url is None:
             self._logger.warning(
                 "`ORCHESTRATOR_URL` is not set, hence not firing callback."
@@ -76,7 +75,7 @@ class JobRunner(BaseRunner):
             failure_data = {
                 "id": model_args.get("id", ""),
                 "result": {},
-                "logs": self._logger.get_streamvalues(),
+                "logs": get_streamvalues(self._logger),
             }
             self.failure(exc, failure_data)
         self._logger.info(args)

@@ -6,7 +6,10 @@ from ramen.logger import RamenLogger
 
 class TestRamenLogger(TestCase):
     def test_logging_level(self):
-        logger = RamenLogger("test_logger", False, logging.INFO).add_console_handler()
+        logger = RamenLogger(
+            "test_logger", False, logging.INFO, create_console_handler=True
+        )
+        assert logger.name == "test_logger"
         with self.assertLogs("test_logger", level="INFO") as capture:
             logger.info("This is info")
             logger.critical("This is critical")
@@ -15,6 +18,6 @@ class TestRamenLogger(TestCase):
             capture.output,
             [
                 "INFO:test_logger:This is info",
-                "CRITICAL:test_logger:This is critical\nNoneType: None",
+                "CRITICAL:test_logger:This is critical",
             ],
         )

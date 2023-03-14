@@ -21,7 +21,6 @@ def test_mw_missing_setup_override() -> None:
 
 
 def test_mw_blocking_method_override() -> None:
-
     with pytest.raises(AssertionError):
 
         class M(ModelWrapper):
@@ -33,7 +32,6 @@ def test_mw_blocking_method_override() -> None:
 
 
 def test_mw_parse_inputs(toy_model) -> None:
-
     # sanity check - conversion of int to string
     parsed_input = toy_model._parse_inputs({"i": 12})
     assert isinstance(parsed_input["i"], str)

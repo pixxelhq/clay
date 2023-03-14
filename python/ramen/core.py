@@ -10,10 +10,10 @@ import requests
 import uvloop
 from matter import fs
 
-from ramen.config import get_config
-from ramen.exceptions import FailedExecutionException
-from ramen.logger import RamenLogger
-from ramen.utils import Converters, to_tuple_if_required
+from .config import get_config
+from .exceptions import FailedExecutionException
+from .logger import Logger, RamenLogger, get_streamvalues
+from .utils import Converters, to_tuple_if_required
 
 
 class ModelStates(Enum):
@@ -24,21 +24,24 @@ class ModelStates(Enum):
 
 
 class ModelWrapper:
-
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
     def __init__(
         self,
         config: str,
         protocol: str = "abfs",
-        logger: Optional[RamenLogger] = None,
+        logger: Optional[Logger] = None,
     ) -> None:
         self._fs = fs.filesystem(protocol=protocol)
         self.configs = get_config(config)
         if logger is None:
-            logger = RamenLogger("model_wrapper", False)
-            logger.add_buffer_handler().add_console_handler()
-        self.logger = logger
+            logger = RamenLogger(
+                "model_wrapper",
+                False,
+                create_buffer_handler=True,
+                create_console_handler=True,
+            )
+        self.logger: Logger = logger
         self.setup(**self.configs.model.init)
 
     def __init_subclass__(cls) -> None:
@@ -91,7 +94,6 @@ class ModelWrapper:
         raise NotImplementedError
 
     async def infer(self, inputs: dict) -> Dict[str, Any]:
-
         task_id = inputs.get("task_id", "")
         inputs.pop("task_id", None)
         parsed_inputs = self._parse_inputs(inputs)
@@ -104,7 +106,7 @@ class ModelWrapper:
         res = {
             "id": task_id,
             "result": _return_vals,
-            "logs": self.logger.get_streamvalues(),
+            "logs": get_streamvalues(self.logger),
         }
         return res
 
@@ -113,11 +115,10 @@ class ModelWrapper:
         `asyncio.run_coroutine_threadsafe` since the model runs in a separate
         thread from the main thread.
         """
-        return self.logger.get_streamvalues()
+        return get_streamvalues(self.logger)
 
 
 class BaseRunner(object):
-
     _SUPPORTED_RUN_MODES: List[str] = ["rmq", "http", "job"]
     _DEFAULT_EVENT_LOOP_POLICY = uvloop.EventLoopPolicy()
 
@@ -126,7 +127,7 @@ class BaseRunner(object):
         run_mode: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
-        logger: Union[None, RamenLogger],
+        logger: Union[None, Logger],
         enable_uvloop: bool = False,
     ) -> None:
         self.run_mode = run_mode
@@ -137,9 +138,10 @@ class BaseRunner(object):
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
             logger = RamenLogger(
-                f"{self._run_mode}_model_runner", True
-            ).add_console_handler()
-        self._logger = logger
+                f"{self._run_mode}_model_runner", True, create_console_handler=True
+            )
+        assert isinstance(logger, Logger)
+        self._logger: Logger = logger
 
     @property
     def run_mode(self) -> str:
@@ -157,14 +159,12 @@ class BaseRunner(object):
         self._logger.info("Model initialization complete.")
 
     def _run_event_loop(self, _loop: asyncio.AbstractEventLoop) -> None:
-
         self._logger.info("Start model inference event loop ...")
         asyncio.set_event_loop(_loop)
         _loop.run_forever()
         self._logger.info("Event loop stopped")
 
     def _init_model_inference_event_loop(self) -> None:
-
         self._logger.info("Starting model inference thread ...")
         asyncio.set_event_loop_policy(self._DEFAULT_EVENT_LOOP_POLICY)
         self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
@@ -181,7 +181,6 @@ class BaseRunner(object):
     def run_model_inference(
         self, inference_parameters: Dict[str, Any], *args: Any, **kwargs: Any
     ) -> Any:
-
         # fetching the task id for the current request
         task_id = inference_parameters.get("task_id", "")
 
@@ -213,7 +212,6 @@ class BaseRunner(object):
         result: Dict[str, Any] = {},
         logs: Any = "",
     ) -> bool:
-
         if self._dexter_clb_url is None or self._dexter_clb_url == "":
             self._logger.warning(
                 "`ORCHESTRATOR_URL` not set, and hence not firing callback"

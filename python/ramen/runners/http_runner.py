@@ -1,4 +1,5 @@
 import time
+from logging import Logger
 from typing import Any, Dict, Union
 
 import uvicorn
@@ -6,7 +7,6 @@ from fastapi import FastAPI, Request, Response, status
 
 from ramen.core import BaseRunner, ModelStates, ModelWrapper
 from ramen.exceptions import FailedExecutionException
-from ramen.logger import RamenLogger
 
 
 class HTTPRunner(BaseRunner):
@@ -17,7 +17,7 @@ class HTTPRunner(BaseRunner):
         model_name: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
-        logger: Union[None, RamenLogger] = None,
+        logger: Union[None, Logger] = None,
         enable_uvloop: bool = False,
         host: str = "0.0.0.0",
         port: int = 8000,
@@ -43,7 +43,6 @@ class HTTPRunner(BaseRunner):
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-
         if self._dexter_clb_url is None:
             self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
         else:
@@ -105,11 +104,9 @@ class HTTPRunner(BaseRunner):
 
     def start(self, *args: Any, **kwargs: Any) -> None:
         try:
-
             self._init_model()
             self._init_model_inference_event_loop()
         except Exception as exc:
-
             self._logger.error(exc)
             if self._loop.is_running():
                 self._loop.call_soon_threadsafe(self._loop.stop)

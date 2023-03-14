@@ -1,5 +1,5 @@
 init:
-	pip install -r requirements/requirements-dev.txt
+	pip install -r python/requirements/requirements-dev.txt
 	pre-commit install
 
 package:
@@ -8,7 +8,7 @@ package:
 
 build/package:
 		pip install build
-		python -m build
+		python -m build ./python
 
 push/package:
 		pip install twine
@@ -22,9 +22,9 @@ push/package:
 
 
 test:
-	pytest tests/ -vv
+	cd python; pytest -vv
 
 .PHONY: docs
 
 docs:
-		cd sphinx; make clean; make html
+		cd python/sphinx; make clean; make html

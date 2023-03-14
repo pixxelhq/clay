@@ -7,7 +7,7 @@ stages:
   image: "python:3.8"
   before_script:
     - echo "Starting before_script"
-    - pip install -r requirements/requirements-dev.txt
+    - pip install -r python/requirements/requirements-dev.txt
     - pip install coverage mypy flake8 isort sphinx pre-commit
 
 code-formatting-flake8:

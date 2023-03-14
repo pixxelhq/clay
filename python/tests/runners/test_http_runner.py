@@ -53,7 +53,6 @@ class TestHTTPRunner(unittest.TestCase):
 
     @mock.patch("ramen.core.requests.post")
     def test_sucess(self, mock_post: Any):
-
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
         mock_response.status_code = 200
@@ -88,7 +87,6 @@ class TestHTTPRunner(unittest.TestCase):
 
     @mock.patch("ramen.core.requests.post")
     def test_failure(self, mock_post: Any):
-
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
         mock_response.status_code = 200
