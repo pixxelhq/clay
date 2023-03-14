@@ -219,7 +219,7 @@ class BaseRunner(object):
             return False
 
         # Responsible for firing the callback to orchestrator callback url.
-        data = {"state": state.value, "id": id, "result": result, "logs": logs}
+        data = {"data": {"state": state.value, "id": id, "result": result, "logs": logs}}
         self._logger.info(f"Data for callback: {data}")
         resp = requests.post(
             url=self._dexter_clb_url,
