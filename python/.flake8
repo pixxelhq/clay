@@ -19,3 +19,4 @@ optional-ascii-coding = True
 exclude =
     ./.git,
     *.pyi
+    env

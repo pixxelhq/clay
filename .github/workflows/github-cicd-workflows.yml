@@ -8,7 +8,7 @@ jobs:
   ci-all-tests:
     runs-on: ubuntu-20.04
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         python-version: ["3.8.1"]
 
@@ -23,7 +23,7 @@ jobs:
         run: |
           pip install -r python/requirements/requirements-dev.txt
           pip install --index-url ${{ secrets.MATTER_INDEX_URL }} matter
-          pip install coverage mypy==0.971 flake8 isort sphinx pre-commit
+          pip install coverage mypy==0.971 flake8 isort pre-commit
       - name: Run Pytest
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
@@ -56,4 +56,4 @@ jobs:
           flake8 . --config .flake8
       - name: Docs Build Test
         run: |
-          make docs
+          make build-docs

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ramen-docs
+  namespace: mlops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ramen-docs
+  template:
+    metadata:
+      labels:
+        name: ramen-docs
+    spec:
+      containers:
+        - name: ramen-docs
+          image: crk2hub.azurecr.io/ramen-documentation:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+            requests:
+              cpu: "500m"
+              memory: "200Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ramen-docs
+  namespace: mlops
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    name: ramen-docs
+  ports:
+    - port: 80
+      targetPort: 8080
+---

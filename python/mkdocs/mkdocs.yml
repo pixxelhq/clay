@@ -1,0 +1,29 @@
+theme:
+  name: material
+  # logo: img/favicon.png
+site_name: Ramen Documentation
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: "#"
+
+plugins:
+  - search
+  - mkdocstrings:
+      enable_inventory: true
+      handlers:
+        python:
+          paths: [..]
+          options:
+            docstring_style: sphinx
+          import:
+            - https://docs.python-requests.org/en/master/objects.inv
+            - https://docs.python.org/3.9/objects.inv
+
+nav:
+  - Home: "index.md"

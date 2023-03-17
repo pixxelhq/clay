@@ -26,5 +26,8 @@ test:
 
 .PHONY: docs
 
-docs:
-		cd python/sphinx; make clean; make html
+build-docs:
+		cd python/mkdocs; mkdocs build
+
+serve-docs:
+		cd python/mkdocs; mkdocs serve

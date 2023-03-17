@@ -2,6 +2,7 @@ flake8
 mypy
 isort
 black
+black[jupyter]
 pytest
 pre-commit
 coverage==6.4.4
@@ -15,3 +16,6 @@ asynctest
 uvloop
 pika
 httpx
+mkdocs-material
+mkdocstrings
+mkdocstrings-python
