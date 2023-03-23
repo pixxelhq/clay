@@ -1,0 +1,61 @@
+name: {{ .Name }}
+description: describe the model
+short description: short model description to maybe display on frontend
+version: 0.1
+author: <author>@pixxel.co.in
+
+resources:
+  minimum:
+    cpus: 1 # 1 unit represents 1 entire CPU
+    memory: 256 # in Megabytes
+  maximum: # leave empty to let ramen figure out good defaults
+    cpus: null
+    memory: null
+  gpu: false
+
+model-setup-parameters: # model initialization params
+  - name: param1
+    dtype: string
+    default: default string
+  - name: param2
+    dtype: float
+    default: 1.0
+
+inputs:
+  - name: raster_url
+    dtype: string
+    item:
+      type: raster
+      collection: planetary.sentinel2a
+      dtype: uint16
+      resolution: 10
+      processing_level: 2a
+      min_height: 512
+      min_width: 512
+      max_height: null
+      max_width: null
+      bands:
+        - B04
+        - B03
+        - B02
+  - name: bandlist
+    dtype: list.str
+  - name: input3
+    dtype: float
+    default: 0.3
+
+output:
+  - name: result
+    dtype: float
+
+environment:
+  python-version: 3.10
+  conda: false
+  gdal: true
+  apt-get:
+    - wget
+  requirements: requirements.txt # or conda-env.yml
+
+options:
+  dry_run: null
+  preview: null
