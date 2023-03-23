@@ -1,0 +1,8 @@
+black
+black[jupyter]
+flake8
+ipykernel
+isort
+mypy
+pytest
+pre-commit

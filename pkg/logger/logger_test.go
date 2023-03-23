@@ -1,4 +1,4 @@
-package pkg
+package logger
 
 import (
 	"bytes"
@@ -38,5 +38,5 @@ func TestNewLogger(t *testing.T) {
 	if lastEntry != bufferEntry {
 		t.Errorf("Log mismatch: %s / %s", lastEntry, bufferEntry)
 	}
-
+	_ = os.Remove("testmodule.logs.txt")
 }
