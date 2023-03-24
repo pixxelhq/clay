@@ -44,6 +44,7 @@ setup(
         "click-plugins",
         "pydantic",
         "Jinja2",
+        "uvloop",
     ],
     package_data={"ramen": ["templates/*.jinja"]},
     include_package_data=True,

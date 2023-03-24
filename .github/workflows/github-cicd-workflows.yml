@@ -52,6 +52,7 @@ jobs:
         run: |
           mypy .
       - name: Flake8 Check
+        working-directory: ./python
         run: |
           flake8 . --config .flake8
       - name: Docs Build Test
