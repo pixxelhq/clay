@@ -42,6 +42,9 @@ class TestJobRunner(unittest.TestCase):
             self._modelargs,
         )
 
+    @pytest.mark.skip(
+        reason="no way of currently testing this until Orchestrator is up and running"
+    )
     @mock.patch("ramen.core.requests.post")
     def test_jobrunner_success(self, mock_post: Any) -> None:
         mock_response = mock.Mock()
@@ -74,6 +77,9 @@ class TestJobRunner(unittest.TestCase):
         assert call_args[1].kwargs["json"]["state"] == ModelStates.COMPLETED.value
         assert call_args[1].kwargs["json"]["result"] == "x"
 
+    @pytest.mark.skip(
+        reason="no way of currently testing this until Orchestrator is up and running"
+    )
     @mock.patch("ramen.core.requests.post")
     def test_jobrunner_failure(self, mock_post: Any) -> None:
         mock_response = mock.Mock()

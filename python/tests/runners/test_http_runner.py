@@ -1,7 +1,10 @@
+import sys
 import unittest
+from pathlib import Path
 from typing import Any, Dict
 from unittest import mock
 
+import pytest
 from fastapi.testclient import TestClient
 
 import ramen
@@ -30,6 +33,7 @@ class TestHTTPRunner(unittest.TestCase):
     def setUp(self) -> None:
         self._modelcls = M
         self._modelargs = {"config": "tests/testrepo/config.yaml"}
+        sys.path.append(Path(__file__) / "../../")
 
     def test_jobrunner_init(self) -> None:
         HTTPRunner(
@@ -51,6 +55,9 @@ class TestHTTPRunner(unittest.TestCase):
         assert response.status_code == 200
         assert response.json() == "This is root!"
 
+    @pytest.mark.skip(
+        reason="no way of currently testing this until Orchestrator is up and running"
+    )
     @mock.patch("ramen.core.requests.post")
     def test_sucess(self, mock_post: Any):
         mock_response = mock.Mock()
@@ -85,6 +92,9 @@ class TestHTTPRunner(unittest.TestCase):
         assert call_args[1].kwargs["json"]["state"] == ModelStates.COMPLETED.value
         assert call_args[1].kwargs["json"]["result"] == "x"
 
+    @pytest.mark.skip(
+        reason="no way of currently testing this until Orchestrator is up and running"
+    )
     @mock.patch("ramen.core.requests.post")
     def test_failure(self, mock_post: Any):
         mock_response = mock.Mock()
