@@ -27,7 +27,7 @@ test:
 .PHONY: docs
 
 build-docs:
-		cd python/mkdocs; mkdocs build
+		cd mkdocs; mkdocs build
 
 serve-docs:
-		cd python/mkdocs; mkdocs serve
+		cd mkdocs; mkdocs serve

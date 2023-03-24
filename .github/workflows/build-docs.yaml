@@ -27,14 +27,14 @@ jobs:
       - name: Build docs
         run: |
           make build-docs
-          cp .gitignore ./python/mkdocs/site/
-          cp ./python/mkdocs/Dockerfile ./python/mkdocs/site
+          cp .gitignore ./mkdocs/site/
+          cp ./mkdocs/Dockerfile ./mkdocs/site
       - name: push documentation to latest-docs
         uses: casperdcl/push-dir@v1
         with:
           message: latest-ify ramen documentation (${{ github.sha }})
           branch: latest-docs
-          dir: ./python/mkdocs/site
+          dir: ./mkdocs/site
 
   build-push-container:
     needs: build-mkdocs

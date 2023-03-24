@@ -17,6 +17,6 @@ lulc
 *.pyo
 tests/__pycache__
 tests/__pycache__/__init__.cpython-38.pyc
-!python/mkdocs/docs
+!mkdocs/docs
 site
 .dmypy.json
