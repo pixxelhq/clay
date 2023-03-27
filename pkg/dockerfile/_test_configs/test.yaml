@@ -1,0 +1,9 @@
+---
+build:
+  python-version: 3.9
+  conda: true
+  gdal: false
+  apt-get:
+    - wget
+    - curl
+  requirements: requirements-or-conda.yml
