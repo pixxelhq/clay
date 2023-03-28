@@ -15,8 +15,8 @@ github.com/mattn/go-isatty v0.0.17 h1:BTarxUcIeDqL27Mc+vyvdWYSL28zpIhv3RoTdsLMPn
 github.com/mattn/go-isatty v0.0.17/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/example/orchestrator v0.0.0-20230325142156-b0f8d234a04e h1:fFVTodjPi7JWxntO5B7B8mINzSUG9n+ebPVTfWYgrqQ=
-github.com/example/orchestrator v0.0.0-20230325142156-b0f8d234a04e/go.mod h1:sJSIxGK68F1mS5diJJgyjAXlfGRXbL0nAe/OsIOyZoo=
+github.com/example/orchestrator v0.0.0-20230328050345-a80d3228f662 h1:tnVaVHST0OuxWceq3npR/p5zFR3pETMfX3wxAH/xV3A=
+github.com/example/orchestrator v0.0.0-20230328050345-a80d3228f662/go.mod h1:bUsW+/8vR2ng4ITSB/h3wRFM4oYQmeaxmNTZqLYNa0c=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/rs/xid v1.4.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
