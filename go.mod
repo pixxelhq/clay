@@ -3,7 +3,7 @@ module github.com/example/ramen
 go 1.18
 
 require (
-	github.com/example/orchestrator v0.0.0-20230325142156-b0f8d234a04e
+	github.com/example/orchestrator v0.0.0-20230328050345-a80d3228f662
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
