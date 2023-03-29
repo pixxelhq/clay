@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 )
 
@@ -10,10 +11,10 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "ramen",
 	Short: "A tool to bridge gap between model development on local machines and deployment on the platform",
-	Long: `Ramen provide users the tooling and the scaffolding needed to quickly:
+	Long: heredoc.Doc(`Ramen provide users the tooling and the scaffolding needed to quickly:
 	1.Refactor their model in a pre-defined structure
 	2.Programmatically declare their inputs and outputs, environment and compute requirements
-	3.Provide tooling to easily and locally test their models that are deployed on our infra`,
+	3.Provide tooling to easily and locally test their models that are deployed on our infra`),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
