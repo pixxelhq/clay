@@ -1,0 +1,49 @@
+/*
+Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+
+*/
+package cmd
+
+import (
+	"context"
+
+	"github.com/MakeNowJust/heredoc"
+	"github.com/example/ramen/api"
+	"github.com/example/ramen/pkg/logger"
+	"github.com/spf13/cobra"
+)
+
+// addCmd represents the add command
+var blockCmd = &cobra.Command{
+	Use:   "block",
+	Short: "Add a new block in Pixxel Labs ",
+	Long: heredoc.Doc(`
+	Add a new block in Pixxel Labs.
+	A block, with the specification file, will be added to Pixxel Lab.
+	It will be provided as a drag-and-drop feature to the users.`),
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := context.TODO()
+		logger := getlogger()
+		specFilePath := args[0]
+		api.CreateNewBlock(ctx, logger, specFilePath)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(blockCmd)
+}
+
+func getlogger() *logger.Logger {
+
+	logger := logger.NewLogger(&logger.LogConfig{
+		EnableConsoleLogging: true,
+		LoggerName:           "ramen",
+		ModuleName:           "ramen",
+		Directory:            "/tmp/ramen/logs/",
+		Filename:             "modelspec.logs.txt",
+		MaxBackups:           0,
+		MaxSize:              512,
+		MaxAge:               0,
+	})
+	return logger
+}
