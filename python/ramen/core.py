@@ -53,10 +53,13 @@ class ModelWrapper:
 
     def run_setup(self) -> None:
         self.params = {}
-        for param in self.config.parameters:
-            self.params[param["name"]] = cast_inputs(
-                param["default"], param["type"].lower()
-            )
+        parameters = getattr(self.config, "parameters", None)
+        if parameters is not None:
+            parameters = filter(lambda x: len(x) > 0, parameters)
+            for param in parameters:
+                self.params[param["name"]] = cast_inputs(
+                    param["default"], param["type"].lower()
+                )
         self.setup(**self.params)
 
     @cached_property
@@ -152,6 +155,7 @@ class ModelWrapper:
         _return_vals = to_tuple_if_required(_return_vals)
         if _return_vals is not None:
             _return_vals = await self.postprocess(*_return_vals)
+            _return_vals = to_tuple_if_required(_return_vals)
             _return_vals = self.format_output(_return_vals)
         return _return_vals
 

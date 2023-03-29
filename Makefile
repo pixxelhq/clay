@@ -1,6 +1,7 @@
 init:
 	pip install -r python/requirements/requirements-dev.txt
 	pre-commit install
+	pre-commit install --hook-type commit-msg
 
 package:
 		make build/package
@@ -31,3 +32,14 @@ build-docs:
 
 serve-docs:
 		cd mkdocs; mkdocs serve
+
+format:
+		@cd python; \
+		echo "Formatting with black..."; \
+		black ramen; \
+		echo "Formatting with isort..."; \
+		isort ramen; \
+		echo "Linting with flake8..."; \
+		flake8 ramen; \
+		echo "Linting with mypy..."; \
+		mypy ramen; \

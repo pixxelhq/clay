@@ -9,6 +9,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
         args: [--allow-multiple-documents]
+        exclude: pkg/bootstrap/templates/
       - id: check-added-large-files
 
   - repo: https://github.com/asottile/yesqa
@@ -22,19 +23,22 @@ repos:
     hooks:
       - id: isort
         name: Format imports
+        args: ["--settings-path=python/pyproject.toml"]
 
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
       - id: black
         name: Format code
-        exclude: docs/source-app
+        exclude: pkg/bootstrap/templates/
+        args: ["--config=python/pyproject.toml"]
 
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
       - id: flake8
         name: Check PEP8
+        exclude: pkg/bootstrap/templates/
         args: ["--config=python/.flake8"]
 
   - repo: https://github.com/TekWizely/pre-commit-golang
