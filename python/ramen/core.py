@@ -3,17 +3,24 @@ import os
 import threading
 import time
 from abc import abstractmethod
+from copy import deepcopy
 from enum import Enum
+from functools import cached_property
 from typing import Any, Dict, List, Optional, Union
 
 import requests
 import uvloop
 from matter import fs
+from matter.fs import AzureClient
 
-from .config import get_config
-from .exceptions import FailedExecutionException
-from .logger import Logger, RamenLogger, get_streamvalues
-from .utils import Converters, to_tuple_if_required
+from ramen.exceptions import FailedExecutionException
+from ramen.logger import Logger, RamenLogger, get_streamvalues
+from ramen.utils import (
+    PRIMITIVE_TYPES,
+    cast_inputs,
+    to_tuple_if_required,
+    yaml_to_namespace,
+)
 
 
 class ModelStates(Enum):
@@ -32,17 +39,42 @@ class ModelWrapper:
         protocol: str = "abfs",
         logger: Optional[Logger] = None,
     ) -> None:
-        self._fs = fs.filesystem(protocol=protocol)
-        self.configs = get_config(config)
+        self.protocol = protocol
+        self.config = yaml_to_namespace(config)
         if logger is None:
             logger = RamenLogger(
-                "model_wrapper",
+                self.__class__.__name__,
                 False,
                 create_buffer_handler=True,
                 create_console_handler=True,
             )
         self.logger: Logger = logger
-        self.setup(**self.configs.model.init)
+        self.run_setup()
+
+    def run_setup(self) -> None:
+        self.params = {}
+        for param in self.config.parameters:
+            self.params[param["name"]] = cast_inputs(
+                param["default"], param["type"].lower()
+            )
+        self.setup(**self.params)
+
+    @cached_property
+    def fs(self) -> AzureClient:
+        filesystem = fs.filesystem(protocol=self.protocol)
+        return filesystem
+
+    @cached_property
+    def recieve_input_properties(self) -> bool:
+        return False
+
+    def format_output(self, outputs: tuple) -> Any:
+        output_containers = deepcopy(self.config.output)
+        for output, output_container in zip(outputs, output_containers):
+            output_container["value"] = output
+            if not output_container.get("properties", False):
+                output_container["properties"] = {}
+        return output_containers
 
     def __init_subclass__(cls) -> None:
         """Ensures all functions defined in __OVERRIDABLE_FUNCS__ are coroutines
@@ -61,28 +93,47 @@ class ModelWrapper:
     def setup(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
-    def _parse_inputs(self, inputs: dict) -> dict:
-        parsed_inputs = {}
+    def _parse_inputs(self, inputs: list) -> dict:
+        """
+        Makes sure all the inputs are correctly cast into expected types
+        We leave items with unidentified `type`s as strings by default
 
-        for k, v in inputs.items():
-            orig_targ_type = self.configs.model.inputs[k]["type"]
-            targ_types = orig_targ_type.replace(" ", "").split(",")
-            _found_type = False
-            for ttype in targ_types:
-                try:
-                    parsed_inputs[k] = getattr(Converters, f"type_{ttype}")(v)
-                    _found_type = True
-                    if _found_type:
-                        break
-                except TypeError:
-                    pass
-            else:
-                if not _found_type:
-                    raise ValueError(
-                        f"`{k}` received {type(v)} arguments "
-                        f"while it expects `{orig_targ_type}`"
-                    )
-        return parsed_inputs
+        Returns a dict mapping the parameter names to one of:
+            - the value of the parameter
+            - the entire set of properties of the parameter along with the values
+        """
+        # remove empty dicts
+        inputs = list(filter(lambda x: len(x) > 0, inputs))
+
+        # We assume that json.loads has done most primitive type conversions and
+        # only explicitly cast values that are still "incorrectly" left as strings.
+        # Since this will almost never happen, the below step will likely
+        # never actuall run, but is kept for safety
+        # Casting Inputs:
+        for item in inputs:
+            if (
+                isinstance(item.get("value", None), str)
+                and PRIMITIVE_TYPES[item["type"].lower()] is not str
+            ):
+                item["value"] = cast_inputs(item["value"], item["type"])
+
+        # filling in default values for any missing inputs
+        provided_inputs = [item.get("name", None) for item in inputs]
+        for param in self.config.inputs:
+            if param["name"] not in provided_inputs:
+                _param = {**param}
+                _param["value"] = cast_inputs(
+                    _param.pop("default"), _param["type"].lower()
+                )
+                inputs.append(_param)
+
+        # Setting the key-value pairs as required
+        if self.recieve_input_properties:
+            result = {item["name"]: item for item in inputs}
+        else:
+            result = {item["name"]: item["value"] for item in inputs}
+
+        return result
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
@@ -93,9 +144,7 @@ class ModelWrapper:
     async def postprocess(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def infer(self, inputs: dict) -> Dict[str, Any]:
-        task_id = inputs.get("task_id", "")
-        inputs.pop("task_id", None)
+    async def infer(self, inputs: list) -> Dict[str, Any]:
         parsed_inputs = self._parse_inputs(inputs)
         _return_vals = await self.preprocess(**parsed_inputs)
         _return_vals = to_tuple_if_required(_return_vals)
@@ -103,12 +152,8 @@ class ModelWrapper:
         _return_vals = to_tuple_if_required(_return_vals)
         if _return_vals is not None:
             _return_vals = await self.postprocess(*_return_vals)
-        res = {
-            "id": task_id,
-            "result": _return_vals,
-            "logs": get_streamvalues(self.logger),
-        }
-        return res
+            _return_vals = self.format_output(_return_vals)
+        return _return_vals
 
     async def get_logs(self) -> str:
         """This method is used to extract logs from the main thread using
@@ -179,31 +224,36 @@ class BaseRunner(object):
         self._logger.info("Started model inference thread.")
 
     def run_model_inference(
-        self, inference_parameters: Dict[str, Any], *args: Any, **kwargs: Any
+        self, inference_parameters: List[Dict[Any, Any]], *args: Any, **kwargs: Any
     ) -> Any:
-        # fetching the task id for the current request
-        task_id = inference_parameters.get("task_id", "")
+        # find task_id and remove from inputs
+        task_id = ""
+        for i, item in enumerate(inference_parameters):
+            if "task_id" in item.keys():
+                task_id = item["task_id"]
+                inference_parameters.pop(i)
+                break
 
         # setting the state of the current task state to `Inprogress`
         self._fire_callback(state=ModelStates.INPROGRESS, id=task_id)
 
         # Running the actual model inference
+        res = {"task_id": task_id, "result": {}, "logs": None}
         try:
-            res = asyncio.run_coroutine_threadsafe(
+            res["result"] = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inference_parameters), self._loop
             ).result()
+            res["logs"] = asyncio.run_coroutine_threadsafe(
+                self._model.get_logs(),
+                self._loop,
+            ).result()
         except Exception as exc:
+            res["result"] = exc  # type: ignore[assignment]
             if hasattr(exc, "logs") and exc.logs != "":
-                logs = exc.logs
+                res["logs"] = exc.logs
             else:
-                logs = asyncio.run_coroutine_threadsafe(
-                    self._model.get_logs(),
-                    self._loop,
-                ).result()
-            res = {"id": task_id, "result": {}, "logs": logs}
-            return self.failure(exc, data=res)
-
-        return self.success(res)
+                res["logs"] = ""
+        return res
 
     def _fire_callback(
         self,

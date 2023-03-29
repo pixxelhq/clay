@@ -1,18 +1,16 @@
-import sys
+import json
 import unittest
-from pathlib import Path
 from typing import Any, Dict
 from unittest import mock
 
 import pytest
-from fastapi.testclient import TestClient
 
 import ramen
 from ramen import ModelWrapper
 from ramen.core import ModelStates
-from ramen.runners import HTTPRunner
+from ramen.runners import JobRunner
 
-pytest.skip("skipping http runner tests for now.", allow_module_level=True)
+pytest.skip("skipping old job runner tests for now.", allow_module_level=True)
 
 
 class M(ModelWrapper):
@@ -20,67 +18,51 @@ class M(ModelWrapper):
         pass
 
     async def preprocess(self, i: str) -> Any:
+        self.logger.info("Some info in preprocess")
         if i == "f":
-            ramen.failure("Failed", 500)
+            self.logger.error("oops failed")
+            ramen.failure("Failed")
         return 1, 2, {"a": 123}
 
     async def inference(self, a: int, b: int, c: Dict[str, int]) -> Any:
         return "c"
 
     async def postprocess(self, x: str) -> Any:
+        self.logger.info("Some log")
         return "x"
 
 
-class TestHTTPRunner(unittest.TestCase):
+class TestJobRunner(unittest.TestCase):
     def setUp(self) -> None:
         self._modelcls = M
         self._modelargs = {"config": "tests/testrepo/config.yaml"}
-        sys.path.append(Path(__file__) / "../../")
 
     def test_jobrunner_init(self) -> None:
-        HTTPRunner(
+        JobRunner(
             "demomodel",
             self._modelcls,
             self._modelargs,
         )
 
-    def test_root(self):
-        m = HTTPRunner(
-            "demomodel",
-            self._modelcls,
-            self._modelargs,
-        )
-        m._init_fastapi_app()
-        app = m._app
-        client = TestClient(app)
-        response = client.get("/")
-        assert response.status_code == 200
-        assert response.json() == "This is root!"
-
-    @pytest.mark.skip(
-        reason="no way of currently testing this until Orchestrator is up and running"
-    )
     @mock.patch("ramen.core.requests.post")
-    def test_sucess(self, mock_post: Any):
+    def test_jobrunner_success(self, mock_post: Any) -> None:
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
-        m = HTTPRunner("demomodel", self._modelcls, self._modelargs)
-
-        # Not using `m.start` since that is blocking.
-        m._init_model()
-        m._init_model_inference_event_loop()
-        m._init_fastapi_app()
-        app = m._app
-        client = TestClient(app)
-        response = client.post("/infer", data='{"i": "a"}')
+        jr = JobRunner(
+            "demomodel",
+            self._modelcls,
+            self._modelargs,
+        )
+        with pytest.raises(SystemExit) as exc:
+            jr.start([json.dumps({"i": "a"})])
 
         call_args = mock_post.call_args_list
 
-        assert response.status_code == 200
-        assert response.content == b"x"
+        # Asserting correct exit code
+        assert exc.value.code == 0
 
         # Here we assert that there should have been two state updates,
         # 1. State change to `TaskInprogress`
@@ -94,27 +76,25 @@ class TestHTTPRunner(unittest.TestCase):
         assert call_args[1].kwargs["json"]["state"] == ModelStates.COMPLETED.value
         assert call_args[1].kwargs["json"]["result"] == "x"
 
-    @pytest.mark.skip(
-        reason="no way of currently testing this until Orchestrator is up and running"
-    )
     @mock.patch("ramen.core.requests.post")
-    def test_failure(self, mock_post: Any):
+    def test_jobrunner_failure(self, mock_post: Any) -> None:
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
-        m = HTTPRunner("demomodel", self._modelcls, self._modelargs)
-        m._init_model()
-        m._init_model_inference_event_loop()
-        m._init_fastapi_app()
-        app = m._app
-        client = TestClient(app)
-        response = client.post("/infer", data='{"i": "f"}')
+        jr = JobRunner(
+            "demomodel",
+            self._modelcls,
+            self._modelargs,
+        )
+        with pytest.raises(SystemExit) as exc:
+            jr.start([json.dumps({"i": "f"})])
+
         call_args = mock_post.call_args_list
 
-        assert response.status_code == 500
-        assert response.content == b"status code: 500 message:Failed"
+        # Asserting correct exit code
+        assert exc.value.code == 1
 
         # Here we assert that there should have been two state updates,
         # 1. State change to `TaskInprogress`
@@ -126,4 +106,4 @@ class TestHTTPRunner(unittest.TestCase):
         assert call_args[0].kwargs["json"]["logs"] == ""
 
         assert call_args[1].kwargs["json"]["state"] == ModelStates.FAILED.value
-        assert call_args[1].kwargs["json"]["result"] == {}
+        assert call_args[1].kwargs["json"]["logs"] != ""

@@ -50,7 +50,7 @@ class JobRunner(BaseRunner):
         else:
             _ = self._fire_callback(
                 state=ModelStates.FAILED,
-                id=data["id"],
+                id=data["task_id"],
                 logs=data["logs"],
             )
         self._logger.error(f"Failure: {exc}")
@@ -81,3 +81,7 @@ class JobRunner(BaseRunner):
         self._logger.info(args)
         res = self.run_model_inference(model_args)
         self._logger.info(f"Result: {res}")
+        if isinstance(res["result"], Exception):
+            self.failure(res["result"], res)
+        else:
+            self.success(res)
