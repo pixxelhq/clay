@@ -24,6 +24,8 @@ type Entry struct {
 
 type Model Entry
 
+type TestModel Entry
+
 func getProjectTemplateDir() string {
 	_, filename, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(filename)
@@ -103,6 +105,7 @@ func getTemplateData(modelName string) map[string]TemplateData {
 		"entry.py":                 Entry{ModelName: modelName},
 		"README.md":                Readme{Name: modelName},
 		"model_specification.yaml": ModelSpecification{Name: modelName},
+		"test_model.py":            TestModel{ModelName: modelName},
 	}
 	return data
 }

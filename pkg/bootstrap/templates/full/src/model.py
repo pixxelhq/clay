@@ -1,4 +1,4 @@
-from clay import ModelWrapper
+from ramen import ModelWrapper
 
 
 class {{.ModelName}}(ModelWrapper):
@@ -14,7 +14,7 @@ class {{.ModelName}}(ModelWrapper):
         return model_inputs, extra
 
     async def inference(self, model_inputs, extra):
-        # simply run inference and return the results 
+        # simply run inference and return the results
         # and anything extra if required
         inference_results, extra = None, None
         return inference_results, extra

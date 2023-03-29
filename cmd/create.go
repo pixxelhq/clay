@@ -34,7 +34,7 @@ var dockerCmd = &cobra.Command{
 	Use:   "create-dockerfile [modelSpecificationPath] [sourceCodeFolder] [useHttpRunner]",
 	Short: "Creates a dockerfile to package and serve your model",
 	Long: `
-	Creates a dockerfile using your model spec assuming that sourceCodeFolder contains all the necessray code. 
+	Creates a dockerfile using your model spec assuming that sourceCodeFolder contains all the necessray code.
 	Set the http Flag to create a dockerfile that runs the model as a server instead of a job.
 	`,
 

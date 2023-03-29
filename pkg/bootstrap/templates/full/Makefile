@@ -1,4 +1,4 @@
-setup:	
+setup:
 		if ! git rev-parse --git-dir > /dev/null 2>&1; then \
 			echo "Initializing Git repository..."; \
 			git init; \
