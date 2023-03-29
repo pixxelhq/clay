@@ -18,7 +18,7 @@ push/package:
 						--password ${RAMEN_REGISTRY_PASS} \
 						--verbose \
 						--skip-existing \
-						dist/*
+						python/dist/*
 
 
 test:
