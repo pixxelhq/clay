@@ -20,3 +20,4 @@ exclude =
     ./.git,
     *.pyi
     env
+    tests

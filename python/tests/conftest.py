@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
+
 sys.path.append(str((Path(__file__).parent) / "testrepo"))
-from entry import M
 
 
 @pytest.fixture(scope="session")
@@ -21,5 +22,5 @@ def session_setup(request):
 
 
 @pytest.fixture(scope="function")
-def toy_model():
-    return M(config="tests/testrepo/config.yaml")
+def toy_model() -> YMXPLUSC:
+    return YMXPLUSC(config=YMXPLUSC_CONFIG)

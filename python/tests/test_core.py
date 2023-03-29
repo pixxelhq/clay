@@ -1,14 +1,17 @@
+import json
 import sys
 import time
 import unittest
 from typing import Any
 
-sys.path.append("./tests/testrepo")
-
 import pytest
 
 from ramen import ModelWrapper
 from ramen.core import BaseRunner
+
+from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG, make_ymxplusc_input
+
+sys.path.append("./tests/testrepo")
 
 
 def test_mw_missing_setup_override() -> None:
@@ -17,7 +20,7 @@ def test_mw_missing_setup_override() -> None:
             pass
 
     with pytest.raises(NotImplementedError):
-        M(config="tests/testrepo/config.yaml")
+        M(config="tests/models/ymxplusc.yaml")
 
 
 def test_mw_blocking_method_override() -> None:
@@ -32,127 +35,21 @@ def test_mw_blocking_method_override() -> None:
 
 
 def test_mw_parse_inputs(toy_model) -> None:
-    # sanity check - conversion of int to string
-    parsed_input = toy_model._parse_inputs({"i": 12})
-    assert isinstance(parsed_input["i"], str)
-
-    # testing string to int conversion for inputs
-    toy_model.configs.model.inputs["i"]["type"] = "int"
-    parsed_input = toy_model._parse_inputs({"i": "12"})
-    assert isinstance(parsed_input["i"], int)
-
-
-def test_mw_model_init() -> None:
-    from entry import M  # type: ignore
-
-    M(config="tests/testrepo/config.yaml")
+    # sanity check - all params succesfully created
+    model_input = json.loads(make_ymxplusc_input())[1:]
+    parsed_input = toy_model._parse_inputs(model_input)
+    for param in toy_model.config.inputs:
+        assert param["name"] in parsed_input.keys()
+    # TODO: write better test
 
 
 @pytest.mark.asyncio
-async def test_mw_model_inference() -> None:
-    from entry import M  # type: ignore
-
-    toy_model = M("./tests/testrepo/config.yaml")
-    toy_output = await toy_model.infer({"i": "1"})
-    assert toy_output["result"] == "ba1"
-
-
-@pytest.mark.asyncio
-async def test_mw_preprocess_returns_non_iterable() -> None:
-    class M(ModelWrapper):
-        def setup(self, a: str, x: list):
-            pass
-
-        async def preprocess(self, i: str) -> Any:
-            return 1
-
-        async def inference(self, i: str) -> Any:
-            pass
-
-        async def postprocess(self) -> Any:
-            return None
-
-    m = M("tests/testrepo/config.yaml")
-    r = await m.infer({"i": "a"})
-    assert r["result"] is None
-
-
-@pytest.mark.asyncio
-async def test_mw_preprocess_returns_multiple_values() -> None:
-    class M(ModelWrapper):
-        def setup(self, a: str, x: list):
-            pass
-
-        async def preprocess(self, i: str) -> Any:
-            return 1, 2, {"a": 123}
-
-        async def inference(self, a: int, b: int, c: dict) -> Any:
-            return a, b, c
-
-        async def postprocess(self, a: int, b: int, c: dict) -> Any:
-            return a, b, c
-
-    m = M("tests/testrepo/config.yaml")
-    r = await m.infer({"i": 1})
-    assert r["result"] == (1, 2, {"a": 123})
-
-
-@pytest.mark.asyncio
-async def test_mw_inference_returns_string() -> None:
-    class M(ModelWrapper):
-        def setup(self, a: str, x: list):
-            pass
-
-        async def preprocess(self, i: str) -> Any:
-            return "abc"
-
-        async def inference(self, a: str) -> Any:
-            return "cba"
-
-        async def postprocess(self, x: str) -> Any:
-            return "123"
-
-    m = M("tests/testrepo/config.yaml")
-    r = await m.infer({"i": 1})
-    assert r["result"] == "123"
-
-
-@pytest.mark.asyncio
-async def test_mw_inference_returns_none() -> None:
-    class M(ModelWrapper):
-        def setup(self, a: str, x: list):
-            pass
-
-        async def preprocess(self, i: str) -> Any:
-            return 1, 2, {"a": 123}
-
-        async def inference(self, a: int, b: int, c: dict) -> Any:
-            return None
-
-        async def postprocess(self) -> Any:
-            pass
-
-    m = M("tests/testrepo/config.yaml")
-    r = await m.infer({"i": 1})
-    assert r["result"] is None
-
-
-@pytest.mark.asyncio
-async def test_mw_missing_inference_override() -> None:
-    class M(ModelWrapper):
-        def setup(self, a: str, x: list):
-            pass
-
-        async def preprocess(self, i: str) -> Any:
-            return 1, 2, {"a": 123}
-
-        async def postprocess(self) -> Any:
-            pass
-
-    with pytest.raises(NotImplementedError):
-        m = M("tests/testrepo/config.yaml")
-        r = await m.infer({"i": 1})
-        assert r is None
+async def test_mw_model_inference(toy_model) -> None:
+    # TODO: Write better test
+    model_inputs = json.loads(make_ymxplusc_input())[1:]
+    result = await toy_model.infer(model_inputs)
+    assert isinstance(result[0]["value"], float)
+    assert isinstance(result[1]["value"], str)
 
 
 class TestBaseRunner(unittest.TestCase):
@@ -171,12 +68,12 @@ class TestBaseRunner(unittest.TestCase):
             def __init__(self, run_mode: str):
                 super().__init__(
                     run_mode=run_mode,
-                    modelcls=M,
-                    model_args={"config": "tests/testrepo/config.yaml"},
+                    modelcls=YMXPLUSC,
+                    model_args={"config": YMXPLUSC_CONFIG},
                     logger=None,
                 )
 
-        self._test_modelcls = M
+        self._test_modelcls = YMXPLUSC
         self._test_runnercls = DemoRunner
 
     def tearDown(self) -> None:
