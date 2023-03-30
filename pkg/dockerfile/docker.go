@@ -21,12 +21,8 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 	// Start building Dockerfile
 	dockerfile := "FROM " + baseImage + "\n\n"
 
-	// Copy source code and model specification files to image
-	dockerfile += "COPY " + SourceCodeFolder + " /app\n"
-	dockerfile += "COPY " + ModelSpecificationPath + " /app\n\n"
-
-	// Set working directory
-	dockerfile += "WORKDIR /app\n\n"
+	// Add g++ to AptGet
+	AptGet = append(AptGet, "g++")
 
 	// Install GDAL if needed
 	if UseGdal && !UseConda {
@@ -34,16 +30,16 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 	}
 
 	// Install apt-get packages if needed
-	if len(AptGet) > 0 {
-		dockerfile += "RUN apt-get update && apt-get install --yes " + strings.Join(AptGet, " ") + "\n\n"
-	}
+	dockerfile += "RUN apt-get update && apt-get install --yes " + strings.Join(AptGet, " ") + "\n\n"
 
 	// Install Python packages from requirements.txt or conda.yml
+	dockerfile += "COPY " + Requirements + " .\n"
+
 	if strings.HasSuffix(Requirements, ".txt") {
 		if UseConda {
 			return errors.Errorf("If you want to use conda, please provide a conda environment file instead.")
 		}
-		dockerfile += "RUN pip install --no-cache-dir -r " + Requirements + "\n"
+		dockerfile += "RUN pip3 install --no-cache-dir -r " + Requirements + "\n"
 	} else {
 		if !UseConda {
 			return errors.Errorf("If you want to use a conda environment, please set use_conda to `true`")
@@ -55,6 +51,20 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 		}
 	}
 	dockerfile += "\n"
+
+	// Install matter and clay/ramen
+	dockerfile += "RUN --mount=type=secret,id=GITLAB_TOKEN \\\n"
+	dockerfile += "    GITLAB_TOKEN_=$(cat /run/secrets/GITLAB_TOKEN) && \\\n"
+	dockerfile += "    pip3 install --no-cache-dir matter==0.2.0 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38506821/packages/pypi/simple && \\\n"
+	dockerfile += "    pip3 install --no-cache-dir ramen==0.1.0 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38508365/packages/pypi/simple pika\n\n"
+
+	// Copy source code and model specification files to image
+	dockerfile += "COPY " + SourceCodeFolder + " /app\n"
+	dockerfile += "COPY " + ModelSpecificationPath + " /app/specification.yaml\n"
+	dockerfile += "ENV SPECIFICATION_PATH=/app/specification.yaml\n\n"
+
+	// Set working directory
+	dockerfile += "WORKDIR /app\n\n"
 
 	if useHttpRunner {
 		// Expose port and start server
@@ -75,14 +85,15 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 }
 
 func GenerateDockerfile(modelSpecificationPath string, sourceCodeFolder string, useHttpRunner bool) error {
-	modelSpecificationPath, err := filepath.Abs(modelSpecificationPath)
+	outputFolder := "."
+	modelSpecificationPath, err := filepath.Rel(outputFolder, modelSpecificationPath)
 	if err != nil {
 		return err
 	}
 	if sourceCodeFolder == "" {
 		fmt.Println("No `sourceCodeFolder` provided. Using \"./src\" by default")
 	}
-	sourceCodeFolder, err = filepath.Abs(sourceCodeFolder)
+	sourceCodeFolder, err = filepath.Rel(outputFolder, sourceCodeFolder)
 	if err != nil {
 		return err
 	}
@@ -92,6 +103,6 @@ func GenerateDockerfile(modelSpecificationPath string, sourceCodeFolder string, 
 		return err
 	}
 
-	err = buildDockerfile(useHttpRunner, build.PythonVersion, build.Conda, build.Gdal, build.AptGet, build.Requirements, ".", sourceCodeFolder, modelSpecificationPath)
+	err = buildDockerfile(useHttpRunner, build.PythonVersion, build.Conda, build.Gdal, build.AptGet, build.Requirements, outputFolder, sourceCodeFolder, modelSpecificationPath)
 	return err
 }

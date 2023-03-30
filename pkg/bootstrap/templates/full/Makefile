@@ -33,3 +33,6 @@ clean:
 		rm -rf **/__pycache__
 		rm -rf .pytest_cache
 		rm -rf .mypy_cache
+
+build-docker-image:
+		docker build -t {{.ModelName}} --secret id=GITLAB_TOKEN .

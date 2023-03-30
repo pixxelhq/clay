@@ -23,6 +23,7 @@ repos:
     hooks:
       - id: isort
         name: Format imports
+        exclude: pkg/bootstrap/templates/
         args: ["--settings-path=python/pyproject.toml"]
 
   - repo: https://github.com/psf/black
