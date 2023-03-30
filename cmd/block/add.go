@@ -2,7 +2,7 @@
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 
 */
-package cmd
+package block
 
 import (
 	"context"
@@ -14,23 +14,19 @@ import (
 )
 
 // addCmd represents the add command
-var blockCmd = &cobra.Command{
-	Use:   "block",
+var addCmd = &cobra.Command{
+	Use:   "add [specFilePath]",
 	Short: "Add a new block in Pixxel Labs ",
 	Long: heredoc.Doc(`
-	Add a new block in Pixxel Labs.
-	A block, with the specification file, will be added to Pixxel Lab.
-	It will be provided as a drag-and-drop feature to the users.`),
+    Add a new block in Pixxel Labs.
+    A block, with the specification file, will be added to Pixxel Lab.
+    It will be provided as a drag-and-drop feature to the users.`),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.TODO()
 		logger := getlogger()
 		specFilePath := args[0]
 		api.CreateNewBlock(ctx, logger, specFilePath)
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(blockCmd)
 }
 
 func getlogger() *logger.Logger {
@@ -46,4 +42,10 @@ func getlogger() *logger.Logger {
 		MaxAge:               0,
 	})
 	return logger
+}
+
+func init() {
+
+	BlockCmd.AddCommand(addCmd)
+
 }
