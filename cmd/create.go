@@ -51,6 +51,6 @@ var dockerCmd = &cobra.Command{
 
 func init() {
 	dockerCmd.Flags().BoolVar(&useHttpRunner, "http", false, "Set flag to package model as an http server instead of a job")
-	rootCmd.AddCommand(dockerCmd)
-	rootCmd.AddCommand(createCmd)
+	RootCmd.AddCommand(createCmd)
+	RootCmd.AddCommand(dockerCmd)
 }
