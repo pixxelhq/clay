@@ -158,6 +158,8 @@ func CreateProject(outputDir, modelName string) error {
 	}
 
 	fmt.Printf("\n[IMPORTANT] To begin,\n1. Create and activate your Python environment.\n2. Run `make setup` in your project directory\n\n")
+	fmt.Printf("To create a new environment:\nOpen your terminal with an existing Python or Conda installation, and use the below command to create an environment:\n\n")
+	fmt.Println("python -m venv ./env")
 	return nil
 }
 

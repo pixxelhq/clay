@@ -56,7 +56,7 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 	dockerfile += "RUN --mount=type=secret,id=GITLAB_TOKEN \\\n"
 	dockerfile += "    GITLAB_TOKEN_=$(cat /run/secrets/GITLAB_TOKEN) && \\\n"
 	dockerfile += "    pip3 install --no-cache-dir matter==0.2.0 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38506821/packages/pypi/simple && \\\n"
-	dockerfile += "    pip3 install --no-cache-dir ramen==0.1.0 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38508365/packages/pypi/simple pika\n\n"
+	dockerfile += "    pip3 install --no-cache-dir ramen==0.1.3 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38508365/packages/pypi/simple pika\n\n"
 
 	// Copy source code and model specification files to image
 	dockerfile += "COPY " + SourceCodeFolder + " /app\n"
@@ -81,6 +81,8 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 	if err != nil {
 		return err
 	}
+	fmt.Println("Use the below command in your terminal to build the docker container:")
+	fmt.Println("make build-docker-image")
 	return nil
 }
 

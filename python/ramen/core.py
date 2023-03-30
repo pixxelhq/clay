@@ -72,7 +72,7 @@ class ModelWrapper:
         return False
 
     def format_output(self, outputs: tuple) -> Any:
-        output_containers = deepcopy(self.config.output)
+        output_containers = deepcopy(self.config.outputs)
         for output, output_container in zip(outputs, output_containers):
             output_container["value"] = output
             if not output_container.get("properties", False):
@@ -233,8 +233,8 @@ class BaseRunner(object):
         # find task_id and remove from inputs
         task_id = ""
         for i, item in enumerate(inference_parameters):
-            if "task_id" in item.keys():
-                task_id = item["task_id"]
+            if item["name"] == "task_id":
+                task_id = item["value"]
                 inference_parameters.pop(i)
                 break
 
