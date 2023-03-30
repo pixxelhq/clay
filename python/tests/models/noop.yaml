@@ -27,7 +27,7 @@ inputs:
     format: number
     type: float
     default: 1.0
-output:
+outputs:
   - name: x
     format: number
     type: float

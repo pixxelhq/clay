@@ -1,6 +1,6 @@
 kind: block
 type: processing
-name: {{ .Name }}
+name: { { .Name } }
 description: describe the model
 author: <please-fill-in-here>@pixxel.co.in
 tags:
@@ -26,7 +26,7 @@ parameters: # model initialization params
 inputs:
   - name: raster_url
     format: raster
-    type: string
+    type: str
     properties:
       source: planetary
       collection: sentinel2a
@@ -35,19 +35,39 @@ inputs:
         - B04
         - B03
         - B02
-  - name: bandlist
+  - name: boundary
+    format: vector
     type: str
-    default: "B04 B03 B02"
-  - name: input3
+    properties:
+      geometry: Polygon
+  - name: bandlist
+    format: string
+    type: str
+  - name: input4
+    format: number
+    type: int
+  - name: input5
+    format: number
     type: float
-    default: 0.3
 
-output:
-  - name: result
+outputs:
+  - name: result1
+    format: number
     type: float
+  - name: output_raster
+    format: raster
+    type: str
+    properties:
+      source: planetary
+      collection: sentinel2a
+      dtype: uint16
+      bands:
+        - B04
+        - B03
+        - B02
 
 build:
-  python-version: 3.10
+  python-version: "3.10"
   conda: false
   gdal: true
   apt-get:

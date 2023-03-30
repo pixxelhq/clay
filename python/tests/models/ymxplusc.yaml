@@ -37,7 +37,7 @@ inputs:
     type: string
     dtype: str
     default: "The above computation was carried out."
-output:
+outputs:
   - name: y
     format: number
     type: float

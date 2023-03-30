@@ -35,4 +35,4 @@ clean:
 		rm -rf .mypy_cache
 
 build-docker-image:
-		docker build -t {{.ModelName}} --secret id=GITLAB_TOKEN .
+		docker build -t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .
