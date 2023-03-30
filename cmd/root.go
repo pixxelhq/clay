@@ -5,6 +5,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/example/ramen/cmd/block"
+	"github.com/example/ramen/cmd/create"
 	"github.com/spf13/cobra"
 )
 
@@ -32,4 +33,5 @@ func init() {
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	RootCmd.AddCommand(block.BlockCmd)
+	RootCmd.AddCommand(create.CreateCmd)
 }

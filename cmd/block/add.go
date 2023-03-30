@@ -2,9 +2,10 @@ package block
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/ramen/api"
+	"github.com/example/ramen/api/block"
 	"github.com/example/ramen/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -17,11 +18,15 @@ var addCmd = &cobra.Command{
     Add a new block in Pixxel Labs.
     A block, with the specification file, will be added to Pixxel Lab.
     It will be provided as a drag-and-drop feature to the users.`),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.TODO()
 		logger := getlogger()
 		specFilePath := args[0]
-		api.CreateNewBlock(ctx, logger, specFilePath)
+		err := block.CreateNewBlock(ctx, logger, specFilePath)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return err
 	},
 }
 
@@ -41,7 +46,5 @@ func getlogger() *logger.Logger {
 }
 
 func init() {
-
 	BlockCmd.AddCommand(addCmd)
-
 }
