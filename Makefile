@@ -43,3 +43,6 @@ format:
 		flake8 ramen; \
 		echo "Linting with mypy..."; \
 		mypy ramen; \
+
+pre-commit:
+		pre-commit run --all-files
