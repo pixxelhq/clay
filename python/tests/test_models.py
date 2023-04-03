@@ -1,5 +1,5 @@
-from ramen.models import AppConfig
-from ramen.utils import read_yaml
+from clay.models import AppConfig
+from clay.utils import read_yaml
 
 
 def test_deployment_config_parsing() -> None:

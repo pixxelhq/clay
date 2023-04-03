@@ -2,7 +2,7 @@ import json
 
 from model import {{.ModelName}}
 
-from ramen.runners import JobRunner  # type: ignore[import]
+from clay.runners import JobRunner  # type: ignore[import]
 
 if __name__ == "__main__":
     server = JobRunner(

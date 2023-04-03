@@ -1,4 +1,4 @@
-module github.com/example/ramen
+module github.com/example/clay
 
 go 1.18
 

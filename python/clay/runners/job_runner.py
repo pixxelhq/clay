@@ -4,9 +4,9 @@ import time
 from logging import Logger
 from typing import Any, Dict, Union
 
-from ramen.core import BaseRunner, ModelStates, ModelWrapper
-from ramen.exceptions import FailedExecutionException
-from ramen.logger import get_streamvalues
+from clay.core import BaseRunner, ModelStates, ModelWrapper
+from clay.exceptions import FailedExecutionException
+from clay.logger import get_streamvalues
 
 
 class JobRunner(BaseRunner):

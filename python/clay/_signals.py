@@ -1,10 +1,10 @@
 from typing import Any
 
-from ramen.exceptions import FailedExecutionException, SuccessfulExecutionException
+from clay.exceptions import FailedExecutionException, SuccessfulExecutionException
 
 
 def success(message: Any = None, http_status_code: int = 200) -> None:
-    """calling ramen.success() returns execution from
+    """calling clay.success() returns execution from
     model to runner context. This behaviour might change
     in the future.
     """
@@ -14,7 +14,7 @@ def success(message: Any = None, http_status_code: int = 200) -> None:
 
 
 def failure(message: Any = None, logs: Any = "", http_status_code: int = 500) -> None:
-    """calling ramen.failure() returns execution from
+    """calling clay.failure() returns execution from
     model to runner context. This behaviour might
     change in the future.
     """

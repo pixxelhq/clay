@@ -7,10 +7,10 @@ from unittest import mock
 import pytest
 from fastapi.testclient import TestClient
 
-import ramen
-from ramen import ModelWrapper
-from ramen.core import ModelStates
-from ramen.runners import HTTPRunner
+import clay
+from clay import ModelWrapper
+from clay.core import ModelStates
+from clay.runners import HTTPRunner
 
 pytest.skip("skipping http runner tests for now.", allow_module_level=True)
 
@@ -21,7 +21,7 @@ class M(ModelWrapper):
 
     async def preprocess(self, i: str) -> Any:
         if i == "f":
-            ramen.failure("Failed", 500)
+            clay.failure("Failed", 500)
         return 1, 2, {"a": 123}
 
     async def inference(self, a: int, b: int, c: Dict[str, int]) -> Any:
@@ -60,7 +60,7 @@ class TestHTTPRunner(unittest.TestCase):
     @pytest.mark.skip(
         reason="no way of currently testing this until Orchestrator is up and running"
     )
-    @mock.patch("ramen.core.requests.post")
+    @mock.patch("clay.core.requests.post")
     def test_sucess(self, mock_post: Any):
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
@@ -97,7 +97,7 @@ class TestHTTPRunner(unittest.TestCase):
     @pytest.mark.skip(
         reason="no way of currently testing this until Orchestrator is up and running"
     )
-    @mock.patch("ramen.core.requests.post")
+    @mock.patch("clay.core.requests.post")
     def test_failure(self, mock_post: Any):
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}

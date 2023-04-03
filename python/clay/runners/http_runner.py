@@ -5,8 +5,8 @@ from typing import Any, Dict, Union
 import uvicorn
 from fastapi import FastAPI, Request, Response, status
 
-from ramen.core import BaseRunner, ModelStates, ModelWrapper
-from ramen.exceptions import FailedExecutionException
+from clay.core import BaseRunner, ModelStates, ModelWrapper
+from clay.exceptions import FailedExecutionException
 
 
 class HTTPRunner(BaseRunner):

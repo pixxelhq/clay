@@ -1,7 +1,7 @@
 import os
 import sys
 
-from ramen.runners import JobRunner
+from clay.runners import JobRunner
 
 from model import {{.ModelName}}
 

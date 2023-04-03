@@ -1,12 +1,12 @@
 import logging
 from unittest import TestCase
 
-from ramen.logger import RamenLogger
+from clay.logger import ClayLogger
 
 
-class TestRamenLogger(TestCase):
+class TestClayLogger(TestCase):
     def test_logging_level(self):
-        logger = RamenLogger(
+        logger = ClayLogger(
             "test_logger", False, logging.INFO, create_console_handler=True
         )
         assert logger.name == "test_logger"

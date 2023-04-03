@@ -1,6 +1,6 @@
 from test_b import bfunc
 
-from ramen import ModelWrapper, create_server
+from clay import ModelWrapper, create_server
 
 
 class M(ModelWrapper):

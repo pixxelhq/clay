@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from ramen import ModelWrapper
+from clay import ModelWrapper
 
 YMXPLUSC_CONFIG = str((Path(__file__).parent / "ymxplusc.yaml").absolute())
 

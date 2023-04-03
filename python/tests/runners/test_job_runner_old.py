@@ -5,10 +5,10 @@ from unittest import mock
 
 import pytest
 
-import ramen
-from ramen import ModelWrapper
-from ramen.core import ModelStates
-from ramen.runners import JobRunner
+import clay
+from clay import ModelWrapper
+from clay.core import ModelStates
+from clay.runners import JobRunner
 
 pytest.skip("skipping old job runner tests for now.", allow_module_level=True)
 
@@ -21,7 +21,7 @@ class M(ModelWrapper):
         self.logger.info("Some info in preprocess")
         if i == "f":
             self.logger.error("oops failed")
-            ramen.failure("Failed")
+            clay.failure("Failed")
         return 1, 2, {"a": 123}
 
     async def inference(self, a: int, b: int, c: Dict[str, int]) -> Any:
@@ -44,7 +44,7 @@ class TestJobRunner(unittest.TestCase):
             self._modelargs,
         )
 
-    @mock.patch("ramen.core.requests.post")
+    @mock.patch("clay.core.requests.post")
     def test_jobrunner_success(self, mock_post: Any) -> None:
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}
@@ -76,7 +76,7 @@ class TestJobRunner(unittest.TestCase):
         assert call_args[1].kwargs["json"]["state"] == ModelStates.COMPLETED.value
         assert call_args[1].kwargs["json"]["result"] == "x"
 
-    @mock.patch("ramen.core.requests.post")
+    @mock.patch("clay.core.requests.post")
     def test_jobrunner_failure(self, mock_post: Any) -> None:
         mock_response = mock.Mock()
         mock_response.json.return_value = {"successful_update": "True", "err": ""}

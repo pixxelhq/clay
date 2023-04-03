@@ -13,9 +13,9 @@ import uvloop
 from matter import fs
 from matter.fs import AzureClient
 
-from ramen.exceptions import FailedExecutionException
-from ramen.logger import Logger, RamenLogger, get_streamvalues
-from ramen.utils import (
+from clay.exceptions import FailedExecutionException
+from clay.logger import ClayLogger, Logger, get_streamvalues
+from clay.utils import (
     PRIMITIVE_TYPES,
     cast_inputs,
     to_tuple_if_required,
@@ -42,7 +42,7 @@ class ModelWrapper:
         self.protocol = protocol
         self.config = yaml_to_namespace(config)
         if logger is None:
-            logger = RamenLogger(
+            logger = ClayLogger(
                 self.__class__.__name__,
                 False,
                 create_buffer_handler=True,
@@ -186,7 +186,7 @@ class BaseRunner(object):
         self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
-            logger = RamenLogger(
+            logger = ClayLogger(
                 f"{self._run_mode}_model_runner", True, create_console_handler=True
             )
         assert isinstance(logger, Logger)
@@ -296,7 +296,7 @@ class BaseRunner(object):
         # *args: Any,
         # **kwargs: Any,
     ) -> Any:
-        # Accepts a ramen.exceptions.SuccessfulExecutionException
+        # Accepts a clay.exceptions.SuccessfulExecutionException
         pass
 
     @abstractmethod
@@ -307,7 +307,7 @@ class BaseRunner(object):
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-        # Accepts a ramen.exceptions.FailedExecutionException
+        # Accepts a clay.exceptions.FailedExecutionException
         pass
 
     @abstractmethod

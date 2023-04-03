@@ -1,4 +1,4 @@
-# Ramen
+# Clay
 
 ```yaml
 deployment:
@@ -20,8 +20,8 @@ model:
 ```
 
 ```python
-from ramen import ModelWrapper
-from ramen import
+from clay import ModelWrapper
+from clay import
 
 class Model(ModelWrapper):
     pass

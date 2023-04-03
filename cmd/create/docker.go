@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/ramen/api/dockerfile"
+	"github.com/example/clay/api/dockerfile"
 	"github.com/spf13/cobra"
 )
 

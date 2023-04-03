@@ -1,6 +1,6 @@
 import pytest
 
-from ramen.runners import JobRunner
+from clay.runners import JobRunner
 
 from ..models.noop import NOOP, NOOP_CONFIG, make_noop_input
 from ..models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG, make_ymxplusc_input

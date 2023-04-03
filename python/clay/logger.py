@@ -8,7 +8,7 @@ import sys
 from logging import Logger
 from typing import Any, Callable, Union
 
-_DEFAULT_HANDLER_NAME = "ramen_handler"
+_DEFAULT_HANDLER_NAME = "clay_handler"
 buffer_handler_name = "buffer_handler"
 _default_formatter = logging.Formatter(
     "%(levelname)s - %(asctime)s - %(filename)s:%(lineno)s - %(name)s - %(message)s"  # noqa: E501
@@ -79,7 +79,7 @@ def get_streamvalues(logger: Logger) -> Any:
             return handler.stream.getvalue()
 
 
-def RamenLogger(
+def ClayLogger(
     logger_name: str,
     propagate: bool = True,
     level: int = logging.INFO,

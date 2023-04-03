@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/example/clay/pkg/logger"
 	"github.com/example/orchestrator/core/block"
-	"github.com/example/ramen/pkg/logger"
 	"sigs.k8s.io/yaml"
 )
 

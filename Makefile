@@ -15,8 +15,8 @@ push/package:
 		pip install twine
 		python -m twine upload \
 						--repository-url https://gitlab.com/api/v4/projects/38508365/packages/pypi \
-						--username ${RAMEN_REGISTRY_NAME} \
-						--password ${RAMEN_REGISTRY_PASS} \
+						--username ${CLAY_REGISTRY_NAME} \
+						--password ${CLAY_REGISTRY_PASS} \
 						--verbose \
 						--skip-existing \
 						python/dist/*
@@ -36,13 +36,13 @@ serve-docs:
 format:
 		@cd python; \
 		echo "Formatting with black..."; \
-		black ramen; \
+		black clay; \
 		echo "Formatting with isort..."; \
-		isort ramen; \
+		isort clay; \
 		echo "Linting with flake8..."; \
-		flake8 ramen; \
+		flake8 clay; \
 		echo "Linting with mypy..."; \
-		mypy ramen; \
+		mypy clay; \
 
 pre-commit:
 		pre-commit run --all-files
