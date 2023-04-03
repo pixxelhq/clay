@@ -1,4 +1,4 @@
-name: "GitHub CI/CD Pipelines for Ramen"
+name: "GitHub CI/CD Pipelines for Clay"
 
 on:
   pull_request:

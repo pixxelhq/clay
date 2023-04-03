@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from ramen import ModelWrapper
+from clay import ModelWrapper
 
 NOOP_CONFIG = str((Path(__file__).parent / "noop.yaml").absolute())
 

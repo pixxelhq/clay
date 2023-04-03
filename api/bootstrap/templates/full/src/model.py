@@ -1,4 +1,4 @@
-from ramen import ModelWrapper
+from clay import ModelWrapper
 
 
 class {{.ModelName}}(ModelWrapper):

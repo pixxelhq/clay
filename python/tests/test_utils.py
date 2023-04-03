@@ -1,6 +1,6 @@
 import pytest
 
-from ramen.utils import Converters, read_yaml
+from clay.utils import Converters, read_yaml
 
 
 def test_read_yaml_file_doesnt_exist() -> None:

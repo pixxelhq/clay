@@ -1,8 +1,8 @@
 from test_b import bfunc
 
-import ramen
-from ramen import ModelWrapper
-from ramen.runners import HTTPRunner
+import clay
+from clay import ModelWrapper
+from clay.runners import HTTPRunner
 
 
 class M(ModelWrapper):
@@ -14,7 +14,7 @@ class M(ModelWrapper):
 
     async def inference(self, i: str):
         if i == "baa":
-            return ramen.failure("failing")
+            return clay.failure("failing")
         return i
 
     async def postprocess(self, res):
@@ -22,5 +22,5 @@ class M(ModelWrapper):
 
 
 if __name__ == "__main__":
-    m = HTTPRunner("demo", M, {"config": "/home/espoir/ramen/tests/testrepo/config.yaml"})
+    m = HTTPRunner("demo", M, {"config": "/home/espoir/clay/tests/testrepo/config.yaml"})
     m.start()

@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from ramen import ModelWrapper
-from ramen.core import BaseRunner
+from clay import ModelWrapper
+from clay.core import BaseRunner
 
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG, make_ymxplusc_input
 
@@ -110,7 +110,7 @@ class TestBaseRunner(unittest.TestCase):
 
     def test_model_inference_thread_init(self):
         # BIG NOTE: this test fails for some reason when
-        # ramen/core.py:L63 is set to `asyncio.get_event_loop` instead of
+        # clay/core.py:L63 is set to `asyncio.get_event_loop` instead of
         # `asyncio.new_event_loop` even though in both cases, the class works
         # fine outside of test. `new_event_loop` may potentially cause problems
         # in environments with pre-existing event loops like uvicorn server.
@@ -121,7 +121,7 @@ class TestBaseRunner(unittest.TestCase):
 
     def test_model_inference_event_loop_init(self):
         # BIG NOTE: this test fails for some reason when
-        # ramen/core.py:L63 is set to `asyncio.get_event_loop` instead of
+        # clay/core.py:L63 is set to `asyncio.get_event_loop` instead of
         # `asyncio.new_event_loop` even though in both cases, the class works
         # fine outside of test. `new_event_loop` may potentially cause problems
         # in environments with pre-existing event loops like uvicorn server.

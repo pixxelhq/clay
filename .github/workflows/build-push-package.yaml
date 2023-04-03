@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - python/ramen/__version__.py
+      - python/clay/__version__.py
 
 jobs:
   build-and-push-package:
@@ -24,9 +24,9 @@ jobs:
           python-version: ${{matrix.python-version}}
       - name: Make Package
         env:
-          RAMEN_REGISTRY_NAME: ${{ secrets.RAMEN_REGISTRY_NAME }}
-          RAMEN_REGISTRY_PASS: ${{ secrets.RAMEN_REGISTRY_PASS }}
+          CLAY_REGISTRY_NAME: ${{ secrets.CLAY_REGISTRY_NAME }}
+          CLAY_REGISTRY_PASS: ${{ secrets.CLAY_REGISTRY_PASS }}
         run: |
-          echo $RAMEN_REGISTRY_NAME
-          echo $RAMEN_REGISTRY_PASS
+          echo $CLAY_REGISTRY_NAME
+          echo $CLAY_REGISTRY_PASS
           make package

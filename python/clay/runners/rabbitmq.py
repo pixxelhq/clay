@@ -11,8 +11,8 @@ import pika.adapters.blocking_connection
 import pika.spec
 import uvloop
 
-from ramen.logger import RamenLogger
-from ramen.models import ModelRequestsEvent, ModelResultsEvent
+from clay.logger import ClayLogger
+from clay.models import ModelRequestsEvent, ModelResultsEvent
 
 
 class RabbitModelRunner(object):
@@ -28,7 +28,7 @@ class RabbitModelRunner(object):
         rabbitmq_port: int,
         rabbitmq_qos: int,
         rabbitmq_durable: bool = False,
-        enable_ramen_logger: bool = True,
+        enable_clay_logger: bool = True,
         uvloop_policy: bool = True,
         consumer_callback: Union[Callable, None] = None,
         retries: int = 0,
@@ -50,8 +50,8 @@ class RabbitModelRunner(object):
             if uvloop_policy
             else asyncio.DefaultEventLoopPolicy()
         )
-        if enable_ramen_logger:
-            self._logger = RamenLogger("rmq_logger", True, create_console_handler=True)
+        if enable_clay_logger:
+            self._logger = ClayLogger("rmq_logger", True, create_console_handler=True)
 
     def _init_model(self) -> None:
         self._logger.info("Starting model initialization...")

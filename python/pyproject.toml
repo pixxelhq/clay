@@ -1,6 +1,6 @@
 [tool.isort]
 known_first_party = [
-    "ramen"
+    "clay"
 ]
 include_trailing_comma = "True"
 multi_line_output = 3
@@ -14,7 +14,7 @@ line_length = 90
 line-length = 90
 
 [tool.mypy]
-files = ["ramen"]
+files = ["clay"]
 exclude = ["tests", "build", "env", "pkg", "api"]
 install_types = "True"
 non_interactive = "True"

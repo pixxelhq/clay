@@ -1,4 +1,4 @@
-name: "Build latest documentation for Ramen"
+name: "Build latest documentation for Clay"
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
       - name: push documentation to latest-docs
         uses: casperdcl/push-dir@v1
         with:
-          message: latest-ify ramen documentation (${{ github.sha }})
+          message: latest-ify clay documentation (${{ github.sha }})
           branch: latest-docs
           dir: ./mkdocs/site
 
@@ -63,8 +63,8 @@ jobs:
           username: ${{ env.ACR_USERNAME }}
           password: ${{ env.ACR_PASSWORD }}
       - run: |
-          docker build . -t ${{ env.ACR_REGISTRY }}/ramen-documentation:latest -f Dockerfile
-          docker push ${{ env.ACR_REGISTRY }}/ramen-documentation:latest
+          docker build . -t ${{ env.ACR_REGISTRY }}/clay-documentation:latest -f Dockerfile
+          docker push ${{ env.ACR_REGISTRY }}/clay-documentation:latest
 
   apply-k8s-script:
     needs: build-push-container
@@ -77,7 +77,7 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
         id: install
-      - name: "Deploy ramen docs"
+      - name: "Deploy clay docs"
         run: |
           echo "--This is running in alpine/helm Docker image--"
           apk update
@@ -90,13 +90,13 @@ jobs:
           az aks get-credentials -n aks-k2-test -g rg-platform-test
           cd ./scripts
           kubectl apply -f host-docs.yaml
-          kubectl rollout restart deployment "ramen-docs" -n "mlops"
+          kubectl rollout restart deployment "clay-docs" -n "mlops"
 
       - id: get_ip
         run: |
-          ramen_ip=$(kubectl get services -n mlops ramen-docs --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "ramen_ip=$ramen_ip" >> $GITHUB_OUTPUT
-          echo "ramen_ip=$ramen_ip"
+          clay_ip=$(kubectl get services -n mlops clay-docs --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "clay_ip=$clay_ip" >> $GITHUB_OUTPUT
+          echo "clay_ip=$clay_ip"
 
       # - name: "Update on Github issues"
       #   uses: peter-evans/create-or-update-comment@v2
@@ -104,4 +104,4 @@ jobs:
       #     edit-mode: replace
       #     comment-id: 1406538941
       #     body: |
-      #       Latest IP for **ramen**'s documentation: `${{ steps.get_ip.outputs.ramen_ip }}`
+      #       Latest IP for **clay**'s documentation: `${{ steps.get_ip.outputs.clay_ip }}`

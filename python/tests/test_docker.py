@@ -1,6 +1,6 @@
 import os
 
-from ramen import create_dockerfile
+from clay import create_dockerfile
 from tests.data.docker import docker_opts_valid
 
 

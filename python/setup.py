@@ -3,22 +3,22 @@ from setuptools import find_packages, setup
 
 def get_version() -> dict:
     version = {}  # type: ignore
-    with open("ramen/__version__.py") as f:
+    with open("clay/__version__.py") as f:
         exec(f.read(), version)
     print(version)
     return version["__VERSION__"]
 
 
 setup(
-    name="ramen",
+    name="clay",
     version=str(get_version()),
     description="This is the SDK that would be used to deploy all models at pixxel.",
     # Author details
     author_email="ml@pixxel.co.in",
-    url="https://github.com/example/ramen",
+    url="https://github.com/example/clay",
     # Choose your license
     license="Ask Raghav",
-    packages=find_packages(include=["ramen", "ramen.*"]),
+    packages=find_packages(include=["clay", "clay.*"]),
     classifiers=[
         # Indicate who your project is intended for
         "Development Status :: 0 - Pre-alpha",
@@ -47,6 +47,6 @@ setup(
         "uvloop",
         "pika",
     ],
-    package_data={"ramen": ["templates/*.jinja"]},
+    package_data={"clay": ["templates/*.jinja"]},
     include_package_data=True,
 )

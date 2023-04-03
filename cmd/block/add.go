@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/ramen/api/block"
-	"github.com/example/ramen/pkg/logger"
+	"github.com/example/clay/api/block"
+	"github.com/example/clay/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -34,9 +34,9 @@ func getlogger() *logger.Logger {
 
 	logger := logger.NewLogger(&logger.LogConfig{
 		EnableConsoleLogging: true,
-		LoggerName:           "ramen",
-		ModuleName:           "ramen",
-		Directory:            "/tmp/ramen/logs/",
+		LoggerName:           "clay",
+		ModuleName:           "clay",
+		Directory:            "/tmp/clay/logs/",
 		Filename:             "modelspec.logs.txt",
 		MaxBackups:           0,
 		MaxSize:              512,

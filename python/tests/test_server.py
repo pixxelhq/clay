@@ -6,7 +6,7 @@ import aiohttp
 import asynctest
 import pytest
 
-from ramen.server import ServerWrapper, create_server
+from clay.server import ServerWrapper, create_server
 
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG, make_ymxplusc_input
 

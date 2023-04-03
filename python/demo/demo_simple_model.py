@@ -2,9 +2,9 @@
 import time
 from typing import Any, cast
 
-from ramen.core import ModelWrapper
-from ramen.logger import RamenLogger, get_streamvalues
-from ramen.runners import JobRunner
+from clay.core import ModelWrapper
+from clay.logger import ClayLogger, get_streamvalues
+from clay.runners import JobRunner
 
 
 class DemoSimpleModel(ModelWrapper):
@@ -12,7 +12,7 @@ class DemoSimpleModel(ModelWrapper):
         self.arg1 = arg1
         self.arg2 = arg2
         time.sleep(1)
-        self.logger = RamenLogger(
+        self.logger = ClayLogger(
             "demo_model_logger",
             False,
             create_buffer_handler=True,

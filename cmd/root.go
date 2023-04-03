@@ -4,16 +4,16 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/ramen/cmd/block"
-	"github.com/example/ramen/cmd/create"
+	"github.com/example/clay/cmd/block"
+	"github.com/example/clay/cmd/create"
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "ramen",
+	Use:   "clay",
 	Short: "A tool to bridge gap between model development on local machines and deployment on the platform",
-	Long: heredoc.Doc(`Ramen provide users the tooling and the scaffolding needed to quickly:
+	Long: heredoc.Doc(`Clay provide users the tooling and the scaffolding needed to quickly:
 	1.Refactor their model in a pre-defined structure
 	2.Programmatically declare their inputs and outputs, environment and compute requirements
 	3.Provide tooling to easily and locally test their models that are deployed on our infra`),
