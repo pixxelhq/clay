@@ -29,7 +29,7 @@ class JobRunner(BaseRunner):
         else:
             _ = self._fire_callback(
                 ModelStates.COMPLETED,
-                output["id"],
+                output["task_id"],
                 output["result"],
                 output["logs"],
             )
@@ -54,6 +54,7 @@ class JobRunner(BaseRunner):
                 logs=data["logs"],
             )
         self._logger.error(f"Failure: {exc}")
+        raise exc
         sys.exit(1)
 
     def start(self, *args: Any, **kwargs: Any) -> None:
@@ -73,7 +74,7 @@ class JobRunner(BaseRunner):
             # incase if the model/event loop  fail to initialize, we can always fail
             # the corressponding `task_id` and store the `runner logs` so far.
             failure_data = {
-                "id": model_args.get("id", ""),
+                "task_id": model_args.get("task_id", ""),
                 "result": {},
                 "logs": get_streamvalues(self._logger),
             }

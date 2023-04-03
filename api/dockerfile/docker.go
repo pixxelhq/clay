@@ -55,7 +55,7 @@ func buildDockerfile(useHttpRunner bool, PythonVersion string, UseConda bool, Us
 	// Install matter and clay
 	dockerfile += "RUN --mount=type=secret,id=GITLAB_TOKEN \\\n"
 	dockerfile += "    GITLAB_TOKEN_=$(cat /run/secrets/GITLAB_TOKEN) && \\\n"
-	dockerfile += "    pip3 install --no-cache-dir clay==0.2.1 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38508365/packages/pypi/simple\n\n"
+	dockerfile += "    pip3 install --no-cache-dir clay==0.2.2 --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38508365/packages/pypi/simple\n\n"
 
 	// Copy source code and model specification files to image
 	dockerfile += "COPY " + SourceCodeFolder + " /app\n"
