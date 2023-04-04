@@ -20,3 +20,5 @@ tests/__pycache__/__init__.cpython-38.pyc
 !mkdocs/docs
 site
 .dmypy.json
+bin
+.DS_Store
