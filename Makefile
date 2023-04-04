@@ -43,6 +43,36 @@ format:
 		flake8 clay; \
 		echo "Linting with mypy..."; \
 		mypy clay; \
+		pre-commit run --all-files
 
 pre-commit:
 		pre-commit run --all-files
+
+
+.PHONY: go-binaries
+
+go-binaries:
+	$(eval PROJECT_NAME := clay)
+	$(eval VERSION := $(shell cat python/clay/__version__.py | grep __VERSION__ | cut -d'"' -f2))
+	@echo "Version: $(VERSION)"
+
+	$(eval OUTPUT_DIR := ./bin)
+	@mkdir -p $(OUTPUT_DIR)
+	@echo "Binaries will be created in ./bin"
+
+	$(eval OSX_ARCH := amd64 arm64)
+	$(eval WINDOWS_ARCH := amd64)
+	$(eval LINUX_ARCH := amd64 arm64)
+
+	@echo "Building binaries for macOS..."
+	@for ARCH in $(OSX_ARCH); do \
+		GOOS=darwin GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-macosx-$$ARCH; \
+	done
+
+	@echo "Building binaries for Windows..."
+	@GOOS=windows GOARCH=$(WINDOWS_ARCH) go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-windows-$(WINDOWS_ARCH).exe
+
+	@echo "Building binaries for Linux..."
+	@for ARCH in $(LINUX_ARCH); do \
+		GOOS=linux GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-linux-$$ARCH; \
+	done
