@@ -17,7 +17,7 @@ def test_jobrunner_ymxplusc() -> None:
         model.start([model_input])
 
     model_input = make_ymxplusc_input(x="hello")
-    with pytest.raises(ValueError, match="hello"):
+    with pytest.raises(SystemExit, match="1"):
         model.start([model_input])
 
 
@@ -32,5 +32,5 @@ def test_jobrunner_noop() -> None:
         model.start([model_input])
 
     model_input = make_ymxplusc_input(x="hello")
-    with pytest.raises(ValueError, match="hello"):
+    with pytest.raises(SystemExit, match="1"):
         model.start([model_input])

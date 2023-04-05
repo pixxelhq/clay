@@ -1,6 +1,4 @@
-import sys
 import unittest
-from pathlib import Path
 from typing import Any, Dict
 from unittest import mock
 
@@ -12,7 +10,9 @@ from clay import ModelWrapper
 from clay.core import ModelStates
 from clay.runners import HTTPRunner
 
-pytest.skip("skipping http runner tests for now.", allow_module_level=True)
+from ..models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG, make_ymxplusc_input
+
+# pytest.skip("skipping http runner tests for now.", allow_module_level=True)
 
 
 class M(ModelWrapper):
@@ -33,20 +33,19 @@ class M(ModelWrapper):
 
 class TestHTTPRunner(unittest.TestCase):
     def setUp(self) -> None:
-        self._modelcls = M
-        self._modelargs = {"config": "tests/testrepo/config.yaml"}
-        sys.path.append(Path(__file__) / "../../")
+        self._modelcls = YMXPLUSC
+        self._modelargs = {"config": YMXPLUSC_CONFIG}
 
     def test_jobrunner_init(self) -> None:
         HTTPRunner(
-            "demomodel",
+            YMXPLUSC.__name__,
             self._modelcls,
             self._modelargs,
         )
 
     def test_root(self):
         m = HTTPRunner(
-            "demomodel",
+            YMXPLUSC.__name__,
             self._modelcls,
             self._modelargs,
         )
@@ -56,6 +55,21 @@ class TestHTTPRunner(unittest.TestCase):
         response = client.get("/")
         assert response.status_code == 200
         assert response.json() == "This is root!"
+
+    def test_inference(self):
+        m = HTTPRunner(
+            YMXPLUSC.__name__,
+            self._modelcls,
+            self._modelargs,
+        )
+        m._init_model()
+        m._init_model_inference_event_loop()
+        m._init_fastapi_app()
+        app = m._app
+        client = TestClient(app)
+        inp = make_ymxplusc_input()
+        response = client.post("/infer", data=inp)
+        assert response.status_code == 200
 
     @pytest.mark.skip(
         reason="no way of currently testing this until Orchestrator is up and running"

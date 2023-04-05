@@ -1,3 +1,4 @@
+import json
 import time
 from logging import Logger
 from typing import Any, Dict, Union
@@ -47,10 +48,9 @@ class HTTPRunner(BaseRunner):
             self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
         else:
             _ = self._fire_callback(
-                state=ModelStates.FAILED, id=data["id"], logs=data["logs"]
+                state=ModelStates.FAILED, id=data["task_id"], logs=data["logs"]
             )
-        self._logger.error(f"Failure: {exc}")
-
+        self._logger.error(f"Failure: {exc}", exc_info=exc)
         if not hasattr(exc, "http_status_code"):
             status_code = 500
         else:
@@ -74,7 +74,7 @@ class HTTPRunner(BaseRunner):
         else:
             _ = self._fire_callback(
                 state=ModelStates.COMPLETED,
-                id=data["id"],
+                id=data["task_id"],
                 result=data["result"],
                 logs=data["logs"],
             )
@@ -92,7 +92,7 @@ class HTTPRunner(BaseRunner):
 
     async def infer_path(self, request: Request) -> Any:
         body = await request.json()
-        result = self.run_model_inference(body, request)
+        result = json.dumps(self.run_model_inference(body, request))
         return result
 
     def _init_fastapi_app(self) -> None:

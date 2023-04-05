@@ -53,8 +53,7 @@ class JobRunner(BaseRunner):
                 id=data["task_id"],
                 logs=data["logs"],
             )
-        self._logger.error(f"Failure: {exc}")
-        raise exc
+        self._logger.error(f"Failure: {exc}", exc_info=exc)
         sys.exit(1)
 
     def start(self, *args: Any, **kwargs: Any) -> None:
