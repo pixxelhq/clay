@@ -12,6 +12,7 @@ import requests
 import uvloop
 from matter import fs
 from matter.fs import AzureClient
+from requests.adapters import HTTPAdapter, Retry
 
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, Logger, get_streamvalues
@@ -275,7 +276,15 @@ class BaseRunner(object):
         # Responsible for firing the callback to orchestrator callback url.
         data = {"data": {"state": state.value, "id": id, "result": result, "logs": logs}}
         self._logger.info(f"Data for callback: {data}")
-        resp = requests.post(
+
+        session = requests.Session()
+        retries = Retry(
+            total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
+        )
+        session.mount("http://", HTTPAdapter(max_retries=retries))
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+
+        resp = session.post(
             url=self._dexter_clb_url,
             json=data,
             headers={"Content-type": "application/json"},
