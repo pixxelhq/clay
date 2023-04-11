@@ -1,8 +1,7 @@
 import json
 
-from model import {{.ModelName}}
-
 from clay.runners import JobRunner  # type: ignore[import]
+from model import {{.ModelName}}
 
 if __name__ == "__main__":
     server = JobRunner(

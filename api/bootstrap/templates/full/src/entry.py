@@ -2,7 +2,6 @@ import os
 import sys
 
 from clay.runners import JobRunner
-
 from model import {{.ModelName}}
 
 if __name__ == "__main__":
