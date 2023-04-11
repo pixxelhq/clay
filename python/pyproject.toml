@@ -15,7 +15,7 @@ line-length = 90
 
 [tool.mypy]
 files = ["clay"]
-exclude = ["tests", "build", "env", "pkg", "api"]
+exclude = ["tests", "build", "env", "pkg", "api", "tmp"]
 install_types = "True"
 non_interactive = "True"
 disallow_untyped_defs = "True"
