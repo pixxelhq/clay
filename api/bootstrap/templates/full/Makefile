@@ -32,7 +32,6 @@ clean:
 		rm -rf *.egg-info
 		rm -rf **/__pycache__
 		rm -rf .pytest_cache
-		rm -rf .mypy_cache
 
 build-docker-image:
 		docker build -t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .

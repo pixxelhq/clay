@@ -23,6 +23,7 @@ push/package:
 
 
 test:
+	go test ./...
 	cd python; pytest -vv
 
 .PHONY: docs
