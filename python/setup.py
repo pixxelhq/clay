@@ -46,7 +46,7 @@ setup(
         "Jinja2",
         "uvloop",
         "pika",
-        "matter==0.2.2",
+        "matter>=0.2.2",
     ],
     package_data={"clay": ["templates/*.jinja"]},
     include_package_data=True,
