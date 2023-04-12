@@ -33,5 +33,20 @@ clean:
 		rm -rf **/__pycache__
 		rm -rf .pytest_cache
 
-build-docker-image:
+
+dockerfile:
+		clay create dockerfile specifications/model_specification.yaml src
+
+docker-image:
 		docker build -t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .
+
+test-docker-image:
+		docker run {{.ModelName | ToLower}} "$$(cat src/sample_model_inputs.json)"
+
+package-and-test-model:
+		@echo "Creating Dockerfile..."
+		make dockerfile
+		@echo "Building Docker Container / Image..."
+		make docker-image
+		@echo "Testing image with src/sample_model_inputs.json"
+		make test-docker-image

@@ -1,0 +1,26 @@
+[
+    {
+        "name": "task_id",
+        "type": "str",
+        "format": "string",
+        "value": "123456"
+    },
+    {
+        "name": "input1",
+        "type": "str",
+        "format": "string",
+        "value": "Please modify the types, formats and values of your inputs appropriately"
+    },
+    {
+        "name": "input3",
+        "type": "str",
+        "format": "string",
+        "value": "Remember to leave the task_id parameter as is"
+    },
+    {
+        "name": "input3",
+        "type": "str",
+        "format": "string",
+        "value": "another one bites the dust..."
+    }
+]

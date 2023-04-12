@@ -36,7 +36,7 @@ PRIMITIVE_TYPES.update(
     {
         "string": str,
         "str": str,
-        "path": str,
+        "path": Path,
         "url": str,
         "int": int,
         "float": float,
