@@ -1,6 +1,6 @@
 kind: block
 type: processing
-name: { { .Name } }
+name: {{ .Name }}
 description: describe the model
 author: <please-fill-in-here>@pixxel.co.in
 tags:
