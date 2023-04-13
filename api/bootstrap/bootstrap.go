@@ -18,7 +18,10 @@ const fullTemplateRoot = "templates/full"
 // Bootstraps a project in `outputDir` with `modelName` as a filler
 // in appropriate locations in code and configuration
 func CreateProject(outputDir, modelName string) error {
-	verifyModelName(modelName)
+	err := verifyModelName(modelName)
+	if err != nil {
+		return err
+	}
 	data := getTemplateData(modelName)
 	outputDir = filepath.Join(outputDir, modelName)
 	fmt.Printf("Cleaning up %s ...\n-----------------\n", outputDir)
@@ -29,7 +32,7 @@ func CreateProject(outputDir, modelName string) error {
 	}
 
 	// Walk through the project template directory
-	err := fs.WalkDir(fullTemplate, fullTemplateRoot, func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(fullTemplate, fullTemplateRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -47,7 +50,10 @@ func CreateProject(outputDir, modelName string) error {
 		if ok {
 			writeTemplateToFile(fullTemplate, path, outPath, _data)
 		} else {
-			Copy(fullTemplate, path, outPath)
+			err = Copy(fullTemplate, path, outPath)
+			if err != nil {
+				return err
+			}
 		}
 		fmt.Println("Created:", outPath)
 		return nil

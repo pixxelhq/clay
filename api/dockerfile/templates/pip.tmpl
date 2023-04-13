@@ -1,0 +1,28 @@
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3
+
+RUN apt-get update && \
+    apt-get install -y python{{ .Build.PythonVersion }} python3-pip {{ .Build.AptGet | join }} && \
+    pip3 install --upgrade pip
+
+COPY {{ .Build.Requirements }} .
+
+# Installing everything in one single pip command for better dependency resolution
+RUN --mount=type=secret,id=GITLAB_TOKEN \
+    GITLAB_TOKEN_=$(cat /run/secrets/GITLAB_TOKEN) && \
+    pip3 install --no-cache-dir \
+    clay --index-url https://gitlab+deploy-token-1735743:$GITLAB_TOKEN_@gitlab.com/api/v4/projects/38508365/packages/pypi/simple \
+    GDAL==$(gdal-config --version) \
+    -r {{ .Build.Requirements }}
+
+COPY {{ .SourceCodeFolder }} /app
+COPY {{ .ModelSpecificationPath }} /app/specification.yaml
+ENV SPECIFICATION_PATH=/app/specification.yaml
+
+WORKDIR /app
+
+{{ if .UseHttpRunner }}
+EXPOSE 8000
+CMD ["python3", "entry.py"]
+{{ else }}
+ENTRYPOINT ["python3", "entry.py"]
+{{ end }}
