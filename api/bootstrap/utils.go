@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/template"
 	"unicode"
+
+	"errors"
 )
 
 type TemplateData interface{}
@@ -35,16 +37,12 @@ func isAlpha(s string) bool {
 	return true
 }
 
-func verifyModelName(modelName string) {
+func verifyModelName(modelName string) error {
 	if !isAlpha(modelName) {
-		panic("Model name can only contain alphabets")
+		err := errors.New("Model name can only contain alphabets")
+		return err
 	}
-}
-
-func checkError(e error) {
-	if e != nil {
-		panic(e)
-	}
+	return nil
 }
 
 // Recursively deletes an entire directory
@@ -53,13 +51,18 @@ func deleteDir(path string) {
 }
 
 // Copies a file from src to dst
-func Copy(filesystem fs.FS, src string, dst string) {
+func Copy(filesystem fs.FS, src string, dst string) error {
 	// Read all content of src to data, may cause OOM for a large file.
 	data, err := fs.ReadFile(filesystem, src)
-	checkError(err)
+	if err != nil {
+		return err
+	}
 	// Write data to dst
 	err = os.WriteFile(dst, data, 0644)
-	checkError(err)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Reads and returns `filepath`'s contents in a string
@@ -82,11 +85,18 @@ func createTemplate(name, t string) *template.Template {
 func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath string, data interface{}) error {
 	// TODO: write better error messages
 	outFile, err := os.Create(outputPath)
-	checkError(err)
+	if err != nil {
+		return err
+	}
 	defer outFile.Close()
 	templateString, err := readFileToString(filesystem, templatePath)
-	checkError(err)
-	createTemplate("template", templateString).Execute(outFile, data)
+	if err != nil {
+		return err
+	}
+	err = createTemplate("template", templateString).Execute(outFile, data)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

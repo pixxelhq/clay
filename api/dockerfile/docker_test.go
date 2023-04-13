@@ -17,11 +17,11 @@ func TestGenerateDockerfile(t *testing.T) {
 	defer os.Remove("Dockerfile")
 	configPath := "./_test_configs/test.yaml"
 
-	err := GenerateDockerfile(configPath, ".", false)
+	err := GenerateDockerfile(configPath, "src", false)
 	if err != nil {
 		t.Errorf("Test failed: %s", err.Error())
 	}
-	err = GenerateDockerfile(configPath, ".", true)
+	err = GenerateDockerfile(configPath, "src", true)
 	if err != nil {
 		t.Errorf("Test failed: %s", err.Error())
 	}
@@ -30,15 +30,15 @@ func TestGenerateDockerfile(t *testing.T) {
 func TestGetBuildFromConfigFile(t *testing.T) {
 	configPath := "./_test_configs/test.yaml"
 	build, err := getBuildFromConfigFile(configPath)
-	assertEqual(t, build.PythonVersion, "3.9")
-	assertEqual(t, build.Conda, true)
-	assertEqual(t, build.Gdal, false)
+	assertEqual(t, build.PythonVersion, "3.10")
+	assertEqual(t, build.Conda, false)
+	assertEqual(t, build.Gdal, true)
 
 	aptPackages := []string{"wget", "curl"}
 	for i, pkg := range build.AptGet {
 		assertEqual(t, pkg, aptPackages[i])
 	}
 
-	assertEqual(t, build.Requirements, "requirements-or-conda.yml")
+	assertEqual(t, build.Requirements, "requirements.txt")
 	fmt.Printf("%+v\n%+v", build, err)
 }
