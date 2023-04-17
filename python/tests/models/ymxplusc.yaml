@@ -38,7 +38,7 @@ inputs:
     dtype: str
     default: "The above computation was carried out."
 outputs:
-  - name: y
+  - name: y_coordinate
     format: number
     type: float
   - name: equation

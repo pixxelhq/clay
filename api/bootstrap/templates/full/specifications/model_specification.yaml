@@ -74,6 +74,11 @@ build:
     - wget
   requirements: requirements.txt # or conda-env.yml
 
+runtime_opts:
+  image: {{ .Name | ToLower }}:latest
+  K8sJobConfig: null
+
 options:
   dry_run: null
   preview: null
+  generate_k8s_spec: null

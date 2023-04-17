@@ -26,3 +26,8 @@ warn_unused_ignores = "False"
 allow_redefinition = "True"
 disable_error_code = "attr-defined"
 warn_no_return = "False"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".", "{{.ModelName}}"
+]

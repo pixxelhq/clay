@@ -28,6 +28,10 @@ type TestModel Entry
 
 type Makefile Entry
 
+type GithubWorkflow Entry
+
+type PyProject Entry
+
 func isAlpha(s string) bool {
 	for _, r := range s {
 		if !unicode.IsLetter(r) {
@@ -102,12 +106,15 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 
 func getTemplateData(modelName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"model.py":                 Model{ModelName: modelName},
-		"entry.py":                 Entry{ModelName: modelName},
-		"README.md":                Readme{Name: modelName},
-		"model_specification.yaml": ModelSpecification{Name: modelName},
-		"test_model.py":            TestModel{ModelName: modelName},
-		"Makefile":                 Makefile{ModelName: modelName},
+		"model.py":                  Model{ModelName: modelName},
+		"entry.py":                  Entry{ModelName: modelName},
+		"README.md":                 Readme{Name: modelName},
+		"model_specification.yaml":  ModelSpecification{Name: modelName},
+		"test_model.py":             TestModel{ModelName: modelName},
+		"Makefile":                  Makefile{ModelName: modelName},
+		"test_main.py":              TestModel{ModelName: modelName},
+		"pyproject.toml":            PyProject{ModelName: modelName},
+		"package-deploy-model.yaml": GithubWorkflow{ModelName: modelName},
 	}
 	return data
 }
