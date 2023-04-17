@@ -1,20 +1,26 @@
 # {{.Name}}
 
-Describe what {{.Name}} does here
+This is an implementation of Pixxel's {{.Name}} model, wrapped within `Clay`
 
-## Installation
+## Installation and Usage
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
+First, make sure you have these environment variables setup on your machine:
 
-```bash
-pip install {{.Name | ToLower}}
-```
+- `GITLAB_TOKEN` (your Gitlab PAT to allow you to install `Clay`, `Matter` and `pixxelsign`)
+- `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET` (for the service account that will be used to access our cloud storage buckets)
 
-## Usage
+### Easy way
 
-```python
-# describe how to use {{.Name | ToLower}}
-```
+- Run: `make package-and-test-model`
+
+### Medium easy way
+
+- First, Create a new Python environment with `GDAL` and install `Clay` and `pixxelsign` from Pixxel's private Gitlab PIP Registry.<br>
+  `pip install clay pixxelsign --index-url https://gitlab+deploy-token-1735743:${YOUR_GITLAB_TOKEN}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple`
+- Then, proceed to install the rest of the dependencies: `pip install -r requirements.txt`
+- Run the model on sample inputs: `python {{.Name}}/test_model.py`
+- OR
+- Run: `cd tests && pytest -vs`
 
 ## Contributing
 

@@ -37,7 +37,7 @@ After this stage, `clay` will automatically:
 * First, install the python package using `pip`:
 
     ```bash
-    pip install clay==0.2.3 --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
+    pip install clay --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
     ```
 
 * Next, install the **latest** version of `Clay`'s CLI tool from here: https://github.com/example/clay/releases

@@ -11,8 +11,8 @@ import (
 // createCmd represents the create command
 var projectCmd = &cobra.Command{
 	Use:   "project [outputDir] [modelName]",
-	Short: "Generate a schema for your model",
-	Long:  heredoc.Doc(`Generate a schema for your model at outputDir`),
+	Short: "Generate starter files for your model",
+	Long:  heredoc.Doc(`Generate starter files for your model`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputDir := args[0]

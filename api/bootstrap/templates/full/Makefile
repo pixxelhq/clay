@@ -35,18 +35,18 @@ clean:
 
 
 dockerfile:
-		clay create dockerfile specifications/model_specification.yaml src
+		clay create dockerfile specifications/model_specification.yaml {{.ModelName}}
 
 docker-image:
 		docker build -t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .
 
 test-docker-image:
-		docker run {{.ModelName | ToLower}} "$$(cat src/sample_model_inputs.json)"
+		docker run {{.ModelName | ToLower}} "$$(cat {{.ModelName}}/sample_model_inputs.json)"
 
 package-and-test-model:
 		@echo "Creating Dockerfile..."
 		make dockerfile
 		@echo "Building Docker Container / Image..."
 		make docker-image
-		@echo "Testing image with src/sample_model_inputs.json"
+		@echo "Testing image with {{.ModelName}}/sample_model_inputs.json"
 		make test-docker-image

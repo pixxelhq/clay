@@ -1,0 +1,81 @@
+name: "Package model in a docker container and deploy with Orchestrator"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "docker tag"
+        required: true
+
+jobs:
+  build-push-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Vault Secrets
+        uses: hashicorp/vault-action@v2.4.0
+        id: secrets
+        with:
+          url: http://vault.example.com:8200
+          method: token
+          tlsSkipVerify: true
+          token: {{ "${{ secrets.VAULT_TOKEN }}" }}
+          secrets: |
+            kv/data/orbit acr_password | ACR_PASSWORD;
+            kv/data/orbit acr_registry | ACR_REGISTRY;
+            kv/data/orbit acr_username | ACR_USERNAME
+      - name: "Azure Container Registry Login"
+        uses: azure/docker-login@v1
+        with:
+          login-server: {{ "${{ env.ACR_REGISTRY}}" }}
+          username: {{ "${{ env.ACR_USERNAME}}" }}
+          password: {{ "${{ env.ACR_PASSWORD}}" }}
+      - name: "Build and push image"
+        run: |
+          echo "{{ "${{ secrets.GITLAB_TOKEN}}" }}" > "GITLAB_TOKEN.txt"
+          DOCKER_BUILDKIT=1 docker build --no-cache --progress=plain --secret id=GITLAB_TOKEN,src=GITLAB_TOKEN.txt . -t {{ "${{ env.ACR_REGISTRY}}" }}/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }} -f Dockerfile
+          docker push {{ "${{ env.ACR_REGISTRY}}" }}/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}
+
+  add-image-url-to-specfile:
+    needs: build-push-container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+      - name: Create local changes
+        run: |
+          sed -i "s|image:.*|image: crk2hub.azurecr.io/{{ .ModelName | ToLower }}:\{{ "${{ github.event.inputs.tags}}" }}|" specifications/model_specification.yaml
+      - name: Commit files
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -a -m "Add changes"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: {{ "${{ secrets.GITHUB_TOKEN}}" }}
+          branch: {{ "${{ github.ref}}" }}
+
+  push-to-orchestrator:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
+    steps:
+      - name: Download Clay Binaries
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: example/clay
+          tag: v0.2.4
+          token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
+          extension-matching: disable
+          platform: linux
+          arch: amd64
+          rename-to: clay
+          chmod: 0755
+      - name: Checkout
+        uses: actions/checkout@v3
+      - run: |
+          $(clay block add ./specifications/model_specification.yaml)
