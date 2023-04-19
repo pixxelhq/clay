@@ -1,17 +1,14 @@
 package block
 
 import (
-	"bufio"
 	"context"
-	"fmt"
+	"errors"
 	"os"
-	"syscall"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/example/clay/api/block"
 	"github.com/example/clay/pkg/logger"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 // addCmd represents the add command
@@ -26,24 +23,21 @@ var addCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.TODO()
 		logger := getlogger()
-		specFilePath := args[0]
+		var (
+			specFilePath string
+			username     string
+			password     string
+		)
 
-		reader := bufio.NewReader(os.Stdin)
-
-		fmt.Print("Enter email: ")
-		username, err := reader.ReadString('\n')
-		if err != nil {
-			return err
+		if len(os.Args) < 6 {
+			return (errors.New("provide [specFilePath] [email] [password] as arguments"))
+		} else {
+			specFilePath = args[0]
+			username = args[1]
+			password = args[2]
 		}
 
-		fmt.Print("Enter Password: ")
-		bytePassword, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return err
-		}
-		password := string(bytePassword)
-
-		err = block.PostNewBlock(ctx, logger, specFilePath, username, password)
+		err := block.PostNewBlock(ctx, logger, specFilePath, username, password)
 		if err != nil {
 			return err
 		}
