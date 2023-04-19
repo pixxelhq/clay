@@ -7,6 +7,7 @@ require (
 	github.com/example/orchestrator v0.0.0-20230412055631-029bc1588a12
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
+	golang.org/x/term v0.5.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	sigs.k8s.io/yaml v1.3.0
 )
