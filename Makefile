@@ -58,6 +58,8 @@ go-binaries:
 	@echo "Version: $(VERSION)"
 
 	$(eval OUTPUT_DIR := ./bin)
+	@echo "Cleaning up $(OUTPUT_DIR)..."
+	@rm -rf $(OUTPUT_DIR)
 	@mkdir -p $(OUTPUT_DIR)
 	@echo "Binaries will be created in ./bin"
 
