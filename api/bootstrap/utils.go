@@ -10,6 +10,8 @@ import (
 	"errors"
 )
 
+var Version string
+
 type TemplateData interface{}
 
 type Readme struct {
@@ -28,7 +30,10 @@ type TestModel Entry
 
 type Makefile Entry
 
-type GithubWorkflow Entry
+type GithubWorkflow struct {
+	ModelName string
+	Version   string
+}
 
 type PyProject Entry
 
@@ -114,7 +119,7 @@ func getTemplateData(modelName string) map[string]TemplateData {
 		"Makefile":                  Makefile{ModelName: modelName},
 		"test_main.py":              TestModel{ModelName: modelName},
 		"pyproject.toml":            PyProject{ModelName: modelName},
-		"package-deploy-model.yaml": GithubWorkflow{ModelName: modelName},
+		"package-deploy-model.yaml": GithubWorkflow{ModelName: modelName, Version: Version},
 	}
 	return data
 }

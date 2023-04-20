@@ -47,11 +47,11 @@ jobs:
           fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
       - name: Create local changes
         run: |
-          sed -i "s|image:.*|image: crk2hub.azurecr.io/{{ .ModelName | ToLower }}:\{{ "${{ github.event.inputs.tags}}" }}|" specifications/model_specification.yaml
+          sed -i "s|image:.*|image: \"crk2hub.azurecr.io/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}\"|" specifications/model_specification.yaml
       - name: Commit files
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions-bot@github.com"
+          git config --local user.name "github-actions-bot"
           git commit -a -m "Add changes"
       - name: Push changes
         uses: ad-m/github-push-action@master
@@ -60,6 +60,7 @@ jobs:
           branch: {{ "${{ github.ref}}" }}
 
   push-to-orchestrator:
+    needs: add-image-url-to-specfile
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
@@ -68,7 +69,7 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
           repo: example/clay
-          tag: v0.2.4
+          tag: v{{ .Version }}
           token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
           extension-matching: disable
           platform: linux
@@ -78,4 +79,4 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - run: |
-          $(clay block add ./specifications/model_specification.yaml)
+          clay block add ./specifications/model_specification.yaml {{ "${{ secrets.DEXTER_EMAIL}}" }} {{ "${{ secrets.DEXTER_PASS }}" }}

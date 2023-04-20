@@ -15,11 +15,14 @@ import (
 //go:embed templates/pip.tmpl
 var pipTemplate string
 
+var Version string
+
 type DockerfileData struct {
 	Build                  block.Build
 	UseHttpRunner          bool
 	SourceCodeFolder       string
 	ModelSpecificationPath string
+	Version                string
 }
 
 func buildDockerfile(useHttpRunner bool, build block.Build, OutputFolder string, SourceCodeFolder string, ModelSpecificationPath string) error {
@@ -28,6 +31,7 @@ func buildDockerfile(useHttpRunner bool, build block.Build, OutputFolder string,
 		UseHttpRunner:          useHttpRunner,
 		SourceCodeFolder:       SourceCodeFolder,
 		ModelSpecificationPath: ModelSpecificationPath,
+		Version:                Version,
 	}
 
 	funcMap := template.FuncMap{
