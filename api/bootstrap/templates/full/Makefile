@@ -38,7 +38,11 @@ dockerfile:
 		clay create dockerfile specifications/model_specification.yaml {{.ModelName}}
 
 docker-image:
-		docker build -t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .
+		docker build \
+		--build-arg AZURE_TENANT_ID=$(AZURE_TENANT_ID) \
+		--build-arg AZURE_CLIENT_ID=$(AZURE_CLIENT_ID) \
+		--build-arg AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET) \
+		-t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .
 
 test-docker-image:
 		docker run {{.ModelName | ToLower}} "$$(cat {{.ModelName}}/sample_model_inputs.json)"
