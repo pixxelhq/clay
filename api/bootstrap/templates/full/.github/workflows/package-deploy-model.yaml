@@ -34,7 +34,16 @@ jobs:
       - name: "Build and push image"
         run: |
           echo "{{ "${{ secrets.GITLAB_TOKEN}}" }}" > "GITLAB_TOKEN.txt"
-          DOCKER_BUILDKIT=1 docker build --no-cache --progress=plain --secret id=GITLAB_TOKEN,src=GITLAB_TOKEN.txt . -t {{ "${{ env.ACR_REGISTRY}}" }}/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }} -f Dockerfile
+
+          DOCKER_BUILDKIT=1 docker build \
+          --build-arg AZURE_TENANT_ID={{ "${{ secrets.AZURE_TENANT_ID }}" }} \
+          --build-arg AZURE_CLIENT_ID={{ "${{ secrets.AZURE_CLIENT_ID }}" }} \
+          --build-arg AZURE_CLIENT_SECRET={{ "${{ secrets.AZURE_CLIENT_SECRET }}" }} \
+          --no-cache --progress=plain \
+          --secret id=GITLAB_TOKEN,src=GITLAB_TOKEN.txt . \
+          -t {{ "${{ env.ACR_REGISTRY}}" }}/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }} \
+          -f Dockerfile
+
           docker push {{ "${{ env.ACR_REGISTRY}}" }}/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}
 
   add-image-url-to-specfile:

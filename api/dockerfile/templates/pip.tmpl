@@ -14,6 +14,14 @@ RUN --mount=type=secret,id=GITLAB_TOKEN \
     GDAL==$(gdal-config --version) \
     -r {{ .Build.Requirements }}
 
+ARG AZURE_TENANT_ID
+ARG AZURE_CLIENT_ID
+ARG AZURE_CLIENT_SECRET
+
+ENV AZURE_TENANT_ID=${AZURE_TENANT_ID} \
+    AZURE_CLIENT_ID=${AZURE_CLIENT_ID} \
+    AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+
 COPY {{ .SourceCodeFolder }} /app
 COPY {{ .ModelSpecificationPath }} /app/specification.yaml
 ENV SPECIFICATION_PATH=/app/specification.yaml
