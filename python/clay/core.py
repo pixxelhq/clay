@@ -273,6 +273,21 @@ class BaseRunner(object):
             )
             return False
 
+        # Setting the headers
+        headers = {}
+        token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
+        if isinstance(token, str):
+            authHeader = "Bearer " + token
+        else:
+            self._logger.warning(
+                "`DEXTER_CLB_AUTH_TOKEN not set. This model will not be able to "
+                + "communicate with the Orchestrator service and callbacks will be fired."
+            )
+            return False
+
+        headers["Authorization"] = authHeader
+        headers["Content-type"] = "application/json"
+        self._logger.info(headers)
         # Responsible for firing the callback to orchestrator callback url.
         data = {"data": {"state": state.value, "id": id, "result": result, "logs": logs}}
         self._logger.info(f"Data for callback: {data}")
@@ -283,13 +298,12 @@ class BaseRunner(object):
         )
         session.mount("http://", HTTPAdapter(max_retries=retries))
         session.mount("https://", HTTPAdapter(max_retries=retries))
-
         resp = session.post(
             url=self._dexter_clb_url,
             json=data,
-            headers={"Content-type": "application/json"},
+            headers=headers,
         ).json()
-
+        self._logger.info(resp)
         if resp["successful_update"]:
             self._logger.info("Updated state successfully.")
         else:
