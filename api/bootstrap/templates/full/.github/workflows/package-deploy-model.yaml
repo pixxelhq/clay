@@ -46,9 +46,11 @@ jobs:
 
           docker push {{ "${{ env.ACR_REGISTRY}}" }}/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}
 
-  add-image-url-to-specfile:
+  update-image-and-push-to-orchestrator:
     needs: build-push-container
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -57,23 +59,6 @@ jobs:
       - name: Create local changes
         run: |
           sed -i "s|image:.*|image: \"crk2hub.azurecr.io/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}\"|" specifications/model_specification.yaml
-      - name: Commit files
-        run: |
-          git config --local user.email "github-actions-bot@github.com"
-          git config --local user.name "github-actions-bot"
-          git commit -a -m "Add changes"
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: {{ "${{ secrets.GITHUB_TOKEN}}" }}
-          branch: {{ "${{ github.ref}}" }}
-
-  push-to-orchestrator:
-    needs: add-image-url-to-specfile
-    runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
-    steps:
       - name: Download Clay Binaries
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
@@ -85,7 +70,15 @@ jobs:
           arch: amd64
           rename-to: clay
           chmod: 0755
-      - name: Checkout
-        uses: actions/checkout@v3
       - run: |
           clay block add ./specifications/model_specification.yaml {{ "${{ secrets.DEXTER_EMAIL}}" }} {{ "${{ secrets.DEXTER_PASS }}" }}
+      - name: Commit files
+        run: |
+          git config --local user.email "github-actions-bot@github.com"
+          git config --local user.name "github-actions-bot"
+          git commit -a -m "Add changes"
+      - name: Push changes back to github
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: {{ "${{ secrets.GITHUB_TOKEN}}" }}
+          branch: {{ "${{ github.ref}}" }}

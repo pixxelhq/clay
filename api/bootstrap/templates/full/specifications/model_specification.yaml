@@ -81,4 +81,4 @@ runtime_opts:
 options:
   dry_run: null
   preview: null
-  generate_k8s_spec: null
+  generate_k8s_spec: true

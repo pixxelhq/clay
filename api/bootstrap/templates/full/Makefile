@@ -7,10 +7,10 @@ setup:
 		# Find pip / pip3 and install the requirements
 		if command -v pip &> /dev/null; then \
 			echo "Using pip at: $$(command -v pip)"; \
-			pip install -r requirements.txt; \
+			pip install -r requirements-dev.txt -r requirements.txt; \
 		elif command -v pip3 &> /dev/null; then \
 			echo "Using pip3 at: $$(command -v pip3)"; \
-			pip3 install -r requirements.txt; \
+			pip3 install -r requirements-dev.txt -r requirements.txt; \
 		else \
 			echo "Error: pip and pip3 are not installed"; \
 		fi
