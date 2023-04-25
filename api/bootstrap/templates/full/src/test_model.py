@@ -8,7 +8,7 @@ def main() -> None:
     server = JobRunner(
         "{{.ModelName}}",
         {{.ModelName}},
-        {"config": "../specifications/model_specification.yaml"},
+        {"config": Path(__file__).parent.parent / "specifications/model_specification.yaml"},
     )
 
     with (Path(__file__).parent / "sample_model_inputs.json").open() as f:
