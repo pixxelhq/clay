@@ -48,6 +48,6 @@ setup(
         "pika",
         "matter>=0.2.2",
     ],
-    package_data={"clay": ["templates/*.jinja"]},
+    package_data={"clay": ["templates/*.jinja", "py.typed"]},
     include_package_data=True,
 )
