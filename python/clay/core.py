@@ -139,6 +139,15 @@ class ModelWrapper:
 
         return result
 
+    def __del__(self) -> None:
+        self.cleanup_session()
+
+    def cleanup_session(self) -> None:
+        pass
+
+    async def cleanup_inference(self) -> None:
+        pass
+
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
@@ -150,15 +159,18 @@ class ModelWrapper:
 
     async def infer(self, inputs: list) -> Dict[str, Any]:
         parsed_inputs = self._parse_inputs(inputs)
-        _return_vals = await self.preprocess(**parsed_inputs)
-        _return_vals = to_tuple_if_required(_return_vals)
-        _return_vals = await self.inference(*_return_vals)
-        _return_vals = to_tuple_if_required(_return_vals)
-        if _return_vals is not None:
-            _return_vals = await self.postprocess(*_return_vals)
+        try:
+            _return_vals = await self.preprocess(**parsed_inputs)
             _return_vals = to_tuple_if_required(_return_vals)
-            _return_vals = self.format_output(_return_vals)
-        return _return_vals
+            _return_vals = await self.inference(*_return_vals)
+            _return_vals = to_tuple_if_required(_return_vals)
+            if _return_vals is not None:
+                _return_vals = await self.postprocess(*_return_vals)
+                _return_vals = to_tuple_if_required(_return_vals)
+                _return_vals = self.format_output(_return_vals)
+            return _return_vals
+        finally:
+            await self.cleanup_inference()
 
     async def get_logs(self) -> str:
         """This method is used to extract logs from the main thread using
