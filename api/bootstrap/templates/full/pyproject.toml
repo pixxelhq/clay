@@ -1,6 +1,6 @@
 [tool.isort]
 known_first_party = [
-    "src"
+    "{{.ModelName}}"
 ]
 include_trailing_comma = "True"
 multi_line_output = 3
