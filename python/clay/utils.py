@@ -39,8 +39,15 @@ PRIMITIVE_TYPES.update(
         "path": Path,
         "url": str,
         "int": int,
+        "Int": int,
         "float": float,
+        "Float": float,
         "list": noop,
+        "List": noop,
+        "bool": bool,
+        "boolean": bool,
+        "dict": noop,
+        "Dict": noop,
     }
 )
 
