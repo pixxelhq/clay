@@ -299,7 +299,7 @@ class BaseRunner(object):
 
         headers["Authorization"] = authHeader
         headers["Content-type"] = "application/json"
-        self._logger.info(headers)
+
         # Responsible for firing the callback to orchestrator callback url.
         data = {"data": {"state": state.value, "id": id, "result": result, "logs": logs}}
         self._logger.info(f"Data for callback: {data}")
