@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/example/clay/pkg/logger"
 	"github.com/example/orchestrator/core/block"
@@ -66,6 +68,17 @@ func getToken(email string, password string) (string, error) {
 
 }
 
+func buildUrl(url string) string {
+
+	var block_url string
+	if strings.HasSuffix(url, "/") {
+		block_url = url + "blocks/"
+	} else {
+		block_url = url + "/blocks/"
+	}
+	return block_url
+}
+
 func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath string, email string, password string) error {
 
 	specBytes, err := ioutil.ReadFile(specFilePath)
@@ -91,8 +104,14 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 		return err
 	}
 	data := bytes.NewBuffer(blockJSON)
+	url := os.Getenv("DEXTER_BLOCK_URL")
+	if len(url) == 0 {
+		err := fmt.Errorf("orchestrator block-post not configured. ")
+		logger.Error().Err(err).Stack().Msg(err.Error())
+		return err
+	}
 
-	url := "https://orchestrator.dev.example.com/blocks/"
+	blockUrl := buildUrl(url)
 	bearer, err := getToken(email, password)
 
 	if err != nil {
@@ -100,7 +119,7 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 		return err
 	}
 
-	req, err := http.NewRequest("POST", url, data)
+	req, err := http.NewRequest("POST", blockUrl, data)
 
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
