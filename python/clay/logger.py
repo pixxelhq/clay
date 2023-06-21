@@ -6,7 +6,7 @@ import logging.config
 import logging.handlers
 import sys
 from logging import Logger
-from typing import Any, Callable, Union
+from typing import Callable, Optional, Union
 
 _DEFAULT_HANDLER_NAME = "clay_handler"
 buffer_handler_name = "buffer_handler"
@@ -68,15 +68,19 @@ def add_buffer_handler(logger: Logger, level: Union[int, None] = None) -> Logger
     return logger
 
 
-def get_streamvalues(logger: Logger) -> Any:
+def get_streamvalues(logger: Logger) -> Optional[str]:
     for handler in logger.handlers:
         if (
             isinstance(handler, logging.StreamHandler)
             and handler.name == buffer_handler_name
         ):
-            handler.stream.seek(0)
             assert isinstance(handler.stream, io.StringIO)
-            return handler.stream.getvalue()
+            pos = handler.stream.tell()
+            handler.stream.seek(0)
+            logs = handler.stream.getvalue()
+            # putting the cursor back to where it was
+            handler.stream.seek(pos)
+            return logs
 
 
 def ClayLogger(
