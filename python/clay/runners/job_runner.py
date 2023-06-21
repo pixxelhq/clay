@@ -28,10 +28,10 @@ class JobRunner(BaseRunner):
             self._logger.warning("`ORCHESTRATOR_URL` not set, hence not firing callback.")
         else:
             _ = self._fire_callback(
-                ModelStates.COMPLETED,
-                output["task_id"],
-                output["result"],
-                output["logs"],
+                state=ModelStates.COMPLETED,
+                id=output["task_id"],
+                result=output["result"],
+                logs=output["logs"],
             )
         self._logger.info("Successful completion.")
         sys.exit(0)
@@ -48,10 +48,15 @@ class JobRunner(BaseRunner):
                 "`ORCHESTRATOR_URL` is not set, hence not firing callback."
             )
         else:
+            if isinstance(exc, FailedExecutionException):
+                err_msg = exc.msg
+            else:
+                err_msg = ""
             _ = self._fire_callback(
                 state=ModelStates.FAILED,
                 id=data["task_id"],
                 logs=data["logs"],
+                err_msg=err_msg,
             )
         self._logger.error(f"Failure: {exc}", exc_info=exc)
         sys.exit(1)
@@ -82,6 +87,6 @@ class JobRunner(BaseRunner):
         res = self.run_model_inference(model_args)
         self._logger.info(f"Result: {res}")
         if isinstance(res["result"], Exception):
-            self.failure(res["result"], res)
+            self.failure(exc=res["result"], data=res)
         else:
             self.success(res)

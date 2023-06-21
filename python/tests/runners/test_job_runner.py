@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 from clay.runners import JobRunner
@@ -18,6 +20,11 @@ def test_jobrunner_ymxplusc() -> None:
 
     model_input = make_ymxplusc_input(x="hello")
     with pytest.raises(SystemExit, match="1"):
+        warnings.warn(
+            "TODO: Write tests to make sure logs are being sent to orchestrator when using"
+            + " `clay.failure",
+            category=UserWarning,
+        )
         model.start([model_input])
 
 
@@ -33,4 +40,9 @@ def test_jobrunner_noop() -> None:
 
     model_input = make_ymxplusc_input(x="hello")
     with pytest.raises(SystemExit, match="1"):
+        warnings.warn(
+            "TODO: Write tests to make sure logs are being sent to orchestrator when using"
+            + " `clay.failure",
+            category=UserWarning,
+        )
         model.start([model_input])

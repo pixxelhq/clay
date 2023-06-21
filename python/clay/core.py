@@ -172,7 +172,7 @@ class ModelWrapper:
         finally:
             await self.cleanup_inference()
 
-    async def get_logs(self) -> str:
+    async def get_logs(self) -> Optional[str]:
         """This method is used to extract logs from the main thread using
         `asyncio.run_coroutine_threadsafe` since the model runs in a separate
         thread from the main thread.
@@ -269,7 +269,11 @@ class BaseRunner(object):
             if hasattr(exc, "logs") and exc.logs != "":
                 res["logs"] = exc.logs
             else:
-                res["logs"] = ""
+                self._model.logger.error(exc, exc_info=exc)
+                res["logs"] = asyncio.run_coroutine_threadsafe(
+                    self._model.get_logs(),
+                    self._loop,
+                ).result()
         return res
 
     def _fire_callback(
@@ -278,6 +282,7 @@ class BaseRunner(object):
         id: str = "",
         result: Dict[str, Any] = {},
         logs: Any = "",
+        err_msg: str = "",
     ) -> bool:
         if self._dexter_clb_url is None or self._dexter_clb_url == "":
             self._logger.warning(
@@ -301,7 +306,15 @@ class BaseRunner(object):
         headers["Content-type"] = "application/json"
 
         # Responsible for firing the callback to orchestrator callback url.
-        data = {"data": {"state": state.value, "id": id, "result": result, "logs": logs}}
+        data = {
+            "data": {
+                "state": state.value,
+                "id": id,
+                "result": result,
+                "logs": logs,
+                "err_msg": err_msg,
+            }
+        }
         self._logger.info(f"Data for callback: {data}")
 
         session = requests.Session()
