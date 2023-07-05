@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import threading
 import time
@@ -6,6 +7,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
+from pprint import pformat
 from typing import Any, Dict, List, Optional, Union
 
 import requests
@@ -15,7 +17,7 @@ from matter.fs import AzureClient
 from requests.adapters import HTTPAdapter, Retry
 
 from clay.exceptions import FailedExecutionException
-from clay.logger import ClayLogger, Logger, get_streamvalues
+from clay.logger import ClayLogger, Logger, get_streamvalues, get_user_logs
 from clay.utils import (
     PRIMITIVE_TYPES,
     cast_inputs,
@@ -48,6 +50,7 @@ class ModelWrapper:
                 False,
                 create_buffer_handler=True,
                 create_console_handler=True,
+                create_user_logs_handler=True,
             )
         self.logger: Logger = logger
         self.run_setup()
@@ -172,12 +175,19 @@ class ModelWrapper:
         finally:
             await self.cleanup_inference()
 
-    async def get_logs(self) -> Optional[str]:
-        """This method is used to extract logs from the main thread using
-        `asyncio.run_coroutine_threadsafe` since the model runs in a separate
-        thread from the main thread.
+    def get_logs(self) -> Optional[str]:
+        """Returns all model logs stored in the buffered stream
+
+        :return: model logs
         """
         return get_streamvalues(self.logger)
+
+    def get_user_logs(self) -> Optional[str]:
+        """Gets the user logs logged at INFO level or above with the model's logger
+
+        :return: user logs
+        """
+        return get_user_logs(self.logger)
 
 
 class BaseRunner(object):
@@ -199,8 +209,13 @@ class BaseRunner(object):
         self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
-            logger = ClayLogger(
-                f"{self._run_mode}_model_runner", True, create_console_handler=True
+            logger = (
+                ClayLogger(
+                    f"{self._run_mode}_model_runner",
+                    propagate=True,
+                )
+                .add_console_handler(level=logging.INFO)
+                .add_buffer_handler(level=logging.DEBUG)
             )
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
@@ -216,18 +231,18 @@ class BaseRunner(object):
         self._run_mode = value
 
     def _init_model(self) -> None:
-        self._logger.info("Starting model initialization ...")
+        self._logger.info("Initializing model...")
         self._model: ModelWrapper = self._modelcls(**self._model_args)
         self._logger.info("Model initialization complete.")
 
     def _run_event_loop(self, _loop: asyncio.AbstractEventLoop) -> None:
-        self._logger.info("Start model inference event loop ...")
+        self._logger.debug("Start model inference event loop ...")
         asyncio.set_event_loop(_loop)
         _loop.run_forever()
-        self._logger.info("Event loop stopped")
+        self._logger.debug("Event loop stopped")
 
     def _init_model_inference_event_loop(self) -> None:
-        self._logger.info("Starting model inference thread ...")
+        self._logger.debug("Starting model inference thread ...")
         asyncio.set_event_loop_policy(self._DEFAULT_EVENT_LOOP_POLICY)
         self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self._t = threading.Thread(
@@ -238,7 +253,7 @@ class BaseRunner(object):
         )
         self._t.start()
         time.sleep(1)
-        self._logger.info("Started model inference thread.")
+        self._logger.debug("Started model inference thread.")
 
     def run_model_inference(
         self, inference_parameters: List[Dict[Any, Any]], *args: Any, **kwargs: Any
@@ -260,20 +275,13 @@ class BaseRunner(object):
             res["result"] = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inference_parameters), self._loop
             ).result()
-            res["logs"] = asyncio.run_coroutine_threadsafe(
-                self._model.get_logs(),
-                self._loop,
-            ).result()
         except Exception as exc:
+            self._model.logger.error(exc, exc_info=exc)
             res["result"] = exc  # type: ignore[assignment]
-            if hasattr(exc, "logs") and exc.logs != "":
-                res["logs"] = exc.logs
-            else:
-                self._model.logger.error(exc, exc_info=exc)
-                res["logs"] = asyncio.run_coroutine_threadsafe(
-                    self._model.get_logs(),
-                    self._loop,
-                ).result()
+
+        res["logs"] = self._model.get_logs()
+        res["user_logs"] = self._model.get_user_logs()
+
         return res
 
     def _fire_callback(
@@ -281,7 +289,8 @@ class BaseRunner(object):
         state: ModelStates = ModelStates.INPROGRESS,
         id: str = "",
         result: Dict[str, Any] = {},
-        logs: Any = "",
+        logs: str = "",
+        user_logs: str = "",
         err_msg: str = "",
     ) -> bool:
         if self._dexter_clb_url is None or self._dexter_clb_url == "":
@@ -312,10 +321,11 @@ class BaseRunner(object):
                 "id": id,
                 "result": result,
                 "logs": logs,
+                "user_logs": user_logs,
                 "err_msg": err_msg,
             }
         }
-        self._logger.info(f"Data for callback: {data}")
+        self._logger.debug(f"Data for callback: {data}")
 
         session = requests.Session()
         retries = Retry(
@@ -328,9 +338,9 @@ class BaseRunner(object):
             json=data,
             headers=headers,
         ).json()
-        self._logger.info(resp)
+        self._logger.info(f"Response from orchestrator: {pformat(resp)}")
         if resp["successful_update"]:
-            self._logger.info("Updated state successfully.")
+            self._logger.info("Successfully updated state with Orchestrator.")
         else:
             self._logger.error("State Update failed.")
 

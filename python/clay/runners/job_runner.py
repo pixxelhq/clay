@@ -2,6 +2,7 @@ import json
 import sys
 import time
 from logging import Logger
+from pprint import pformat
 from typing import Any, Dict, Union
 
 from clay.core import BaseRunner, ModelStates, ModelWrapper
@@ -23,17 +24,18 @@ class JobRunner(BaseRunner):
         super().__init__(JobRunner.RUN_MODE, modelcls, model_args, logger, enable_uvloop)
         self.model_name = model_name
 
-    def success(self, output: Dict[str, Any]) -> Any:
+    def success(self, data: Dict[str, Any]) -> Any:
         if self._dexter_clb_url is None:
             self._logger.warning("`ORCHESTRATOR_URL` not set, hence not firing callback.")
         else:
-            _ = self._fire_callback(
+            self._fire_callback(
                 state=ModelStates.COMPLETED,
-                id=output["task_id"],
-                result=output["result"],
-                logs=output["logs"],
+                id=data["task_id"],
+                result=data["result"],
+                logs=data.get("logs", ""),
+                user_logs=data.get("user_logs", ""),
             )
-        self._logger.info("Successful completion.")
+        self._logger.info("Inferenece finished.")
         sys.exit(0)
 
     def failure(
@@ -52,10 +54,11 @@ class JobRunner(BaseRunner):
                 err_msg = exc.msg
             else:
                 err_msg = ""
-            _ = self._fire_callback(
+            self._fire_callback(
                 state=ModelStates.FAILED,
                 id=data["task_id"],
-                logs=data["logs"],
+                logs=data.get("logs", ""),
+                user_logs=data.get("user_logs", ""),
                 err_msg=err_msg,
             )
         self._logger.error(f"Failure: {exc}", exc_info=exc)
@@ -71,8 +74,8 @@ class JobRunner(BaseRunner):
             if self._loop.is_running():
                 self._loop.call_soon_threadsafe(self._loop.stop)
             time.sleep(2)
-            self._logger.info(f"Event loop running status: {self._loop.is_running()}")
-            self._logger.info(f"thread alive status: {self._t.is_alive()}")
+            self._logger.debug(f"Event loop running status: {self._loop.is_running()}")
+            self._logger.debug(f"thread alive status: {self._t.is_alive()}")
 
             # Since every job run, is mapped to a particular `task_id`,
             # incase if the model/event loop  fail to initialize, we can always fail
@@ -83,10 +86,10 @@ class JobRunner(BaseRunner):
                 "logs": get_streamvalues(self._logger),
             }
             self.failure(exc, failure_data)
-        self._logger.info(args)
+        self._logger.info(f"Model inputs:\n{pformat(args)}")
         res = self.run_model_inference(model_args)
-        self._logger.info(f"Result: {res}")
+        self._logger.info(f"Inference results:\n{pformat(res['result'])}")
         if isinstance(res["result"], Exception):
             self.failure(exc=res["result"], data=res)
         else:
-            self.success(res)
+            self.success(data=res)
