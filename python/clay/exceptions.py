@@ -20,8 +20,7 @@ class FailedExecutionException(Exception):
     by models to runner methods.
     """
 
-    def __init__(self, message: Any, logs: Any = "", http_status_code: int = 500) -> None:
+    def __init__(self, message: Any, http_status_code: int = 500) -> None:
         super().__init__(message)
         self.msg = message
-        self.logs = logs
         self.http_status_code = http_status_code

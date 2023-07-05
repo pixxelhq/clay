@@ -1,6 +1,7 @@
 import json
 import time
 from logging import Logger
+from pprint import pformat
 from typing import Any, Dict, Union
 
 import uvicorn
@@ -47,14 +48,23 @@ class HTTPRunner(BaseRunner):
         if self._dexter_clb_url is None:
             self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
         else:
-            _ = self._fire_callback(
-                state=ModelStates.FAILED, id=data["task_id"], logs=data["logs"]
+            if isinstance(exc, FailedExecutionException):
+                err_msg = exc.msg
+            else:
+                err_msg = ""
+            self._fire_callback(
+                state=ModelStates.FAILED,
+                id=data["task_id"],
+                logs=data.get("logs", ""),
+                user_logs=data.get("user_logs", ""),
+                err_msg=err_msg,
             )
         self._logger.error(f"Failure: {exc}", exc_info=exc)
         if not hasattr(exc, "http_status_code"):
             status_code = 500
         else:
-            if exc.http_status_code == 400:  # type: ignore
+            assert isinstance(exc, FailedExecutionException)
+            if exc.http_status_code == 400:
                 status_code = status.HTTP_400_BAD_REQUEST
             else:
                 status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -72,11 +82,12 @@ class HTTPRunner(BaseRunner):
         if self._dexter_clb_url is None:
             self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
         else:
-            _ = self._fire_callback(
+            self._fire_callback(
                 state=ModelStates.COMPLETED,
                 id=data["task_id"],
                 result=data["result"],
-                logs=data["logs"],
+                logs=data.get("logs", ""),
+                user_logs=data.get("user_logs", ""),
             )
         self._logger.info(f"Success: {data}")
         response: Response = Response(
@@ -92,8 +103,13 @@ class HTTPRunner(BaseRunner):
 
     async def infer_path(self, request: Request) -> Any:
         body = await request.json()
-        result = json.dumps(self.run_model_inference(body, request))
-        return result
+        self._logger.info(f"Model inputs:\n{pformat(body)}")
+        result = self.run_model_inference(body, request)
+        self._logger.info(f"Inference results:\n{pformat(result['result'])}")
+        # removing logs before sending the results back as they're not needed
+        result.pop("logs", None)
+        result.pop("user_logs", None)
+        return json.dumps(result)
 
     def _init_fastapi_app(self) -> None:
         self._app = FastAPI()
@@ -111,8 +127,8 @@ class HTTPRunner(BaseRunner):
             if self._loop.is_running():
                 self._loop.call_soon_threadsafe(self._loop.stop)
             time.sleep(2)
-            self._logger.info(f"Event loop running status: {self._loop.is_running()}")
-            self._logger.info(f"thread alive status: {self._t.is_alive()}")
+            self._logger.debug(f"Event loop running status: {self._loop.is_running()}")
+            self._logger.debug(f"thread alive status: {self._t.is_alive()}")
             raise exc
         self._init_fastapi_app()
         uvicorn.run(
