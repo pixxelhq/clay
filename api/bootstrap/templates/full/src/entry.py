@@ -7,9 +7,9 @@ from model import {{.ModelName}}
 if __name__ == "__main__":
     args = sys.argv[1]
 
-    specification_path = os.getenv("SPECIFICATION_PATH")
-    if specification_path is None:
-        specification_path = "../specifications/model_specification.yaml"
+    env = os.getenv("DEXTER_ENV", "dev")
+    specification_path = f"specifications/model_specification_{env}.yaml"
+    print(f"Using configuration located at: {specification_path}")
 
     server = JobRunner(
         "{{.ModelName}}",

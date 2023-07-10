@@ -84,7 +84,7 @@ This will initialize `git` if needed, install some packages from the `requiremen
 
 At this point, we're ready to dive head on into writing our model code and creating the model specification.
 
-First, you will need to open `specifications/model_specification.yaml` and fill in the `parameters`, `inputs` and `outputs` fields. They have some pre-filled values to help you understand the expected format and available options.
+First, you will need to open `ModelName/specifications/model_specification_dev.yaml` and fill in the `parameters`, `inputs` and `outputs` fields. They have some pre-filled values to help you understand the expected format and available options.
 
 You can ignore other keys for now. Read further to understand how to fill in the specification file.
 
@@ -192,7 +192,7 @@ The above command will:
 The above command will not work if you are using a model specification file at a location other than the default one, or if your source code is in a location other than the `src` folder. In that case, the following set of commands will work:
 
 ```bash
-clay create dockerfile path/to/model_specification.yaml path/to/source/code
+clay create dockerfile path/to/model_specification_dev.yaml path/to/source/code
 ```
 
 After building the dockerfile, assuming it is present at the root of the project, run the below to create a docker image:

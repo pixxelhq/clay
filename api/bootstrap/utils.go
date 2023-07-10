@@ -111,15 +111,17 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 
 func getTemplateData(modelName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"model.py":                  Model{ModelName: modelName},
-		"entry.py":                  Entry{ModelName: modelName},
-		"README.md":                 Readme{Name: modelName},
-		"model_specification.yaml":  ModelSpecification{Name: modelName},
-		"test_model.py":             TestModel{ModelName: modelName},
-		"Makefile":                  Makefile{ModelName: modelName},
-		"test_main.py":              TestModel{ModelName: modelName},
-		"pyproject.toml":            PyProject{ModelName: modelName},
-		"package-deploy-model.yaml": GithubWorkflow{ModelName: modelName, Version: Version},
+		"model.py":                      Model{ModelName: modelName},
+		"entry.py":                      Entry{ModelName: modelName},
+		"README.md":                     Readme{Name: modelName},
+		"model_specification_dev.yaml":  ModelSpecification{Name: modelName},
+		"model_specification_prod.yaml": ModelSpecification{Name: modelName},
+		"model_specification_stg.yaml":  ModelSpecification{Name: modelName},
+		"test_model.py":                 TestModel{ModelName: modelName},
+		"Makefile":                      Makefile{ModelName: modelName},
+		"test_main.py":                  TestModel{ModelName: modelName},
+		"pyproject.toml":                PyProject{ModelName: modelName},
+		"package-deploy-model.yaml":     GithubWorkflow{ModelName: modelName, Version: Version},
 	}
 	return data
 }
