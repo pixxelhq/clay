@@ -40,6 +40,11 @@ inputs:
     type: str
     properties:
       geometry: Polygon
+  - name: date
+    format: date
+    type: str
+    properties:
+      from_aoi: false
   - name: bandlist
     format: string
     type: str

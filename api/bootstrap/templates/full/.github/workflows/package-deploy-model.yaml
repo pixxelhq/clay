@@ -58,7 +58,7 @@ jobs:
           fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
       - name: Create local changes
         run: |
-          sed -i "s|image:.*|image: \"crk2hub.azurecr.io/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}\"|" specifications/model_specification.yaml
+          sed -i "s|image:.*|image: \"crk2hub.azurecr.io/{{ .ModelName | ToLower }}:{{ "${{ github.event.inputs.tags}}" }}\"|" {{ .ModelName }}specifications/model_specification_dev.yaml
       - name: Download Clay Binaries
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
@@ -71,7 +71,7 @@ jobs:
           rename-to: clay
           chmod: 0755
       - run: |
-          clay block add ./specifications/model_specification.yaml {{ "${{ secrets.DEXTER_EMAIL}}" }} {{ "${{ secrets.DEXTER_PASS }}" }}
+          clay block add {{ .ModelName }}/specifications/model_specification_dev.yaml {{ "${{ secrets.DEXTER_EMAIL}}" }} {{ "${{ secrets.DEXTER_PASS }}" }}
       - name: Commit files
         run: |
           git config --local user.email "github-actions-bot@github.com"

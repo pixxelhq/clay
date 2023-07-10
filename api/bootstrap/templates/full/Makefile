@@ -35,14 +35,15 @@ clean:
 
 
 dockerfile:
-		clay create dockerfile specifications/model_specification.yaml {{.ModelName}}
+		clay create dockerfile {{.ModelName}}/specifications/model_specification_dev.yaml {{.ModelName}}
 
 docker-image:
 		docker build \
-		--build-arg AZURE_TENANT_ID=$(AZURE_TENANT_ID) \
-		--build-arg AZURE_CLIENT_ID=$(AZURE_CLIENT_ID) \
-		--build-arg AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET) \
-		-t {{.ModelName | ToLower}} --secret id=GITLAB_TOKEN .
+		--build-arg AWS_ENV_PROFILE=$(AWS_ENV_PROFILE) \
+		--secret id=GITLAB_TOKEN_NAME \
+		--secret id=GITLAB_TOKEN_PASS \
+		-t {{.ModelName | ToLower}} \
+		.
 
 test-docker-image:
 		docker run {{.ModelName | ToLower}} "$$(cat {{.ModelName}}/sample_model_inputs.json)"
