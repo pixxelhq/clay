@@ -22,3 +22,4 @@ site
 .dmypy.json
 bin
 .DS_Store
+.idea/
