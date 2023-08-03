@@ -332,7 +332,6 @@ class BaseRunner(object):
             total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
         )
         session.mount("http://", HTTPAdapter(max_retries=retries))
-        session.mount("https://", HTTPAdapter(max_retries=retries))
         resp = session.post(
             url=self._dexter_clb_url,
             json=data,
