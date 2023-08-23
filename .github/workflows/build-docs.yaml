@@ -22,7 +22,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r python/requirements/requirements-dev.txt
-          pip install --index-url ${{ secrets.MATTER_INDEX_URL }} matter
+          pip install --index-url https://${{ secrets.GITLAB_TOKEN_NAME }}:${{ GITLAB_TOKEN_PASS }}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple matter
           pip install coverage mypy==0.971 flake8 isort pre-commit
       - name: Build docs
         run: |
