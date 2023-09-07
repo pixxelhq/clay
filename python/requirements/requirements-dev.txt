@@ -15,6 +15,7 @@ fastapi
 asynctest
 uvloop
 pika
+requests
 httpx
 mkdocs-material
 mkdocstrings

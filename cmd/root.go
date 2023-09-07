@@ -4,12 +4,11 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/clay/cmd/block"
 	"github.com/example/clay/cmd/create"
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
+// RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "clay",
 	Short: "A tool to bridge gap between model development on local machines and deployment on the platform",
@@ -20,7 +19,7 @@ var RootCmd = &cobra.Command{
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
 	err := RootCmd.Execute()
 	if err != nil {
@@ -31,7 +30,10 @@ func Execute() {
 func init() {
 
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	RootCmd.AddCommand(block.BlockCmd)
+	RootCmd.PersistentFlags().StringP("env", "e", "dev", "Environment to add new block to: dev, stg, prod")
 	RootCmd.AddCommand(create.CreateCmd)
+	RootCmd.AddCommand(GetCmd())
+	RootCmd.AddCommand(ListCmd())
+	RootCmd.AddCommand(AddNewCmd())
+	RootCmd.AddCommand(UpdateCmd())
 }
