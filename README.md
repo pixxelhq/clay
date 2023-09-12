@@ -29,32 +29,16 @@ After this stage, `clay` will automatically:
 * Build the docker container and push it to Pixxel’s container registry; and
 * Let  `orchestrator` know about this new and really amazing model that has just been created and how it works, so that `orchestrator` can in turn deploy it and let all of Pixxel’s infrastructure discover and use it.
 
+## Nomenclature
+* `clay` CLI : A command line tool which is used to create project template for models
+* `clay` python package:  which will be used in the created projected as a dependency
 
 ## Installation
 
-`Clay` can be installed in 2 steps
-
-* First, install the python package using `pip`:
-
-    ```bash
-    pip install clay --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
-    ```
-
-* Next, install the **latest** version of `Clay`'s CLI tool from here: https://github.com/example/clay/releases
-
-
-Installation Tips:
-
-* `Clay` requires `GDAL` to be installed and working correctly in your environment.
-* Make sure you're installing the latest version of `clay` where possible.
-* Contact the MLOps Team for help with `YOUR-GITLAB-TOKEN`.
+Install the **latest** version of `clay` CLI tool from here: https://github.com/example/clay/releases
 
 ## Getting Started
-
-Its easy to get started with `Clay`.<br>
-First, make sure you're preferably in a fresh python environment with `Clay` installed. Then proceed to follow the next steps.
-
----
+* Prerequisite: `clay` CLI should be installed in your systeam
 
 ### Step 1: Create your project
 
@@ -68,6 +52,27 @@ This will create your project here: `path/to/outputDirectory/ModelNameInCamelCas
 
 You should take some time to look at the files that have been created. You can refer to [this demo model](https://github.com/example/demo-clay-model) to understand the structure of the project.
 
+### Setp 2: Setup project
+
+1. Create and activate a fresh python envrionment based on the tool you are using, `venv` or `conda`
+    * For `venv` run:
+        - create new environment: `python3 -m venv <env_name>` 
+        - activate new environment: `source venv/bin/activate`
+    * For `conda` run:
+        - create new environment: `conda create --name <env_name> python=3.9`
+        - activate new environment: `conda activate <env_name>`
+
+2. Install the required private dependencies `clay` and `pixxelsign` python package
+    Installation Tips:
+    * `Clay` requires `GDAL` to be installed and working correctly in your environment.
+    * Make sure you're installing the latest version of `clay` where possible.
+    * Contact the MLOps Team for help with `YOUR-GITLAB-TOKEN`.
+    <br> <br>
+    Now run
+    ```bash
+    pip install clay pixxelsign --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
+    ```
+
 Next, you should run:
 
 ```bash
@@ -78,7 +83,7 @@ This will initialize `git` if needed, install some packages from the `requiremen
 
 ---
 
-### Step 2: Define your model's inputs and outputs
+### Step 3: Define your model's inputs and outputs
 
 At this point, we're ready to dive head on into writing our model code and creating the model specification.
 
@@ -129,7 +134,7 @@ With these values in place, we can now move on to writing the actual model code.
 
 ---
 
-### Step 3: Write and test your model code
+### Step 4: Write and test your model code
 
 First, open up `src/model.py` and:
 
@@ -151,7 +156,7 @@ If all goes well, this should run smoothly.
 
 ---
 
-### Step 4: Finish the model specification
+### Step 5: Finish the model specification
 
 You can go ahead and first fill in these self explanatory keys in the model specification:
 
@@ -173,7 +178,7 @@ You can ignore the `options` key.
 
 ---
 
-### Step 5: Package and test the model
+### Step 6: Package and test the model
 
 Go to your project root, and type in the following command:
 
@@ -207,7 +212,7 @@ make test-docker-image
 
 ---
 
-### Step 6: Update the version file and push to GitHub
+### Step 7: Update the version file and push to GitHub
 
 Open `src/__version__.py` and edit the version.
 
