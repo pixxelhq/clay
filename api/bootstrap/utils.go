@@ -122,6 +122,7 @@ func getTemplateData(modelName string) map[string]TemplateData {
 		"test_main.py":                  TestModel{ModelName: modelName},
 		"pyproject.toml":                PyProject{ModelName: modelName},
 		"package-deploy-model.yaml":     GithubWorkflow{ModelName: modelName, Version: Version},
+		"package-deploy-model-aws.yaml": GithubWorkflow{ModelName: modelName, Version: Version},
 	}
 	return data
 }
