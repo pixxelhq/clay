@@ -1,0 +1,98 @@
+name: "Package model in a docker container and deploy with Orchestrator"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "docker tag"
+        required: true
+      update-image-and-push-to-orchestrator:
+        description: "Push block spec to orchestrator"
+        default: false
+        type: boolean
+
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-push-container:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set Image Tag and Registry (Workflow Dispatch)
+      if: {{ "${{ github.event_name == 'workflow_dispatch' }}" }}
+      env:
+        TAG: {{ "${{ github.event.inputs.tag }}" }}
+      run: |
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@b8c74de753fbcb4868bf2011fb2e15826ce973af
+      with:
+       role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+       role-session-name: samplerolesession
+       aws-region: {{ "${{ secrets.AWS_DEFAULT_REGION }}" }}
+
+    - name: Login to AWS Container Registry
+      id: login-ecr
+      uses: docker/login-action@v2
+      with:
+        registry: {{ "${{ secrets.AWS_ACCOUNT_NUMBER }}" }}.dkr.ecr.{{ "${{ secrets.AWS_DEFAULT_REGION }}" }}.amazonaws.com
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Build and Push
+      uses: docker/build-push-action@v4
+      env:
+        ECR_REGISTRY: {{ "${{ steps.login-ecr.outputs.registry }}" }}
+      with:
+        context: .
+        platforms: linux/amd64
+        push: true
+        secrets: |
+            GITLAB_TOKEN_NAME={{ "${{ secrets.GITLAB_TOKEN_NAME }}" }}
+            GITLAB_TOKEN_PASS={{ "${{ secrets.GITLAB_TOKEN_PASS }}" }}
+        tags: |
+          {{ "${{ secrets.AWS_ACCOUNT_NUMBER }}" }}.dkr.ecr.{{ "${{ secrets.AWS_DEFAULT_REGION }}" }}.amazonaws.com/{{ .ModelName }}:{{ "${{ env.IMAGE_TAG }}" }}
+
+  update-image-and-push-to-orchestrator:
+    needs: build-push-container
+    runs-on: ubuntu-latest
+    if: {{ "${{ github.event.inputs.update-image-and-push-to-orchestrator != 'false' }}" }}
+    env:
+      GITHUB_TOKEN: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      - name: Create local changes
+        run: |
+          sed -i "s|image:.*|image: \"{{ "${{ secrets.AWS_ACCOUNT_NUMBER }}" }}.dkr.ecr.{{ "${{ secrets.AWS_DEFAULT_REGION }}" }}.amazonaws.com/{{ .ModelName }}:{{ "${{ env.IMAGE_TAG }}" }}\"|" specifications/model_specification_{{ "${{ env.ENVIRON }}" }}.yaml
+      - name: Download Clay Binaries
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+            repo: example/clay
+            tag: v{{ .Version }}
+            token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
+            extension-matching: disable
+            platform: linux
+            arch: amd64
+            rename-to: clay
+            chmod: 0755
+      - run: |
+            clay add block {{ .ModelName }}/specifications/model_specification_{{ "${{ env.ENVIRON }}"}}.yaml --env {{ "${{ env.ENVIRON }}"}}
+      - name: Commit files
+        run: |
+            git config --local user.email "github-actions-bot@github.com"
+            git config --local user.name "github-actions-bot"
+            git commit -a -m "Add changes"
+      - name: Push changes back to github
+        uses: ad-m/github-push-action@master
+        with:
+            github_token: {{ "${{ secrets.GITHUB_TOKEN}}" }}
+            branch: {{ "${{ github.ref}}" }}
