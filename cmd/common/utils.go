@@ -90,3 +90,15 @@ func Getlogger() *logger.Logger {
 	})
 	return logger
 }
+
+type UnauthorisedError struct {
+	Msg string
+}
+
+func (u UnauthorisedError) Error() string {
+	return u.Msg
+}
+
+func NewUnauthorisedError(msg string) error {
+	return UnauthorisedError{msg}
+}

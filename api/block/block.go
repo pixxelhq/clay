@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
-	"net/url"
+	"os"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -25,7 +25,7 @@ type WorkflowAPIRequest struct {
 }
 
 type UpdateAPIRequest struct {
-	Spec map[string]json.RawMessage `json:"spec"`
+	Spec json.RawMessage `json:"spec"`
 }
 
 type BlockSpec struct {
@@ -59,7 +59,7 @@ func getToken(email string, password string) (string, error) {
 
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -81,20 +81,51 @@ func getToken(email string, password string) (string, error) {
 
 }
 
-func buildUrl(blockUrl string, endpoint string) string {
+func buildURL(blockUrl string, endpoint string) string {
 
-	var block_url string
+	var relativeURL string
 	if strings.HasSuffix(blockUrl, "/") {
-		block_url = blockUrl + "blocks/" + endpoint
+		relativeURL = "blocks/"
 	} else {
-		block_url = blockUrl + "/blocks/" + endpoint
+		relativeURL = "/blocks/"
 	}
-	return block_url
+	return blockUrl + relativeURL + endpoint
+}
+func sendRequest(email string, password string, method string, blockUrl string, data io.Reader) ([]byte, int, error) {
+
+	bearer, err := getToken(email, password)
+
+	if err != nil {
+		return []byte{}, 0, err
+
+	}
+
+	req, err := http.NewRequest(method, blockUrl, data)
+
+	if err != nil {
+		return []byte{}, 0, err
+	}
+
+	req.Header.Add("Authorization", bearer)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return []byte{}, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return []byte{}, 0, err
+	}
+	return body, resp.StatusCode, nil
 }
 
 func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath string, email string, password string, env string) error {
 
-	specBytes, err := ioutil.ReadFile(specFilePath)
+	specBytes, err := os.ReadFile(specFilePath)
 	if err != nil {
 		logger.Error().Err(err).Msgf("Spec file not found at path %s", specFilePath)
 		return err
@@ -107,8 +138,6 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
 	}
-
-	//add spec key before sending POST request
 
 	updatedBlockSpec := WorkflowAPIRequest{Spec: blockStruct}
 	blockJSON, err := json.Marshal(updatedBlockSpec)
@@ -124,40 +153,14 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 		return pkg.ErrInvalidValue("invalid env")
 	}
 
-	blockUrl := buildUrl(dexterUrl, "")
-	bearer, err := getToken(email, password)
+	blockUrl := buildURL(dexterUrl, "")
 
+	body, statuscode, err := sendRequest(email, password, "POST", blockUrl, data)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
 	}
 
-	req, err := http.NewRequest("POST", blockUrl, data)
-
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return err
-	}
-
-	req.Header.Add("Authorization", bearer)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return err
-	}
-	statuscode := int(resp.StatusCode)
 	if statuscode >= 200 && statuscode < 300 {
 		logger.Info().Msgf("block is updated successfully: \nstatus code: %d \nrespose:%s", statuscode, string(body))
 		return nil
@@ -171,50 +174,22 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 func ListBlock(ctx context.Context, logger *logger.Logger, email string, password string, env string, status string) (BlockSpec, error) {
 
 	dexterUrl := common.GetUrl(env)
-
 	if dexterUrl == "" {
 		return BlockSpec{}, pkg.ErrInvalidValue("invalid env")
 	}
 
-	blockUrl := buildUrl(dexterUrl, "")
-
-	bearer, err := getToken(email, password)
-
+	blockUrl := buildURL(dexterUrl, fmt.Sprintf("?status=%s", status))
+	body, statuscode, err := sendRequest(email, password, "GET", blockUrl, nil)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return BlockSpec{}, err
 	}
-	parameter := url.Values{}
-	parameter.Add("status", status)
-	blockUrl = blockUrl + "?" + parameter.Encode()
-
-	req, err := http.NewRequest("GET", blockUrl, nil)
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return BlockSpec{}, err
+	if statuscode >= 400 && statuscode < 500 {
+		logger.Info().Msgf("cannot complete request: \nstatus code: %d \nrespose:%s", statuscode, string(body))
+		return BlockSpec{}, common.NewUnauthorisedError("cannot complete request")
 	}
-
-	req.Header.Add("Authorization", bearer)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return BlockSpec{}, err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return BlockSpec{}, err
-	}
-
 	var tmpVar BlockSpec
-	err = json.Unmarshal([]byte(body), &tmpVar)
+	err = json.Unmarshal(body, &tmpVar)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return BlockSpec{}, err
@@ -229,41 +204,17 @@ func ListVersion(ctx context.Context, logger *logger.Logger, blockname string, e
 		return BlockSpec{}, pkg.ErrInvalidValue("invalid env")
 	}
 
-	blockUrl := buildUrl(dexterUrl, ":name/versions")
-	modifiedURL := strings.Replace(blockUrl, ":name", blockname, 1)
-	bearer, err := getToken(email, password)
+	blockUrl := buildURL(dexterUrl, fmt.Sprintf("%s/versions?status=%s", blockname, status))
 
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return BlockSpec{}, err
-	}
-	parameter := url.Values{}
-	parameter.Add("status", status)
-	modifiedURL = modifiedURL + "?" + parameter.Encode()
-
-	req, err := http.NewRequest("GET", modifiedURL, nil)
+	body, statuscode, err := sendRequest(email, password, "GET", blockUrl, nil)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return BlockSpec{}, err
 	}
 
-	req.Header.Add("Authorization", bearer)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return BlockSpec{}, err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return BlockSpec{}, err
+	if statuscode >= 400 && statuscode < 500 {
+		logger.Info().Msgf("cannot complete request: \nstatus code: %d \nrespose:%s", statuscode, string(body))
+		return BlockSpec{}, common.NewUnauthorisedError("cannot complete request")
 	}
 
 	var tmpVar BlockSpec
@@ -272,7 +223,6 @@ func ListVersion(ctx context.Context, logger *logger.Logger, blockname string, e
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return BlockSpec{}, err
 	}
-
 	return tmpVar, nil
 }
 
@@ -310,7 +260,10 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
 	}
-
+	if jsonData == nil {
+		fmt.Println("No block found for the given details")
+		return nil
+	}
 	var tmpVar WorkflowAPIRequest
 	err = json.Unmarshal(jsonData, &tmpVar)
 	if err != nil {
@@ -320,13 +273,13 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 
 	//blockID required to update block in orchestrator
 	blockId := tmpVar.Spec.Id
-	specBytes, err := ioutil.ReadFile(specFilePath)
+	specBytes, err := os.ReadFile(specFilePath)
 	if err != nil {
 		logger.Error().Err(err).Msgf("Spec file not found at path %s", specFilePath)
 		return err
 	}
 
-	var blockStruct block.Block
+	blockStruct := json.RawMessage{}
 
 	err = yaml.Unmarshal(specBytes, &blockStruct)
 	if err != nil {
@@ -336,7 +289,7 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 
 	//add spec key before sending POST request
 
-	updatedBlockSpec := WorkflowAPIRequest{Spec: blockStruct}
+	updatedBlockSpec := UpdateAPIRequest{Spec: blockStruct}
 
 	blockJSON, err := json.Marshal(updatedBlockSpec)
 	if err != nil {
@@ -346,44 +299,14 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 	data := bytes.NewBuffer(blockJSON)
 	dexterUrl := common.GetUrl(env)
 
-	blockUrl := buildUrl(dexterUrl, ":blockId/")
-	modifiedURL := strings.Replace(blockUrl, ":blockId", blockId, 1)
-	parameter := url.Values{}
-	parameter.Add("status", status)
-	modifiedURL = modifiedURL + "?" + parameter.Encode()
-	bearer, err := getToken(email, password)
+	blockUrl := buildURL(dexterUrl, fmt.Sprintf("%s?status=%s", blockId, status))
 
+	body, statuscode, err := sendRequest(email, password, "PUT", blockUrl, data)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", modifiedURL, data)
-
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return err
-	}
-
-	req.Header.Add("Authorization", bearer)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
-		return err
-	}
-	statuscode := int(resp.StatusCode)
 	if statuscode >= 200 && statuscode < 300 {
 		logger.Info().Msgf("block is updated successfully: \nstatus code: %d \nrespose:%s", statuscode, string(body))
 		return nil

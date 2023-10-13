@@ -113,14 +113,13 @@ func ListBlockCmd() *cobra.Command {
 		Short: "List blocks ",
 
 		Long: heredoc.Doc(`
-            List the blocks available in database.
-			If blockname is provided, all available "released" blocks will be listed.
-            Use flags to list versions available for a block
-			Use flags to list block based on their status.
-            Provide the login credentials registered with "aurora.example.com"`),
+		List the blocks available in database.
+		If blockname is provided, all available "released" blocks will be listed.
+		Use flags to list versions available for a block
+		Use flags to list block based on their status.
+		Provide the login credentials registered with "aurora.example.com"`),
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-
 			status, err := cmd.Flags().GetString("status")
 			if err != nil {
 				return err
@@ -156,31 +155,36 @@ func ListBlockCmd() *cobra.Command {
 			}
 
 			if blockName == "" {
-				tmpVar, err := block.ListBlock(ctx, logger, creds.Username, creds.Password, env, status)
+				blocks, err := block.ListBlock(ctx, logger, creds.Username, creds.Password, env, status)
 				if err != nil {
+					fmt.Println(err)
 					return err
 				}
 
 				fmt.Printf("Blocks available in %s as %s:\n", env, status)
 				fmt.Printf("%-30s %-20s\n", "Name", "Version")
-				for _, block := range tmpVar.Data {
+				for _, block := range blocks.Data {
 					fmt.Printf("%-30s %-20s\n", block.Spec.Name, block.Spec.Version)
 				}
-			} else {
-				tmpVar, err := block.ListVersion(ctx, logger, blockName, creds.Username, creds.Password, env, status)
-				if err != nil {
-					return err
-				}
-				fmt.Println(status, "version for", blockName)
-				for _, block := range tmpVar.Data {
-					fmt.Println("v", block.Spec.Version)
-				}
+
+				return nil
+			}
+
+			blocks, err := block.ListVersion(ctx, logger, blockName, creds.Username, creds.Password, env, status)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			fmt.Println(status, "version for", blockName)
+			for _, block := range blocks.Data {
+				fmt.Println("v", block.Spec.Version)
 			}
 			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&blockName, "name", "n", "", "Name of block")
-	cmd.Flags().StringVarP(&status, "status", "s", "released", "Status of block: draft, released, disabled")
+	cmd.Flags().StringVarP(&status, "status", "s", "released", "Possible status of block: draft, released, disabled")
 	return cmd
 }
 

@@ -2,7 +2,6 @@ package dockerfile
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"testing"
@@ -16,7 +15,7 @@ func assertEqual(t *testing.T, a interface{}, b interface{}) {
 
 func setVersion() error {
 	path := "../../python/clay/__version__.py"
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Printf("Error reading file: %v", err)
 		return err
