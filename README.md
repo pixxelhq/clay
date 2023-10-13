@@ -40,6 +40,80 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
 ## Getting Started
 * Prerequisite: `clay` CLI should be installed in your systeam
 
+### Clay CLI
+<details>
+  <summary>Use this guide as a reference for the available commands supported by clay
+  for operations related to a model</summary>
+
+
+1. `clay create project [outputDir] [modelName]`
+
+    Generate starter files for your model
+
+2. `clay create dockerfile [modelSpecificationPath] [sourceCodeFolder] [useHttpRunner] [flags]`
+
+    Creates a dockerfile using your model spec assuming that sourceCodeFolder contains all the necessray code
+    Set the http Flag to create a dockerfile that runs the model as a server instead of a job.
+    --http   Set flag to package model as an http server instead of a job
+
+3. `clay add block [specFilePath] [flags]`
+
+    Add a new block in Pixxel Labs
+    A block, with the specification file, will be added to orchestrator.
+    -e, --env Set environment flag to add new block to: dev, stg, prod (default "dev")
+
+4. `clay list block [flags]`
+
+    List the blocks available in database
+    If no flag is provided, it lists all the "released" blocks of "dev" environment
+    Set blockname to list the versions of a block
+    Set status to list the blocks by status
+
+    -n, --name string     Name of block
+    -s, --status string   Possible status of block: draft, released, disabled (default "released")
+    -e, --env string   Environment to add new block to: dev, stg, prod (default "dev")
+
+5. `clay get block [flags]`
+
+    Get spec file of a block version
+    By Default only "released" block spec is provided
+    -n, --name string      Name of block
+    -s, --status string    Status of block: draft, released, disabled (default "released")
+    -v, --version string   Version of block
+    -e, --env string   Environment to add new block to: dev, stg, prod (default "dev")
+
+6. `clay update block [specFilePath] [flags]`
+
+   Update an existing block
+   Provide updated specfile path with the fields to be updated
+   Set the blockname, version, status flag
+   Use flag 'env' to specify the environment in which the block is to be updated
+   -n, --name string      Name of block
+   -s, --status string    Status of block: draft, released, disabled (default "released")
+   -v, --version string   Version of block
+   -e, --env string   Environment to add new block to: dev, stg, prod (default "dev")
+
+7. `clay upload readme [flags] `
+
+   Upload the readme for the model to cloud
+
+   -n, --name string      Name of block as specified in spec file
+   -v, --version string   Version of block
+
+   Note: Once readme folder is uploaded, link of `parsed.md` file provided
+   in the output of this command
+   Please update the `catalog_content_url` in the spec file with the link
+
+
+</details>
+
+
+
+### Build Model using Clay
+<details>
+  <summary>Steps to create a clay model</summary>
+
+
 ### Step 1: Create your project
 
 Create your project with:
@@ -56,7 +130,7 @@ You should take some time to look at the files that have been created. You can r
 
 1. Create and activate a fresh python envrionment based on the tool you are using, `venv` or `conda`
     * For `venv` run:
-        - create new environment: `python3 -m venv <env_name>` 
+        - create new environment: `python3 -m venv <env_name>`
         - activate new environment: `source venv/bin/activate`
     * For `conda` run:
         - create new environment: `conda create --name <env_name> python=3.9`
@@ -219,3 +293,7 @@ Open `src/__version__.py` and edit the version.
 Refer to [semver](https://semver.org) for details on how to version your model.
 
 Commit your code, and push it to GitHub. `Clay` and `Orchestrator` will take it from here!
+
+
+
+</details>

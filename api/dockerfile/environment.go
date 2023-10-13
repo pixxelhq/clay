@@ -1,7 +1,7 @@
 package dockerfile
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/example/orchestrator/core/block"
 	"sigs.k8s.io/yaml"
@@ -13,7 +13,7 @@ type Environment struct {
 
 func getBuildFromConfigFile(filename string) (block.Build, error) {
 	// Read the YAML file
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return block.Build{}, err
 	}
