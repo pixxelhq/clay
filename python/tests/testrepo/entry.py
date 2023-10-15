@@ -4,8 +4,8 @@ from clay import ModelWrapper, create_server
 
 
 class M(ModelWrapper):
-    def setup(self, a: str, x: list) -> None:
-        print("In setup: ", a)
+    def setup(self) -> None:
+        print("In setup")
 
     async def preprocess(self, i: str):
         return bfunc() + i
@@ -14,7 +14,7 @@ class M(ModelWrapper):
         self.logger.info("Something")
         return i
 
-    async def postprocess(self, res):
+    async def postprocess(self, res: str):
         return res
 
 

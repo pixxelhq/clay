@@ -33,6 +33,25 @@ class ModelStates(Enum):
     FAILED = "TaskFailed"
 
 
+class RunType(Enum):
+    INFERENCE = "inference"
+    WORKFLOW = "workflow"
+
+
+class InferenceStates(Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    FAILED = "failed"
+    SUCCESS = "success"
+
+
+model_inference_model_states_mapping = {
+    ModelStates.INPROGRESS.value: InferenceStates.RUNNING.value,
+    ModelStates.COMPLETED.value: InferenceStates.SUCCESS.value,
+    ModelStates.FAILED.value: InferenceStates.FAILED.value,
+}
+
+
 class ModelWrapper:
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
@@ -87,6 +106,7 @@ class ModelWrapper:
         """Ensures all functions defined in __OVERRIDABLE_FUNCS__ are coroutines
         even when they are overriden in subclasses
         """
+        print("hello world")
         for of in cls.__OVERRIDABLE_FUNCS__:
             func = getattr(cls, of, None)
             assert asyncio.iscoroutinefunction(func), (
@@ -207,6 +227,8 @@ class BaseRunner(object):
         self._model_args = model_args
         self._enable_uvloop = enable_uvloop
         self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
+        self._dexter_host = os.getenv("DEXTER_HOST", "http://localhost")
+        self._dexter_port = os.getenv("DEXTER_PORT", "8080")
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
             logger = (
@@ -261,6 +283,9 @@ class BaseRunner(object):
         # find task_id and remove from inputs
         task_id = ""
         for i, item in enumerate(inference_parameters):
+            print("------------------")
+            print(inference_parameters)
+            print("------------------")
             if item["name"] == "task_id":
                 task_id = item["value"]
                 inference_parameters.pop(i)
@@ -293,14 +318,8 @@ class BaseRunner(object):
         user_logs: str = "",
         err_msg: str = "",
     ) -> bool:
-        if self._dexter_clb_url is None or self._dexter_clb_url == "":
-            self._logger.warning(
-                "`ORCHESTRATOR_URL` not set, and hence not firing callback"
-            )
-            return False
-
-        # Setting the headers
         headers = {}
+        resp = None
         token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
         if isinstance(token, str):
             authHeader = "Bearer " + token
@@ -313,37 +332,67 @@ class BaseRunner(object):
 
         headers["Authorization"] = authHeader
         headers["Content-type"] = "application/json"
-
-        # Responsible for firing the callback to orchestrator callback url.
-        data = {
-            "data": {
-                "state": state.value,
-                "id": id,
-                "result": result,
-                "logs": logs,
-                "user_logs": user_logs,
-                "err_msg": err_msg,
-            }
-        }
-        self._logger.debug(f"Data for callback: {data}")
-
         session = requests.Session()
         retries = Retry(
             total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
         )
         session.mount("http://", HTTPAdapter(max_retries=retries))
-        resp = session.post(
-            url=self._dexter_clb_url,
-            json=data,
-            headers=headers,
-        ).json()
-        self._logger.info(f"Response from orchestrator: {pformat(resp)}")
-        if resp["successful_update"]:
-            self._logger.info("Successfully updated state with Orchestrator.")
-        else:
-            self._logger.error("State Update failed.")
 
-        return resp["successful_update"]
+        run_type = os.getenv("DEXTER_RUN_TYPE", RunType.WORKFLOW.value)
+        if run_type == RunType.WORKFLOW.value:
+            if self._dexter_clb_url is None or self._dexter_clb_url == "":
+                self._logger.warning(
+                    "`ORCHESTRATOR_URL` not set, and hence not firing callback"
+                )
+                return False
+            data = {
+                "data": {
+                    "state": state.value,
+                    "id": id,
+                    "result": result,
+                    "logs": logs,
+                    "user_logs": user_logs,
+                    "err_msg": err_msg,
+                }
+            }
+            self._logger.debug(f"Data for callback: {data}")
+            resp = session.post(
+                url=self._dexter_clb_url,
+                json=data,
+                headers=headers,
+            ).json()
+            self._logger.info(f"Response from orchestrator: {pformat(resp)}")
+            if resp["successful_update"]:
+                self._logger.info("Successfully updated state with Orchestrator.")
+            else:
+                self._logger.error("State Update failed.")
+
+            return resp["successful_update"]
+
+        else:
+            status = model_inference_model_states_mapping[state.value]
+            if status == "":
+                self._logger.error(
+                    f"State: {state} is not supported by Orchestrator for inference"
+                    + "Hence not firing callback"
+                )
+                return False
+            data = {"status": status, "output": result}  # type: ignore
+            self._logger.debug(f"Data for callback: {data}")
+
+            resp = session.post(
+                url="{0}:{1}/v1alpha1/inferences/{2}".format(
+                    self._dexter_host, self._dexter_port, id
+                ),
+                json=data,
+                headers=headers,
+            )
+            self._logger.info(f"Response from orchestrator: {pformat(resp)}")
+            if resp.status_code == 204:
+                self._logger.info("Successfully updated state with Orchestrator.")
+            else:
+                self._logger.error("State Update failed.")
+            return True
 
     @abstractmethod
     def success(
