@@ -38,6 +38,26 @@ class DataMeta(pydantic.BaseModel):
     ]
 
 
+class PrimitiveType(pydantic.BaseModel):
+    pass
+
+
+class URL(PrimitiveType):
+    value: str
+
+
+class Str(PrimitiveType):
+    value: str
+
+
+class Int(PrimitiveType):
+    value: int
+
+
+class Float(PrimitiveType):
+    value: float
+
+
 FormatPropertyMap = {
     "raster": RasterProperties,
     "vector": VectorProperties,

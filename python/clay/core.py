@@ -302,7 +302,7 @@ class ModelWrapper:
     def output(
         self,
         key: str,
-        value: Any,
+        value: Union[str, int, float],
         properties: Optional[
             Union[
                 types.RasterProperties,
@@ -313,6 +313,68 @@ class ModelWrapper:
             ]
         ] = None,
     ) -> None:
+        """Set an output asset. This method is responsible for creating the necessary
+        output jsons and moving any required asset to its correct location without any
+        intervention from the user.
+
+        Please note, that as of now, only primitive data types are support in the value
+        parameter. Meaning, the type of value parameter can only be one of the primitive
+        types as defined in the type definition. Going forward, we might have format
+        based handlers, but thats a story for another time.
+
+        Another important thing to note is properties. Properties are `format` specific.
+        Each `format` may or may not define a set of properties. Hence, since each output
+        item of a model has a `format`, the output item may or may not have properties.
+        This can lead to 3 scenarios that a model dev need's to worry about,
+
+        1. `properties` is set to `None` (default)
+
+        In this case, clay would automatically fill the output item with properties as
+        defined in the model spec file.
+
+        2. `properties` is set to one of the `XXXProperties` types defined in `clay.types`
+
+        In this case, clay would ensure that the output json has properties as defined by
+        the user during runtime. Please note, we don't validate for any logical fallacies
+        in the user provided properties at runtime. So use this carefully!
+
+        When should one use this? Ideally, this behaviour is to be used by model devs in
+        situationscwherein they need to manually set the properties of some output object.
+
+        3. `properties` can be an arbitary dict.
+
+        Please note, this is **extremely unsafe operation** with possibly a whole lot of
+        unknown side-effects. Use this only at if there is no other options and the world
+        would come crashing down otherwise.
+
+        Args:
+            key (str): Name of the output parameter
+            value (Union[
+                types.URL,
+                types.Str,
+                types.Int,
+                types.Float,
+            ]):
+                The actual value of the output parameter.
+
+            properties (
+                Optional[
+                        Union[
+                            types.RasterProperties,
+                            types.VectorProperties,
+                            types.DateProperties,
+                            types.TabularProperties,
+                            Dict[str, Any],
+                        ]
+                ],
+                optional
+            ):
+                Properties to be assigned to the output type. Defaults to None.
+
+        Raises:
+            OutputOverwriteException: exception raised when the user attempts to
+            overwrite an already written output file.
+        """
         if key not in self.expected_outputs:
             self.logger.error(f"`{key}` not found in outputs config")
             return
@@ -350,7 +412,7 @@ class ModelWrapper:
 
         if output_config["type"] == ValueTypes.URL.value:
             value = self._handle_output_asset(
-                key, ValueTypes.URL, value, str(named_output_dir)
+                key, ValueTypes.URL, str(value), str(named_output_dir)
             )
 
         data_meta = types.DataMeta(
