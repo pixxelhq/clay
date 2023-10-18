@@ -20,3 +20,4 @@ httpx
 mkdocs-material
 mkdocstrings
 mkdocstrings-python
+shortuuid

@@ -2,9 +2,10 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import yaml
+from urllib3.util import parse_url
 
 
 def dict_to_namespace(d: dict) -> SimpleNamespace:
@@ -110,3 +111,19 @@ def to_tuple_if_required(x: Any) -> Any:
     if not isinstance(x, tuple):
         return (x,)
     return x
+
+
+def get_io_dirmap(io: List[Any], workingDir: str) -> Dict[str, str]:
+    paths = {}
+    for i in io:
+        expected_path = os.path.join(workingDir, i["name"])
+        if os.path.exists(expected_path):
+            paths[i["name"]] = expected_path
+    return paths
+
+
+def get_filename_from_remote(url: str) -> str:
+    fragments = parse_url(url)
+    if fragments.path is None:
+        return ""
+    return os.path.basename(fragments.path)

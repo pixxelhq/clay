@@ -1,29 +1,39 @@
 import asyncio
+import json
 import logging
 import os
+import pathlib
+import shutil
 import threading
 import time
 from abc import abstractmethod
+from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
+import pydantic
 import requests
 import uvloop
 from matter import fs
 from matter.fs import AzureClient
 from requests.adapters import HTTPAdapter, Retry
 
-from clay.exceptions import FailedExecutionException
+import clay
+from clay import types
+from clay.exceptions import FailedExecutionException, OutputOverwriteException
 from clay.logger import ClayLogger, Logger, get_streamvalues, get_user_logs
 from clay.utils import (
     PRIMITIVE_TYPES,
     cast_inputs,
-    to_tuple_if_required,
+    get_filename_from_remote,
+    get_io_dirmap,
     yaml_to_namespace,
 )
+
+DATA_SPEC_FILENAME: str = "spec.json"
 
 
 class ModelStates(Enum):
@@ -31,6 +41,33 @@ class ModelStates(Enum):
     INPROGRESS = "TaskInprogress"
     COMPLETED = "TaskCompleted"
     FAILED = "TaskFailed"
+
+
+class InjectedEnvVars(Enum):
+    TaskId = "task-id"
+    WorkingDir = "working-dir"
+    InputsWorkingDir = "inputs-working-dir"
+    OutputsWorkingDir = "outputs-working-dir"
+    OutputsRemotePath = "outputs-remote-path"
+    Env = "env"
+
+
+REQUIRED_ENVVAR = set(
+    [
+        InjectedEnvVars.TaskId,
+        InjectedEnvVars.WorkingDir,
+        InjectedEnvVars.InputsWorkingDir,
+        InjectedEnvVars.OutputsWorkingDir,
+        InjectedEnvVars.OutputsRemotePath,
+    ]
+)
+
+
+class ValueTypes(Enum):
+    STR = "str"
+    URL = "url"
+    INT = "int"
+    FLOAT = "float"
 
 
 class ModelWrapper:
@@ -53,6 +90,14 @@ class ModelWrapper:
                 create_user_logs_handler=True,
             )
         self.logger: Logger = logger
+        self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
+        self._injected_envvars: Dict[InjectedEnvVars, str] = {}
+
+        self.expected_outputs = dict((oi["name"], oi) for oi in self.config.outputs)
+        self._outputs_set: Set = set()
+        self._output_keys_written: Set[str] = set()
+
+        self.read_injected_envvars()
         self.run_setup()
 
     def run_setup(self) -> None:
@@ -75,7 +120,38 @@ class ModelWrapper:
     def recieve_input_properties(self) -> bool:
         return False
 
-    def format_output(self, outputs: tuple) -> Any:
+    def get_injected_envvar(self, key: InjectedEnvVars) -> Tuple[str, bool]:
+        val = self._injected_envvars.get(key)
+        if val is None:
+            return "", False
+        return val, True
+
+    def set_injected_envvar(self, key: InjectedEnvVars, val: str) -> None:
+        self._injected_envvars[key] = val
+
+    def read_injected_envvars(self) -> None:
+        for e in InjectedEnvVars:
+            val = os.getenv(e.value)
+            if val is None:
+                if e in REQUIRED_ENVVAR:
+                    self.logger.error(f"required env-var `{e.name}` not found")
+                    clay.failure("missing required configuration")
+                self.logger.warn(f"env-var `{e.name}` not found")
+                continue
+            self.set_injected_envvar(e, val)
+
+    def set_inputs_propmap(self, key: str, value: Dict[Any, Any]) -> None:
+        self._inputs_prop_map[key] = value
+
+    def get_inputs_propmap(
+        self, key: Union[str, None]
+    ) -> Union[Dict[Any, Any], Dict[str, Any]]:
+        # If key is None, then it returns the entire dict
+        if key is None:
+            return self._inputs_prop_map
+        return self._inputs_prop_map[key]
+
+    def _dep_format_output(self, outputs: tuple) -> Any:
         output_containers = deepcopy(self.config.outputs)
         for output, output_container in zip(outputs, output_containers):
             output_container["value"] = output
@@ -100,7 +176,46 @@ class ModelWrapper:
     def setup(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
-    def _parse_inputs(self, inputs: list) -> dict:
+    def _collect_inputs(self) -> Dict[str, Any]:
+        # NOTE: we have removed default fills for inputs that the model expects and have
+        # not been provided. it is expected that this would be handled at the executor
+        # level. In-case, an input is received that is nor provided we fail the model
+        input_dict: Dict[str, Any] = {}
+        input_working_dir, found = self.get_injected_envvar(
+            InjectedEnvVars.InputsWorkingDir
+        )
+        input_dirmap = get_io_dirmap(self.config.inputs, input_working_dir)
+        for i in self.config.inputs:
+            path = input_dirmap.get(i["name"])
+
+            if path is None:
+                # fail the model if input is not found
+                clay.failure(f"`{i['name']}` not found")
+
+            with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
+                spec = json.load(f)
+
+            value_type = spec["type"]
+            value = cast_inputs(spec["value"], value_type)
+
+            # CRITICAL: At this point in the function we do two things,
+            # 1. If type is `url`, clay expects an asset file to be present in `path`.
+            # Please note, that
+            # clay expects that the filename of the asset would be the filename specified
+            # by the url in the `value` parameter.
+            # 2. We take the filename, check if the file actually exists or not.
+            # If it does, we pass the local path to the relevant input parameter.
+            # If it does not, we fail the model.
+            if value_type == ValueTypes.URL.value:
+                filename = get_filename_from_remote(value)
+                # we convert the remote url to the local path of the asset
+                value = os.path.join(path, filename)  # type: ignore
+
+            input_dict[i["name"]] = value
+            self.set_inputs_propmap(i["name"], spec)
+        return input_dict
+
+    def _dep_parse_inputs(self, inputs: list) -> dict:
         """
         Makes sure all the inputs are correctly cast into expected types
         We leave items with unidentified `type`s as strings by default
@@ -160,17 +275,111 @@ class ModelWrapper:
     async def postprocess(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
+    def _handle_output_asset(
+        self, key: str, value_type: ValueTypes, src: str, named_output_dir: str
+    ) -> str:
+        """takes a file that is to become an output asset and moves it to the correct
+        place. Please note,
+        currently only single files are supported.
+
+        Args:
+            key (str): The name of the output parameter
+            value_type (ValueTypes): The type of value in the output parameter
+            file_path (str): Path to the local file
+            output_working_dir (str): Output directory for the named output parameter
+
+        Returns:
+            str: The remote path of the asset
+        """
+
+        # replaces any preexisting files
+        file_name = os.path.basename(src)
+        _ = shutil.copy(src, os.path.join(named_output_dir, file_name))
+        remote_path, found = self.get_injected_envvar(InjectedEnvVars.OutputsRemotePath)
+        remote_path = os.path.join(remote_path, key, file_name)
+        return remote_path
+
+    def output(
+        self,
+        key: str,
+        value: Any,
+        properties: Optional[
+            Union[
+                types.RasterProperties,
+                types.VectorProperties,
+                types.DateProperties,
+                types.TabularProperties,
+                Dict[str, Any],
+            ]
+        ] = None,
+    ) -> None:
+        if key not in self.expected_outputs:
+            self.logger.error(f"`{key}` not found in outputs config")
+            return
+
+        if key in self._output_keys_written:
+            self.logger.error(f"rewritting output key `{key}`")
+            raise OutputOverwriteException("attempting key overwrite")
+        else:
+            self._output_keys_written.add(key)
+
+        output_config = self.expected_outputs[key]
+        format = output_config["format"]
+        output_working_dir, found = self.get_injected_envvar(
+            InjectedEnvVars.OutputsWorkingDir
+        )
+        named_output_dir = pathlib.Path(os.path.join(output_working_dir, key))
+        named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
+
+        # check if format can accept properties
+        if types.FormatPropertyMap.get(format) is None and properties is not None:
+            self.logger.error(
+                f"`{key}` of format `{format}` provided with not `None` properties."
+            )
+            return
+
+        # if properties is a dict i.e. not one of the prdefined types, then warn this
+        # unsafe operation
+        if isinstance(properties, dict):
+            self.logger.warning(
+                f"received properties for `{key}` as a dict. This is an unsafe operation."
+                " Please proceed with caution!"
+            )
+        elif isinstance(properties, pydantic.BaseModel):
+            properties = properties.model_dump(by_alias=True)
+
+        if output_config["type"] == ValueTypes.URL.value:
+            value = self._handle_output_asset(
+                key, ValueTypes.URL, value, str(named_output_dir)
+            )
+
+        data_meta = types.DataMeta(
+            Format=output_config["format"],
+            Type=output_config["type"],
+            Name=key,
+            Value=value,
+        )
+        output = data_meta.model_dump(by_alias=True)
+        if properties is not None:
+            output["properties"] = properties
+
+        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, key))
+        output_parameter_path.mkdir(mode=0o777, parents=True, exist_ok=True)
+
+        with open(output_parameter_path.joinpath(DATA_SPEC_FILENAME), "w+") as f:
+            json.dump(output, f)
+
     async def infer(self, inputs: list) -> Dict[str, Any]:
-        parsed_inputs = self._parse_inputs(inputs)
+        owd, found = self.get_injected_envvar(InjectedEnvVars.OutputsWorkingDir)
+        # create output dir
+        working_dir = pathlib.Path(owd)
+        working_dir.mkdir(mode=0o777)
+
+        parsed_inputs = self._collect_inputs()
         try:
             _return_vals = await self.preprocess(**parsed_inputs)
-            _return_vals = to_tuple_if_required(_return_vals)
-            _return_vals = await self.inference(*_return_vals)
-            _return_vals = to_tuple_if_required(_return_vals)
-            if _return_vals is not None:
-                _return_vals = await self.postprocess(*_return_vals)
-                _return_vals = to_tuple_if_required(_return_vals)
-                _return_vals = self.format_output(_return_vals)
+            _return_vals = await self.inference(**_return_vals)
+            _return_vals = await self.postprocess(**_return_vals)
             return _return_vals
         finally:
             await self.cleanup_inference()
