@@ -1,7 +1,9 @@
-from typing import List, Union
+from collections import defaultdict
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pydantic
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from typing_extensions import Annotated
 
 
@@ -57,6 +59,53 @@ class Int(PrimitiveType):
 class Float(PrimitiveType):
     value: float
 
+
+class ModelStates(Enum):
+    STARTED = "TaskStarted"
+    INPROGRESS = "TaskInprogress"
+    COMPLETED = "TaskCompleted"
+    FAILED = "TaskFailed"
+
+
+class Callback(pydantic.BaseModel):
+    Id: Annotated[str, Field(serialization_alias="id")]
+    State: Annotated[
+        ModelStates, Field(serialization_alias="state")
+    ] = ModelStates.INPROGRESS
+    Inputs: Annotated[
+        Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")
+    ] = None
+    Outputs: Annotated[
+        Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")
+    ] = None
+    Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
+    UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
+    ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+
+class InferenceOpts(pydantic.BaseModel):
+    Id: str
+    InputList: List[Dict[str, Any]] = []
+    InputPropMap: Dict[str, Any] = defaultdict(None)
+
+
+OutputsBuffer = List[
+    Tuple[
+        str,
+        Union[str, int, float],
+        Optional[
+            Union[
+                RasterProperties,
+                VectorProperties,
+                DateProperties,
+                TabularProperties,
+                Dict[str, Any],
+            ]
+        ],
+    ],
+]
 
 FormatPropertyMap = {
     "raster": RasterProperties,

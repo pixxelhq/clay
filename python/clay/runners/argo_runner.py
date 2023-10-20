@@ -1,0 +1,437 @@
+import asyncio
+import json
+import os
+import pathlib
+import shutil
+import time
+from collections import defaultdict
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+import pydantic
+
+import clay
+from clay import types
+from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes
+from clay.exceptions import FailedExecutionException, OutputOverwriteException
+from clay.logger import Logger, get_streamvalues
+from clay.utils import cast_inputs, get_filename_from_remote, get_io_dirmap
+
+
+class _InjectedEnvVars(Enum):
+    TaskId = "task-id"
+    WorkingDir = "working-dir"
+    InputsWorkingDir = "inputs-working-dir"
+    OutputsWorkingDir = "outputs-working-dir"
+    OutputsRemotePath = "outputs-remote-path"
+    Env = "env"
+
+
+REQUIRED_ENVVAR = set(
+    [
+        _InjectedEnvVars.TaskId,
+        _InjectedEnvVars.WorkingDir,
+        _InjectedEnvVars.InputsWorkingDir,
+        _InjectedEnvVars.OutputsWorkingDir,
+        _InjectedEnvVars.OutputsRemotePath,
+    ]
+)
+
+
+class ArgoRunner(BaseRunner):
+    RUN_MODE: str = "argo"
+
+    def __init__(
+        self,
+        model_name: str,
+        modelcls: ModelWrapper,
+        model_args: Dict[str, Any],
+        cfg_path: str,
+        logger: Union[Logger, None],
+        enable_uvloop: bool = False,
+    ) -> None:
+        super().__init__(
+            ArgoRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop
+        )
+        self.model_name = model_name
+        self._injected_envvars: Dict[_InjectedEnvVars, str] = {}
+        self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
+        self._inputs_list: List[Dict[str, Any]] = []
+        self._passed_inputs_dict: Dict[str, Any] = {}
+        self._outputs_list: List[Dict[str, Any]] = []
+
+        self.expected_outputs = dict((oi["name"], oi) for oi in self.config.outputs)
+        self._model_outputs_dict: Dict[str, Any] = {}
+        self._output_keys_written: Set[str] = set()
+
+    def get_injected_envvar(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
+        val = self._injected_envvars.get(key)
+        if val is None:
+            return "", False
+        return val, True
+
+    def set_injected_envvar(self, key: _InjectedEnvVars, val: str) -> None:
+        self._injected_envvars[key] = val
+
+    def read_injected_envvars(self) -> None:
+        for e in _InjectedEnvVars:
+            val = os.getenv(e.value)
+            if val is None:
+                if e in REQUIRED_ENVVAR:
+                    self.logger.error(f"required env-var `{e.name}` not found")
+                    clay.failure("missing required configuration")
+                self.logger.warn(f"env-var `{e.name}` not found")
+                continue
+            self.set_injected_envvar(e, val)
+
+    def set_inputs_propmap(self, key: str, value: Dict[Any, Any]) -> None:
+        self._inputs_prop_map[key] = value
+
+    def get_inputs_propmap(
+        self, key: Union[str, None]
+    ) -> Union[Dict[Any, Any], Dict[str, Any]]:
+        # If key is None, then it returns the entire dict
+        if key is None:
+            return self._inputs_prop_map
+        return self._inputs_prop_map[key]
+
+    def update_inputs_list(self, value: Dict[str, Any]) -> None:
+        self._inputs_list.append(value)
+
+    def get_inputs_list(self) -> List[Dict[str, Any]]:
+        return self._inputs_list
+
+    def update_outputs_list(self, value: Dict[str, Any]) -> None:
+        self._outputs_list.append(value)
+
+    def get_outputs_list(self) -> List[Dict[str, Any]]:
+        return self._outputs_list
+
+    def update_passed_inputs_dict(self, key: str, value: Any) -> None:
+        self._passed_inputs_dict[key] = value
+
+    def get_passed_inputs_dict(
+        self, key: Optional[str] = None
+    ) -> Union[Any, Dict[str, Any]]:
+        if key is None:
+            return self._passed_inputs_dict
+        return self._passed_inputs_dict[key]
+
+    def update_model_outputs_dict(self, key: str, value: Any) -> None:
+        self._model_outputs_dict[key] = value
+
+    def get_model_outputs_dict(
+        self, key: Optional[str] = None
+    ) -> Union[Any, Dict[str, Any]]:
+        if key is None:
+            return self._model_outputs_dict
+        return self._model_outputs_dict[key]
+
+    def _collect_inputs(self) -> Dict[str, Any]:
+        # NOTE: we have removed default fills for inputs that the model expects and have
+        # not been provided. it is expected that this would be handled at the executor
+        # level. In-case, an input is received that is nor provided we fail the model
+        input_dict: Dict[str, Any] = {}
+        input_working_dir, found = self.get_injected_envvar(
+            _InjectedEnvVars.InputsWorkingDir
+        )
+        input_dirmap = get_io_dirmap(self.config.inputs, input_working_dir)
+        for i in self.config.inputs:
+            path = input_dirmap.get(i["name"])
+
+            if path is None:
+                # fail the model if input is not found
+                clay.failure(f"`{i['name']}` not found")
+
+            with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
+                spec = json.load(f)
+
+            value_type = spec["type"]
+            value = cast_inputs(spec["value"], value_type)
+
+            # CRITICAL: At this point in the function we do two things,
+            # 1. If type is `url`, clay expects an asset file to be present in `path`.
+            # Please note, that
+            # clay expects that the filename of the asset would be the filename specified
+            # by the url in the `value` parameter.
+            # 2. We take the filename, check if the file actually exists or not.
+            # If it does, we pass the local path to the relevant input parameter.
+            # If it does not, we fail the model.
+            if value_type == ValueTypes.URL.value:
+                filename = get_filename_from_remote(value)
+                # we convert the remote url to the local path of the asset
+                value = os.path.join(path, filename)  # type: ignore
+
+            input_dict[i["name"]] = value
+            self.set_inputs_propmap(i["name"], spec)
+
+            # here we store the list of inputs as read from the json
+            self.update_inputs_list(spec)
+
+            # here we update the dict storing the actual values that are passed to
+            # the model functions, post any cleanups
+            self.update_passed_inputs_dict(i["name"], value)
+
+        return input_dict
+
+    def _handle_output_asset(
+        self, key: str, value_type: ValueTypes, src: str, named_output_dir: str
+    ) -> str:
+        """takes a file that is to become an output asset and moves it to the correct
+        place. Please note,
+        currently only single files are supported.
+
+        Args:
+            key (str): The name of the output parameter
+            value_type (ValueTypes): The type of value in the output parameter
+            file_path (str): Path to the local file
+            output_working_dir (str): Output directory for the named output parameter
+
+        Returns:
+            str: The remote path of the asset
+        """
+
+        # replaces any preexisting files
+        if not os.path.exists(src):
+            raise FileNotFoundError(f"cannot find src file `{src}`")
+        file_name = os.path.basename(src)
+        _ = shutil.copy(src, os.path.join(named_output_dir, file_name))
+        remote_path, found = self.get_injected_envvar(_InjectedEnvVars.OutputsRemotePath)
+        remote_path = os.path.join(remote_path, key, file_name)
+        return remote_path
+
+    def _output_handler(
+        self,
+        key: str,
+        value: Union[str, int, float],
+        properties: Optional[
+            Union[
+                types.RasterProperties,
+                types.VectorProperties,
+                types.DateProperties,
+                types.TabularProperties,
+                Dict[str, Any],
+            ]
+        ] = None,
+    ) -> None:
+        """Set an output asset. This method is responsible for creating the necessary
+        output jsons and moving any required asset to its correct location without any
+        intervention from the user.
+
+        Please note, that as of now, only primitive data types are support in the value
+        parameter. Meaning, the type of value parameter can only be one of the primitive
+        types as defined in the type definition. Going forward, we might have format
+        based handlers, but thats a story for another time.
+
+        Another important thing to note is properties. Properties are `format` specific.
+        Each `format` may or may not define a set of properties. Hence, since each output
+        item of a model has a `format`, the output item may or may not have properties.
+        This can lead to 3 scenarios that a model dev need's to worry about,
+
+        1. `properties` is set to `None` (default)
+
+        In this case, clay would automatically fill the output item with properties as
+        defined in the model spec file.
+
+        2. `properties` is set to one of the `XXXProperties` types defined in `clay.types`
+
+        In this case, clay would ensure that the output json has properties as defined by
+        the user during runtime. Please note, we don't validate for any logical fallacies
+        in the user provided properties at runtime. So use this carefully!
+
+        When should one use this? Ideally, this behaviour is to be used by model devs in
+        situationscwherein they need to manually set the properties of some output object.
+
+        3. `properties` can be an arbitary dict.
+
+        Please note, this is **extremely unsafe operation** with possibly a whole lot of
+        unknown side-effects. Use this only at if there is no other options and the world
+        would come crashing down otherwise.
+
+        Args:
+            key (str): Name of the output parameter
+            value (Union[
+                types.URL,
+                types.Str,
+                types.Int,
+                types.Float,
+            ]):
+                The actual value of the output parameter.
+
+            properties (
+                Optional[
+                        Union[
+                            types.RasterProperties,
+                            types.VectorProperties,
+                            types.DateProperties,
+                            types.TabularProperties,
+                            Dict[str, Any],
+                        ]
+                ],
+                optional
+            ):
+                Properties to be assigned to the output type. Defaults to None.
+
+        Raises:
+            OutputOverwriteException: exception raised when the user attempts to
+            overwrite an already written output file.
+        """
+        if key not in self.expected_outputs:
+            self.logger.error(f"`{key}` not found in outputs config")
+            return
+
+        if key in self._output_keys_written:
+            self.logger.error(f"rewritting output key `{key}`")
+            raise OutputOverwriteException("attempting key overwrite")
+        else:
+            self._output_keys_written.add(key)
+
+        self.update_model_outputs_dict(key, value)
+
+        output_config = self.expected_outputs[key]
+        format = output_config["format"]
+        output_working_dir, found = self.get_injected_envvar(
+            _InjectedEnvVars.OutputsWorkingDir
+        )
+        named_output_dir = pathlib.Path(os.path.join(output_working_dir, key))
+        named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
+
+        # check if format can accept properties
+        if types.FormatPropertyMap.get(format) is None and properties is not None:
+            self.logger.error(
+                f"`{key}` of format `{format}` provided with not `None` properties."
+            )
+            return
+
+        # if properties is a dict i.e. not one of the prdefined types, then warn this
+        # unsafe operation
+        if isinstance(properties, dict):
+            self.logger.warning(
+                f"received properties for `{key}` as a dict. This is an unsafe operation."
+                " Please proceed with caution!"
+            )
+        elif isinstance(properties, pydantic.BaseModel):
+            properties = properties.model_dump(by_alias=True)
+
+        if output_config["type"] == ValueTypes.URL.value:
+            value = self._handle_output_asset(
+                key, ValueTypes.URL, str(value), str(named_output_dir)
+            )
+
+        data_meta = types.DataMeta(
+            Format=output_config["format"],
+            Type=output_config["type"],
+            Name=key,
+            Value=value,
+        )
+        output = data_meta.model_dump(by_alias=True)
+        if properties is not None:
+            output["properties"] = properties
+
+        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, key))
+        output_parameter_path.mkdir(mode=0o777, parents=True, exist_ok=True)
+
+        self.update_outputs_list(output)
+
+        with open(output_parameter_path.joinpath(DATA_SPEC_FILENAME), "w+") as f:
+            json.dump(output, f)
+
+    def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
+        for key, value, props in output_buffer:
+            self._output_handler(key, value, props)
+
+    def success(self) -> None:
+        task_id, found = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+        success = self._fire_callback(
+            types.Callback(
+                Id=task_id,
+                State=types.ModelStates.COMPLETED,
+                Outputs=self.get_outputs_list(),
+                Logs=get_streamvalues(self._logger),
+            )
+        )
+        if not success:
+            self.logger.error("failed to fire callback")
+
+    def failure(
+        self,
+        exc: Union[Exception, FailedExecutionException],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        if self._dexter_clb_url is None:
+            self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
+            return
+        if isinstance(exc, FailedExecutionException):
+            err_msg = exc.msg
+        else:
+            err_msg = ""
+
+        logs = get_streamvalues(self._logger)
+        task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+        self._fire_callback(
+            types.Callback(
+                Id=task_id, State=types.ModelStates.FAILED, ErrMsg=err_msg, Logs=logs
+            )
+        )
+        self._logger.info("inference finished")
+        raise exc
+
+    def run_model_inference(self) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
+        input_dict = self._collect_inputs()
+        id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+
+        # fire inprogress callback
+        success = self._fire_callback(
+            types.Callback(
+                Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list()
+            )
+        )
+        if not success:
+            self.logger.error("failed to fire callback")
+
+        opts = types.InferenceOpts(
+            Id=id,
+            InputList=self.get_inputs_list(),
+            InputPropMap=self.get_inputs_propmap(None),
+        )
+        try:
+            result = asyncio.run_coroutine_threadsafe(
+                self._model.infer(inputs=input_dict, opts=opts),
+                self._loop,
+            ).result()
+        except Exception as exc:
+            self._model.logger.error(exc, exc_info=exc)
+            return [], exc
+
+        self._flush_output_buffer(result)
+        return result, None
+
+    def start(self) -> None:
+        self.read_injected_envvars()
+        try:
+            self._init_model()
+            self._init_model_inference_event_loop()
+        except Exception as exc:
+            self._logger.error(exc)
+            if self._loop.is_running():
+                self._loop.call_soon_threadsafe(self._loop.stop)
+            time.sleep(2)
+            self._logger.debug(f"Event loop running status: {self._loop.is_running()}")
+            self._logger.debug(f"thread alive status: {self._t.is_alive()}")
+
+            task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+            self._fire_callback(
+                types.Callback(
+                    Id=task_id,
+                    State=types.ModelStates.FAILED,
+                    ErrMsg="internal server error",
+                    Logs=get_streamvalues(self._logger),
+                )
+            )
+
+        result, exc = self.run_model_inference()  # type: ignore
+        if exc is not None:
+            self.failure(exc)
+        self._logger.info(f"results: {result}")
+        self.success()

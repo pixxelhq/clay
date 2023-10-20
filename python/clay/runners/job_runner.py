@@ -1,13 +1,21 @@
+"""
 import json
+import os
 import sys
 import time
+import clay
+from enum import Enum
 from logging import Logger
 from pprint import pformat
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Tuple
 
 from clay.core import BaseRunner, ModelStates, ModelWrapper
 from clay.exceptions import FailedExecutionException
 from clay.logger import get_streamvalues
+
+
+class _InjectedEnvVars(Enum):
+    WorkingDir = "working-dir"
 
 
 class JobRunner(BaseRunner):
@@ -18,11 +26,31 @@ class JobRunner(BaseRunner):
         model_name: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
+        cfg_path: str,
         logger: Union[None, Logger] = None,
         enable_uvloop: bool = True,
     ) -> None:
-        super().__init__(JobRunner.RUN_MODE, modelcls, model_args, logger, enable_uvloop)
+        super().__init__(
+            JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop
+        )
         self.model_name = model_name
+
+    def get_injected_envvar(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
+        val = self._injected_envvars.get(key)
+        if val is None:
+            return "", False
+        return val, True
+
+    def set_injected_envvar(self, key: _InjectedEnvVars, val: str) -> None:
+        self._injected_envvars[key] = val
+
+    def read_injected_envvars(self) -> None:
+        for e in _InjectedEnvVars:
+            val = os.getenv(e.value)
+            if val is None:
+                self.logger.warn(f"env-var `{e.name}` not found")
+                continue
+            self.set_injected_envvar(e, val)
 
     def success(self, data: Dict[str, Any]) -> Any:
         if self._dexter_clb_url is None:
@@ -64,8 +92,12 @@ class JobRunner(BaseRunner):
         self._logger.error(f"Failure: {exc}", exc_info=exc)
         sys.exit(1)
 
-    def start(self, *args: Any, **kwargs: Any) -> None:
-        model_args = json.loads(args[0][0])
+    def start(self, inputs: Union[str, Dict[str, Any]]) -> None:
+        if isinstance(inputs, str):
+            model_args = json.loads(inputs)
+        elif not isinstance(inputs, dict):
+            raise TypeError(f"`inputs` type {type(inputs)} not supported")
+
         try:
             self._init_model()
             self._init_model_inference_event_loop()
@@ -93,3 +125,4 @@ class JobRunner(BaseRunner):
             self.failure(exc=res["result"], data=res)
         else:
             self.success(data=res)
+"""
