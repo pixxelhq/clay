@@ -1,4 +1,6 @@
-from typing import Any
+from typing import Any, Optional
+
+from clay import types
 
 
 class SuccessfulExecutionException(Exception):
@@ -20,10 +22,16 @@ class FailedExecutionException(Exception):
     by models to runner methods.
     """
 
-    def __init__(self, message: Any, http_status_code: int = 500) -> None:
+    def __init__(
+        self,
+        message: Any,
+        http_status_code: int = 500,
+        clb_dict: Optional[types.Callback] = None,
+    ) -> None:
         super().__init__(message)
         self.msg = message
         self.http_status_code = http_status_code
+        self.clb_dict = clb_dict
 
 
 class OutputOverwriteException(Exception):

@@ -1,9 +1,6 @@
 import asyncio
-import json
 import logging
 import os
-import pathlib
-import shutil
 import threading
 import time
 from abc import abstractmethod
@@ -12,55 +9,20 @@ from copy import deepcopy
 from enum import Enum
 from functools import cached_property
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
-import pydantic
 import requests
 import uvloop
 from matter import fs
 from matter.fs import AzureClient
 from requests.adapters import HTTPAdapter, Retry
 
-import clay
 from clay import types
-from clay.exceptions import FailedExecutionException, OutputOverwriteException
+from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, Logger, get_streamvalues, get_user_logs
-from clay.utils import (
-    PRIMITIVE_TYPES,
-    cast_inputs,
-    get_filename_from_remote,
-    get_io_dirmap,
-    yaml_to_namespace,
-)
+from clay.utils import PRIMITIVE_TYPES, cast_inputs, yaml_to_namespace
 
 DATA_SPEC_FILENAME: str = "spec.json"
-
-
-class ModelStates(Enum):
-    STARTED = "TaskStarted"
-    INPROGRESS = "TaskInprogress"
-    COMPLETED = "TaskCompleted"
-    FAILED = "TaskFailed"
-
-
-class InjectedEnvVars(Enum):
-    TaskId = "task-id"
-    WorkingDir = "working-dir"
-    InputsWorkingDir = "inputs-working-dir"
-    OutputsWorkingDir = "outputs-working-dir"
-    OutputsRemotePath = "outputs-remote-path"
-    Env = "env"
-
-
-REQUIRED_ENVVAR = set(
-    [
-        InjectedEnvVars.TaskId,
-        InjectedEnvVars.WorkingDir,
-        InjectedEnvVars.InputsWorkingDir,
-        InjectedEnvVars.OutputsWorkingDir,
-        InjectedEnvVars.OutputsRemotePath,
-    ]
-)
 
 
 class ValueTypes(Enum):
@@ -68,6 +30,31 @@ class ValueTypes(Enum):
     URL = "url"
     INT = "int"
     FLOAT = "float"
+
+
+class InferenceCtx:
+    def __init__(self, opts: types.InferenceOpts) -> None:
+        self._outputs_buffer: types.OutputsBuffer = []
+        self._opts = opts
+
+    def output(
+        self,
+        key: str,
+        value: Union[str, int, float],
+        properties: Optional[
+            Union[
+                types.RasterProperties,
+                types.VectorProperties,
+                types.DateProperties,
+                types.TabularProperties,
+                Dict[str, Any],
+            ]
+        ] = None,
+    ) -> None:
+        self._outputs_buffer.append((key, value, properties))
+
+    def get_output_buffer(self) -> types.OutputsBuffer:
+        return self._outputs_buffer
 
 
 class ModelWrapper:
@@ -91,13 +78,7 @@ class ModelWrapper:
             )
         self.logger: Logger = logger
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
-        self._injected_envvars: Dict[InjectedEnvVars, str] = {}
 
-        self.expected_outputs = dict((oi["name"], oi) for oi in self.config.outputs)
-        self._outputs_set: Set = set()
-        self._output_keys_written: Set[str] = set()
-
-        self.read_injected_envvars()
         self.run_setup()
 
     def run_setup(self) -> None:
@@ -119,37 +100,6 @@ class ModelWrapper:
     @cached_property
     def recieve_input_properties(self) -> bool:
         return False
-
-    def get_injected_envvar(self, key: InjectedEnvVars) -> Tuple[str, bool]:
-        val = self._injected_envvars.get(key)
-        if val is None:
-            return "", False
-        return val, True
-
-    def set_injected_envvar(self, key: InjectedEnvVars, val: str) -> None:
-        self._injected_envvars[key] = val
-
-    def read_injected_envvars(self) -> None:
-        for e in InjectedEnvVars:
-            val = os.getenv(e.value)
-            if val is None:
-                if e in REQUIRED_ENVVAR:
-                    self.logger.error(f"required env-var `{e.name}` not found")
-                    clay.failure("missing required configuration")
-                self.logger.warn(f"env-var `{e.name}` not found")
-                continue
-            self.set_injected_envvar(e, val)
-
-    def set_inputs_propmap(self, key: str, value: Dict[Any, Any]) -> None:
-        self._inputs_prop_map[key] = value
-
-    def get_inputs_propmap(
-        self, key: Union[str, None]
-    ) -> Union[Dict[Any, Any], Dict[str, Any]]:
-        # If key is None, then it returns the entire dict
-        if key is None:
-            return self._inputs_prop_map
-        return self._inputs_prop_map[key]
 
     def _dep_format_output(self, outputs: tuple) -> Any:
         output_containers = deepcopy(self.config.outputs)
@@ -175,45 +125,6 @@ class ModelWrapper:
 
     def setup(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
-
-    def _collect_inputs(self) -> Dict[str, Any]:
-        # NOTE: we have removed default fills for inputs that the model expects and have
-        # not been provided. it is expected that this would be handled at the executor
-        # level. In-case, an input is received that is nor provided we fail the model
-        input_dict: Dict[str, Any] = {}
-        input_working_dir, found = self.get_injected_envvar(
-            InjectedEnvVars.InputsWorkingDir
-        )
-        input_dirmap = get_io_dirmap(self.config.inputs, input_working_dir)
-        for i in self.config.inputs:
-            path = input_dirmap.get(i["name"])
-
-            if path is None:
-                # fail the model if input is not found
-                clay.failure(f"`{i['name']}` not found")
-
-            with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
-                spec = json.load(f)
-
-            value_type = spec["type"]
-            value = cast_inputs(spec["value"], value_type)
-
-            # CRITICAL: At this point in the function we do two things,
-            # 1. If type is `url`, clay expects an asset file to be present in `path`.
-            # Please note, that
-            # clay expects that the filename of the asset would be the filename specified
-            # by the url in the `value` parameter.
-            # 2. We take the filename, check if the file actually exists or not.
-            # If it does, we pass the local path to the relevant input parameter.
-            # If it does not, we fail the model.
-            if value_type == ValueTypes.URL.value:
-                filename = get_filename_from_remote(value)
-                # we convert the remote url to the local path of the asset
-                value = os.path.join(path, filename)  # type: ignore
-
-            input_dict[i["name"]] = value
-            self.set_inputs_propmap(i["name"], spec)
-        return input_dict
 
     def _dep_parse_inputs(self, inputs: list) -> dict:
         """
@@ -266,185 +177,27 @@ class ModelWrapper:
     async def cleanup_inference(self) -> None:
         pass
 
-    async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
+    async def preprocess(self, ctx: InferenceCtx, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def inference(self, *args: Any, **kwargs: Any) -> Any:
+    async def inference(self, ctx: InferenceCtx, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def postprocess(self, *args: Any, **kwargs: Any) -> Any:
+    async def postprocess(self, ctx: InferenceCtx, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def _handle_output_asset(
-        self, key: str, value_type: ValueTypes, src: str, named_output_dir: str
-    ) -> str:
-        """takes a file that is to become an output asset and moves it to the correct
-        place. Please note,
-        currently only single files are supported.
-
-        Args:
-            key (str): The name of the output parameter
-            value_type (ValueTypes): The type of value in the output parameter
-            file_path (str): Path to the local file
-            output_working_dir (str): Output directory for the named output parameter
-
-        Returns:
-            str: The remote path of the asset
-        """
-
-        # replaces any preexisting files
-        file_name = os.path.basename(src)
-        _ = shutil.copy(src, os.path.join(named_output_dir, file_name))
-        remote_path, found = self.get_injected_envvar(InjectedEnvVars.OutputsRemotePath)
-        remote_path = os.path.join(remote_path, key, file_name)
-        return remote_path
-
-    def output(
-        self,
-        key: str,
-        value: Union[str, int, float],
-        properties: Optional[
-            Union[
-                types.RasterProperties,
-                types.VectorProperties,
-                types.DateProperties,
-                types.TabularProperties,
-                Dict[str, Any],
-            ]
-        ] = None,
-    ) -> None:
-        """Set an output asset. This method is responsible for creating the necessary
-        output jsons and moving any required asset to its correct location without any
-        intervention from the user.
-
-        Please note, that as of now, only primitive data types are support in the value
-        parameter. Meaning, the type of value parameter can only be one of the primitive
-        types as defined in the type definition. Going forward, we might have format
-        based handlers, but thats a story for another time.
-
-        Another important thing to note is properties. Properties are `format` specific.
-        Each `format` may or may not define a set of properties. Hence, since each output
-        item of a model has a `format`, the output item may or may not have properties.
-        This can lead to 3 scenarios that a model dev need's to worry about,
-
-        1. `properties` is set to `None` (default)
-
-        In this case, clay would automatically fill the output item with properties as
-        defined in the model spec file.
-
-        2. `properties` is set to one of the `XXXProperties` types defined in `clay.types`
-
-        In this case, clay would ensure that the output json has properties as defined by
-        the user during runtime. Please note, we don't validate for any logical fallacies
-        in the user provided properties at runtime. So use this carefully!
-
-        When should one use this? Ideally, this behaviour is to be used by model devs in
-        situationscwherein they need to manually set the properties of some output object.
-
-        3. `properties` can be an arbitary dict.
-
-        Please note, this is **extremely unsafe operation** with possibly a whole lot of
-        unknown side-effects. Use this only at if there is no other options and the world
-        would come crashing down otherwise.
-
-        Args:
-            key (str): Name of the output parameter
-            value (Union[
-                types.URL,
-                types.Str,
-                types.Int,
-                types.Float,
-            ]):
-                The actual value of the output parameter.
-
-            properties (
-                Optional[
-                        Union[
-                            types.RasterProperties,
-                            types.VectorProperties,
-                            types.DateProperties,
-                            types.TabularProperties,
-                            Dict[str, Any],
-                        ]
-                ],
-                optional
-            ):
-                Properties to be assigned to the output type. Defaults to None.
-
-        Raises:
-            OutputOverwriteException: exception raised when the user attempts to
-            overwrite an already written output file.
-        """
-        if key not in self.expected_outputs:
-            self.logger.error(f"`{key}` not found in outputs config")
-            return
-
-        if key in self._output_keys_written:
-            self.logger.error(f"rewritting output key `{key}`")
-            raise OutputOverwriteException("attempting key overwrite")
-        else:
-            self._output_keys_written.add(key)
-
-        output_config = self.expected_outputs[key]
-        format = output_config["format"]
-        output_working_dir, found = self.get_injected_envvar(
-            InjectedEnvVars.OutputsWorkingDir
-        )
-        named_output_dir = pathlib.Path(os.path.join(output_working_dir, key))
-        named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
-
-        # check if format can accept properties
-        if types.FormatPropertyMap.get(format) is None and properties is not None:
-            self.logger.error(
-                f"`{key}` of format `{format}` provided with not `None` properties."
-            )
-            return
-
-        # if properties is a dict i.e. not one of the prdefined types, then warn this
-        # unsafe operation
-        if isinstance(properties, dict):
-            self.logger.warning(
-                f"received properties for `{key}` as a dict. This is an unsafe operation."
-                " Please proceed with caution!"
-            )
-        elif isinstance(properties, pydantic.BaseModel):
-            properties = properties.model_dump(by_alias=True)
-
-        if output_config["type"] == ValueTypes.URL.value:
-            value = self._handle_output_asset(
-                key, ValueTypes.URL, str(value), str(named_output_dir)
-            )
-
-        data_meta = types.DataMeta(
-            Format=output_config["format"],
-            Type=output_config["type"],
-            Name=key,
-            Value=value,
-        )
-        output = data_meta.model_dump(by_alias=True)
-        if properties is not None:
-            output["properties"] = properties
-
-        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, key))
-        output_parameter_path.mkdir(mode=0o777, parents=True, exist_ok=True)
-
-        with open(output_parameter_path.joinpath(DATA_SPEC_FILENAME), "w+") as f:
-            json.dump(output, f)
-
-    async def infer(self, inputs: list) -> Dict[str, Any]:
-        owd, found = self.get_injected_envvar(InjectedEnvVars.OutputsWorkingDir)
-        # create output dir
-        working_dir = pathlib.Path(owd)
-        working_dir.mkdir(mode=0o777)
-
-        parsed_inputs = self._collect_inputs()
+    async def infer(
+        self, inputs: Dict[str, Any], opts: types.InferenceOpts
+    ) -> types.OutputsBuffer:
+        _inf_ctx = InferenceCtx(opts=opts)
         try:
-            _return_vals = await self.preprocess(**parsed_inputs)
-            _return_vals = await self.inference(**_return_vals)
-            _return_vals = await self.postprocess(**_return_vals)
-            return _return_vals
+            _return_vals = await self.preprocess(_inf_ctx, **inputs)
+            _return_vals = await self.inference(_inf_ctx, **_return_vals)
+            _return_vals = await self.postprocess(_inf_ctx, **_return_vals)
         finally:
             await self.cleanup_inference()
+
+        return _inf_ctx.get_output_buffer()
 
     def get_logs(self) -> Optional[str]:
         """Returns all model logs stored in the buffered stream
@@ -462,7 +215,7 @@ class ModelWrapper:
 
 
 class BaseRunner(object):
-    _SUPPORTED_RUN_MODES: List[str] = ["rmq", "http", "job"]
+    _SUPPORTED_RUN_MODES: List[str] = ["argo", "http", "job"]
     _DEFAULT_EVENT_LOOP_POLICY = uvloop.EventLoopPolicy()
 
     def __init__(
@@ -470,6 +223,7 @@ class BaseRunner(object):
         run_mode: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
+        cfg_path: str,
         logger: Union[None, Logger],
         enable_uvloop: bool = False,
     ) -> None:
@@ -478,6 +232,8 @@ class BaseRunner(object):
         self._model_args = model_args
         self._enable_uvloop = enable_uvloop
         self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
+        self.config = yaml_to_namespace(cfg_path)
+
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
             logger = (
@@ -491,6 +247,11 @@ class BaseRunner(object):
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
 
+    def __init_subclass__(cls) -> None:
+        assert "output" in dir(cls)
+        assert "_collect_inputs" in dir(cls)
+        assert "failure" in dir(cls)
+
     @property
     def run_mode(self) -> str:
         return self._run_mode
@@ -500,6 +261,10 @@ class BaseRunner(object):
         if value not in self._SUPPORTED_RUN_MODES:
             raise ValueError(f"Invalid Run mode: {value}")
         self._run_mode = value
+
+    @property
+    def logger(self) -> Logger:
+        return self._logger
 
     def _init_model(self) -> None:
         self._logger.info("Initializing model...")
@@ -526,44 +291,7 @@ class BaseRunner(object):
         time.sleep(1)
         self._logger.debug("Started model inference thread.")
 
-    def run_model_inference(
-        self, inference_parameters: List[Dict[Any, Any]], *args: Any, **kwargs: Any
-    ) -> Any:
-        # find task_id and remove from inputs
-        task_id = ""
-        for i, item in enumerate(inference_parameters):
-            if item["name"] == "task_id":
-                task_id = item["value"]
-                inference_parameters.pop(i)
-                break
-
-        # setting the state of the current task state to `Inprogress`
-        self._fire_callback(state=ModelStates.INPROGRESS, id=task_id)
-
-        # Running the actual model inference
-        res = {"task_id": task_id, "result": {}, "logs": None}
-        try:
-            res["result"] = asyncio.run_coroutine_threadsafe(
-                self._model.infer(inference_parameters), self._loop
-            ).result()
-        except Exception as exc:
-            self._model.logger.error(exc, exc_info=exc)
-            res["result"] = exc  # type: ignore[assignment]
-
-        res["logs"] = self._model.get_logs()
-        res["user_logs"] = self._model.get_user_logs()
-
-        return res
-
-    def _fire_callback(
-        self,
-        state: ModelStates = ModelStates.INPROGRESS,
-        id: str = "",
-        result: Dict[str, Any] = {},
-        logs: str = "",
-        user_logs: str = "",
-        err_msg: str = "",
-    ) -> bool:
+    def _fire_callback(self, clb: types.Callback) -> bool:
         if self._dexter_clb_url is None or self._dexter_clb_url == "":
             self._logger.warning(
                 "`ORCHESTRATOR_URL` not set, and hence not firing callback"
@@ -586,16 +314,8 @@ class BaseRunner(object):
         headers["Content-type"] = "application/json"
 
         # Responsible for firing the callback to orchestrator callback url.
-        data = {
-            "data": {
-                "state": state.value,
-                "id": id,
-                "result": result,
-                "logs": logs,
-                "user_logs": user_logs,
-                "err_msg": err_msg,
-            }
-        }
+        clb_dict = clb.model_dump(by_alias=True, exclude_none=True)
+        data = {"data": clb_dict}
         self._logger.debug(f"Data for callback: {data}")
 
         session = requests.Session()
@@ -617,12 +337,36 @@ class BaseRunner(object):
         return resp["successful_update"]
 
     @abstractmethod
+    def _collect_inputs(self) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def output(
+        self,
+        key: str,
+        value: Union[str, int, float],
+        properties: Optional[
+            Union[
+                types.RasterProperties,
+                types.VectorProperties,
+                types.DateProperties,
+                types.TabularProperties,
+                Dict[str, Any],
+            ]
+        ] = None,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def run_model_inference(self, *args: Any, **kwargs: Any) -> Any:
+        pass
+
+    @abstractmethod
     def success(
         self,
-        result: Any,
         # exc: SuccessfulExecutionException,
-        # *args: Any,
-        # **kwargs: Any,
+        *args: Any,
+        **kwargs: Any,
     ) -> Any:
         # Accepts a clay.exceptions.SuccessfulExecutionException
         pass
@@ -639,5 +383,9 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def start(self, *args: Any, **kwargs: Any) -> None:
+    def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
         pass
+
+    @abstractmethod
+    def start(self, *args: Any, **kwargs: Any) -> None:
+        self.run_model_inference()

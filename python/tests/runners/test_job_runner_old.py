@@ -1,3 +1,4 @@
+"""
 import json
 import unittest
 from typing import Any, Dict
@@ -107,3 +108,4 @@ class TestJobRunner(unittest.TestCase):
 
         assert call_args[1].kwargs["json"]["state"] == ModelStates.FAILED.value
         assert call_args[1].kwargs["json"]["logs"] != ""
+"""
