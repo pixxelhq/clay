@@ -9,7 +9,6 @@ import shortuuid
 
 from clay import types
 from clay.core import ModelWrapper
-from clay.exceptions import OutputOverwriteException
 from clay.logger import Logger
 from clay.runners.argo_runner import ArgoRunner
 
@@ -68,18 +67,24 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
             def setup(self):
                 pass
 
-            async def preprocess(self, ctx, string, raster) -> Any:
+            async def preprocess(self, string, raster) -> Any:
                 print(string, raster)
                 return {"raster": raster, "string": string}
 
-            async def inference(self, ctx, raster, string) -> None:
+            async def inference(self, raster, string) -> None:
                 dummy_raster = pathlib.Path("clipped.tiff")
                 dummy_raster.touch()
 
                 return {"raster": str(dummy_raster), "string": string}
 
-            async def postprocess(self, ctx, raster, string) -> Any:
-                return {"result": raster, "string": string}
+            async def postprocess(self, raster, string) -> Any:
+                return {
+                    "result": types.Raster(
+                        name="result",
+                        value=raster,
+                    ),
+                    "string": types.String(name=string, value=string),
+                }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
@@ -109,19 +114,20 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
             def setup(self):
                 pass
 
-            async def preprocess(self, ctx, string, raster) -> Any:
+            async def preprocess(self, string, raster) -> Any:
                 print(string, raster)
                 return {"raster": raster, "string": string}
 
-            async def inference(self, ctx, raster, string) -> None:
+            async def inference(self, raster, string) -> None:
                 dummy_raster = pathlib.Path("clipped.tiff")
                 dummy_raster.touch()
                 return {"raster": str(dummy_raster), "string": string}
 
-            async def postprocess(self, ctx, raster, string) -> Any:
-                ctx.output("result", raster)
-                ctx.output("string", string)
-                return raster, string
+            async def postprocess(self, raster, string) -> Any:
+                return {
+                    "result": types.Raster(name="result", value=raster),
+                    "string": types.String(name="string", value=string),
+                }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
@@ -161,36 +167,37 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
             def setup(self):
                 pass
 
-            async def preprocess(self, ctx, string, raster) -> Any:
+            async def preprocess(self, string: types.String, raster: types.Raster) -> Any:
                 print(string, raster)
                 return {"raster": raster, "string": string}
 
-            async def inference(self, ctx, raster, string) -> None:
+            async def inference(self, raster, string) -> None:
                 dummy_raster = pathlib.Path("clipped.tiff")
                 dummy_raster.touch()
                 return {"raster": str(dummy_raster), "string": string}
 
-            async def postprocess(self, ctx, raster, string) -> Any:
-                ctx.output(
-                    "result",
-                    raster,
-                    types.RasterProperties(
-                        Bands=["B10"],
-                        Source="a-random-sat",
-                        Collection="a-random-coll",
-                        Dtype="uint8",
+            async def postprocess(self, raster, string) -> Any:
+                return {
+                    "result": types.Raster(
+                        name="result",
+                        value=raster,
+                        properties=types.RasterProperties(
+                            Bands=["B10"],
+                            Source="a-random-sat",
+                            Collection="a-random-coll",
+                            Dtype="uint8",
+                        ),
                     ),
-                )
-                ctx.output("string", string)
-                return raster, string
+                    "string": types.String(name="string", value="hello world"),
+                }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
         a = ArgoRunner(
             "dummy",
             M,
-            {"config": "./python/tests/runners/dummy-spec.yml"},
-            "./python/tests/runners/dummy-spec.yml",
+            {"config": "./python/tests/runners/dummy-spec-with-props.yml"},
+            "./python/tests/runners/dummy-spec-with-props.yml",
             None,
         )
         a.start()
@@ -223,7 +230,7 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
             },
         }
 
-    async def test_set_output_duplicate_fails(self) -> None:
+    async def test_set_output_props_when_not_expected_fails(self) -> None:
         class M(ModelWrapper):
             def __init__(
                 self, config: str, protocol: str = "abfs", logger: Logger = None
@@ -233,19 +240,29 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
             def setup(self):
                 pass
 
-            async def preprocess(self, ctx, string, raster) -> Any:
+            async def preprocess(self, string, raster) -> Any:
                 print(string, raster)
                 return {"raster": raster, "string": string}
 
-            async def inference(self, ctx, raster, string) -> None:
+            async def inference(self, raster, string) -> None:
                 dummy_raster = pathlib.Path("clipped.tiff")
                 dummy_raster.touch()
                 return {"raster": str(dummy_raster), "string": string}
 
-            async def postprocess(self, ctx, raster, string) -> Any:
-                ctx.output("string", string)
-                ctx.output("string", string)
-                return raster, string
+            async def postprocess(self, raster, string) -> Any:
+                return {
+                    "result": types.Raster(
+                        name="result",
+                        value=raster,
+                        properties=types.RasterProperties(
+                            Bands=["B10"],
+                            Source="a-random-sat",
+                            Collection="a-random-coll",
+                            Dtype="uint8",
+                        ),
+                    ),
+                    "string": types.String(name="string", value="hello world"),
+                }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
@@ -256,6 +273,6 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
             "./python/tests/runners/dummy-spec.yml",
             None,
         )
-        self.assertRaises(OutputOverwriteException, a.start)
+        self.assertRaises(ValueError, a.start)
 
         env_patcher.stop()
