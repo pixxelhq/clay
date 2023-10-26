@@ -17,3 +17,15 @@ model:
   inputs:
     - name: i
       type: str
+
+inputs:
+  - name: i
+    type: str
+    default: xyz
+    value: "a"
+    format: string
+
+outputs:
+  - name: res
+    format: string
+    type: str

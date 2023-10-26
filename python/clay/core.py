@@ -44,6 +44,25 @@ class InferenceCtx:
         return self._outputs_buffer
 
 
+class RunType(Enum):
+    INFERENCE = "inference"
+    WORKFLOW = "workflow"
+
+
+model_inference_model_states_mapping = {
+    types.ModelStates.INPROGRESS.value: types.InferenceStates.RUNNING.value,
+    types.ModelStates.COMPLETED.value: types.InferenceStates.SUCCESS.value,
+    types.ModelStates.FAILED.value: types.InferenceStates.FAILED.value,
+}
+
+
+model_inference_model_states_mapping = {
+    types.ModelStates.INPROGRESS.value: types.InferenceStates.RUNNING.value,
+    types.ModelStates.COMPLETED.value: types.InferenceStates.SUCCESS.value,
+    types.ModelStates.FAILED.value: types.InferenceStates.FAILED.value,
+}
+
+
 class ModelWrapper:
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
@@ -54,7 +73,6 @@ class ModelWrapper:
         logger: Optional[Logger] = None,
     ) -> None:
         self.protocol = protocol
-        print(os.getcwd())
         self.config = yaml_to_namespace(config)
         if logger is None:
             logger = ClayLogger(
@@ -231,6 +249,8 @@ class BaseRunner(object):
         self._model_args = model_args
         self._enable_uvloop = enable_uvloop
         self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
+        self._dexter_host = os.getenv("DEXTER_HOST", "http://localhost")
+        self._dexter_port = os.getenv("DEXTER_PORT", "8080")
         self.config = yaml_to_namespace(cfg_path)
 
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
@@ -299,6 +319,7 @@ class BaseRunner(object):
 
         # Setting the headers
         headers = {}
+        resp = None
         token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
         if isinstance(token, str):
             authHeader = "Bearer " + token
@@ -311,29 +332,59 @@ class BaseRunner(object):
 
         headers["Authorization"] = authHeader
         headers["Content-type"] = "application/json"
-
-        # Responsible for firing the callback to orchestrator callback url.
-        clb_dict = clb.model_dump(by_alias=True, exclude_none=True)
-        data = {"data": clb_dict}
-        self._logger.debug(f"Data for callback: {data}")
-
         session = requests.Session()
         retries = Retry(
             total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
         )
         session.mount("http://", HTTPAdapter(max_retries=retries))
-        resp = session.post(
-            url=self._dexter_clb_url,
-            json=data,
-            headers=headers,
-        ).json()
-        self._logger.info(f"Response from orchestrator: {pformat(resp)}")
-        if resp["successful_update"]:
-            self._logger.info("Successfully updated state with Orchestrator.")
-        else:
-            self._logger.error("State Update failed.")
 
-        return resp["successful_update"]
+        run_type = os.getenv("DEXTER_RUN_TYPE", RunType.WORKFLOW.value)
+        if run_type == RunType.WORKFLOW.value:
+            if self._dexter_clb_url is None or self._dexter_clb_url == "":
+                self._logger.warning(
+                    "`ORCHESTRATOR_URL` not set, and hence not firing callback"
+                )
+                return False
+            data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
+            self._logger.debug(f"Data for callback: {data}")
+
+            resp = session.post(
+                url=self._dexter_clb_url,
+                json=data,
+                headers=headers,
+            ).json()
+            self._logger.info(f"Response from orchestrator: {pformat(resp)}")
+            if resp["successful_update"]:
+                self._logger.info("Successfully updated state with Orchestrator.")
+            else:
+                self._logger.error("State Update failed.")
+
+            return resp["successful_update"]
+
+        else:
+            status = model_inference_model_states_mapping[clb.State.value]
+            if status == "":
+                self._logger.error(
+                    f"State: {clb.State.value} is not supported by Orchestrator for inference"
+                    + "Hence not firing callback"
+                )
+                return False
+            data = {"status": status, "output": clb.Outputs}  # type: ignore
+            self._logger.debug(f"Data for callback: {data}")
+
+            resp = session.post(
+                url="{0}:{1}/v1alpha1/inferences/{2}".format(
+                    self._dexter_host, self._dexter_port, id
+                ),
+                json=data,
+                headers=headers,
+            )
+            self._logger.info(f"Response from orchestrator: {pformat(resp)}")
+            if resp.status_code == 204:
+                self._logger.info("Successfully updated state with Orchestrator.")
+            else:
+                self._logger.error("State Update failed.")
+            return True
 
     @abstractmethod
     def _collect_inputs(self) -> Dict[str, Any]:

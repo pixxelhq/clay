@@ -7,6 +7,13 @@ from pydantic import ConfigDict, Field
 from typing_extensions import Annotated
 
 
+class InferenceStates(Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    FAILED = "failed"
+    SUCCESS = "success"
+
+
 class ModelStates(Enum):
     STARTED = "TaskStarted"
     INPROGRESS = "TaskInprogress"
