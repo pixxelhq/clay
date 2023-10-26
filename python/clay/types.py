@@ -1,10 +1,42 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 import pydantic
 from pydantic import ConfigDict, Field
 from typing_extensions import Annotated
+
+
+class ModelStates(Enum):
+    STARTED = "TaskStarted"
+    INPROGRESS = "TaskInprogress"
+    COMPLETED = "TaskCompleted"
+    FAILED = "TaskFailed"
+
+
+class PrimitiveTypes(Enum):
+    URL = "url"
+    STR = "str"
+    INT = "int"
+    FLOAT = "float"
+
+
+class FormatTypes(Enum):
+    RASTER = "raster"
+    VECTOR = "vector"
+    DATE = "date"
+    STRING = "string"
+    NUMBER = "number"
+    TABULAR = "tabular"
+
+
+def add_inline_fields(
+    from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]
+) -> None:
+    print("xxx")
+    for k, v in from_model.__annotations__.items():
+        to_model.__annotations__[k] = v
+    print("yyy")
 
 
 class RasterProperties(pydantic.BaseModel):
@@ -31,6 +63,22 @@ class TabularProperties(pydantic.BaseModel):
     FileSchema: Annotated[TabularFileSchema, Field(serialization_alias="file_schema")]
 
 
+Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
+
+
+FormatPropertyMap = {
+    FormatTypes.RASTER.value: RasterProperties,
+    FormatTypes.VECTOR.value: VectorProperties,
+    FormatTypes.DATE.value: DateProperties,
+    FormatTypes.TABULAR.value: TabularProperties,
+}
+
+
+def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Properties:
+    format = output_cfg["format"]
+    return FormatPropertyMap[format].model_validate(output_cfg["properties"])
+
+
 class DataMeta(pydantic.BaseModel):
     Format: Annotated[str, Field(serialization_alias="format")]
     Type: Annotated[str, Field(serialization_alias="type")]
@@ -38,33 +86,6 @@ class DataMeta(pydantic.BaseModel):
     Value: Annotated[
         Union[int, float, str, str, bool], Field(serialization_alias="value")
     ]
-
-
-class PrimitiveType(pydantic.BaseModel):
-    pass
-
-
-class URL(PrimitiveType):
-    value: str
-
-
-class Str(PrimitiveType):
-    value: str
-
-
-class Int(PrimitiveType):
-    value: int
-
-
-class Float(PrimitiveType):
-    value: float
-
-
-class ModelStates(Enum):
-    STARTED = "TaskStarted"
-    INPROGRESS = "TaskInprogress"
-    COMPLETED = "TaskCompleted"
-    FAILED = "TaskFailed"
 
 
 class Callback(pydantic.BaseModel):
@@ -91,25 +112,122 @@ class InferenceOpts(pydantic.BaseModel):
     InputPropMap: Dict[str, Any] = defaultdict(None)
 
 
-OutputsBuffer = List[
-    Tuple[
-        str,
-        Union[str, int, float],
-        Optional[
-            Union[
-                RasterProperties,
-                VectorProperties,
-                DateProperties,
-                TabularProperties,
-                Dict[str, Any],
-            ]
-        ],
-    ],
-]
+class _DataMetaBase(pydantic.BaseModel):
+    Format: Annotated[str, Field(serialization_alias="format")]
+    Type: Annotated[Optional[str], Field(serialization_alias="type")] = None
+    Name: Annotated[str, Field(serialization_alias="name")]
+    Value: Annotated[
+        Optional[Union[int, float, str, str, bool]], Field(serialization_alias="value")
+    ] = None
 
-FormatPropertyMap = {
-    "raster": RasterProperties,
-    "vector": VectorProperties,
-    "date": DateProperties,
-    "tabular": TabularProperties,
-}
+    model_config = {"validate_assignment": True}
+
+
+class Raster(_DataMetaBase):
+    Properties: Annotated[
+        Optional[RasterProperties], Field(serialization_alias="properties")
+    ] = None
+
+    model_config = {"validate_assignment": True}
+
+    def __init__(
+        __pydantic_self__,
+        name: str,
+        value: Union[int, float, str, bool],
+        properties: Optional[RasterProperties] = None,
+    ):
+        # `Type` is set as best guess here. This would anyway be overriden based on
+        # the output config
+        super().__init__(
+            Format="raster", Name=name, Value=value, Type=PrimitiveTypes.URL.value
+        )
+        __pydantic_self__.Properties = properties
+
+
+class Vector(_DataMetaBase):
+    Properties: Annotated[
+        Optional[VectorProperties], Field(serialization_alias="properties")
+    ] = None
+
+    model_config = {"validate_assignment": True}
+
+    def __init__(
+        __pydantic_self__,
+        name: str,
+        value: str,
+        properties: Optional[VectorProperties] = None,
+    ):
+        super().__init__(
+            Format="vector", Type=PrimitiveTypes.URL.value, Name=name, Value=value
+        )
+        __pydantic_self__.Properties = properties
+
+
+class Date(_DataMetaBase):
+    Properties: Annotated[
+        Optional[DateProperties], Field(serialization_alias="properties")
+    ] = None
+
+    model_config = {"validate_assignment": True}
+
+    def __init__(
+        __pydantic_self__,
+        name: str,
+        value: str,
+        properties: Optional[DateProperties] = None,
+    ):
+        super().__init__(
+            Format="date", Type=PrimitiveTypes.STR.value, Name=name, Value=value
+        )
+        __pydantic_self__.Properties = properties
+
+
+class Tabular(_DataMetaBase):
+    Properties: Annotated[
+        Optional[TabularProperties], Field(serialization_alias="properties")
+    ] = None
+
+    model_config = {"validate_assignment": True}
+
+    def __init__(
+        __pydantic_self__,
+        name: str,
+        value: str,
+        properties: Optional[TabularProperties] = None,
+    ):
+        super().__init__(
+            Format="tabular", Value=value, Name=name, Type=PrimitiveTypes.URL.value
+        )
+        __pydantic_self__.Properties = properties
+
+
+class String(_DataMetaBase):
+    # pydantic throws error without this
+    __null__: Any
+
+    def __init__(__pydantic_self__, name: str, value: str):
+        super().__init__(
+            Format="string", Name=name, Type=PrimitiveTypes.STR.value, Value=value
+        )
+
+
+class Number(_DataMetaBase):
+    # pydantic throws error without this
+    __null__: Any
+
+    def __init__(
+        __pydantic_self__,
+        name: str,
+        value: Union[int, float],
+    ):
+        super().__init__(
+            Format="number", Name=name, Type=PrimitiveTypes.FLOAT.value, Value=value
+        )
+
+
+# add_inline_fields(DataMeta, Number)
+
+Data = Union[Raster, Vector, Date, Tabular, String, Number]
+
+
+OutputsBuffer = List[Data]

@@ -8,8 +8,6 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import pydantic
-
 import clay
 from clay import types
 from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes
@@ -200,20 +198,7 @@ class ArgoRunner(BaseRunner):
         remote_path = os.path.join(remote_path, key, file_name)
         return remote_path
 
-    def _output_handler(
-        self,
-        key: str,
-        value: Union[str, int, float],
-        properties: Optional[
-            Union[
-                types.RasterProperties,
-                types.VectorProperties,
-                types.DateProperties,
-                types.TabularProperties,
-                Dict[str, Any],
-            ]
-        ] = None,
-    ) -> None:
+    def _output_handler(self, data: types.Data) -> None:
         """Set an output asset. This method is responsible for creating the necessary
         output jsons and moving any required asset to its correct location without any
         intervention from the user.
@@ -258,7 +243,7 @@ class ArgoRunner(BaseRunner):
             ]):
                 The actual value of the output parameter.
 
-            properties (
+        properties (
                 Optional[
                         Union[
                             types.RasterProperties,
@@ -276,69 +261,61 @@ class ArgoRunner(BaseRunner):
             OutputOverwriteException: exception raised when the user attempts to
             overwrite an already written output file.
         """
-        if key not in self.expected_outputs:
-            self.logger.error(f"`{key}` not found in outputs config")
+
+        if data.Name not in self.expected_outputs:
+            self.logger.error(f"`{data.Name}` not found in outputs config")
             return
 
-        if key in self._output_keys_written:
-            self.logger.error(f"rewritting output key `{key}`")
+        if data.Name in self._output_keys_written:
+            self.logger.error(f"rewritting output key `{data.Name}`")
             raise OutputOverwriteException("attempting key overwrite")
-        else:
-            self._output_keys_written.add(key)
 
-        self.update_model_outputs_dict(key, value)
-
-        output_config = self.expected_outputs[key]
+        output_config = self.expected_outputs[data.Name]
         format = output_config["format"]
+        if data.Format != format:
+            raise ValueError(
+                f"invalid format `{data.Format}` for `{data.Name}`. Expected `{format}`"
+            )
+
         output_working_dir, found = self.get_injected_envvar(
             _InjectedEnvVars.OutputsWorkingDir
         )
-        named_output_dir = pathlib.Path(os.path.join(output_working_dir, key))
+        named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
-
-        # check if format can accept properties
-        if types.FormatPropertyMap.get(format) is None and properties is not None:
-            self.logger.error(
-                f"`{key}` of format `{format}` provided with not `None` properties."
-            )
-            return
-
-        # if properties is a dict i.e. not one of the prdefined types, then warn this
-        # unsafe operation
-        if isinstance(properties, dict):
-            self.logger.warning(
-                f"received properties for `{key}` as a dict. This is an unsafe operation."
-                " Please proceed with caution!"
-            )
-        elif isinstance(properties, pydantic.BaseModel):
-            properties = properties.model_dump(by_alias=True)
 
         if output_config["type"] == ValueTypes.URL.value:
             value = self._handle_output_asset(
-                key, ValueTypes.URL, str(value), str(named_output_dir)
+                data.Name, ValueTypes.URL, str(data.Value), str(named_output_dir)
             )
+            data.Value = value
 
-        data_meta = types.DataMeta(
-            Format=output_config["format"],
-            Type=output_config["type"],
-            Name=key,
-            Value=value,
-        )
-        output = data_meta.model_dump(by_alias=True)
-        if properties is not None:
-            output["properties"] = properties
+        # setting the type
+        data.Type = output_config["type"]
 
-        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, key))
+        if hasattr(data, "Properties"):
+            if "properties" not in output_config and data.Properties is not None:
+                raise ValueError(
+                    f"found properties for output `{data.Name}` but config has "
+                    "no properties set"
+                )
+            elif "properties" in output_config and data.Properties is None:
+                data.Properties = types._PropertiesFromConfig(output_config)
+
+        output = data.model_dump(by_alias=True)
+
+        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, data.Name))
         output_parameter_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
+        self._output_keys_written.add(data.Name)
+        self.update_model_outputs_dict(data.Name, data.Value)
         self.update_outputs_list(output)
 
         with open(output_parameter_path.joinpath(DATA_SPEC_FILENAME), "w+") as f:
             json.dump(output, f)
 
     def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
-        for key, value, props in output_buffer:
-            self._output_handler(key, value, props)
+        for val in output_buffer:
+            self._output_handler(val)
 
     def success(self) -> None:
         task_id, found = self.get_injected_envvar(_InjectedEnvVars.TaskId)
@@ -434,4 +411,5 @@ class ArgoRunner(BaseRunner):
         if exc is not None:
             self.failure(exc)
         self._logger.info(f"results: {result}")
+
         self.success()

@@ -9,7 +9,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import cached_property
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, get_args
 
 import requests
 import uvloop
@@ -37,21 +37,8 @@ class InferenceCtx:
         self._outputs_buffer: types.OutputsBuffer = []
         self._opts = opts
 
-    def output(
-        self,
-        key: str,
-        value: Union[str, int, float],
-        properties: Optional[
-            Union[
-                types.RasterProperties,
-                types.VectorProperties,
-                types.DateProperties,
-                types.TabularProperties,
-                Dict[str, Any],
-            ]
-        ] = None,
-    ) -> None:
-        self._outputs_buffer.append((key, value, properties))
+    def output(self, val: types.Data) -> None:
+        self._outputs_buffer.append(val)
 
     def get_output_buffer(self) -> types.OutputsBuffer:
         return self._outputs_buffer
@@ -67,6 +54,7 @@ class ModelWrapper:
         logger: Optional[Logger] = None,
     ) -> None:
         self.protocol = protocol
+        print(os.getcwd())
         self.config = yaml_to_namespace(config)
         if logger is None:
             logger = ClayLogger(
@@ -177,13 +165,13 @@ class ModelWrapper:
     async def cleanup_inference(self) -> None:
         pass
 
-    async def preprocess(self, ctx: InferenceCtx, *args: Any, **kwargs: Any) -> Any:
+    async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def inference(self, ctx: InferenceCtx, *args: Any, **kwargs: Any) -> Any:
+    async def inference(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def postprocess(self, ctx: InferenceCtx, *args: Any, **kwargs: Any) -> Any:
+    async def postprocess(self, *args: Any, **kwargs: Any) -> Dict[str, types.Data]:
         raise NotImplementedError
 
     async def infer(
@@ -191,11 +179,22 @@ class ModelWrapper:
     ) -> types.OutputsBuffer:
         _inf_ctx = InferenceCtx(opts=opts)
         try:
-            _return_vals = await self.preprocess(_inf_ctx, **inputs)
-            _return_vals = await self.inference(_inf_ctx, **_return_vals)
-            _return_vals = await self.postprocess(_inf_ctx, **_return_vals)
+            _return_vals = await self.preprocess(**inputs)
+            _return_vals = await self.inference(**_return_vals)
+            _return_vals = await self.postprocess(**_return_vals)
         finally:
             await self.cleanup_inference()
+
+        assert isinstance(_return_vals, dict), "postprocess can only return a dict"
+
+        # TODO: evaluate returning a list of types vs returning a dict of types.
+        # latter has duplication: `name` is both present in key and the type which is the
+        # value
+        for _, v in _return_vals.items():
+            assert isinstance(
+                v, get_args(types.Data)
+            ), f"return value can only be one of {types.Data}"
+            _inf_ctx.output(v)
 
         return _inf_ctx.get_output_buffer()
 
