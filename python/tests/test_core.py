@@ -21,7 +21,7 @@ def test_mw_missing_setup_override() -> None:
             pass
 
     with pytest.raises(NotImplementedError):
-        M(config="./python/tests/models/ymxplusc.yaml")
+        M(config="./tests/models/ymxplusc.yaml")
 
 
 def test_mw_blocking_method_override() -> None:
