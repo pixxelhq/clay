@@ -91,8 +91,8 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
         a = ArgoRunner(
             "dummy",
             M,
-            {"config": "./python/tests/runners/dummy-spec.yml"},
-            "./python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start()
@@ -135,8 +135,8 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
         a = ArgoRunner(
             "dummy",
             M,
-            {"config": "./python/tests/runners/dummy-spec.yml"},
-            "./python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start()
@@ -196,8 +196,8 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
         a = ArgoRunner(
             "dummy",
             M,
-            {"config": "./python/tests/runners/dummy-spec-with-props.yml"},
-            "./python/tests/runners/dummy-spec-with-props.yml",
+            {"config": "./tests/runners/dummy-spec-with-props.yml"},
+            "./tests/runners/dummy-spec-with-props.yml",
             None,
         )
         a.start()
@@ -269,8 +269,8 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
         a = ArgoRunner(
             "dummy",
             M,
-            {"config": "./python/tests/runners/dummy-spec.yml"},
-            "./python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         self.assertRaises(ValueError, a.start)
