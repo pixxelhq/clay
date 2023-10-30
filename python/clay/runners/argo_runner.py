@@ -125,7 +125,10 @@ class ArgoRunner(BaseRunner):
             return self._model_outputs_dict
         return self._model_outputs_dict[key]
 
-    def _collect_inputs(self) -> Dict[str, Any]:
+    # The `None` assignment is to statisfy the type checker
+    def _collect_inputs(
+        self, inputs: Optional[List[Dict[str, Any]]] = None
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
         # NOTE: we have removed default fills for inputs that the model expects and have
         # not been provided. it is expected that this would be handled at the executor
         # level. In-case, an input is received that is nor provided we fail the model
@@ -356,6 +359,7 @@ class ArgoRunner(BaseRunner):
 
     def run_model_inference(self) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
         input_dict = self._collect_inputs()
+        assert isinstance(input_dict, dict)
         id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
 
         # fire inprogress callback
