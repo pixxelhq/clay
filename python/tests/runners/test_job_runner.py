@@ -6,12 +6,17 @@ import shutil
 import unittest
 from typing import Any
 
+import pytest
 import shortuuid
 
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
 from clay.runners.job_runner import JobRunner
+
+pytest.mark.skip(
+    "un-skip this during local runs. Skipped since ci doesnt have aws support"
+)
 
 
 class TestJobRunner(unittest.IsolatedAsyncioTestCase):
