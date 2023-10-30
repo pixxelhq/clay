@@ -1,11 +1,13 @@
+import os
 import sys
 import time
 import unittest
 from typing import Any
+from unittest import mock
 
 import pytest
 
-from clay import ModelWrapper
+from clay import ModelWrapper, types
 from clay.core import BaseRunner
 
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
@@ -111,3 +113,55 @@ class TestBaseRunner(unittest.TestCase):
         self.m._init_model()
         self.m._init_model_inference_event_loop()
         assert self.m._loop.is_running() is True
+
+    @mock.patch("clay.core.requests.Session.post")
+    def test_fire_callback_workflow_success(self, mock_post):
+        mock_response = mock.Mock()
+        mock_response.json.return_value = {"successful_update": "True", "err": ""}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        dexter_url = "localhost:6666"
+        mock_env_vars = {
+            "DEXTER_RUN_TYPE": "workflow",
+            "ORCHESTRATOR_URL": dexter_url,
+            "DEXTER_CLB_AUTH_TOKEN": "123",
+        }
+        env_patcher = unittest.mock.patch.dict(os.environ, mock_env_vars)
+        env_patcher.start()
+        self.m = self._test_runnercls("job")
+        self.m._init_model()
+        self.m._init_model_inference_event_loop()
+        self.m._fire_callback(
+            types.Callback(Id="task123", State=types.ModelStates.INPROGRESS)
+        )
+        call_args = mock_post.call_args_list
+        assert call_args[0][1]["url"] == dexter_url
+        env_patcher.stop()
+
+    @mock.patch("clay.core.requests.Session.post")
+    def test_fire_callback_inference_success(self, mock_post):
+        mock_response = mock.Mock()
+        mock_response.json.return_value = {"successful_update": "True", "err": ""}
+        mock_response.status_code = 204
+        mock_post.return_value = mock_response
+
+        dexter_url = "http://localhost:6666/v1alpha1/inferences/task123"
+        mock_env_vars = {
+            "DEXTER_RUN_TYPE": "inference",
+            "ORCHESTRATOR_URL": dexter_url,
+            "DEXTER_CLB_AUTH_TOKEN": "123",
+            "DEXTER_HOST": "http://localhost",
+            "DEXTER_PORT": "6666",
+        }
+        env_patcher = unittest.mock.patch.dict(os.environ, mock_env_vars)
+        env_patcher.start()
+        self.m = self._test_runnercls("job")
+        self.m._init_model()
+        self.m._init_model_inference_event_loop()
+        self.m._fire_callback(
+            types.Callback(Id="task123", State=types.ModelStates.FAILED)
+        )
+        call_args = mock_post.call_args_list
+        assert call_args[0][1]["url"] == dexter_url
+        env_patcher.stop()

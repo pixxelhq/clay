@@ -14,11 +14,14 @@ class InferenceStates(Enum):
     SUCCESS = "success"
 
 
-class ModelStates(Enum):
+class ModelStates(str, Enum):
     STARTED = "TaskStarted"
     INPROGRESS = "TaskInprogress"
     COMPLETED = "TaskCompleted"
     FAILED = "TaskFailed"
+
+    def __repr__(self) -> str:
+        return self.value
 
 
 class PrimitiveTypes(Enum):
@@ -110,7 +113,7 @@ class Callback(pydantic.BaseModel):
     UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
     ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
 
-    model_config = ConfigDict(use_enum_values=True)
+    model_config = ConfigDict(use_enum_values=False)
 
 
 class InferenceOpts(pydantic.BaseModel):

@@ -374,7 +374,7 @@ class BaseRunner(object):
 
             resp = session.post(
                 url="{0}:{1}/v1alpha1/inferences/{2}".format(
-                    self._dexter_host, self._dexter_port, id
+                    self._dexter_host, self._dexter_port, clb.Id
                 ),
                 json=data,
                 headers=headers,
