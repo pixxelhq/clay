@@ -14,9 +14,7 @@ from clay.core import ModelWrapper
 from clay.logger import Logger
 from clay.runners.job_runner import JobRunner
 
-pytest.mark.skip(
-    "un-skip this during local runs. Skipped since ci doesnt have aws support"
-)
+pytest.importorskip("test_job_runner")
 
 
 class TestJobRunner(unittest.IsolatedAsyncioTestCase):
