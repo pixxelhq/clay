@@ -9,7 +9,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import cached_property
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Union, get_args
+from typing import Any, Dict, List, Optional, Tuple, Union, get_args
 
 import requests
 import uvloop
@@ -33,7 +33,7 @@ class ValueTypes(Enum):
 
 
 class InferenceCtx:
-    def __init__(self, opts: types.InferenceOpts) -> None:
+    def __init__(self, opts: Optional[types.InferenceOpts] = None) -> None:
         self._outputs_buffer: types.OutputsBuffer = []
         self._opts = opts
 
@@ -193,7 +193,7 @@ class ModelWrapper:
         raise NotImplementedError
 
     async def infer(
-        self, inputs: Dict[str, Any], opts: types.InferenceOpts
+        self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]
     ) -> types.OutputsBuffer:
         _inf_ctx = InferenceCtx(opts=opts)
         try:
@@ -387,7 +387,9 @@ class BaseRunner(object):
             return True
 
     @abstractmethod
-    def _collect_inputs(self) -> Dict[str, Any]:
+    def _collect_inputs(
+        self, inputs: Optional[List[Dict[str, Any]]] = None
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
         pass
 
     @abstractmethod

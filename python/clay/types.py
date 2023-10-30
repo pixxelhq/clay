@@ -142,6 +142,8 @@ class Raster(_DataMetaBase):
         name: str,
         value: Union[int, float, str, bool],
         properties: Optional[RasterProperties] = None,
+        *args: Any,
+        **kwargs: Any,
     ):
         # `Type` is set as best guess here. This would anyway be overriden based on
         # the output config
@@ -212,7 +214,7 @@ class String(_DataMetaBase):
     # pydantic throws error without this
     __null__: Any
 
-    def __init__(__pydantic_self__, name: str, value: str):
+    def __init__(__pydantic_self__, name: str, value: str, *args: Any, **kwargs: Any):
         super().__init__(
             Format="string", Name=name, Type=PrimitiveTypes.STR.value, Value=value
         )
@@ -236,5 +238,13 @@ class Number(_DataMetaBase):
 
 Data = Union[Raster, Vector, Date, Tabular, String, Number]
 
+_FormatModelMap = {
+    FormatTypes.RASTER.value: Raster,
+    FormatTypes.VECTOR.value: Vector,
+    FormatTypes.DATE.value: Date,
+    FormatTypes.NUMBER.value: Number,
+    FormatTypes.STRING.value: String,
+    FormatTypes.TABULAR.value: Tabular,
+}
 
 OutputsBuffer = List[Data]

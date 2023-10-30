@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import yaml
 from urllib3.util import parse_url
@@ -127,3 +127,12 @@ def get_filename_from_remote(url: str) -> str:
     if fragments.path is None:
         return ""
     return os.path.basename(fragments.path)
+
+
+def pop_dict_with_err(d: Dict[Any, Any], key: Any) -> Tuple[Any, Optional[KeyError]]:
+    val = None
+    try:
+        val = d.pop(key)
+    except KeyError as exc:
+        return val, exc
+    return val, None
