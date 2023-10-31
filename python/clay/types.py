@@ -151,7 +151,10 @@ class Raster(_DataMetaBase):
         # `Type` is set as best guess here. This would anyway be overriden based on
         # the output config
         super().__init__(
-            Format="raster", Name=name, Value=value, Type=PrimitiveTypes.URL.value
+            Format=FormatTypes.RASTER.value,
+            Name=name,
+            Value=value,
+            Type=PrimitiveTypes.URL.value,
         )
         __pydantic_self__.Properties = properties
 
@@ -170,7 +173,10 @@ class Vector(_DataMetaBase):
         properties: Optional[VectorProperties] = None,
     ):
         super().__init__(
-            Format="vector", Type=PrimitiveTypes.URL.value, Name=name, Value=value
+            Format=FormatTypes.VECTOR.value,
+            Type=PrimitiveTypes.URL.value,
+            Name=name,
+            Value=value,
         )
         __pydantic_self__.Properties = properties
 
@@ -189,7 +195,10 @@ class Date(_DataMetaBase):
         properties: Optional[DateProperties] = None,
     ):
         super().__init__(
-            Format="date", Type=PrimitiveTypes.STR.value, Name=name, Value=value
+            Format=FormatTypes.DATE.value,
+            Type=PrimitiveTypes.STR.value,
+            Name=name,
+            Value=value,
         )
         __pydantic_self__.Properties = properties
 
@@ -208,7 +217,10 @@ class Tabular(_DataMetaBase):
         properties: Optional[TabularProperties] = None,
     ):
         super().__init__(
-            Format="tabular", Value=value, Name=name, Type=PrimitiveTypes.URL.value
+            Format=FormatTypes.TABULAR.value,
+            Value=value,
+            Name=name,
+            Type=PrimitiveTypes.URL.value,
         )
         __pydantic_self__.Properties = properties
 
@@ -219,7 +231,10 @@ class String(_DataMetaBase):
 
     def __init__(__pydantic_self__, name: str, value: str, *args: Any, **kwargs: Any):
         super().__init__(
-            Format="string", Name=name, Type=PrimitiveTypes.STR.value, Value=value
+            Format=FormatTypes.STRING.value,
+            Name=name,
+            Type=PrimitiveTypes.STR.value,
+            Value=value,
         )
 
 
@@ -233,7 +248,10 @@ class Number(_DataMetaBase):
         value: Union[int, float],
     ):
         super().__init__(
-            Format="number", Name=name, Type=PrimitiveTypes.FLOAT.value, Value=value
+            Format=FormatTypes.NUMBER.value,
+            Name=name,
+            Type=PrimitiveTypes.FLOAT.value,
+            Value=value,
         )
 
 
