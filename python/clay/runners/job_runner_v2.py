@@ -36,7 +36,7 @@ REQUIRED_ENVVAR = set(
 )
 
 
-class ArgoRunner(BaseRunner):
+class JobRunnerV2(BaseRunner):
     RUN_MODE: str = "argo"
 
     def __init__(
@@ -49,7 +49,7 @@ class ArgoRunner(BaseRunner):
         enable_uvloop: bool = False,
     ) -> None:
         super().__init__(
-            ArgoRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop
+            JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop
         )
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, str] = {}
