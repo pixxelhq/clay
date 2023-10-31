@@ -12,7 +12,7 @@ import shortuuid
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
-from clay.runners.job_runner import JobRunner
+from clay.runners.job_runner import JobRunner, _ExpectedInfParameters
 
 pytest.importorskip("test_job_runner")
 
@@ -117,8 +117,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "./tests/runners/dummy-spec.yml"},
-            "./tests/runners/dummy-spec.yml",
+            {"config": "python/tests/runners/dummy-spec.yml"},
+            "python/tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -204,8 +204,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "./tests/runners/dummy-spec.yml"},
-            "./tests/runners/dummy-spec.yml",
+            {"config": "python/tests/runners/dummy-spec.yml"},
+            "python/tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -326,8 +326,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "./tests/runners/dummy-spec.yml"},
-            "./tests/runners/dummy-spec.yml",
+            {"config": "python/tests/runners/dummy-spec.yml"},
+            "python/tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -443,8 +443,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "./tests/runners/dummy-spec.yml"},
-            "./tests/runners/dummy-spec.yml",
+            {"config": "python/tests/runners/dummy-spec.yml"},
+            "python/tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -485,4 +485,82 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         with open(os.path.join(result_output_dir, "spec.json"), "r") as f:
             d = json.load(f)
         assert d["value"] == remote_raster_path
+        env_patcher.stop()
+
+    async def test_read_inputs_backward_compatible(self) -> None:
+        class M(ModelWrapper):
+            def __init__(
+                self, config: str, protocol: str = "abfs", logger: Logger = None
+            ) -> None:
+                super().__init__(config, protocol, logger)
+
+            def setup(self):
+                pass
+
+            async def preprocess(self, string, raster) -> Any:
+                print(string, raster)
+                return {"raster": raster, "string": string}
+
+            async def inference(self, raster, string) -> None:
+                dummy_raster = pathlib.Path("../clipped.tiff")
+                dummy_raster.touch()
+
+                return {"raster": str(dummy_raster), "string": "this is hello"}
+
+            async def postprocess(self, raster, string) -> Any:
+                r = types.Raster(
+                    name="result",
+                    value=raster,
+                )
+                s = types.String(name="string", value=string)
+                return {
+                    "result": r,
+                    "string": s,
+                }
+
+        # creating a raster dummy input
+        raster = {
+            "format": "raster",
+            "type": "url",
+            "name": "raster",
+            "value": "s3://bucket/another-bucket/clipped.tiff",
+        }
+
+        # creating a dummy string input
+        string = {
+            "format": "string",
+            "name": "string",
+            "type": "str",
+            "value": "hello world",
+        }
+
+        task_id = {
+            "format": "string",
+            "name": "task-id",
+            "type": "str",
+            "value": "task123",
+        }
+
+        mock_env_vars = copy.deepcopy(self.mock_env_vars)
+        mock_env_vars["local-working-dir"] = self.testing_working_dir
+        mock_env_vars["workflow-id"] = "wfk123"
+        mock_env_vars["job-id"] = "job123"
+        env_patcher = unittest.mock.patch.dict(os.environ, mock_env_vars)
+        env_patcher.start()
+        a = JobRunner(
+            "dummy",
+            M,
+            {"config": "python/tests/runners/dummy-spec.yml"},
+            "python/tests/runners/dummy-spec.yml",
+            None,
+        )
+        a.start(args=[raster, string, task_id])
+        passed_vals = a.get_passed_inputs_dict()
+
+        assert a._inf_opts[_ExpectedInfParameters.WorkflowId] == "wfk123"
+        assert a._inf_opts[_ExpectedInfParameters.JobId] == "job123"
+        assert a._inf_opts[_ExpectedInfParameters.TaskId] == "task123"
+
+        assert passed_vals["raster"]["value"] == raster["value"]
+        assert passed_vals["string"]["value"] == "hello world"
         env_patcher.stop()
