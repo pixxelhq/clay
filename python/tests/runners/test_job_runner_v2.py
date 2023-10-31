@@ -13,7 +13,7 @@ from clay.logger import Logger
 from clay.runners.job_runner_v2 import JobRunnerV2
 
 
-class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
+class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         # truncating is fine since this is anyway a tmp directory
         self.testing_working_dir = f"./tmp-{shortuuid.random()[:5]}"
