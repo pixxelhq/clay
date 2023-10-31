@@ -149,7 +149,28 @@ class JobRunner(BaseRunner):
         data.Value = str(local_path)
         return data
 
-    # The `None` assignment is to statisfy the type checker
+    def _backward_compatibility_missing_infparams(self) -> None:
+        if self._inf_opts.get(_ExpectedInfParameters.WorkflowId) is None:
+            wfid = os.getenv(_ExpectedInfParameters.WorkflowId.value)
+            if wfid is None:
+                raise ValueError(
+                    f"did not find `{_ExpectedInfParameters.WorkflowId.value}`"
+                )
+            self._inf_opts[_ExpectedInfParameters.WorkflowId] = wfid
+        if self._inf_opts.get(_ExpectedInfParameters.JobId) is None:
+            jobid = os.getenv(_ExpectedInfParameters.JobId.value)
+            if jobid is None:
+                raise ValueError(f"did not find `{_ExpectedInfParameters.JobId.value}`")
+            self._inf_opts[_ExpectedInfParameters.JobId] = jobid
+        if self._inf_opts.get(_ExpectedInfParameters.LocalWorkingDir) is None:
+            local_working_dir = os.getenv(_ExpectedInfParameters.LocalWorkingDir.value)
+            if local_working_dir is None:
+                raise ValueError(
+                    f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`"
+                )
+            self._inf_opts[_ExpectedInfParameters.LocalWorkingDir] = local_working_dir
+            # The `None` assignment is to statisfy the type checker
+
     def _collect_inputs(
         self, inputs: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
@@ -170,6 +191,7 @@ class JobRunner(BaseRunner):
                 self._inf_opts[o] = val.get("value")
                 continue
             # self._inf_opts[o] = val
+        self._backward_compatibility_missing_infparams()
 
         workflow_id = self._inf_opts[_ExpectedInfParameters.WorkflowId]
         job_id = self._inf_opts[_ExpectedInfParameters.JobId]
