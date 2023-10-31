@@ -10,7 +10,7 @@ import shortuuid
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
-from clay.runners.argo_runner import ArgoRunner
+from clay.runners.job_runner_v2 import JobRunnerV2
 
 
 class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
@@ -88,7 +88,7 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
-        a = ArgoRunner(
+        a = JobRunnerV2(
             "dummy",
             M,
             {"config": "./tests/runners/dummy-spec.yml"},
@@ -132,7 +132,7 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
         print(os.getcwd())
-        a = ArgoRunner(
+        a = JobRunnerV2(
             "dummy",
             M,
             {"config": "./tests/runners/dummy-spec.yml"},
@@ -193,7 +193,7 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
-        a = ArgoRunner(
+        a = JobRunnerV2(
             "dummy",
             M,
             {"config": "./tests/runners/dummy-spec-with-props.yml"},
@@ -266,7 +266,7 @@ class TestArgoRunner(unittest.IsolatedAsyncioTestCase):
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
-        a = ArgoRunner(
+        a = JobRunnerV2(
             "dummy",
             M,
             {"config": "./tests/runners/dummy-spec.yml"},
