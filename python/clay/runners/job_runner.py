@@ -131,7 +131,12 @@ class JobRunner(BaseRunner):
             return self._passed_inputs_dict
         return self._passed_inputs_dict[key]
 
-    def _handle_input_assets(self, data: types.Data, named_input_dir: str) -> types.Data:
+    def _handle_input_assets(
+        self,
+        data: types.Data,
+        named_input_dir: str,
+        named_remote_output_dir: str,
+    ) -> types.Data:
         if not self._injected_envvars[_InjectedEnvVars.AutoDownloadAssets]:
             return data
         if data.Type != ValueTypes.URL.value:
@@ -146,6 +151,29 @@ class JobRunner(BaseRunner):
         self._s3fs.get_file(data.Value, str(local_path))
         if not local_path.exists():
             raise FileNotFoundError(f"failed to find file {data.Value}")
+        if named_remote_output_dir != "":
+            named_remote_output_dir = os.path.join(
+                named_remote_output_dir, str(file_name)
+            )
+            if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
+                self.logger.info(
+                    f"uploading file {str(local_path)} to {named_remote_output_dir}"
+                )
+                # TODO: here we risk overwriting the file if it exists. Ideally, if the
+                # file exists in the named-remote-output-dir path, then we shouldnt upload
+                try:
+                    self._s3fs.info(named_remote_output_dir)
+                    # the line below is run only if the file exists in the said path
+                    self.logger.warn(
+                        f"file found at {named_remote_output_dir}. will be overwritten"
+                    )
+                except FileNotFoundError:
+                    pass
+                print(str(local_path), named_remote_output_dir)
+                self._s3fs.put_file(str(local_path), named_remote_output_dir)
+                self.logger.info(
+                    f"upload of {local_path} to {named_remote_output_dir} complete"
+                )
         data.Value = str(local_path)
         return data
 
@@ -210,10 +238,34 @@ class JobRunner(BaseRunner):
             named_input_dir = pathlib.Path(input_working_dir, model.Name)
             named_input_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-            model = self._handle_input_assets(model, str(named_input_dir))
+            remote_working_dir = ""
+            named_remote_working_dir = ""
+            remote_prefix, found = self.get_injected_envvar(_InjectedEnvVars.RemotePrefix)
+            if found:
+                remote_working_dir = os.path.join(
+                    remote_prefix, workflow_id, job_id, task_id, "inputs"
+                )
+
+                named_remote_working_dir = os.path.join(remote_working_dir, model.Name)
+
+            model = self._handle_input_assets(
+                model, str(named_input_dir), named_remote_working_dir
+            )
+
             i = model.model_dump(by_alias=True)
             with open(os.path.join(named_input_dir, DATA_SPEC_FILENAME), "w+") as f:
                 json.dump(i, f)
+
+            # uploading inputs to remote directory if allowed for parity with
+            # argo executor
+            if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
+                remote_path = os.path.join(named_remote_working_dir, DATA_SPEC_FILENAME)
+                local_spec_file_path = os.path.join(named_input_dir, DATA_SPEC_FILENAME)
+                self.logger.info(
+                    f"starting to upload {local_spec_file_path} to {remote_path}"
+                )
+                self._s3fs.put_file(local_spec_file_path, remote_path)
+                self.logger.info("upload complete")
 
             _processed_inputs[k] = model
             self._inputs_prop_map[k] = i["properties"] if "properties" in i else None
@@ -342,7 +394,7 @@ class JobRunner(BaseRunner):
     def failure(
         self,
         exc: Union[Exception, FailedExecutionException],
-        data: Dict[str, Any],
+        data: Optional[Dict[str, Any]] = None,
         *args: Any,
         **kwargs: Any,
     ) -> Any:

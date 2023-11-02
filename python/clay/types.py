@@ -43,10 +43,8 @@ class FormatTypes(Enum):
 def add_inline_fields(
     from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]
 ) -> None:
-    print("xxx")
     for k, v in from_model.__annotations__.items():
         to_model.__annotations__[k] = v
-    print("yyy")
 
 
 class RasterProperties(pydantic.BaseModel):
