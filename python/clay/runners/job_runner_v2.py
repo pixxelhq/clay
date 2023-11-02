@@ -45,7 +45,7 @@ class JobRunnerV2(BaseRunner):
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
         cfg_path: str,
-        logger: Union[Logger, None],
+        logger: Union[Logger, None] = None,
         enable_uvloop: bool = False,
     ) -> None:
         super().__init__(
@@ -388,7 +388,7 @@ class JobRunnerV2(BaseRunner):
         self._flush_output_buffer(result)
         return result, None
 
-    def start(self) -> None:
+    def start(self, **kwargs: Any) -> None:
         self.read_injected_envvars()
         try:
             self._init_model()

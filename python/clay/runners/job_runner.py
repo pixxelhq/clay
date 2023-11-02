@@ -395,6 +395,9 @@ class JobRunner(BaseRunner):
         inputs = kwargs.get("args")
         if inputs is None:
             raise ValueError("no inputs found")
+        if isinstance(inputs, str):
+            inputs = json.loads(inputs)
+
         # inputs need to be collected here since the taskid is is collected
         # during inputs collection
         rvals = self._collect_inputs(inputs)
