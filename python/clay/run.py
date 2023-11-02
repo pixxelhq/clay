@@ -48,7 +48,7 @@ def Run(model: ModelWrapper, name: str, cfg_path: str) -> None:
 
     if len(sys.argv) > 1:
         args = sys.argv[1]
-    if requires_args and len(args) == 0:
+    elif requires_args and len(sys.argv) <= 1:
         raise ValueError(f"executor type `{executor.value}` requires args")
     _runnerobj: _RunnerTypes = _runnercls(
         model_name=name,
