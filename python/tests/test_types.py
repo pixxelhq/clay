@@ -18,3 +18,16 @@ def test_clb_serialise_dict() -> None:
         "outputs": None,
         "user_logs": "",
     }
+
+
+def test_init_raster_model_from_dict_success() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {"bands": ["B01", "B02"]},
+    }
+
+    r = types.Raster.model_validate(d)
+    assert r.Properties.Bands == ["B01", "B02"]
