@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union
@@ -48,27 +50,39 @@ def add_inline_fields(
 
 
 class RasterProperties(pydantic.BaseModel):
-    Bands: Annotated[List[str], Field(serialization_alias="bands")]
-    Source: Annotated[str, Field(serialization_alias="source")]
-    Collection: Annotated[str, Field(serialization_alias="collection")]
-    Dtype: Annotated[str, Field(serialization_alias="dtype")]
+    Bands: Annotated[
+        Optional[List[str]], Field(serialization_alias="bands", alias="bands")
+    ] = None
+    Source: Annotated[
+        Optional[str], Field(serialization_alias="source", alias="source")
+    ] = None
+    Collection: Annotated[
+        Optional[str], Field(serialization_alias="collection", alias="collection")
+    ] = None
+    Dtype: Annotated[
+        Optional[str], Field(serialization_alias="dtype", alias="dtype")
+    ] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
 
 class VectorProperties(pydantic.BaseModel):
-    Geometry: Annotated[str, Field(serialization_alias="geometry")]
+    Geometry: Annotated[Optional[str], Field(serialization_alias="geometry")] = None
 
 
 class DateProperties(pydantic.BaseModel):
-    FromAoi: Annotated[bool, Field(serialization_alias="from_aoi")]
+    FromAoi: Annotated[Optional[bool], Field(serialization_alias="from_aoi")] = None
 
 
 class TabularFileSchema(pydantic.BaseModel):
-    Headers: Annotated[List[str], Field(serialization_alias="headers")]
+    Headers: Annotated[Optional[List[str]], Field(serialization_alias="headers")] = None
 
 
 class TabularProperties(pydantic.BaseModel):
-    FileType: Annotated[str, Field(serialization_alias="file_type")]
-    FileSchema: Annotated[TabularFileSchema, Field(serialization_alias="file_schema")]
+    FileType: Annotated[Optional[str], Field(serialization_alias="file_type")] = None
+    FileSchema: Annotated[
+        Optional[TabularFileSchema], Field(serialization_alias="file_schema")
+    ] = None
 
 
 Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
@@ -121,22 +135,24 @@ class InferenceOpts(pydantic.BaseModel):
 
 
 class _DataMetaBase(pydantic.BaseModel):
-    Format: Annotated[str, Field(serialization_alias="format")]
-    Type: Annotated[Optional[str], Field(serialization_alias="type")] = None
-    Name: Annotated[str, Field(serialization_alias="name")]
+    Format: Annotated[str, Field(alias="format", serialization_alias="format")]
+    Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
+    Name: Annotated[str, Field(alias="name", serialization_alias="name")]
     Value: Annotated[
-        Optional[Union[int, float, str, str, bool]], Field(serialization_alias="value")
+        Optional[Union[int, float, str, str, bool]],
+        Field(alias="value", serialization_alias="value"),
     ] = None
 
-    model_config = {"validate_assignment": True}
+    model_config = {"validate_assignment": True, "populate_by_name": True}
 
 
 class Raster(_DataMetaBase):
     Properties: Annotated[
-        Optional[RasterProperties], Field(serialization_alias="properties")
+        Optional[RasterProperties],
+        Field(serialization_alias="properties", alias="properties"),
     ] = None
 
-    model_config = {"validate_assignment": True}
+    model_config = {"validate_assignment": True, "populate_by_name": True}
 
     def __init__(
         __pydantic_self__,
@@ -159,10 +175,11 @@ class Raster(_DataMetaBase):
 
 class Vector(_DataMetaBase):
     Properties: Annotated[
-        Optional[VectorProperties], Field(serialization_alias="properties")
+        Optional[VectorProperties],
+        Field(serialization_alias="properties", alias="properties"),
     ] = None
 
-    model_config = {"validate_assignment": True}
+    model_config = {"validate_assignment": True, "populate_by_name": True}
 
     def __init__(
         __pydantic_self__,
@@ -181,10 +198,11 @@ class Vector(_DataMetaBase):
 
 class Date(_DataMetaBase):
     Properties: Annotated[
-        Optional[DateProperties], Field(serialization_alias="properties")
+        Optional[DateProperties],
+        Field(serialization_alias="properties", alias="properties"),
     ] = None
 
-    model_config = {"validate_assignment": True}
+    model_config = {"validate_assignment": True, "populate_by_name": True}
 
     def __init__(
         __pydantic_self__,
@@ -203,10 +221,11 @@ class Date(_DataMetaBase):
 
 class Tabular(_DataMetaBase):
     Properties: Annotated[
-        Optional[TabularProperties], Field(serialization_alias="properties")
+        Optional[TabularProperties],
+        Field(serialization_alias="properties", alias="properties"),
     ] = None
 
-    model_config = {"validate_assignment": True}
+    model_config = {"validate_assignment": True, "populate_by_name": True}
 
     def __init__(
         __pydantic_self__,
