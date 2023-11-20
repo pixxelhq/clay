@@ -24,13 +24,16 @@ inputs:
   - format: raster
     type: url
     name: raster
+    persistent: true
   - format: string
     type: str
     name: string
+    parameter: true
 outputs:
   - format: raster
     type: url
     name: result
+    persistent: true
     properties:
       bands: ["B10"]
       source: a-random-sat
@@ -40,6 +43,7 @@ outputs:
   - format: string
     type: str
     name: string
+    parameter: true
 
 runtime_opts:
   image: some-image:latest

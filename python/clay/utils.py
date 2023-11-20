@@ -136,3 +136,10 @@ def pop_dict_with_err(d: Dict[Any, Any], key: Any) -> Tuple[Any, Optional[KeyErr
     except KeyError as exc:
         return val, exc
     return val, None
+
+
+def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str, Any]:
+    d = {}
+    for li in l:
+        d[li[primary_key]] = li
+    return d
