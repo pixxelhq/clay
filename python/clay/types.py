@@ -8,6 +8,9 @@ import pydantic
 from pydantic import ConfigDict, Field
 from typing_extensions import Annotated
 
+PARAMETER_ATTR_NAME = "parameter"
+PERSISTENT_ATTR_NAME = "persistent"
+
 
 class InferenceStates(Enum):
     QUEUED = "queued"
@@ -96,9 +99,12 @@ FormatPropertyMap = {
 }
 
 
-def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Properties:
+def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Optional[Properties]:
     format = output_cfg["format"]
-    return FormatPropertyMap[format].model_validate(output_cfg["properties"])
+    props = output_cfg.get("properties")
+    if props is None:
+        return None
+    return FormatPropertyMap[format].model_validate(props)
 
 
 class DataMeta(pydantic.BaseModel):
@@ -142,6 +148,8 @@ class _DataMetaBase(pydantic.BaseModel):
         Optional[Union[int, float, str, str, bool]],
         Field(alias="value", serialization_alias="value"),
     ] = None
+    Parameter: Annotated[Optional[bool], Field(serialization_alias="parameter")] = True
+    Persistent: Annotated[Optional[bool], Field(serialization_alias="persistent")] = False
 
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
@@ -158,6 +166,8 @@ class Raster(_DataMetaBase):
         __pydantic_self__,
         name: str,
         value: Union[int, float, str, bool],
+        parameter: bool = False,
+        persistent: bool = True,
         properties: Optional[RasterProperties] = None,
         *args: Any,
         **kwargs: Any,
@@ -169,6 +179,8 @@ class Raster(_DataMetaBase):
             Name=name,
             Value=value,
             Type=PrimitiveTypes.URL.value,
+            Parameter=parameter,
+            Persistent=persistent,
         )
         __pydantic_self__.Properties = properties
 
@@ -185,6 +197,8 @@ class Vector(_DataMetaBase):
         __pydantic_self__,
         name: str,
         value: str,
+        parameter: bool = False,
+        persistent: bool = True,
         properties: Optional[VectorProperties] = None,
     ):
         super().__init__(
@@ -192,6 +206,8 @@ class Vector(_DataMetaBase):
             Type=PrimitiveTypes.URL.value,
             Name=name,
             Value=value,
+            Parameter=parameter,
+            Persistent=persistent,
         )
         __pydantic_self__.Properties = properties
 
@@ -208,6 +224,8 @@ class Date(_DataMetaBase):
         __pydantic_self__,
         name: str,
         value: str,
+        parameter: bool = True,
+        persistent: bool = False,
         properties: Optional[DateProperties] = None,
     ):
         super().__init__(
@@ -215,6 +233,8 @@ class Date(_DataMetaBase):
             Type=PrimitiveTypes.STR.value,
             Name=name,
             Value=value,
+            Parameter=parameter,
+            Persistent=persistent,
         )
         __pydantic_self__.Properties = properties
 
@@ -231,6 +251,8 @@ class Tabular(_DataMetaBase):
         __pydantic_self__,
         name: str,
         value: str,
+        parameter: bool = False,
+        persistent: bool = True,
         properties: Optional[TabularProperties] = None,
     ):
         super().__init__(
@@ -238,6 +260,8 @@ class Tabular(_DataMetaBase):
             Value=value,
             Name=name,
             Type=PrimitiveTypes.URL.value,
+            Parameter=parameter,
+            Persistent=persistent,
         )
         __pydantic_self__.Properties = properties
 
@@ -246,12 +270,22 @@ class String(_DataMetaBase):
     # pydantic throws error without this
     __null__: Any
 
-    def __init__(__pydantic_self__, name: str, value: str, *args: Any, **kwargs: Any):
+    def __init__(
+        __pydantic_self__,
+        name: str,
+        value: str,
+        parameter: bool = True,
+        persistent: bool = False,
+        *args: Any,
+        **kwargs: Any,
+    ):
         super().__init__(
             Format=FormatTypes.STRING.value,
             Name=name,
             Type=PrimitiveTypes.STR.value,
             Value=value,
+            Parameter=parameter,
+            Persistent=persistent,
         )
 
 
@@ -263,12 +297,18 @@ class Number(_DataMetaBase):
         __pydantic_self__,
         name: str,
         value: Union[int, float],
+        parameter: bool = True,
+        persistent: bool = False,
+        *args: Any,
+        **kwargs: Any,
     ):
         super().__init__(
             Format=FormatTypes.NUMBER.value,
             Name=name,
             Type=PrimitiveTypes.FLOAT.value,
             Value=value,
+            Parameter=parameter,
+            Persistent=persistent,
         )
 
 
