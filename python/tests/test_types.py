@@ -31,3 +31,16 @@ def test_init_raster_model_from_dict_success() -> None:
 
     r = types.Raster.model_validate(d)
     assert r.Properties.Bands == ["B01", "B02"]
+
+
+def test_init_raster_model_from_dict_with_None_props_success() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": None,
+    }
+
+    r = types.Raster.model_validate(d)
+    assert r.Properties is None

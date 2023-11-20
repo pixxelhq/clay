@@ -107,6 +107,16 @@ class ModelWrapper:
     def recieve_input_properties(self) -> bool:
         return False
 
+    @cached_property
+    def receive_raw_inputs(self) -> bool:
+        """returns the raw inputs accepted by the mode. If `False`, returns the inputs as
+        processed by clay.
+
+        Returns:
+            bool: Returns processed inputs if value is set
+        """
+        return False
+
     def _dep_format_output(self, outputs: tuple) -> Any:
         output_containers = deepcopy(self.config.outputs)
         for output, output_container in zip(outputs, output_containers):

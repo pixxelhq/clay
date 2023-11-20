@@ -455,7 +455,6 @@ class JobRunner(BaseRunner):
         rvals = self._collect_inputs(inputs)
         assert rvals is not None
         assert isinstance(rvals, tuple)  # again, statisfying the type checker
-        _std_input_dict = rvals[1]
         try:
             self._init_model()
             self._init_model_inference_event_loop()
@@ -476,7 +475,12 @@ class JobRunner(BaseRunner):
                     Logs=get_streamvalues(self._logger),
                 )
             )
-        result, exc = self.run_model_inference(inputs=_std_input_dict)  # type: ignore
+            raise exc
+        if self._model.receive_raw_inputs:
+            _input_dict = rvals[1]
+        else:
+            _input_dict = rvals[0]
+        result, exc = self.run_model_inference(inputs=_input_dict)  # type: ignore
         if exc is not None:
             self.failure(exc)
         self.logger.info(f"results: {result}")

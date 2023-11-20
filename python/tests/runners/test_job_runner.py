@@ -117,8 +117,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "python/tests/runners/dummy-spec.yml"},
-            "python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -204,8 +204,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "python/tests/runners/dummy-spec.yml"},
-            "python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -326,8 +326,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "python/tests/runners/dummy-spec.yml"},
-            "python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -443,8 +443,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "python/tests/runners/dummy-spec.yml"},
-            "python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
@@ -550,8 +550,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         a = JobRunner(
             "dummy",
             M,
-            {"config": "python/tests/runners/dummy-spec.yml"},
-            "python/tests/runners/dummy-spec.yml",
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
             None,
         )
         a.start(args=[raster, string, task_id])

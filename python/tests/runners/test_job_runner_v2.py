@@ -32,7 +32,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         }
 
         # creating a dummy string input
-        string = {"format": "string", "type": "str", "value": "hello world"}
+        string = {"format": "string", "type": "str", "value": "hello world"}  # noqa
 
         # creating dummy inputs
         raster_path = os.path.join(input_working_dir, "raster")
@@ -40,10 +40,10 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         with open(os.path.join(raster_path, "spec.json"), "w+") as f:
             json.dump(raster, f)
 
-        string_path = os.path.join(input_working_dir, "string")
-        os.mkdir(string_path)
-        with open(os.path.join(string_path, "spec.json"), "w+") as f:
-            json.dump(string, f)
+        # string_path = os.path.join(input_working_dir, "string")
+        # os.mkdir(string_path)
+        # with open(os.path.join(string_path, "spec.json"), "w+") as f:
+        #    json.dump(string, f)
 
         self.mock_env_vars = {
             "task-id": "task123",
@@ -52,6 +52,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "outputs-working-dir": output_working_dir,
             "outputs-remote-path": "s3://workflow-id/job-id/task-id/outputs/",
             "env": "local",
+            "ARGO_TEMPLATE": '{"inputs": {"parameters":[{"name": "string", "value":"hello world"}]}}',  # noqa
         }
 
     def tearDown(self) -> None:
@@ -124,9 +125,12 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 return {"raster": str(dummy_raster), "string": string}
 
             async def postprocess(self, raster, string) -> Any:
+                print(string)
                 return {
-                    "result": types.Raster(name="result", value=raster),
-                    "string": types.String(name="string", value=string),
+                    "result": types.Raster(name="result", value=raster, parameter=True),
+                    "string": types.String(
+                        name="string", value=string.Value, parameter=True
+                    ),
                 }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
@@ -181,6 +185,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                     "result": types.Raster(
                         name="result",
                         value=raster,
+                        persistent=True,
                         properties=types.RasterProperties(
                             Bands=["B10"],
                             Source="a-random-sat",
@@ -188,7 +193,9 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                             Dtype="uint8",
                         ),
                     ),
-                    "string": types.String(name="string", value="hello world"),
+                    "string": types.String(
+                        name="string", value="hello world", parameter=True
+                    ),
                 }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
@@ -222,6 +229,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "type": "url",
             "name": "result",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
+            "persistent": True,
+            "parameter": False,
             "properties": {
                 "bands": ["B10"],
                 "source": "a-random-sat",
