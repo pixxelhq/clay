@@ -107,15 +107,6 @@ def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Optional[Properties]:
     return FormatPropertyMap[format].model_validate(props)
 
 
-class DataMeta(pydantic.BaseModel):
-    Format: Annotated[str, Field(serialization_alias="format")]
-    Type: Annotated[str, Field(serialization_alias="type")]
-    Name: Annotated[str, Field(serialization_alias="name")]
-    Value: Annotated[
-        Union[int, float, str, str, bool], Field(serialization_alias="value")
-    ]
-
-
 class Callback(pydantic.BaseModel):
     Id: Annotated[str, Field(serialization_alias="id")]
     State: Annotated[
@@ -140,7 +131,7 @@ class InferenceOpts(pydantic.BaseModel):
     InputPropMap: Dict[str, Any] = defaultdict(None)
 
 
-class _DataMetaBase(pydantic.BaseModel):
+class _DataMeta(pydantic.BaseModel):
     Format: Annotated[str, Field(alias="format", serialization_alias="format")]
     Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
     Name: Annotated[str, Field(alias="name", serialization_alias="name")]
@@ -158,7 +149,7 @@ class _DataMetaBase(pydantic.BaseModel):
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
 
-class Raster(_DataMetaBase):
+class Raster(_DataMeta):
     Properties: Annotated[
         Optional[RasterProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -191,7 +182,7 @@ class Raster(_DataMetaBase):
         __pydantic_self__.Properties = properties
 
 
-class Vector(_DataMetaBase):
+class Vector(_DataMeta):
     Properties: Annotated[
         Optional[VectorProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -220,7 +211,7 @@ class Vector(_DataMetaBase):
         __pydantic_self__.Properties = properties
 
 
-class Date(_DataMetaBase):
+class Date(_DataMeta):
     Properties: Annotated[
         Optional[DateProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -249,7 +240,7 @@ class Date(_DataMetaBase):
         __pydantic_self__.Properties = properties
 
 
-class Tabular(_DataMetaBase):
+class Tabular(_DataMeta):
     Properties: Annotated[
         Optional[TabularProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -278,7 +269,7 @@ class Tabular(_DataMetaBase):
         __pydantic_self__.Properties = properties
 
 
-class String(_DataMetaBase):
+class String(_DataMeta):
     # pydantic throws error without this
     __null__: Any
 
@@ -303,7 +294,7 @@ class String(_DataMetaBase):
         )
 
 
-class Number(_DataMetaBase):
+class Number(_DataMeta):
     # pydantic throws error without this
     __null__: Any
 
