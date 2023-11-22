@@ -230,6 +230,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "name": "result",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
             "persistent": True,
+            "default": None,
             "parameter": False,
             "properties": {
                 "bands": ["B10"],
