@@ -44,3 +44,16 @@ def test_init_raster_model_from_dict_with_None_props_success() -> None:
 
     r = types.Raster.model_validate(d)
     assert r.Properties is None
+
+
+def test_init_string_model_with_default_value() -> None:
+    d = {"format": "string", "type": "str", "name": "s", "default": "hello"}
+    s = types.String.model_validate(d)
+    assert s.Default == "hello"
+
+
+def test_init_string_model_with_no_value_or_default() -> None:
+    d = {"format": "string", "type": "str", "name": "s"}
+    s = types.String.model_validate(d)
+    assert s.Value is None
+    assert s.Default is None

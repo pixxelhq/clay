@@ -145,8 +145,12 @@ class _DataMetaBase(pydantic.BaseModel):
     Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
     Name: Annotated[str, Field(alias="name", serialization_alias="name")]
     Value: Annotated[
-        Optional[Union[int, float, str, str, bool]],
+        Optional[Union[int, float, str, bool]],
         Field(alias="value", serialization_alias="value"),
+    ] = None
+    Default: Annotated[
+        Optional[Union[int, float, str, bool]],
+        Field(alias="default", serialization_alias="default"),
     ] = None
     Parameter: Annotated[Optional[bool], Field(serialization_alias="parameter")] = True
     Persistent: Annotated[Optional[bool], Field(serialization_alias="persistent")] = False
@@ -168,6 +172,7 @@ class Raster(_DataMetaBase):
         value: Union[int, float, str, bool],
         parameter: bool = False,
         persistent: bool = True,
+        default: Optional[Union[str, int, float, bool]] = None,
         properties: Optional[RasterProperties] = None,
         *args: Any,
         **kwargs: Any,
@@ -179,6 +184,7 @@ class Raster(_DataMetaBase):
             Name=name,
             Value=value,
             Type=PrimitiveTypes.URL.value,
+            Default=default,
             Parameter=parameter,
             Persistent=persistent,
         )
@@ -199,6 +205,7 @@ class Vector(_DataMetaBase):
         value: str,
         parameter: bool = False,
         persistent: bool = True,
+        default: Optional[Union[str, int, float, bool]] = None,
         properties: Optional[VectorProperties] = None,
     ):
         super().__init__(
@@ -208,6 +215,7 @@ class Vector(_DataMetaBase):
             Value=value,
             Parameter=parameter,
             Persistent=persistent,
+            Default=default,
         )
         __pydantic_self__.Properties = properties
 
@@ -227,6 +235,7 @@ class Date(_DataMetaBase):
         parameter: bool = True,
         persistent: bool = False,
         properties: Optional[DateProperties] = None,
+        default: Optional[Union[str, int, float, bool]] = None,
     ):
         super().__init__(
             Format=FormatTypes.DATE.value,
@@ -235,6 +244,7 @@ class Date(_DataMetaBase):
             Value=value,
             Parameter=parameter,
             Persistent=persistent,
+            Default=default,
         )
         __pydantic_self__.Properties = properties
 
@@ -254,6 +264,7 @@ class Tabular(_DataMetaBase):
         parameter: bool = False,
         persistent: bool = True,
         properties: Optional[TabularProperties] = None,
+        default: Optional[Union[str, int, float, bool]] = None,
     ):
         super().__init__(
             Format=FormatTypes.TABULAR.value,
@@ -262,6 +273,7 @@ class Tabular(_DataMetaBase):
             Type=PrimitiveTypes.URL.value,
             Parameter=parameter,
             Persistent=persistent,
+            Default=default,
         )
         __pydantic_self__.Properties = properties
 
@@ -273,9 +285,10 @@ class String(_DataMetaBase):
     def __init__(
         __pydantic_self__,
         name: str,
-        value: str,
+        value: Optional[str] = None,
         parameter: bool = True,
         persistent: bool = False,
+        default: Optional[Union[str, int, float, bool]] = None,
         *args: Any,
         **kwargs: Any,
     ):
@@ -286,6 +299,7 @@ class String(_DataMetaBase):
             Value=value,
             Parameter=parameter,
             Persistent=persistent,
+            Default=default,
         )
 
 
@@ -296,9 +310,10 @@ class Number(_DataMetaBase):
     def __init__(
         __pydantic_self__,
         name: str,
-        value: Union[int, float],
+        value: Union[int, float, None] = None,
         parameter: bool = True,
         persistent: bool = False,
+        default: Optional[Union[str, int, float, bool]] = None,
         *args: Any,
         **kwargs: Any,
     ):
@@ -309,6 +324,7 @@ class Number(_DataMetaBase):
             Value=value,
             Parameter=parameter,
             Persistent=persistent,
+            Default=default,
         )
 
 
