@@ -231,10 +231,12 @@ class JobRunner(BaseRunner):
         )
         input_working_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
+        input_config_dict = utils.convert_list_to_dict(self.config.inputs, "name")
         _processed_inputs = {}
         for k, v in inputs.items():
             model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
-
+            if model.Value is None:
+                model.Value = input_config_dict[model.Name].get("default", None)
             named_input_dir = pathlib.Path(input_working_dir, model.Name)
             named_input_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 

@@ -229,7 +229,9 @@ class JobRunnerV2(BaseRunner):
             else:
                 # if it is is not persistent parameter then for sure the data item is a
                 # parameter
-                value = _input_parameters[i["name"]]["value"]
+                value = _input_parameters[i["name"]].get("value", None)
+                if value is None:
+                    value = i.get("value")
                 value_type = i["type"]
                 value = cast_inputs(value, value_type)
                 i["value"] = value
