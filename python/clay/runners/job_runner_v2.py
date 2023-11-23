@@ -186,7 +186,7 @@ class JobRunnerV2(BaseRunner):
         for i in self.config.inputs:
             # check if the input i is a parameter or not. By default, we assume it to
             # be a parameter
-            if i.get(types.PERSISTENT_ATTR_NAME, False):
+            if i.get(types._IS_ARTIFACT_ATTR_NAME, False):
                 path = input_dirmap.get(i["name"])
 
                 if path is None:
@@ -370,7 +370,12 @@ class JobRunnerV2(BaseRunner):
         assert os.path.exists(named_output_dir)
         print("named output dir ", named_output_dir)
         print("data: ", data)
-        if output_config["type"] == ValueTypes.URL.value:
+
+        # here we check if the output item in question is an artifact or not. If it
+        # is not, then we dont process any supporting artifact file.
+        if output_config["type"] == ValueTypes.URL.value or output_config.get(
+            types._IS_ARTIFACT_ATTR_NAME, False
+        ):
             value = self._handle_output_asset(
                 data.Name, ValueTypes.URL, str(data.Value), str(named_output_dir)
             )

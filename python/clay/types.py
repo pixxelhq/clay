@@ -10,6 +10,7 @@ from typing_extensions import Annotated
 
 PARAMETER_ATTR_NAME = "parameter"
 PERSISTENT_ATTR_NAME = "persistent"
+_IS_ARTIFACT_ATTR_NAME = "is_artifact"
 
 
 class InferenceStates(Enum):
@@ -143,8 +144,9 @@ class _DataMeta(pydantic.BaseModel):
         Optional[Union[int, float, str, bool]],
         Field(alias="default", serialization_alias="default"),
     ] = None
-    Parameter: Annotated[Optional[bool], Field(serialization_alias="parameter")] = True
-    Persistent: Annotated[Optional[bool], Field(serialization_alias="persistent")] = False
+    IsArtifact: Annotated[
+        Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")
+    ] = None
 
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
@@ -161,9 +163,8 @@ class Raster(_DataMeta):
         __pydantic_self__,
         name: str,
         value: Union[int, float, str, bool],
-        parameter: bool = False,
-        persistent: bool = True,
         default: Optional[Union[str, int, float, bool]] = None,
+        is_artifact: Optional[bool] = True,
         properties: Optional[RasterProperties] = None,
         *args: Any,
         **kwargs: Any,
@@ -176,8 +177,7 @@ class Raster(_DataMeta):
             Value=value,
             Type=PrimitiveTypes.URL.value,
             Default=default,
-            Parameter=parameter,
-            Persistent=persistent,
+            IsArtifact=is_artifact,
         )
         __pydantic_self__.Properties = properties
 
@@ -194,9 +194,8 @@ class Vector(_DataMeta):
         __pydantic_self__,
         name: str,
         value: str,
-        parameter: bool = False,
-        persistent: bool = True,
         default: Optional[Union[str, int, float, bool]] = None,
+        is_artifact: Optional[bool] = True,
         properties: Optional[VectorProperties] = None,
     ):
         super().__init__(
@@ -204,8 +203,7 @@ class Vector(_DataMeta):
             Type=PrimitiveTypes.URL.value,
             Name=name,
             Value=value,
-            Parameter=parameter,
-            Persistent=persistent,
+            IsArtifact=is_artifact,
             Default=default,
         )
         __pydantic_self__.Properties = properties
@@ -223,8 +221,6 @@ class Date(_DataMeta):
         __pydantic_self__,
         name: str,
         value: str,
-        parameter: bool = True,
-        persistent: bool = False,
         properties: Optional[DateProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
     ):
@@ -233,8 +229,7 @@ class Date(_DataMeta):
             Type=PrimitiveTypes.STR.value,
             Name=name,
             Value=value,
-            Parameter=parameter,
-            Persistent=persistent,
+            IsArtifact=False,
             Default=default,
         )
         __pydantic_self__.Properties = properties
@@ -252,8 +247,7 @@ class Tabular(_DataMeta):
         __pydantic_self__,
         name: str,
         value: str,
-        parameter: bool = False,
-        persistent: bool = True,
+        is_artifact: Optional[bool] = True,
         properties: Optional[TabularProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
     ):
@@ -262,8 +256,7 @@ class Tabular(_DataMeta):
             Value=value,
             Name=name,
             Type=PrimitiveTypes.URL.value,
-            Parameter=parameter,
-            Persistent=persistent,
+            IsArtifact=is_artifact,
             Default=default,
         )
         __pydantic_self__.Properties = properties
@@ -277,8 +270,6 @@ class String(_DataMeta):
         __pydantic_self__,
         name: str,
         value: Optional[str] = None,
-        parameter: bool = True,
-        persistent: bool = False,
         default: Optional[Union[str, int, float, bool]] = None,
         *args: Any,
         **kwargs: Any,
@@ -288,8 +279,7 @@ class String(_DataMeta):
             Name=name,
             Type=PrimitiveTypes.STR.value,
             Value=value,
-            Parameter=parameter,
-            Persistent=persistent,
+            IsArtifact=False,
             Default=default,
         )
 
@@ -302,8 +292,6 @@ class Number(_DataMeta):
         __pydantic_self__,
         name: str,
         value: Union[int, float, None] = None,
-        parameter: bool = True,
-        persistent: bool = False,
         default: Optional[Union[str, int, float, bool]] = None,
         *args: Any,
         **kwargs: Any,
@@ -313,8 +301,7 @@ class Number(_DataMeta):
             Name=name,
             Type=PrimitiveTypes.FLOAT.value,
             Value=value,
-            Parameter=parameter,
-            Persistent=persistent,
+            IsArtifact=False,
             Default=default,
         )
 
