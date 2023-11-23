@@ -10,7 +10,7 @@ def test_read_yaml_file_doesnt_exist() -> None:
 
 def test_read_yaml_path_isdir() -> None:
     with pytest.raises(IsADirectoryError):
-        read_yaml("tests/testrepo/")
+        read_yaml("./tests/testrepo/")
 
 
 def test_converters_to_int() -> None:

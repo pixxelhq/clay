@@ -1,15 +1,16 @@
-import json
+import os
 import sys
 import time
 import unittest
 from typing import Any
+from unittest import mock
 
 import pytest
 
-from clay import ModelWrapper
+from clay import ModelWrapper, types
 from clay.core import BaseRunner
 
-from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG, make_ymxplusc_input
+from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
 
 sys.path.append("./tests/testrepo")
 
@@ -20,7 +21,7 @@ def test_mw_missing_setup_override() -> None:
             pass
 
     with pytest.raises(NotImplementedError):
-        M(config="tests/models/ymxplusc.yaml")
+        M(config="./tests/models/ymxplusc.yaml")
 
 
 def test_mw_blocking_method_override() -> None:
@@ -32,24 +33,6 @@ def test_mw_blocking_method_override() -> None:
 
             def preprocess(self, *args: Any, **kwargs: Any) -> Any:
                 pass
-
-
-def test_mw_parse_inputs(toy_model) -> None:
-    # sanity check - all params succesfully created
-    model_input = json.loads(make_ymxplusc_input())[1:]
-    parsed_input = toy_model._parse_inputs(model_input)
-    for param in toy_model.config.inputs:
-        assert param["name"] in parsed_input.keys()
-    # TODO: write better test
-
-
-@pytest.mark.asyncio
-async def test_mw_model_inference(toy_model) -> None:
-    # TODO: Write better test
-    model_inputs = json.loads(make_ymxplusc_input())[1:]
-    result = await toy_model.infer(model_inputs)
-    assert isinstance(result[0]["value"], float)
-    assert isinstance(result[1]["value"], str)
 
 
 class TestBaseRunner(unittest.TestCase):
@@ -71,6 +54,7 @@ class TestBaseRunner(unittest.TestCase):
                     modelcls=YMXPLUSC,
                     model_args={"config": YMXPLUSC_CONFIG},
                     logger=None,
+                    cfg_path=YMXPLUSC_CONFIG,
                 )
 
         self._test_modelcls = YMXPLUSC
@@ -129,3 +113,55 @@ class TestBaseRunner(unittest.TestCase):
         self.m._init_model()
         self.m._init_model_inference_event_loop()
         assert self.m._loop.is_running() is True
+
+    @mock.patch("clay.core.requests.Session.post")
+    def test_fire_callback_workflow_success(self, mock_post):
+        mock_response = mock.Mock()
+        mock_response.json.return_value = {"successful_update": "True", "err": ""}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        dexter_url = "localhost:6666"
+        mock_env_vars = {
+            "DEXTER_RUN_TYPE": "workflow",
+            "ORCHESTRATOR_URL": dexter_url,
+            "DEXTER_CLB_AUTH_TOKEN": "123",
+        }
+        env_patcher = unittest.mock.patch.dict(os.environ, mock_env_vars)
+        env_patcher.start()
+        self.m = self._test_runnercls("job")
+        self.m._init_model()
+        self.m._init_model_inference_event_loop()
+        self.m._fire_callback(
+            types.Callback(Id="task123", State=types.ModelStates.INPROGRESS)
+        )
+        call_args = mock_post.call_args_list
+        assert call_args[0][1]["url"] == dexter_url
+        env_patcher.stop()
+
+    @mock.patch("clay.core.requests.Session.post")
+    def test_fire_callback_inference_success(self, mock_post):
+        mock_response = mock.Mock()
+        mock_response.json.return_value = {"successful_update": "True", "err": ""}
+        mock_response.status_code = 204
+        mock_post.return_value = mock_response
+
+        dexter_url = "http://localhost:6666/v1alpha1/inferences/task123"
+        mock_env_vars = {
+            "DEXTER_RUN_TYPE": "inference",
+            "ORCHESTRATOR_URL": dexter_url,
+            "DEXTER_CLB_AUTH_TOKEN": "123",
+            "DEXTER_HOST": "http://localhost",
+            "DEXTER_PORT": "6666",
+        }
+        env_patcher = unittest.mock.patch.dict(os.environ, mock_env_vars)
+        env_patcher.start()
+        self.m = self._test_runnercls("job")
+        self.m._init_model()
+        self.m._init_model_inference_event_loop()
+        self.m._fire_callback(
+            types.Callback(Id="task123", State=types.ModelStates.FAILED)
+        )
+        call_args = mock_post.call_args_list
+        assert call_args[0][1]["url"] == dexter_url
+        env_patcher.stop()

@@ -2,9 +2,10 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import yaml
+from urllib3.util import parse_url
 
 
 def dict_to_namespace(d: dict) -> SimpleNamespace:
@@ -110,3 +111,35 @@ def to_tuple_if_required(x: Any) -> Any:
     if not isinstance(x, tuple):
         return (x,)
     return x
+
+
+def get_io_dirmap(io: List[Any], workingDir: str) -> Dict[str, str]:
+    paths = {}
+    for i in io:
+        expected_path = os.path.join(workingDir, i["name"])
+        if os.path.exists(expected_path):
+            paths[i["name"]] = expected_path
+    return paths
+
+
+def get_filename_from_remote(url: str) -> str:
+    fragments = parse_url(url)
+    if fragments.path is None:
+        return ""
+    return os.path.basename(fragments.path)
+
+
+def pop_dict_with_err(d: Dict[Any, Any], key: Any) -> Tuple[Any, Optional[KeyError]]:
+    val = None
+    try:
+        val = d.pop(key)
+    except KeyError as exc:
+        return val, exc
+    return val, None
+
+
+def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str, Any]:
+    d = {}
+    for li in l:
+        d[li[primary_key]] = li
+    return d
