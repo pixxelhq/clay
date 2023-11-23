@@ -5,7 +5,7 @@ from tests.data.docker import docker_opts_valid
 
 
 def test_dockerfile_creation() -> None:
-    test_content = create_dockerfile("tests/testrepo", docker_opts_valid)
+    test_content = create_dockerfile("./tests/testrepo", docker_opts_valid)
     with open("./tests/data/Test-Dockerfile", "r") as f:
         valid_dockerfile = f.read()
 

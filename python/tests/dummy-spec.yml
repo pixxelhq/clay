@@ -1,0 +1,45 @@
+kind: block
+type: processing
+description: dummy block spec for testing
+name: M
+resources:
+  cpu:
+    min: 2000m
+    max: 3000m
+  mem:
+    min: 1200Mi
+    max: 2000Mi
+build:
+  python-version: "3.10"
+  conda: true
+  gdal: true
+  requirements: requirements.txt
+env:
+  - name: MODEL_CONTAINER_TOKEN
+    type: string
+  - name: OUTPUT_CONTAINER_TOKEN
+    type: string
+
+inputs:
+  - format: raster
+    type: url
+    name: raster
+  - format: string
+    type: str
+    name: string
+outputs:
+  - format: raster
+    type: url
+    name: result
+  - format: string
+    type: str
+    name: string
+
+runtime_opts:
+  image: some-image:latest
+  K8sJobConfig: null
+
+options:
+  dry_run: null
+  preview: null
+  generate_k8s_spec: true

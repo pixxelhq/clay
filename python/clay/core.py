@@ -4,11 +4,12 @@ import os
 import threading
 import time
 from abc import abstractmethod
+from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, get_args
 
 import requests
 import uvloop
@@ -16,21 +17,31 @@ from matter import fs
 from matter.fs import AzureClient
 from requests.adapters import HTTPAdapter, Retry
 
+from clay import types
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, Logger, get_streamvalues, get_user_logs
-from clay.utils import (
-    PRIMITIVE_TYPES,
-    cast_inputs,
-    to_tuple_if_required,
-    yaml_to_namespace,
-)
+from clay.utils import PRIMITIVE_TYPES, cast_inputs, yaml_to_namespace
+
+DATA_SPEC_FILENAME: str = "spec.json"
 
 
-class ModelStates(Enum):
-    STARTED = "TaskStarted"
-    INPROGRESS = "TaskInprogress"
-    COMPLETED = "TaskCompleted"
-    FAILED = "TaskFailed"
+class ValueTypes(Enum):
+    STR = "str"
+    URL = "url"
+    INT = "int"
+    FLOAT = "float"
+
+
+class InferenceCtx:
+    def __init__(self, opts: Optional[types.InferenceOpts] = None) -> None:
+        self._outputs_buffer: types.OutputsBuffer = []
+        self._opts = opts
+
+    def output(self, val: types.Data) -> None:
+        self._outputs_buffer.append(val)
+
+    def get_output_buffer(self) -> types.OutputsBuffer:
+        return self._outputs_buffer
 
 
 class RunType(Enum):
@@ -38,17 +49,17 @@ class RunType(Enum):
     WORKFLOW = "workflow"
 
 
-class InferenceStates(Enum):
-    QUEUED = "queued"
-    RUNNING = "running"
-    FAILED = "failed"
-    SUCCESS = "success"
+model_inference_model_states_mapping = {
+    types.ModelStates.INPROGRESS.value: types.InferenceStates.RUNNING.value,
+    types.ModelStates.COMPLETED.value: types.InferenceStates.SUCCESS.value,
+    types.ModelStates.FAILED.value: types.InferenceStates.FAILED.value,
+}
 
 
 model_inference_model_states_mapping = {
-    ModelStates.INPROGRESS.value: InferenceStates.RUNNING.value,
-    ModelStates.COMPLETED.value: InferenceStates.SUCCESS.value,
-    ModelStates.FAILED.value: InferenceStates.FAILED.value,
+    types.ModelStates.INPROGRESS.value: types.InferenceStates.RUNNING.value,
+    types.ModelStates.COMPLETED.value: types.InferenceStates.SUCCESS.value,
+    types.ModelStates.FAILED.value: types.InferenceStates.FAILED.value,
 }
 
 
@@ -72,6 +83,8 @@ class ModelWrapper:
                 create_user_logs_handler=True,
             )
         self.logger: Logger = logger
+        self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
+
         self.run_setup()
 
     def run_setup(self) -> None:
@@ -94,7 +107,17 @@ class ModelWrapper:
     def recieve_input_properties(self) -> bool:
         return False
 
-    def format_output(self, outputs: tuple) -> Any:
+    @cached_property
+    def receive_raw_inputs(self) -> bool:
+        """returns the raw inputs accepted by the mode. If `False`, returns the inputs as
+        processed by clay.
+
+        Returns:
+            bool: Returns processed inputs if value is set
+        """
+        return False
+
+    def _dep_format_output(self, outputs: tuple) -> Any:
         output_containers = deepcopy(self.config.outputs)
         for output, output_container in zip(outputs, output_containers):
             output_container["value"] = output
@@ -106,7 +129,6 @@ class ModelWrapper:
         """Ensures all functions defined in __OVERRIDABLE_FUNCS__ are coroutines
         even when they are overriden in subclasses
         """
-        print("hello world")
         for of in cls.__OVERRIDABLE_FUNCS__:
             func = getattr(cls, of, None)
             assert asyncio.iscoroutinefunction(func), (
@@ -120,7 +142,7 @@ class ModelWrapper:
     def setup(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
-    def _parse_inputs(self, inputs: list) -> dict:
+    def _dep_parse_inputs(self, inputs: list) -> dict:
         """
         Makes sure all the inputs are correctly cast into expected types
         We leave items with unidentified `type`s as strings by default
@@ -177,23 +199,32 @@ class ModelWrapper:
     async def inference(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    async def postprocess(self, *args: Any, **kwargs: Any) -> Any:
+    async def postprocess(self, *args: Any, **kwargs: Any) -> Dict[str, types.Data]:
         raise NotImplementedError
 
-    async def infer(self, inputs: list) -> Dict[str, Any]:
-        parsed_inputs = self._parse_inputs(inputs)
+    async def infer(
+        self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]
+    ) -> types.OutputsBuffer:
+        _inf_ctx = InferenceCtx(opts=opts)
         try:
-            _return_vals = await self.preprocess(**parsed_inputs)
-            _return_vals = to_tuple_if_required(_return_vals)
-            _return_vals = await self.inference(*_return_vals)
-            _return_vals = to_tuple_if_required(_return_vals)
-            if _return_vals is not None:
-                _return_vals = await self.postprocess(*_return_vals)
-                _return_vals = to_tuple_if_required(_return_vals)
-                _return_vals = self.format_output(_return_vals)
-            return _return_vals
+            _return_vals = await self.preprocess(**inputs)
+            _return_vals = await self.inference(**_return_vals)
+            _return_vals = await self.postprocess(**_return_vals)
         finally:
             await self.cleanup_inference()
+
+        assert isinstance(_return_vals, dict), "postprocess can only return a dict"
+
+        # TODO: evaluate returning a list of types vs returning a dict of types.
+        # latter has duplication: `name` is both present in key and the type which is the
+        # value
+        for _, v in _return_vals.items():
+            assert isinstance(
+                v, get_args(types.Data)
+            ), f"return value can only be one of {types.Data}"
+            _inf_ctx.output(v)
+
+        return _inf_ctx.get_output_buffer()
 
     def get_logs(self) -> Optional[str]:
         """Returns all model logs stored in the buffered stream
@@ -211,7 +242,7 @@ class ModelWrapper:
 
 
 class BaseRunner(object):
-    _SUPPORTED_RUN_MODES: List[str] = ["rmq", "http", "job"]
+    _SUPPORTED_RUN_MODES: List[str] = ["argo", "http", "job"]
     _DEFAULT_EVENT_LOOP_POLICY = uvloop.EventLoopPolicy()
 
     def __init__(
@@ -219,6 +250,7 @@ class BaseRunner(object):
         run_mode: str,
         modelcls: ModelWrapper,
         model_args: Dict[str, Any],
+        cfg_path: str,
         logger: Union[None, Logger],
         enable_uvloop: bool = False,
     ) -> None:
@@ -229,6 +261,8 @@ class BaseRunner(object):
         self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
         self._dexter_host = os.getenv("DEXTER_HOST", "http://localhost")
         self._dexter_port = os.getenv("DEXTER_PORT", "8080")
+        self.config = yaml_to_namespace(cfg_path)
+
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
             logger = (
@@ -242,6 +276,11 @@ class BaseRunner(object):
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
 
+    def __init_subclass__(cls) -> None:
+        assert "output" in dir(cls)
+        assert "_collect_inputs" in dir(cls)
+        assert "failure" in dir(cls)
+
     @property
     def run_mode(self) -> str:
         return self._run_mode
@@ -251,6 +290,10 @@ class BaseRunner(object):
         if value not in self._SUPPORTED_RUN_MODES:
             raise ValueError(f"Invalid Run mode: {value}")
         self._run_mode = value
+
+    @property
+    def logger(self) -> Logger:
+        return self._logger
 
     def _init_model(self) -> None:
         self._logger.info("Initializing model...")
@@ -277,47 +320,14 @@ class BaseRunner(object):
         time.sleep(1)
         self._logger.debug("Started model inference thread.")
 
-    def run_model_inference(
-        self, inference_parameters: List[Dict[Any, Any]], *args: Any, **kwargs: Any
-    ) -> Any:
-        # find task_id and remove from inputs
-        task_id = ""
-        for i, item in enumerate(inference_parameters):
-            print("------------------")
-            print(inference_parameters)
-            print("------------------")
-            if item["name"] == "task_id":
-                task_id = item["value"]
-                inference_parameters.pop(i)
-                break
+    def _fire_callback(self, clb: types.Callback) -> bool:
+        if self._dexter_clb_url is None or self._dexter_clb_url == "":
+            self._logger.warning(
+                "`ORCHESTRATOR_URL` not set, and hence not firing callback"
+            )
+            return False
 
-        # setting the state of the current task state to `Inprogress`
-        self._fire_callback(state=ModelStates.INPROGRESS, id=task_id)
-
-        # Running the actual model inference
-        res = {"task_id": task_id, "result": {}, "logs": None}
-        try:
-            res["result"] = asyncio.run_coroutine_threadsafe(
-                self._model.infer(inference_parameters), self._loop
-            ).result()
-        except Exception as exc:
-            self._model.logger.error(exc, exc_info=exc)
-            res["result"] = exc  # type: ignore[assignment]
-
-        res["logs"] = self._model.get_logs()
-        res["user_logs"] = self._model.get_user_logs()
-
-        return res
-
-    def _fire_callback(
-        self,
-        state: ModelStates = ModelStates.INPROGRESS,
-        id: str = "",
-        result: Dict[str, Any] = {},
-        logs: str = "",
-        user_logs: str = "",
-        err_msg: str = "",
-    ) -> bool:
+        # Setting the headers
         headers = {}
         resp = None
         token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
@@ -345,17 +355,9 @@ class BaseRunner(object):
                     "`ORCHESTRATOR_URL` not set, and hence not firing callback"
                 )
                 return False
-            data = {
-                "data": {
-                    "state": state.value,
-                    "id": id,
-                    "result": result,
-                    "logs": logs,
-                    "user_logs": user_logs,
-                    "err_msg": err_msg,
-                }
-            }
+            data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
             self._logger.debug(f"Data for callback: {data}")
+
             resp = session.post(
                 url=self._dexter_clb_url,
                 json=data,
@@ -370,19 +372,19 @@ class BaseRunner(object):
             return resp["successful_update"]
 
         else:
-            status = model_inference_model_states_mapping[state.value]
+            status = model_inference_model_states_mapping[clb.State.value]
             if status == "":
                 self._logger.error(
-                    f"State: {state} is not supported by Orchestrator for inference"
+                    f"State: {clb.State.value} is not supported by Orchestrator for inference"
                     + "Hence not firing callback"
                 )
                 return False
-            data = {"status": status, "output": result}  # type: ignore
+            data = {"status": status, "output": clb.Outputs}  # type: ignore
             self._logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
                 url="{0}:{1}/v1alpha1/inferences/{2}".format(
-                    self._dexter_host, self._dexter_port, id
+                    self._dexter_host, self._dexter_port, clb.Id
                 ),
                 json=data,
                 headers=headers,
@@ -395,12 +397,38 @@ class BaseRunner(object):
             return True
 
     @abstractmethod
+    def _collect_inputs(
+        self, inputs: Optional[List[Dict[str, Any]]] = None
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
+        pass
+
+    @abstractmethod
+    def output(
+        self,
+        key: str,
+        value: Union[str, int, float],
+        properties: Optional[
+            Union[
+                types.RasterProperties,
+                types.VectorProperties,
+                types.DateProperties,
+                types.TabularProperties,
+                Dict[str, Any],
+            ]
+        ] = None,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def run_model_inference(self, *args: Any, **kwargs: Any) -> Any:
+        pass
+
+    @abstractmethod
     def success(
         self,
-        result: Any,
         # exc: SuccessfulExecutionException,
-        # *args: Any,
-        # **kwargs: Any,
+        *args: Any,
+        **kwargs: Any,
     ) -> Any:
         # Accepts a clay.exceptions.SuccessfulExecutionException
         pass
@@ -417,5 +445,9 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def start(self, *args: Any, **kwargs: Any) -> None:
+    def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
         pass
+
+    @abstractmethod
+    def start(self, *args: Any, **kwargs: Any) -> None:
+        self.run_model_inference()
