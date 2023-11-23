@@ -139,7 +139,7 @@ class JobRunner(BaseRunner):
     ) -> types.Data:
         if not self._injected_envvars[_InjectedEnvVars.AutoDownloadAssets]:
             return data
-        if data.Type != ValueTypes.URL.value:
+        if data.Type != ValueTypes.URL.value or not data.IsArtifact:
             return data
         url_fragments = parse_url(str(data.Value))
         if url_fragments.scheme != "s3":
@@ -336,7 +336,9 @@ class JobRunner(BaseRunner):
 
             named_remote_working_dir = os.path.join(remote_working_dir, data.Name)
 
-        if output_config["type"] == ValueTypes.URL.value:
+        if output_config["type"] == ValueTypes.URL.value or output_config.get(
+            types._IS_ARTIFACT_ATTR_NAME, False
+        ):
             value = self._handle_output_asset(
                 data.Name,
                 ValueTypes.URL,

@@ -24,15 +24,15 @@ inputs:
   - format: raster
     type: url
     name: raster
-    persistent: true
+    is_artifact: true
   - format: string
     type: str
     name: string
-    parameter: true
 outputs:
   - format: raster
     type: url
     name: result
+    is_artifact: true
   - format: string
     type: str
     name: string

@@ -185,7 +185,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                     "result": types.Raster(
                         name="result",
                         value=raster,
-                        persistent=True,
+                        is_artifact=True,
                         properties=types.RasterProperties(
                             Bands=["B10"],
                             Source="a-random-sat",
@@ -229,9 +229,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "type": "url",
             "name": "result",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
-            "persistent": True,
+            "is_artifact": True,
             "default": None,
-            "parameter": False,
             "properties": {
                 "bands": ["B10"],
                 "source": "a-random-sat",
