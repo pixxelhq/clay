@@ -11,12 +11,22 @@ def test_clb_serialise_dict() -> None:
     d = c.model_dump(by_alias=True)
     assert d == {
         "id": "task123",
-        "state": "TaskFailed",
+        "state": "failed",
         "err_msg": "",
         "inputs": None,
+        "result": None,
+        "outputs": None,
         "logs": "",
         "outputs": None,
         "user_logs": "",
+        "recv_time": None,
+        "send_time": None,
+        "start_time": None,
+        "end_time": None,
+        "block_inf_start_time": None,
+        "block_inf_end_time": None,
+        "model_inf_start_time": None,
+        "model_inf_end_time": None,
     }
 
 
