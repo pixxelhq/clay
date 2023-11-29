@@ -117,7 +117,9 @@ class TestBaseRunner(unittest.TestCase):
     @mock.patch("clay.core.requests.Session.post")
     def test_fire_callback_workflow_success(self, mock_post):
         mock_response = mock.Mock()
-        mock_response.json.return_value = {"successful_update": "True", "err": ""}
+        mock_response.json.return_value = {
+            "data": {"successful_update": "True", "updated_fields": {}, "err": ""}
+        }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
