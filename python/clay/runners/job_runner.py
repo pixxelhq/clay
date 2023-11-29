@@ -413,9 +413,14 @@ class JobRunner(BaseRunner):
 
         logs = get_streamvalues(self._logger)
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
+        end_time = utils.get_current_utc_time_iso()
         self._fire_callback(
             types.Callback(
-                Id=task_id, State=types.ModelStates.FAILED, ErrMsg=err_msg, Logs=logs
+                Id=task_id,
+                State=types.ModelStates.FAILED,
+                ErrMsg=err_msg,
+                Logs=logs,
+                EndTime=end_time,
             )
         )
         raise exc
@@ -423,27 +428,46 @@ class JobRunner(BaseRunner):
     def run_model_inference(self, inputs: Optional[Dict[str, Any]]) -> Any:
         # inputs: Dict[str, Any] = kwargs.get("inputs")
 
+        start_time = utils.get_current_utc_time_iso()
         if inputs is None:
             raise ValueError("inputs cannot be None")
 
         id = self._inf_opts[_ExpectedInfParameters.TaskId]
         success = self._fire_callback(
             types.Callback(
-                Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list()
+                Id=id,
+                State=types.ModelStates.INPROGRESS,
+                Inputs=self.get_inputs_list(),
+                StartTime=start_time,
             )
         )
         if not success:
             self.logger.error("Failed to fire callback")
 
         try:
-            result = asyncio.run_coroutine_threadsafe(
+            ctx = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inputs=inputs, opts=None), self._loop
             ).result()
         except Exception as exc:
             self._model.logger.error(exc, exc_info=exc)
             return [], exc
-
+        result = ctx.get_output_buffer()
         self._flush_output_buffer(result)
+
+        serialized_result = types._serialize_output_buffer(result)
+        inf_times = ctx.get_model_inf_times()
+        end_time = utils.get_current_utc_time_iso()
+        clb = types.Callback(
+            Id=id,
+            State=types.ModelStates.COMPLETED,
+            Result=serialized_result,
+            EndTime=end_time,
+            BlockInfStartTime=inf_times.InfStartTime,
+            BlockInfEndTime=inf_times.InfEndTime,
+        )
+        success = self._fire_callback(clb)
+        if not success:
+            self._logger.warn("failed to fire callback successfully")
         return result, None
 
     def start(self, **kwargs: Any) -> None:

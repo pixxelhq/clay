@@ -16,6 +16,7 @@ from clay.logger import Logger, get_streamvalues
 from clay.utils import (
     cast_inputs,
     convert_list_to_dict,
+    get_current_utc_time_iso,
     get_filename_from_remote,
     get_io_dirmap,
 )
@@ -438,15 +439,22 @@ class JobRunnerV2(BaseRunner):
 
         logs = get_streamvalues(self._logger)
         task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+        end_time = get_current_utc_time_iso()
         self._fire_callback(
             types.Callback(
-                Id=task_id, State=types.ModelStates.FAILED, ErrMsg=err_msg, Logs=logs
+                Id=task_id,
+                State=types.ModelStates.FAILED,
+                ErrMsg=err_msg,
+                Logs=logs,
+                EndTime=end_time,
             )
         )
         self._logger.info("inference finished")
         raise exc
 
     def run_model_inference(self) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
+        start_time = get_current_utc_time_iso()
+
         rvals = self._collect_inputs()
         assert rvals is not None
         print(rvals)
@@ -460,7 +468,10 @@ class JobRunnerV2(BaseRunner):
         # fire inprogress callback
         success = self._fire_callback(
             types.Callback(
-                Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list()
+                Id=id,
+                State=types.ModelStates.INPROGRESS,
+                Inputs=self.get_inputs_list(),
+                StartTime=start_time,
             )
         )
         if not success:
@@ -473,7 +484,7 @@ class JobRunnerV2(BaseRunner):
         )
         print(input_dict)
         try:
-            result = asyncio.run_coroutine_threadsafe(
+            ctx = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inputs=input_dict, opts=opts),
                 self._loop,
             ).result()
@@ -481,7 +492,24 @@ class JobRunnerV2(BaseRunner):
             self._model.logger.error(exc, exc_info=exc)
             return [], exc
 
+        result = ctx.get_output_buffer()
+
         self._flush_output_buffer(result)
+
+        inf_times = ctx.get_model_inf_times()
+        end_time = get_current_utc_time_iso()
+        serialized_result = types._serialize_output_buffer(result)
+        clb = types.Callback(
+            Id=id,
+            State=types.ModelStates.COMPLETED,
+            Result=serialized_result,
+            BlockInfStartTime=inf_times.InfStartTime,
+            BlockInfEndTime=inf_times.InfEndTime,
+            EndTime=end_time,
+        )
+        success = self._fire_callback(clb)
+        if not success:
+            self.logger.warn("could not successfully fire callback")
         return result, None
 
     def start(self, **kwargs: Any) -> None:
@@ -511,5 +539,3 @@ class JobRunnerV2(BaseRunner):
         if exc is not None:
             self.failure(exc)
         self._logger.info(f"results: {result}")
-
-        self.success()
