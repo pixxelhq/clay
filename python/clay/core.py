@@ -8,6 +8,7 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
+from http import HTTPStatus
 from pprint import pformat
 from typing import Any, Dict, List, Optional, Tuple, Union, get_args
 
@@ -20,7 +21,12 @@ from requests.adapters import HTTPAdapter, Retry
 from clay import types
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, Logger, get_streamvalues, get_user_logs
-from clay.utils import PRIMITIVE_TYPES, cast_inputs, yaml_to_namespace
+from clay.utils import (
+    PRIMITIVE_TYPES,
+    cast_inputs,
+    get_current_utc_time_iso,
+    yaml_to_namespace,
+)
 
 DATA_SPEC_FILENAME: str = "spec.json"
 
@@ -36,12 +42,25 @@ class InferenceCtx:
     def __init__(self, opts: Optional[types.InferenceOpts] = None) -> None:
         self._outputs_buffer: types.OutputsBuffer = []
         self._opts = opts
+        self._model_inf_start_time: str = ""
+        self._model_inf_end_time: str = ""
 
     def output(self, val: types.Data) -> None:
         self._outputs_buffer.append(val)
 
     def get_output_buffer(self) -> types.OutputsBuffer:
         return self._outputs_buffer
+
+    def set_model_inf_start_time(self) -> None:
+        self._model_inf_start_time = get_current_utc_time_iso()
+
+    def set_model_inf_end_time(self) -> None:
+        self._model_inf_end_time = get_current_utc_time_iso()
+
+    def get_model_inf_times(self) -> types.ModelInfTimes:
+        return types.ModelInfTimes(
+            InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time
+        )
 
 
 class RunType(Enum):
@@ -204,11 +223,15 @@ class ModelWrapper:
 
     async def infer(
         self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]
-    ) -> types.OutputsBuffer:
+    ) -> InferenceCtx:
         _inf_ctx = InferenceCtx(opts=opts)
         try:
             _return_vals = await self.preprocess(**inputs)
+
+            _inf_ctx.set_model_inf_start_time()
             _return_vals = await self.inference(**_return_vals)
+            _inf_ctx.set_model_inf_end_time()
+
             _return_vals = await self.postprocess(**_return_vals)
         finally:
             await self.cleanup_inference()
@@ -224,7 +247,7 @@ class ModelWrapper:
             ), f"return value can only be one of {types.Data}"
             _inf_ctx.output(v)
 
-        return _inf_ctx.get_output_buffer()
+        return _inf_ctx
 
     def get_logs(self) -> Optional[str]:
         """Returns all model logs stored in the buffered stream
@@ -331,8 +354,15 @@ class BaseRunner(object):
         headers = {}
         resp = None
         token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
+
+        # this is purely for dev purposes
+        use_token_header_prefix = os.getenv("USE_BEARER", "")
+        if use_token_header_prefix != "":
+            header_prefix = "Bearer "
+        else:
+            header_prefix = "Token "
         if isinstance(token, str):
-            authHeader = "Bearer " + token
+            authHeader = header_prefix + token
         else:
             self._logger.warning(
                 "`DEXTER_CLB_AUTH_TOKEN not set. This model will not be able to "
@@ -357,19 +387,20 @@ class BaseRunner(object):
                 return False
             data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
             self._logger.debug(f"Data for callback: {data}")
+            self.logger.info(f"Data for callback: {data}")
 
             resp = session.post(
                 url=self._dexter_clb_url,
                 json=data,
                 headers=headers,
-            ).json()
+            )
             self._logger.info(f"Response from orchestrator: {pformat(resp)}")
-            if resp["successful_update"]:
+            if resp.status_code != HTTPStatus.ACCEPTED:
                 self._logger.info("Successfully updated state with Orchestrator.")
             else:
                 self._logger.error("State Update failed.")
 
-            return resp["successful_update"]
+            return resp.json()["data"]["successful_update"]
 
         else:
             status = model_inference_model_states_mapping[clb.State.value]
