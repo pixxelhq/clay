@@ -6,9 +6,7 @@ from typing import Union
 from .core import ModelWrapper
 from .runners.job_runner import JobRunner
 from .runners.job_runner_v2 import JobRunnerV2
-
-EXECUTOR_ENVVAR = "EXECUTOR"
-
+from .types import EXECUTOR_ENVVAR
 
 _RunnerTypes = Union[JobRunner, JobRunnerV2]
 

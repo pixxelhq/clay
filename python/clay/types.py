@@ -11,6 +11,7 @@ from typing_extensions import Annotated
 PARAMETER_ATTR_NAME = "parameter"
 PERSISTENT_ATTR_NAME = "persistent"
 _IS_ARTIFACT_ATTR_NAME = "is_artifact"
+EXECUTOR_ENVVAR = "EXECUTOR"
 
 
 class InferenceStates(Enum):
@@ -21,10 +22,10 @@ class InferenceStates(Enum):
 
 
 class ModelStates(str, Enum):
-    STARTED = "TaskStarted"
-    INPROGRESS = "TaskInprogress"
-    COMPLETED = "TaskCompleted"
-    FAILED = "TaskFailed"
+    STARTED = "created"
+    INPROGRESS = "inprogress"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
     def __repr__(self) -> str:
         return self.value
@@ -108,6 +109,11 @@ def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Optional[Properties]:
     return FormatPropertyMap[format].model_validate(props)
 
 
+class ModelInfTimes(pydantic.BaseModel):
+    InfStartTime: str
+    InfEndTime: str
+
+
 class Callback(pydantic.BaseModel):
     Id: Annotated[str, Field(serialization_alias="id")]
     State: Annotated[
@@ -119,10 +125,28 @@ class Callback(pydantic.BaseModel):
     Outputs: Annotated[
         Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")
     ] = None
+    Result: Annotated[
+        Optional[List[Dict[str, Any]]], Field(serialization_alias="result")
+    ] = None
     Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
     UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
     ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
-
+    RecvTime: Annotated[Optional[str], Field(serialization_alias="recv_time")] = None
+    SendTime: Annotated[Optional[str], Field(serialization_alias="send_time")] = None
+    StartTime: Annotated[Optional[str], Field(serialization_alias="start_time")] = None
+    EndTime: Annotated[Optional[str], Field(serialization_alias="end_time")] = None
+    BlockInfStartTime: Annotated[
+        Optional[str], Field(serialization_alias="block_inf_start_time")
+    ] = None
+    BlockInfEndTime: Annotated[
+        Optional[str], Field(serialization_alias="block_inf_end_time")
+    ] = None
+    ModelInfStartTime: Annotated[
+        Optional[str], Field(serialization_alias="model_inf_start_time")
+    ] = None
+    ModelInfEndTime: Annotated[
+        Optional[str], Field(serialization_alias="model_inf_end_time")
+    ] = None
     model_config = ConfigDict(use_enum_values=False)
 
 
@@ -320,3 +344,10 @@ _FormatModelMap = {
 }
 
 OutputsBuffer = List[Data]
+
+
+def _serialize_output_buffer(b: OutputsBuffer) -> List[Dict[str, Any]]:
+    l = []
+    for o in b:
+        l.append(o.model_dump(by_alias=True, exclude_none=True))
+    return l
