@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
@@ -143,3 +144,7 @@ def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str,
     for li in l:
         d[li[primary_key]] = li
     return d
+
+
+def get_current_utc_time_iso() -> str:
+    return str(datetime.now(timezone.utc).isoformat())
