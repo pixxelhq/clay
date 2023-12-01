@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,8 +29,13 @@ func UrlFuncMap(targetUrl string) map[string]interface{} {
 
 func ParseMarkdown(blockName string, blockVersion string) error {
 
-	targetUrl := filepath.Join(catalogBucketUrl, blockName, blockVersion)
-	temp := template.Must(template.New("model-README.md").Funcs(UrlFuncMap(targetUrl)).ParseFiles(catalogPath))
+	targetUrl, err := url.Parse(catalogBucketUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	targetUrl.Path = path.Join(targetUrl.Path, blockName, blockVersion)
+
+	temp := template.Must(template.New("model-README.md").Funcs(UrlFuncMap(targetUrl.String())).ParseFiles(catalogPath))
 	fo, err := os.Create("catalog_readme/parsed.md")
 	if err != nil {
 		return err

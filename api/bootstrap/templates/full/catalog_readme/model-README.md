@@ -20,7 +20,7 @@ This Markdown document will be rendered as the final description page on the fro
 If this document contains any artifacts, such as images, please place them in the "catalog_readme" folder and embed them using the "addUrl" keyword as shown below:
 
 ```markdown
-This is an image ![alt text]({{ addUrl "example.png" }})!
+This is an image ![alt text]({{ addUrl "example.png" }})
 
 ## Uploading the README
 Once you've written the README document, please use the following command with the Clay CLI to upload it to S3:
