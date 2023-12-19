@@ -170,6 +170,11 @@ def ClayLogger(
         separate stream, defaults to False
     :return: Python logger supercharged with Clay / Orchestrator integrations
     """
+    if logger_name in logging.Logger.manager.loggerDict.keys():
+        logger = logging.getLogger(logger_name)
+        logger.warning("Using existing logger without re-initialising.")
+        return logger
+
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
     logger.propagate = propagate
