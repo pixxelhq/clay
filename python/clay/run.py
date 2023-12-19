@@ -42,8 +42,8 @@ def Run(model: Type[ModelWrapper], name: str, cfg_path: str) -> None:
 
     executor = _get_executor_type()
     v = __executor_runner_map__[executor]
-    _runnercls: _RunnerTypes = v["runner"]
-    requires_args: bool = v["requires_args"]
+    _runnercls: _RunnerTypes = v["runner"]  # type: ignore
+    requires_args: bool = v["requires_args"]  # type: ignore
     _runnerobj: _RunnerTypes = _runnercls(
         model_name=name,
         modelcls=model,
