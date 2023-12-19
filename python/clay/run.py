@@ -1,7 +1,7 @@
 import os
 import sys
 from enum import Enum
-from typing import Union
+from typing import Type, Union
 
 from .core import ModelWrapper
 from .runners.job_runner import JobRunner
@@ -36,7 +36,7 @@ def _get_executor_type() -> SupportedExecutors:
         raise ValueError(f"unknown executor type: `{executor}`")
 
 
-def Run(model: type[ModelWrapper], name: str, cfg_path: str) -> None:
+def Run(model: Type[ModelWrapper], name: str, cfg_path: str) -> None:
     if not os.path.exists(cfg_path):
         raise FileNotFoundError(cfg_path)
 
