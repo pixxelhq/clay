@@ -36,18 +36,14 @@ def _get_executor_type() -> SupportedExecutors:
         raise ValueError(f"unknown executor type: `{executor}`")
 
 
-def Run(model: ModelWrapper, name: str, cfg_path: str) -> None:
+def Run(model: type[ModelWrapper], name: str, cfg_path: str) -> None:
     if not os.path.exists(cfg_path):
         raise FileNotFoundError(cfg_path)
+
     executor = _get_executor_type()
     v = __executor_runner_map__[executor]
-    _runnercls: _RunnerTypes = v["runner"]  # type: ignore
-    requires_args: bool = v["requires_args"]  # type: ignore
-
-    if len(sys.argv) > 1:
-        args = sys.argv[1]
-    elif requires_args and len(sys.argv) <= 1:
-        raise ValueError(f"executor type `{executor.value}` requires args")
+    _runnercls: _RunnerTypes = v["runner"]
+    requires_args: bool = v["requires_args"]
     _runnerobj: _RunnerTypes = _runnercls(
         model_name=name,
         modelcls=model,
@@ -56,5 +52,9 @@ def Run(model: ModelWrapper, name: str, cfg_path: str) -> None:
     )  # type: ignore
 
     if requires_args:
+        args = sys.argv[1]
+        if len(args) <= 1:
+            raise ValueError(f"executor type `{executor.value}` requires args")
         return _runnerobj.start(args=args)
+
     return _runnerobj.start()
