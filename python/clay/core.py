@@ -410,7 +410,7 @@ class BaseRunner(object):
                     + "Hence not firing callback"
                 )
                 return False
-            data = {"status": status, "output": clb.Outputs}  # type: ignore
+            data = {"status": status, "output": clb.Result}  # type: ignore
             self._logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
