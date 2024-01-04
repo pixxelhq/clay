@@ -23,12 +23,12 @@ from clay.utils import (
 
 
 class _InjectedEnvVars(Enum):
-    TaskId = "task-id"
-    WorkingDir = "working-dir"
-    InputsWorkingDir = "inputs-working-dir"
-    OutputsWorkingDir = "outputs-working-dir"
-    OutputsRemotePath = "outputs-remote-path"
-    Env = "env"
+    TaskId = "TASK_ID"
+    WorkingDir = "WORKING_DIR"
+    InputsWorkingDir = "INPUTS_WORKING_DIR"
+    OutputsWorkingDir = "OUTPUTS_WORKING_DIR"
+    OutputsRemotePath = "OUTPUTS_REMOTE_PATH"
+    Env = "ENV"
 
 
 class _ArgoConfEnvVars(Enum):

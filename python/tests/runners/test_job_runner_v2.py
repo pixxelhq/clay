@@ -10,7 +10,7 @@ import shortuuid
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
-from clay.runners.job_runner_v2 import JobRunnerV2
+from clay.runners.job_runner_v2 import JobRunnerV2, _ArgoConfEnvVars, _InjectedEnvVars
 
 
 class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
@@ -46,13 +46,13 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         #    json.dump(string, f)
 
         self.mock_env_vars = {
-            "task-id": "task123",
-            "working-dir": self.testing_working_dir,
-            "inputs-working-dir": input_working_dir,
-            "outputs-working-dir": output_working_dir,
-            "outputs-remote-path": "s3://workflow-id/job-id/task-id/outputs/",
-            "env": "local",
-            "ARGO_TEMPLATE": '{"inputs": {"parameters":[{"name": "string", "value":"hello world"}]}}',  # noqa
+            _InjectedEnvVars.TaskId.value: "task123",
+            _InjectedEnvVars.WorkingDir.value: self.testing_working_dir,
+            _InjectedEnvVars.InputsWorkingDir.value: input_working_dir,
+            _InjectedEnvVars.OutputsWorkingDir.value: output_working_dir,
+            _InjectedEnvVars.OutputsRemotePath.value: "s3://workflow-id/job-id/task-id/outputs/",  # noqa
+            _InjectedEnvVars.Env.value: "local",
+            _ArgoConfEnvVars.ArgoTemplate.value: '{"inputs": {"parameters":[{"name": "string", "value":"hello world"}]}}',  # noqa
         }
 
     def tearDown(self) -> None:
