@@ -8,9 +8,10 @@ from unittest import mock
 import pytest
 
 from clay import ModelWrapper, types
-from clay.core import BaseRunner
+from clay.core import BaseRunner, CallbackAuthMethod, HeaderBuilder
 
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
+from .utils import set_envvar
 
 sys.path.append("./tests/testrepo")
 
@@ -167,3 +168,39 @@ class TestBaseRunner(unittest.TestCase):
         call_args = mock_post.call_args_list
         assert call_args[0][1]["url"] == dexter_url
         env_patcher.stop()
+
+
+def test_callback_auth_method_init() -> None:
+    with set_envvar("DEXTER_CALLBACK_AUTH", "0"):
+        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.STATIC_TOKEN
+    with set_envvar("DEXTER_CALLBACK_AUTH", "1"):
+        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.JWT_TOKEN
+    with set_envvar("DEXTER_CALLBACK_AUTH", "2"):
+        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.GATEWAY_TOKEN
+    with set_envvar("DEXTER_CALLBACK_AUTH", "3"):
+        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.NO_AUTH
+    assert CallbackAuthMethod.get_method() == CallbackAuthMethod.NO_AUTH
+
+
+class TestHeaderBuilder(unittest.TestCase):
+    def test_init_static_token_auth(self) -> None:
+        with set_envvar("DEXTER_CALLBACK_AUTH", "0"):
+            os.environ["DEXTER_CLB_AUTH_TOKEN"] = "123"
+            header = HeaderBuilder.init_header()
+            assert "Authorization" in header
+            assert header["Authorization"] == "Token 123"
+
+    def test_init_jwt_auth(self) -> None:
+        with set_envvar("DEXTER_CALLBACK_AUTH", "1"):
+            os.environ["DEXTER_CLB_AUTH_TOKEN"] = "456"
+            header = HeaderBuilder.init_header()
+            assert "Authorization" in header
+            assert header["Authorization"] == "Bearer 456"
+
+    def test_init_gateway_auth(self) -> None:
+        with set_envvar("DEXTER_CALLBACK_AUTH", "2"):
+            os.environ["DEXTER_GATEWAY_SUB"] = "123"
+            os.environ["DEXTER_GATEWAY_ORGIDS"] = "456"
+            header = HeaderBuilder.init_header()
+            assert header["X-AuthService-Sub"] == "123"
+            assert header["X-AuthService-Org_Ids"] == "456"
