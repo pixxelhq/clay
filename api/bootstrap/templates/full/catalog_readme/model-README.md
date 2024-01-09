@@ -1,11 +1,5 @@
 <!--
 
-# Model Description
-
-This Markdown file is intended to provide a comprehensive description of the model that will be displayed on the marketplace. Please ensure that you include all relevant information to help users understand the model's functionality and capabilities.
-
-## Model Overview
-
 Please provide a complete overview of the model, like:
 
 - What does the model do?
@@ -15,18 +9,29 @@ Please provide a complete overview of the model, like:
 
 This Markdown document will be rendered as the final description page on the frontend of the marketplace. Therefore, it's crucial to include as much relevant information as possible to assist users in making informed decisions.
 
-## Including Artifacts
+INSTRUCTIONS
 
-If this document contains any artifacts, such as images, please place them in the "catalog_readme" folder and embed them using the "addUrl" keyword as shown below:
+1. Provide model details below along with a "sample_input.png" and "sample_output.png" in
+catalog_readme folder to be showcased on the platform
 
-```markdown
-This is an image ![alt text]({{ addUrl "example.png" }})
+2. To embedd an image in "about" section use the following template
+![]({{ addUrl "example.png" }})
 
-## Uploading the README
-Once you've written the README document, please use the following command with the Clay CLI to upload it to S3:
--  ensure you are at the root of model folder
-- run `clay upload readme` . The command returns a catalog_content_url
-- Update the catalog_content_url in model spec file
+3. Once you've written the README document, please use the following command with the Clay CLI to upload it to S3:
+    - ensure you are at the root of model folder
+    - run `clay upload readme -n name -v version` . The command returns a catalog_content_url
+    - Update the catalog_content_url in model spec file
 
-Provide model description below
+Fill in the details in below section
 -->
+
+---
+name: Name of model
+author: authorname
+input-img: ![]({{ addUrl "sample_input.png" }})
+output-img: ![]({{ addUrl "sample_output.png" }})
+inputs: {input1: 'input description', input2: 'input description'}
+outputs: {output1: 'output description', output2: 'output description' }
+---
+
+Provide model details here
