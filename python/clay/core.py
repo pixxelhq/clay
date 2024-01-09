@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import threading
@@ -10,7 +11,7 @@ from enum import Enum
 from functools import cached_property
 from http import HTTPStatus
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Tuple, Union, get_args
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_args
 
 import requests
 import uvloop
@@ -29,6 +30,11 @@ from clay.utils import (
 )
 
 DATA_SPEC_FILENAME: str = "spec.json"
+CALLBACK_AUTH_METHOD_ENVVAR = "DEXTER_CALLBACK_AUTH"
+GATEWAY_SUB_HEADER_KEY: str = "X-AuthService-Sub"
+GATEWAY_ORGIDS_HEADER_KEY: str = "X-AuthService-Org_Ids"
+GATEWAY_SUB_ENVVAR: str = "DEXTER_GATEWAY_SUB"
+GATEWAY_ORGIDS_ENVVAR: str = "DEXTER_GATEWAY_ORGIDS"
 
 
 class ValueTypes(Enum):
@@ -36,6 +42,59 @@ class ValueTypes(Enum):
     URL = "url"
     INT = "int"
     FLOAT = "float"
+
+
+C = TypeVar("C", bound="CallbackAuthMethod")
+
+
+class CallbackAuthMethod(Enum):
+    STATIC_TOKEN = 0
+    JWT_TOKEN = 1
+    GATEWAY_TOKEN = 2
+    NO_AUTH = 3
+
+    @classmethod
+    def get_method(cls: Type[C]) -> C:
+        val = os.getenv(CALLBACK_AUTH_METHOD_ENVVAR)
+        if val is None:
+            return cls(3)
+        val = json.loads(val)
+        return cls(val)
+
+
+class HeaderBuilder:
+    @staticmethod
+    def auth_via_static_token(header: Dict[str, Any]) -> Dict[str, Any]:
+        token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
+        header["Authorization"] = f"Token {token}"
+        return header
+
+    @staticmethod
+    def auth_via_jwt_token(header: Dict[str, Any]) -> Dict[str, Any]:
+        token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
+        header["Authorization"] = f"Bearer {token}"
+        return header
+
+    @staticmethod
+    def auth_via_gateway_token(header: Dict[str, Any]) -> Dict[str, Any]:
+        uid = os.getenv(GATEWAY_SUB_ENVVAR)
+        orgids = os.getenv(GATEWAY_ORGIDS_ENVVAR)
+        if uid and orgids:
+            header[GATEWAY_ORGIDS_HEADER_KEY] = orgids
+            header[GATEWAY_SUB_HEADER_KEY] = uid
+        return header
+
+    @staticmethod
+    def init_header() -> Dict[str, Any]:
+        auth_method = CallbackAuthMethod.get_method()
+        h: Dict[str, Any] = {}
+        if auth_method == CallbackAuthMethod.GATEWAY_TOKEN:
+            h = HeaderBuilder.auth_via_gateway_token(h)
+        elif auth_method == CallbackAuthMethod.JWT_TOKEN:
+            h = HeaderBuilder.auth_via_jwt_token(h)
+        else:
+            h = HeaderBuilder.auth_via_static_token(h)
+        return h
 
 
 class InferenceCtx:
@@ -351,27 +410,10 @@ class BaseRunner(object):
             return False
 
         # Setting the headers
-        headers = {}
-        resp = None
-        token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
+        headers = HeaderBuilder.init_header()
 
-        # this is purely for dev purposes
-        use_token_header_prefix = os.getenv("USE_BEARER", "")
-        if use_token_header_prefix != "":
-            header_prefix = "Bearer "
-        else:
-            header_prefix = "Token "
-        if isinstance(token, str):
-            authHeader = header_prefix + token
-        else:
-            self._logger.warning(
-                "`DEXTER_CLB_AUTH_TOKEN not set. This model will not be able to "
-                + "communicate with the Orchestrator service and callbacks will be fired."
-            )
-            return False
-
-        headers["Authorization"] = authHeader
         headers["Content-type"] = "application/json"
+
         session = requests.Session()
         retries = Retry(
             total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
