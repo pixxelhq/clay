@@ -14,13 +14,6 @@ _IS_ARTIFACT_ATTR_NAME = "is_artifact"
 EXECUTOR_ENVVAR = "EXECUTOR"
 
 
-class InferenceStates(Enum):
-    QUEUED = "queued"
-    RUNNING = "running"
-    FAILED = "failed"
-    SUCCESS = "success"
-
-
 class ModelStates(str, Enum):
     STARTED = "created"
     INPROGRESS = "inprogress"
