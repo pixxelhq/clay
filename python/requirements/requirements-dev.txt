@@ -4,6 +4,7 @@ isort
 black
 black[jupyter]
 pytest
+pyyaml
 pre-commit
 coverage==6.4.4
 click==8.0.4

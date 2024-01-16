@@ -2,6 +2,7 @@ kind: block
 type: processing
 name: {{ .Name }}
 version: 0.0.1
+title: <Title for model to be displayed on the platform>
 status: draft
 description: describe the model
 author: <please-fill-in-here>@pixxel.co.in
@@ -16,6 +17,9 @@ resources:
   mem:
     min: 1200Mi
     max: 4000Mi
+  gpu:
+    min: 0
+    max: 0
 
 parameters: # model initialization params
   - name: param1
@@ -26,9 +30,9 @@ parameters: # model initialization params
     default: 1.0
 
 inputs:
-  - name: raster_url
+  - name: input1
     format: raster
-    type: str
+    type: url
     properties:
       source: planetary
       collection: sentinel2a
@@ -37,33 +41,38 @@ inputs:
         - B04
         - B03
         - B02
-  - name: boundary
+    is_artifact: true
+
+  - name: input2
     format: vector
-    type: str
+    type: url
     properties:
       geometry: Polygon
-  - name: date
+    is_artifact: true
+
+  - name: input3
     format: date
     type: str
     properties:
       from_aoi: false
-  - name: bandlist
+
+  - name: input4
     format: string
     type: str
-  - name: input4
-    format: number
-    type: int
+
   - name: input5
     format: number
-    type: float
+    type: int
+
+  - name: input6
+    format: tabular
+    type: url
+
 
 outputs:
-  - name: result1
-    format: number
-    type: float
-  - name: output_raster
+  - name: output1
     format: raster
-    type: str
+    type: url
     properties:
       source: planetary
       collection: sentinel2a
@@ -72,6 +81,14 @@ outputs:
         - B04
         - B03
         - B02
+    is_artifact: true
+
+  - name: output2
+    format: vector
+    type: url
+    properties:
+      geometry: Polygon
+    is_artifact: true
 
 build:
   python-version: "3.10"
@@ -79,11 +96,12 @@ build:
   gdal: true
   apt-get:
     - wget
-  requirements: requirements.txt # or conda-env.yml
+  requirements: #requirements.txt  or conda.yml
 
 runtime_opts:
-  image: {{ .Name | ToLower }}:latest
+  image: REDACTED.dkr.ecr.us-east-2.amazonaws.com/{{ .Name | ToLower }}:sample-version
   K8sJobConfig: null
+  gpu: false
 
 options:
   dry_run: null

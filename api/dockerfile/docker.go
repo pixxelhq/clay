@@ -9,25 +9,32 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/example/orchestrator/core/block"
+	"github.com/example/orchestrator/core/v1alpha1/block"
 )
 
-//go:embed templates/pip.tmpl
-var pipTemplate string
+var (
+	//go:embed templates/pip.tmpl
+	pipTemplate string
+
+	//go:embed templates/conda.tmpl
+	condaTemplate string
+)
 
 var Version string
 
 type DockerfileData struct {
 	Build                  block.Build
+	RuntimeOpts            block.Runtime
 	UseHttpRunner          bool
 	SourceCodeFolder       string
 	ModelSpecificationPath string
 	Version                string
 }
 
-func buildDockerfile(useHttpRunner bool, build block.Build, OutputFolder string, SourceCodeFolder string, ModelSpecificationPath string) error {
+func buildDockerfile(useHttpRunner bool, build block.Build, runtimeOpts block.Runtime, OutputFolder, SourceCodeFolder, ModelSpecificationPath string) error {
 	data := DockerfileData{
 		Build:                  build,
+		RuntimeOpts:            runtimeOpts,
 		UseHttpRunner:          useHttpRunner,
 		SourceCodeFolder:       SourceCodeFolder,
 		ModelSpecificationPath: ModelSpecificationPath,
@@ -40,7 +47,15 @@ func buildDockerfile(useHttpRunner bool, build block.Build, OutputFolder string,
 		},
 	}
 
-	template, err := template.New("Dockerfile").Funcs(funcMap).Parse(pipTemplate)
+	var tmpl *template.Template
+	var err error
+	var dockerTemplate = pipTemplate
+
+	if runtimeOpts.Gpu || build.Conda {
+		dockerTemplate = condaTemplate
+	}
+
+	tmpl, err = template.New("Dockerfile").Funcs(funcMap).Parse(dockerTemplate)
 	if err != nil {
 		return err
 	}
@@ -53,13 +68,13 @@ func buildDockerfile(useHttpRunner bool, build block.Build, OutputFolder string,
 	}
 	defer dockerfile.Close()
 
-	err = template.Execute(dockerfile, data)
+	err = tmpl.Execute(dockerfile, data)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Use the below command in your terminal to build the docker container:")
-	fmt.Println("make docker-image")
+	fmt.Println("make docker-image \nor using clay cli `clay create dockerfile [modelSpecificationPath] [sourceCodeFolder]`")
 	return nil
 }
 
@@ -83,12 +98,19 @@ func GenerateDockerfile(modelSpecificationPath string, sourceCodeFolder string, 
 		return err
 	}
 
-	if build.Conda {
-		return errors.New(`
-			Conda support is planned for an upcoming release and is not supported currently.
-			Please set Conda to False in your build options.
-		`)
+	runtimeOpts, err := getRuntimeOptsFromConfigFile(modelSpecificationPath)
+	if err != nil {
+		return err
 	}
+
+	if runtimeOpts.Gpu && !build.Conda {
+		return errors.New(`
+			Models with GPU requirement need to use conda.
+			Please set Conda to True in build options.
+			`)
+
+	}
+
 	if !build.Gdal {
 		return errors.New(`
 			As of now, it is not possible to exclude GDAL from the Model Container.
@@ -97,9 +119,7 @@ func GenerateDockerfile(modelSpecificationPath string, sourceCodeFolder string, 
 		`)
 	}
 
-	err = buildDockerfile(useHttpRunner, build, outputFolder, sourceCodeFolder, modelSpecificationPath)
-	if err != nil {
-		return err
-	}
-	return nil
+	err = buildDockerfile(useHttpRunner, build, runtimeOpts, outputFolder, sourceCodeFolder, modelSpecificationPath)
+	return err
+
 }

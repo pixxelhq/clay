@@ -37,16 +37,29 @@ clean:
 dockerfile:
 		clay create dockerfile {{.ModelName}}/specifications/model_specification_dev.yaml {{.ModelName}}
 
-docker-image:
-		docker build \
+
+generate-secrets:
+		echo $$GITLAB_TOKEN_NAME > GITLAB_TOKEN_NAME.txt
+		echo $$GITLAB_TOKEN_PASS > GITLAB_TOKEN_PASS.txt
+
+clean-secrets:
+		rm GITLAB_TOKEN_NAME.txt GITLAB_TOKEN_PASS.txt
+
+docker-image: generate-secrets
+		sudo DOCKER_BUILDKIT=1 docker build \
+		--secret id=GITLAB_TOKEN_NAME,src=GITLAB_TOKEN_NAME.txt \
+		--secret id=GITLAB_TOKEN_PASS,src=GITLAB_TOKEN_PASS.txt \
 		--build-arg AWS_ENV_PROFILE=$(AWS_ENV_PROFILE) \
-		--secret id=GITLAB_TOKEN_NAME \
-		--secret id=GITLAB_TOKEN_PASS \
 		-t {{.ModelName | ToLower}} \
+		-f Dockerfile \
 		.
+		$(MAKE) clean-secrets
 
 test-docker-image:
 		docker run {{.ModelName | ToLower}} "$$(cat {{.ModelName}}/sample_model_inputs.json)"
+
+test-docker-image-gpu:
+		docker run --rm --runtime nvidia --gpus all {{.ModelName}} "$$(cat {{.ModelName}}/sample_model_inputs.json)"
 
 package-and-test-model:
 		@echo "Creating Dockerfile..."
