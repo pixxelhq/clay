@@ -1,5 +1,4 @@
 import pytest
-
 from {{.ModelName}}.test_model import main
 
 

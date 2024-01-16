@@ -1,5 +1,7 @@
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3
 
+WORKDIR /app
+
 RUN apt-get update && \
     apt-get install -y python{{ .Build.PythonVersion }} python3-pip {{ .Build.AptGet | join }} && \
     pip3 install --upgrade pip
@@ -8,25 +10,15 @@ ENV PYTHONBUFFERED 1
 
 COPY {{ .Build.Requirements }} .
 
-# Installing everything in one single pip command for better dependency resolution
-# we also disable the cache with --no-cache-dir to reduce the image size
 RUN --mount=type=secret,id=GITLAB_TOKEN_NAME \
     --mount=type=secret,id=GITLAB_TOKEN_PASS \
     GITLAB_TOKEN_NAME=$(cat /run/secrets/GITLAB_TOKEN_NAME) && \
     GITLAB_TOKEN_PASS=$(cat /run/secrets/GITLAB_TOKEN_PASS) && \
     pip3 install --no-cache-dir \
-    clay=={{ .Version }} --index-url https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN_PASS}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple \
-    matter==0.3.2 \
-    pixxelsign==0.0.2 \
-    GDAL==$(gdal-config --version) \
+    clay=={{ .Version }} \
+    --index-url https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN_PASS}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple \
     -r {{ .Build.Requirements }}
 
-
 COPY {{ .SourceCodeFolder }} /app
-WORKDIR /app
-{{ if .UseHttpRunner }}
-EXPOSE 8000
-CMD ["python3", "entry.py"]
-{{ else }}
+
 ENTRYPOINT ["python3", "entry.py"]
-{{ end }}

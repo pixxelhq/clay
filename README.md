@@ -136,7 +136,7 @@ You should take some time to look at the files that have been created. You can r
         - create new environment: `conda create --name <env_name> python=3.9`
         - activate new environment: `conda activate <env_name>`
 
-2. Install the required private dependencies `clay` and `pixxelsign` python package
+2. Install the required private dependency `clay` python package
     Installation Tips:
     * `Clay` requires `GDAL` to be installed and working correctly in your environment.
     * Make sure you're installing the latest version of `clay` where possible.
@@ -144,7 +144,7 @@ You should take some time to look at the files that have been created. You can r
     <br> <br>
     Now run
     ```bash
-    pip install clay pixxelsign --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
+    pip install clay --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
     ```
 
 Next, you should run:

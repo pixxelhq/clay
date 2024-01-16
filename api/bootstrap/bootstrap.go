@@ -65,11 +65,11 @@ func CreateProject(outputDir, modelName string) error {
 		return err
 	}
 
-	fmt.Printf("\n[IMPORTANT] To begin,\n1. Create and activate your Python environment.\n2. Make sure you have GDAL on your system and Clay and pixxelsign already installed in your python environment.\n3. Run `make setup` in your project directory\n\n")
+	fmt.Printf("\n[IMPORTANT] To begin,\n1. Create and activate your Python environment.\n2. Make sure you have GDAL on your system and Clay already installed in your python environment.\n3. Run `make setup` in your project directory\n\n")
 	fmt.Printf("To create a new environment:\nOpen your terminal with an existing Python or Conda installation, and use the below command to create an environment:\n\n")
 	fmt.Print("python -m venv ./env\n\n")
-	fmt.Print("To install Clay and pixxelsign, make sure you have your GITLAB Personal Access Token and run:\n\n")
-	fmt.Print("pip install clay pixxelsign --index-url https://gitlab+deploy-token-1735743:${YOUR_GITLAB_TOKEN}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple\n\n")
+	fmt.Print("To install Clay and make sure you have your GITLAB Personal Access Token and run:\n\n")
+	fmt.Print("pip install clay --index-url https://gitlab+deploy-token-1735743:${YOUR_GITLAB_TOKEN}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple\n\n")
 	return nil
 }
 
