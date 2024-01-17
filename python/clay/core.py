@@ -31,10 +31,10 @@ from clay.utils import (
 
 DATA_SPEC_FILENAME: str = "spec.json"
 CALLBACK_AUTH_METHOD_ENVVAR = "DEXTER_CALLBACK_AUTH"
-GATEWAY_SUB_HEADER_KEY: str = "X-AuthService-Sub"
-GATEWAY_ORGIDS_HEADER_KEY: str = "X-AuthService-Org_Ids"
-GATEWAY_SUB_ENVVAR: str = "DEXTER_GATEWAY_SUB"
-GATEWAY_ORGIDS_ENVVAR: str = "DEXTER_GATEWAY_ORGIDS"
+SUB_HEADER_KEY: str = "X-AuthService-Sub"
+ORGIDS_HEADER_KEY: str = "X-AuthService-Org_Ids"
+SUB_ENVVAR: str = "DEXTER_GATEWAY_SUB"
+ORGIDS_ENVVAR: str = "DEXTER_GATEWAY_ORGIDS"
 
 
 class ValueTypes(Enum):
@@ -76,12 +76,12 @@ class HeaderBuilder:
         return header
 
     @staticmethod
-    def auth_via_gateway_token(header: Dict[str, Any]) -> Dict[str, Any]:
-        uid = os.getenv(GATEWAY_SUB_ENVVAR)
-        orgids = os.getenv(GATEWAY_ORGIDS_ENVVAR)
+    def auth_via_resource_owner_header(header: Dict[str, Any]) -> Dict[str, Any]:
+        uid = os.getenv(SUB_ENVVAR)
+        orgids = os.getenv(ORGIDS_ENVVAR)
         if uid and orgids:
-            header[GATEWAY_ORGIDS_HEADER_KEY] = orgids
-            header[GATEWAY_SUB_HEADER_KEY] = uid
+            header[ORGIDS_HEADER_KEY] = orgids
+            header[SUB_HEADER_KEY] = uid
         return header
 
     @staticmethod
