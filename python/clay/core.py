@@ -89,7 +89,7 @@ class HeaderBuilder:
         auth_method = CallbackAuthMethod.get_method()
         h: Dict[str, Any] = {}
         if auth_method == CallbackAuthMethod.GATEWAY_TOKEN:
-            h = HeaderBuilder.auth_via_gateway_token(h)
+            h = HeaderBuilder.auth_via_resource_owner_header(h)
         elif auth_method == CallbackAuthMethod.JWT_TOKEN:
             h = HeaderBuilder.auth_via_jwt_token(h)
         else:
