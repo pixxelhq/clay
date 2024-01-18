@@ -68,20 +68,6 @@ class RunType(Enum):
     WORKFLOW = "workflow"
 
 
-model_inference_model_states_mapping = {
-    types.ModelStates.INPROGRESS.value: types.InferenceStates.RUNNING.value,
-    types.ModelStates.COMPLETED.value: types.InferenceStates.SUCCESS.value,
-    types.ModelStates.FAILED.value: types.InferenceStates.FAILED.value,
-}
-
-
-model_inference_model_states_mapping = {
-    types.ModelStates.INPROGRESS.value: types.InferenceStates.RUNNING.value,
-    types.ModelStates.COMPLETED.value: types.InferenceStates.SUCCESS.value,
-    types.ModelStates.FAILED.value: types.InferenceStates.FAILED.value,
-}
-
-
 class ModelWrapper:
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
@@ -403,14 +389,7 @@ class BaseRunner(object):
             return resp.json()["data"]["successful_update"]
 
         else:
-            status = model_inference_model_states_mapping[clb.State.value]
-            if status == "":
-                self._logger.error(
-                    f"State: {clb.State.value} is not supported by Orchestrator for inference"
-                    + "Hence not firing callback"
-                )
-                return False
-            data = {"status": status, "output": clb.Result}  # type: ignore
+            data = {"status": clb.State.value, "output": clb.Result}  # type: ignore
             self._logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
