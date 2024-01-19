@@ -67,3 +67,9 @@ def test_init_string_model_with_no_value_or_default() -> None:
     s = types.String.model_validate(d)
     assert s.Value is None
     assert s.Default is None
+
+
+def test_init_date_model_with_value() -> None:
+    d = {"format": "date", "type": "str", "name": "d", "value": "12-02-2022"}
+    v = types.Date.model_validate(d)
+    assert v.Value == "12-02-2022"
