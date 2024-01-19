@@ -214,6 +214,8 @@ class Vector(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
         properties: Optional[VectorProperties] = None,
+        *args: Any,
+        **kwargs: Any,
     ):
         super().__init__(
             Format=FormatTypes.VECTOR.value,
@@ -240,6 +242,8 @@ class Date(_DataMeta):
         value: str,
         properties: Optional[DateProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
+        *args: Any,
+        **kwargs: Any,
     ):
         super().__init__(
             Format=FormatTypes.DATE.value,
@@ -267,6 +271,8 @@ class Tabular(_DataMeta):
         is_artifact: Optional[bool] = True,
         properties: Optional[TabularProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
+        *args: Any,
+        **kwargs: Any,
     ):
         super().__init__(
             Format=FormatTypes.TABULAR.value,
