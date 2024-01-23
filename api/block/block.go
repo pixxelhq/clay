@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
@@ -34,53 +32,6 @@ type BlockSpec struct {
 	} `json:"data"`
 }
 
-func getToken(email string, password string) (string, error) {
-	const tokenUrl = "https://p-platform-gateway.example.com/accounts/api/auth/token/"
-
-	client := &http.Client{}
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	writer.WriteField("email", email)
-	writer.WriteField("password", password)
-	writer.Close()
-
-	req, err := http.NewRequest("POST", tokenUrl, body)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var tokenResp map[string]string
-	err = json.Unmarshal(respBody, &tokenResp)
-	if err != nil {
-		return "", err
-	}
-
-	if tokenResp["access"] == "" {
-		err := errors.New(string(respBody))
-		return "", err
-	} else {
-		accessToken := tokenResp["access"]
-		authHeader := "Bearer " + accessToken
-		return authHeader, nil
-	}
-
-}
-
 func buildURL(blockUrl string, endpoint string) string {
 
 	var relativeURL string
@@ -91,14 +42,8 @@ func buildURL(blockUrl string, endpoint string) string {
 	}
 	return blockUrl + relativeURL + endpoint
 }
-func sendRequest(email string, password string, method string, blockUrl string, data io.Reader) ([]byte, int, error) {
 
-	bearer, err := getToken(email, password)
-
-	if err != nil {
-		return []byte{}, 0, err
-
-	}
+func sendRequest(method string, blockUrl string, data io.Reader) ([]byte, int, error) {
 
 	req, err := http.NewRequest(method, blockUrl, data)
 
@@ -106,7 +51,8 @@ func sendRequest(email string, password string, method string, blockUrl string, 
 		return []byte{}, 0, err
 	}
 
-	req.Header.Add("Authorization", bearer)
+	req.Header.Set("X-AuthService-Sub", os.Getenv("Frontier_Sub"))
+	req.Header.Set("X-AuthService-Org_Ids", os.Getenv("Frontier_Org_Ids"))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -123,7 +69,7 @@ func sendRequest(email string, password string, method string, blockUrl string, 
 	return body, resp.StatusCode, nil
 }
 
-func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath string, email string, password string, env string) error {
+func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath string, env string) error {
 
 	specBytes, err := os.ReadFile(specFilePath)
 	if err != nil {
@@ -155,7 +101,7 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 
 	blockUrl := buildURL(dexterUrl, "")
 
-	body, statuscode, err := sendRequest(email, password, "POST", blockUrl, data)
+	body, statuscode, err := sendRequest("POST", blockUrl, data)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
@@ -171,7 +117,7 @@ func PostNewBlock(ctx context.Context, logger *logger.Logger, specFilePath strin
 	}
 }
 
-func ListBlock(ctx context.Context, logger *logger.Logger, email string, password string, env string, status string) (BlockSpec, error) {
+func ListBlock(ctx context.Context, logger *logger.Logger, env string, status string) (BlockSpec, error) {
 
 	dexterUrl := common.GetUrl(env)
 	if dexterUrl == "" {
@@ -179,7 +125,7 @@ func ListBlock(ctx context.Context, logger *logger.Logger, email string, passwor
 	}
 
 	blockUrl := buildURL(dexterUrl, fmt.Sprintf("?status=%s", status))
-	body, statuscode, err := sendRequest(email, password, "GET", blockUrl, nil)
+	body, statuscode, err := sendRequest("GET", blockUrl, nil)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return BlockSpec{}, err
@@ -197,7 +143,7 @@ func ListBlock(ctx context.Context, logger *logger.Logger, email string, passwor
 	return tmpVar, nil
 }
 
-func ListVersion(ctx context.Context, logger *logger.Logger, blockname string, email string, password string, env string, status string) (BlockSpec, error) {
+func ListVersion(ctx context.Context, logger *logger.Logger, blockname string, env string, status string) (BlockSpec, error) {
 
 	dexterUrl := common.GetUrl(env)
 	if dexterUrl == "" {
@@ -206,7 +152,7 @@ func ListVersion(ctx context.Context, logger *logger.Logger, blockname string, e
 
 	blockUrl := buildURL(dexterUrl, fmt.Sprintf("%s/versions?status=%s", blockname, status))
 
-	body, statuscode, err := sendRequest(email, password, "GET", blockUrl, nil)
+	body, statuscode, err := sendRequest("GET", blockUrl, nil)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return BlockSpec{}, err
@@ -226,9 +172,9 @@ func ListVersion(ctx context.Context, logger *logger.Logger, blockname string, e
 	return tmpVar, nil
 }
 
-func GetBlock(ctx context.Context, logger *logger.Logger, blockname string, version string, email string, password string, env string, status string) ([]byte, error) {
+func GetBlock(ctx context.Context, logger *logger.Logger, blockname string, version string, env string, status string) ([]byte, error) {
 
-	specc, err := ListVersion(ctx, logger, blockname, email, password, env, status)
+	specc, err := ListVersion(ctx, logger, blockname, env, status)
 	if err != nil {
 		return nil, err
 	}
@@ -253,9 +199,9 @@ func GetBlock(ctx context.Context, logger *logger.Logger, blockname string, vers
 	return nil, nil
 }
 
-func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, version string, specFilePath string, email string, password string, env string, status string) error {
+func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, version string, specFilePath string, env string, status string) error {
 
-	jsonData, err := GetBlock(ctx, logger, blockname, version, email, password, env, status)
+	jsonData, err := GetBlock(ctx, logger, blockname, version, env, status)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
@@ -301,7 +247,7 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 
 	blockUrl := buildURL(dexterUrl, fmt.Sprintf("%s?status=%s", blockId, status))
 
-	body, statuscode, err := sendRequest(email, password, "PUT", blockUrl, data)
+	body, statuscode, err := sendRequest("PUT", blockUrl, data)
 	if err != nil {
 		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
