@@ -14,21 +14,27 @@ func IsValidVersion(version string) bool {
 
 }
 
-type EnvUrl int
+type Url int
 
 const (
-	dev EnvUrl = iota
+	dev Url = iota
 	stg
 	prod
 )
 
-var EnvGateways = map[EnvUrl]string{
+var EnvGateways = map[Url]string{
 	dev:  "http://orchestrator.d.platform.example.com/",
 	stg:  "http://orchestrator.platform-sandbox.example.com/",
 	prod: "http://orchestrator.platform-staging.example.com/",
 }
 
-func (e EnvUrl) String() string {
+var S3bucket = map[Url]string{
+	dev:  "d-platform-clay-public-catalog-s3-01",
+	stg:  "s-platform-clay-public-catalog-s3-01",
+	prod: "p-platform-clay-public-catalog-s3-01",
+}
+
+func (e Url) String() string {
 	return [...]string{"dev", "stg", "prod"}[e]
 }
 
@@ -41,6 +47,20 @@ func GetUrl(env string) (s string) {
 		return EnvGateways[stg]
 	case "prod":
 		return EnvGateways[prod]
+	default:
+		return ""
+	}
+}
+
+func GetS3Bucket(env string) (s string) {
+
+	switch env {
+	case "dev":
+		return S3bucket[dev]
+	case "stg":
+		return S3bucket[stg]
+	case "prod":
+		return S3bucket[prod]
 	default:
 		return ""
 	}
