@@ -17,8 +17,6 @@ import (
 
 const catalogPath = "catalog_readme/model-README.md"
 
-const catalogBucketUrl = "https://d-platform-orchestrator-public-catalog-s3-01.s3.us-east-2.amazonaws.com/"
-
 func UrlFuncMap(targetUrl string) map[string]interface{} {
 	return map[string]interface{}{
 		"addUrl": func(s string) string {
@@ -27,9 +25,9 @@ func UrlFuncMap(targetUrl string) map[string]interface{} {
 	}
 }
 
-func ParseMarkdown(blockName string, blockVersion string) error {
+func ParseMarkdown(blockName string, blockVersion string, s3BucketUrl string) error {
 
-	targetUrl, err := url.Parse(catalogBucketUrl)
+	targetUrl, err := url.Parse(s3BucketUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +86,7 @@ func UploadDirectory(sess *session.Session, bucket, localFolderName, s3Namespace
 			panic(err)
 		}
 
-		fmt.Printf("uploaded %s to s3 in namespace: %s", fileToUpload, s3Namespace)
+		fmt.Printf("uploaded %s to s3 at: %s\n", fileToUpload, s3Namespace)
 
 	}
 
