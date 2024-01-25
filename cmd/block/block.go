@@ -19,6 +19,7 @@ func GetBlockCmd() *cobra.Command {
 		blockName    string
 		blockVersion string
 		status       string
+		err          error
 	)
 
 	cmd := &cobra.Command{
@@ -34,7 +35,7 @@ func GetBlockCmd() *cobra.Command {
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 
-			blockVersion, err := cmd.Flags().GetString("version")
+			blockVersion, err = cmd.Flags().GetString("version")
 			if err != nil {
 				return err
 			}
@@ -71,17 +72,12 @@ func GetBlockCmd() *cobra.Command {
 			ctx := context.TODO()
 			logger := common.Getlogger()
 
-			creds, err := common.GetCredentials()
-			if err != nil {
-				logger.Error().Err(err).Stack().Msg(err.Error())
-				return err
+			if blockName == "" || blockVersion == "" {
+				return errors.New("provide valid block name and version. Use list block cmd to list available blocks,if needed")
 			}
 
-			if blockName == "" || blockVersion == "" {
-				return errors.New("provide valid block name and version version. Use list block cmd to list available blocks,if needed")
-			}
 			var specData []byte
-			specData, err = block.GetBlock(ctx, logger, blockName, blockVersion, creds.Username, creds.Password, env, status)
+			specData, err = block.GetBlock(ctx, logger, blockName, blockVersion, env, status)
 			if err != nil {
 				return err
 			}
@@ -106,6 +102,8 @@ func ListBlockCmd() *cobra.Command {
 		env       string
 		blockName string
 		status    string
+		err       error
+		blocks    block.BlockSpec
 	)
 	cmd := &cobra.Command{
 		Use: "block",
@@ -117,10 +115,10 @@ func ListBlockCmd() *cobra.Command {
 		If blockname is provided, all available "released" blocks will be listed.
 		Use flags to list versions available for a block
 		Use flags to list block based on their status.
-		Provide the login credentials registered with "aurora.example.com"`),
+		`),
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			status, err := cmd.Flags().GetString("status")
+			status, err = cmd.Flags().GetString("status")
 			if err != nil {
 				return err
 			}
@@ -148,14 +146,8 @@ func ListBlockCmd() *cobra.Command {
 			ctx := context.TODO()
 			logger := common.Getlogger()
 
-			creds, err := common.GetCredentials()
-			if err != nil {
-				logger.Error().Err(err).Stack().Msg(err.Error())
-				return err
-			}
-
 			if blockName == "" {
-				blocks, err := block.ListBlock(ctx, logger, creds.Username, creds.Password, env, status)
+				blocks, err = block.ListBlock(ctx, logger, env, status)
 				if err != nil {
 					fmt.Println(err)
 					return err
@@ -170,7 +162,7 @@ func ListBlockCmd() *cobra.Command {
 				return nil
 			}
 
-			blocks, err := block.ListVersion(ctx, logger, blockName, creds.Username, creds.Password, env, status)
+			blocks, err = block.ListVersion(ctx, logger, blockName, env, status)
 			if err != nil {
 				fmt.Println(err)
 				return err
@@ -189,7 +181,11 @@ func ListBlockCmd() *cobra.Command {
 }
 
 func AddBlockCmd() *cobra.Command {
-	var env string
+	var (
+		env string
+		err error
+	)
+
 	cmd := &cobra.Command{
 		Use: "block [specFilePath]",
 
@@ -199,19 +195,19 @@ func AddBlockCmd() *cobra.Command {
 				Add a new block in Pixxel Labs.
 				A block, with the specification file, will be added to Pixxel Lab.
 				It will be provided as a drag-and-drop feature to the users.
-				Provide the login credentials registered with "aurora.example.com"`),
+				`),
 
 		Args: cobra.ExactArgs(1),
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 
-			_, err := os.Stat(args[0])
+			_, err = os.Stat(args[0])
 
 			if os.IsNotExist(err) {
 				fmt.Println("File does not exist")
 			}
 
-			env, err := cmd.Flags().GetString("env")
+			env, err = cmd.Flags().GetString("env")
 			if err != nil {
 				return err
 			}
@@ -227,16 +223,12 @@ func AddBlockCmd() *cobra.Command {
 			logger := common.Getlogger()
 
 			specFilePath := args[0]
-			creds, err := common.GetCredentials()
-			if err != nil {
-				logger.Error().Err(err).Stack().Msg(err.Error())
-				return err
-			}
+
 			env, err = cmd.Flags().GetString("env")
 			if err != nil {
 				return err
 			}
-			err = block.PostNewBlock(ctx, logger, specFilePath, creds.Username, creds.Password, env)
+			err = block.PostNewBlock(ctx, logger, specFilePath, env)
 			if err != nil {
 				return err
 			}
@@ -253,6 +245,7 @@ func UpdateBlockCmd() *cobra.Command {
 		blockName    string
 		blockVersion string
 		status       string
+		err          error
 	)
 	cmd := &cobra.Command{
 		Use: "block [specFilePath]",
@@ -263,18 +256,18 @@ func UpdateBlockCmd() *cobra.Command {
 			Update an existing block through CLI.
 			Specify the blockname, version and updated specfile path to update the block.
 			Use flag 'env' to specify the environment in which the block is to be updated.
-			Provide the login credentials registered with "aurora.example.com"`),
+			`),
 		Args: cobra.ExactArgs(1),
 
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 
-			_, err := os.Stat(args[0])
+			_, err = os.Stat(args[0])
 
 			if os.IsNotExist(err) {
 				fmt.Println("File does not exist")
 			}
 
-			blockVersion, err := cmd.Flags().GetString("version")
+			blockVersion, err = cmd.Flags().GetString("version")
 			if err != nil {
 				return err
 			}
@@ -312,17 +305,12 @@ func UpdateBlockCmd() *cobra.Command {
 			logger := common.Getlogger()
 
 			specFilePath := args[0]
-			creds, err := common.GetCredentials()
-			if err != nil {
-				logger.Error().Err(err).Stack().Msg(err.Error())
-				return err
-			}
 
 			if blockVersion == "" {
 				return errors.New("provide valid version. Use list block cmd to list available block versions,if needed")
 			}
 
-			err = block.UpdateBlock(ctx, logger, blockName, blockVersion, specFilePath, creds.Username, creds.Password, env, status)
+			err = block.UpdateBlock(ctx, logger, blockName, blockVersion, specFilePath, env, status)
 			if err != nil {
 				return err
 			}
