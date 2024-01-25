@@ -31,7 +31,7 @@ brews:
   - name: clay
     homepage: "https://github.com/example/clay"
     description: "Clay CLI to support list, get, add, update blocks(model) and upload their readme"
-    tap:
+    repository:
       owner: pixxelhq
       name: homebrew-tap
     license: "Apache 2.0"
