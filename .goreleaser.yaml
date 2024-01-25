@@ -1,0 +1,45 @@
+project_name: clay
+
+release:
+  prerelease: auto
+
+
+builds:
+  - id: "clay"
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    binary: clay
+    main: ./main.go
+    env:
+      - CGO_ENABLED=0
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^test"
+      - "^build"
+      - "^chore"
+
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+brews:
+  - name: clay
+    homepage: "https://github.com/example/clay"
+    description: "Clay CLI to support list, get, add, update blocks(model) and upload their readme"
+    tap:
+      owner: pixxelhq
+      name: homebrew-tap
+    license: "Apache 2.0"
+    folder: Formula
+    dependencies:
+      - name: git
+    install: |-
+      bin.install "clay"
+    commit_author:
+      name: Sana Firdaus
+      email: sana@pixxel.co.in
