@@ -31,13 +31,14 @@ brews:
   - name: clay
     homepage: "https://github.com/example/clay"
     description: "Clay CLI to support list, get, add, update blocks(model) and upload their readme"
+    skip_upload: true
     repository:
       owner: pixxelhq
       name: homebrew-tap
     license: "Apache 2.0"
     folder: Formula
     download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
-    custom_require: "../lib/private_strategy"
+    custom_require: "lib/private_strategy"
     dependencies:
       - name: git
     install: |-
