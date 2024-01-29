@@ -36,6 +36,7 @@ brews:
       name: homebrew-tap
     license: "Apache 2.0"
     folder: Formula
+    download_strategy: GitHubPrivateRepositoryDownloadStrategy
     dependencies:
       - name: git
     install: |-
