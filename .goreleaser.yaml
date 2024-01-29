@@ -31,7 +31,6 @@ brews:
   - name: clay
     homepage: "https://github.com/example/clay"
     description: "Clay CLI to support list, get, add, update blocks(model) and upload their readme"
-    skip_upload: true
     repository:
       owner: pixxelhq
       name: homebrew-tap
