@@ -37,7 +37,7 @@ brews:
     license: "Apache 2.0"
     folder: Formula
     download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
-    custom_require: "lib/private_strategy"
+    custom_require: "../lib/private_strategy"
     install: |-
       bin.install "clay"
     commit_author:
