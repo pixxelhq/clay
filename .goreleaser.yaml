@@ -1,8 +1,7 @@
 project_name: clay
 
 release:
-  prerelease: auto
-
+  make_latest: true
 
 builds:
   - id: "clay"
