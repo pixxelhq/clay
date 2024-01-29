@@ -38,8 +38,6 @@ brews:
     folder: Formula
     download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
     custom_require: "lib/private_strategy"
-    dependencies:
-      - name: git
     install: |-
       bin.install "clay"
     commit_author:
