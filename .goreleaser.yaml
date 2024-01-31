@@ -43,5 +43,5 @@ brews:
     install: |-
       bin.install "clay"
     commit_author:
-      name: Sana Firdaus
-      email: sana@pixxel.co.in
+      name: MLOps
+      email: 	marketplace@pixxel.co.in
