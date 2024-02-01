@@ -1,6 +1,7 @@
 package marketplace
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -73,7 +74,7 @@ func UploadReadme() *cobra.Command {
 				return err
 			}
 			s3CatalogUrl := "https://" + bucket + ".s3.us-east-2.amazonaws.com/" + versionedModelName + "/catalog_readme/parsed.md"
-			logger.Info().Msgf("catalog_content_url is: %s", string(s3CatalogUrl))
+			fmt.Print(string(s3CatalogUrl))
 			return nil
 		},
 	}
