@@ -42,8 +42,6 @@ func ParseMarkdown(blockName string, blockVersion string, s3BucketUrl string) er
 	err = temp.Execute(fo, nil)
 	if err != nil {
 		log.Fatal(err)
-	} else {
-		fmt.Println("File parsed successfully, uploading...")
 	}
 	return nil
 }
@@ -85,9 +83,6 @@ func UploadDirectory(sess *session.Session, bucket, localFolderName, s3Namespace
 			fmt.Printf("error while uploading file %s to s3", fileToUpload)
 			panic(err)
 		}
-
-		fmt.Printf("uploaded %s to s3 at: %s\n", fileToUpload, s3Namespace)
-
 	}
 
 	return nil

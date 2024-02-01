@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
 	"regexp"
 
 	"github.com/example/clay/api/bootstrap"
@@ -14,17 +13,14 @@ import (
 var versionString string
 
 func main() {
-	Version := getSetVersion()
-	fmt.Println("Version:", Version)
-	fmt.Println()
+	getSetVersion()
 	cmd.Execute()
 }
 
-func getSetVersion() string {
+func getSetVersion() {
 	re := regexp.MustCompile(`"([^"]*)"`)
 	match := re.FindStringSubmatch(versionString)
 	Version := match[1]
 	bootstrap.Version = Version
 	dockerfile.Version = Version
-	return Version
 }
