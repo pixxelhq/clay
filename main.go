@@ -23,4 +23,5 @@ func getSetVersion() {
 	Version := match[1]
 	bootstrap.Version = Version
 	dockerfile.Version = Version
+	cmd.Version = Version
 }
