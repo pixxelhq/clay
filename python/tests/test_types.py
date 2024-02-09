@@ -39,7 +39,7 @@ def test_init_raster_model_from_dict_success() -> None:
         "properties": {"bands": ["B01", "B02"]},
     }
 
-    r = types.Raster.model_validate(d)
+    r = types.Raster.model_validate(d, context={"a": "b"})
     assert r.Properties.Bands == ["B01", "B02"]
 
 
@@ -73,3 +73,9 @@ def test_init_date_model_with_value() -> None:
     d = {"format": "date", "type": "str", "name": "d", "value": "12-02-2022"}
     v = types.Date.model_validate(d)
     assert v.Value == "12-02-2022"
+
+
+def test_init_tabular_model_with_value() -> None:
+    d = {"format": "tabular", "type": "url", "name": "t", "value": "f.csv"}
+    v = types.Tabular.model_validate(d)
+    assert v.Value == "f.csv"

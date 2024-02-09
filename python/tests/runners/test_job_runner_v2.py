@@ -24,21 +24,32 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         # os.mkdir(output_working_dir)
 
         # creating a raster dummy input
-        raster = {
+        self.raster = {
             "format": "raster",
+            "name": "raster",
             "type": "url",
             "value": "s3://bucket/another-bucket/clipped.tiff",
-            "properties": {},
+            "properties": {
+                "bands": ["A", "B", "C"],
+                "source": "some-source",
+                "collection": "some-collection",
+                "dtype": "some-dtype",
+            },
         }
 
         # creating a dummy string input
-        string = {"format": "string", "type": "str", "value": "hello world"}  # noqa
+        self.string = {
+            "format": "string",
+            "name": "string",
+            "type": "str",
+            "value": "hello world",
+        }
 
         # creating dummy inputs
         raster_path = os.path.join(input_working_dir, "raster")
         os.mkdir(raster_path)
         with open(os.path.join(raster_path, "spec.json"), "w+") as f:
-            json.dump(raster, f)
+            json.dump(self.raster, f)
 
         # string_path = os.path.join(input_working_dir, "string")
         # os.mkdir(string_path)
@@ -144,8 +155,10 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             None,
         )
         a.start()
-
         env_patcher.stop()
+
+        inputs_list = a.get_inputs_list()
+        assert inputs_list[0] == self.raster
 
         target_raster_asset_path = os.path.join(
             self.testing_working_dir, "outputs", "result", "clipped.tiff"

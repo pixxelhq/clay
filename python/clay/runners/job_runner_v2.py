@@ -24,6 +24,7 @@ from clay.utils import (
 
 class _InjectedEnvVars(Enum):
     TaskId = "TASK_ID"
+    TaskName = "TASK_NAME"
     WorkingDir = "WORKING_DIR"
     InputsWorkingDir = "INPUTS_WORKING_DIR"
     OutputsWorkingDir = "OUTPUTS_WORKING_DIR"
@@ -197,6 +198,9 @@ class JobRunnerV2(BaseRunner):
                 with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
                     spec = json.load(f)
 
+                # here we store the list of inputs as read from the json
+                self.update_inputs_list(spec.copy())
+
                 value_type = spec["type"]
                 value = cast_inputs(spec["value"], value_type)
 
@@ -214,15 +218,12 @@ class JobRunnerV2(BaseRunner):
                     # we convert the remote url to the local path of the asset
                     value = os.path.join(path, filename)  # type: ignore
 
-                i["value"] = value
-                data: types.Data = types._FormatModelMap[i["format"]].model_validate(i)
-                input_dict[i["name"]] = i
+                spec["value"] = value
+                data: types.Data = types._FormatModelMap[i["format"]].model_validate(spec)
+                input_dict[i["name"]] = spec
                 processed_inputs[i["name"]] = data
 
                 self.set_inputs_propmap(i["name"], spec)
-
-                # here we store the list of inputs as read from the json
-                self.update_inputs_list(spec)
 
                 # here we update the dict storing the actual values that are passed to
                 # the model functions, post any cleanups
