@@ -198,6 +198,10 @@ class JobRunnerV2(BaseRunner):
                 with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
                     spec = json.load(f)
 
+                # this is being done since the name in data at this point is carried over
+                # from whatever the output's name was in the previous component
+                spec["name"] = i["name"]
+
                 # here we store the list of inputs as read from the json
                 self.update_inputs_list(spec.copy())
 
