@@ -23,10 +23,8 @@ jobs:
         run: |
           pip install -r python/requirements/requirements-dev.txt
           pip install --index-url https://${{ secrets.GITLAB_TOKEN_NAME }}:${{ secrets.GITLAB_TOKEN_PASS }}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple matter
-          pip install coverage mypy==1.3.0 flake8 isort pre-commit
+          pip install coverage pre-commit
       - name: Run Pytest
-        env:
-          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         working-directory: ./python
         run: |
           coverage run -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
@@ -42,18 +40,16 @@ jobs:
         run: |
           coverage report
           coverage xml
-      - name: Isort Check
-        working-directory: ./python
-        run: |
-          isort . --check
-      - name: MyPy Check
-        working-directory: ./python
-        run: |
-          mypy .
-      - name: Flake8 Check
-        working-directory: ./python
-        run: |
-          flake8 . --config .flake8
+      - name: Ruff Check
+        uses: chartboost/ruff-action@v1
+        with:
+          src: "./python"
+
+      - name: Lint with Pyright
+        uses: jakebailey/pyright-action@v1
+        with:
+          version: 1.1.343
+
       - name: Docs Build Test
         run: |
           make build-docs

@@ -92,15 +92,11 @@ def add_user_logs_handler(
     an in-memory string buffer. The contents of this buffer can be retrieved by
     calling on `get_streamvalues()`.
     """
-    add_buffer_handler(
-        logger=logger, level=level, formatter=formatter, handler_name=handler_name
-    )
+    add_buffer_handler(logger=logger, level=level, formatter=formatter, handler_name=handler_name)
     return logger
 
 
-def get_streamvalues(
-    logger: Logger, handler_name: str = _default_buffer_handler_name
-) -> Optional[str]:
+def get_streamvalues(logger: Logger, handler_name: str = _default_buffer_handler_name) -> Optional[str]:
     """Reads logs from the stream in the `handler_name` handler while retaining
     the cursor position
 
@@ -118,9 +114,7 @@ def get_streamvalues(
             return logs
 
 
-def get_buffer_logs(
-    logger: Logger, handler_name: str = _default_buffer_handler_name
-) -> Optional[str]:
+def get_buffer_logs(logger: Logger, handler_name: str = _default_buffer_handler_name) -> Optional[str]:
     """Reads logs stored in a string buffer in a handler named `handler_name`
     intended specifically for all the user logs
 
@@ -132,9 +126,7 @@ def get_buffer_logs(
     return get_streamvalues(logger, handler_name=handler_name)
 
 
-def get_user_logs(
-    logger: Logger, handler_name: str = _default_user_logs_handler_name
-) -> Optional[str]:
+def get_user_logs(logger: Logger, handler_name: str = _default_user_logs_handler_name) -> Optional[str]:
     """Reads logs stored in a string buffer in a handler named `handler_name`
     intended specifically only for user viewable logs written at INFO level
 

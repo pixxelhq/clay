@@ -6,7 +6,6 @@ import unittest
 from typing import Any
 
 import shortuuid
-
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
@@ -71,9 +70,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
 
     async def test_read_inputs(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -110,17 +107,13 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         a.start()
         passed_vals = a.get_passed_inputs_dict()
 
-        assert passed_vals["raster"] == os.path.join(
-            self.testing_working_dir, "inputs", "raster", "clipped.tiff"
-        )
+        assert passed_vals["raster"] == os.path.join(self.testing_working_dir, "inputs", "raster", "clipped.tiff")
         assert passed_vals["string"] == "hello world"
         env_patcher.stop()
 
     async def test_set_outputs(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -139,9 +132,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 print(string)
                 return {
                     "result": types.Raster(name="result", value=raster, parameter=True),
-                    "string": types.String(
-                        name="string", value=string.Value, parameter=True
-                    ),
+                    "string": types.String(name="string", value=string.Value, parameter=True),
                 }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
@@ -169,16 +160,13 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         target_string_spec_path = os.path.join(
             self.testing_working_dir, "outputs", "string", "spec.json"
         )
-
         assert os.path.exists(target_raster_asset_path)
         assert os.path.exists(target_raster_spec_path)
         assert os.path.exists(target_string_spec_path)
 
     async def test_set_output_with_custom_properties(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -206,9 +194,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                             Dtype="uint8",
                         ),
                     ),
-                    "string": types.String(
-                        name="string", value="hello world", parameter=True
-                    ),
+                    "string": types.String(name="string", value="hello world", parameter=True),
                 }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
@@ -224,12 +210,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
 
         env_patcher.stop()
 
-        target_raster_asset_path = os.path.join(
-            self.testing_working_dir, "outputs", "result", "clipped.tiff"
-        )
-        target_raster_spec_path = os.path.join(
-            self.testing_working_dir, "outputs", "result", "spec.json"
-        )
+        target_raster_asset_path = os.path.join(self.testing_working_dir, "outputs", "result", "clipped.tiff")
+        target_raster_spec_path = os.path.join(self.testing_working_dir, "outputs", "result", "spec.json")
 
         assert os.path.exists(target_raster_asset_path)
         assert os.path.exists(target_raster_spec_path)
@@ -254,9 +236,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
 
     async def test_set_output_props_when_not_expected_fails(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):

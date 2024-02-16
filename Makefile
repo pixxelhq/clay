@@ -36,18 +36,14 @@ serve-docs:
 
 format:
 		@cd python; \
-		echo "Formatting with black..."; \
-		black clay; \
-		echo "Formatting with isort..."; \
-		isort clay; \
-		echo "Linting with flake8..."; \
-		flake8 clay; \
-		echo "Linting with mypy..."; \
-		mypy clay; \
-		pre-commit run --all-files
+		echo "Linting with ruff..."; \
+		ruff check; \
+		echo "Formatting with ruff..."; \
+		ruff format . ; \
+		pre-commit run
 
 pre-commit:
-		pre-commit run --all-files
+		pre-commit run
 
 
 .PHONY: go-binaries

@@ -59,9 +59,7 @@ class JobRunnerV2(BaseRunner):
         logger: Union[Logger, None] = None,
         enable_uvloop: bool = False,
     ) -> None:
-        super().__init__(
-            JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop
-        )
+        super().__init__(JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop)
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, str] = {}
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
@@ -104,9 +102,7 @@ class JobRunnerV2(BaseRunner):
     def set_inputs_propmap(self, key: str, value: Dict[Any, Any]) -> None:
         self._inputs_prop_map[key] = value
 
-    def get_inputs_propmap(
-        self, key: Union[str, None]
-    ) -> Union[Dict[Any, Any], Dict[str, Any]]:
+    def get_inputs_propmap(self, key: Union[str, None]) -> Union[Dict[Any, Any], Dict[str, Any]]:
         # If key is None, then it returns the entire dict
         if key is None:
             return self._inputs_prop_map
@@ -127,9 +123,7 @@ class JobRunnerV2(BaseRunner):
     def update_passed_inputs_dict(self, key: str, value: Any) -> None:
         self._passed_inputs_dict[key] = value
 
-    def get_passed_inputs_dict(
-        self, key: Optional[str] = None
-    ) -> Union[Any, Dict[str, Any]]:
+    def get_passed_inputs_dict(self, key: Optional[str] = None) -> Union[Any, Dict[str, Any]]:
         if key is None:
             return self._passed_inputs_dict
         return self._passed_inputs_dict[key]
@@ -137,9 +131,7 @@ class JobRunnerV2(BaseRunner):
     def update_model_outputs_dict(self, key: str, value: Any) -> None:
         self._model_outputs_dict[key] = value
 
-    def get_model_outputs_dict(
-        self, key: Optional[str] = None
-    ) -> Union[Any, Dict[str, Any]]:
+    def get_model_outputs_dict(self, key: Optional[str] = None) -> Union[Any, Dict[str, Any]]:
         if key is None:
             return self._model_outputs_dict
         return self._model_outputs_dict[key]
@@ -147,18 +139,12 @@ class JobRunnerV2(BaseRunner):
     def _read_argo_template_spec(self) -> None:
         s = os.getenv(_ArgoConfEnvVars.ArgoTemplate.value)
         if s is None:
-            self.logger.warning(
-                f"could not read {_ArgoConfEnvVars.ArgoTemplate.value} from env"
-            )
+            self.logger.warning(f"could not read {_ArgoConfEnvVars.ArgoTemplate.value} from env")
             return
         self._argo_template_spec = json.loads(s)
 
-    def _handle_parameter_input(
-        self, name: str, value: Any, input_cfg: Dict[str, Any]
-    ) -> Any:
-        model: types.Data = types._FormatModelMap[input_cfg["format"]].model_validate(
-            input_cfg
-        )
+    def _handle_parameter_input(self, name: str, value: Any, input_cfg: Dict[str, Any]) -> Any:
+        model: types.Data = types._FormatModelMap[input_cfg["format"]].model_validate(input_cfg)
         model.Value = value
         # wtf to do here?
 
@@ -174,16 +160,13 @@ class JobRunnerV2(BaseRunner):
         # level. In-case, an input is received that is nor provided we fail the model
 
         # get list of input parameters from argo template
+        _input_parameters: Dict[str, Any] = {}
         if "parameters" in self._argo_template_spec.get("inputs", {}):
-            _input_parameters = convert_list_to_dict(
-                self._argo_template_spec["inputs"].get("parameters"), "name"
-            )
+            _input_parameters = convert_list_to_dict(self._argo_template_spec["inputs"].get("parameters"), "name")
 
         input_dict: Dict[str, Any] = {}
         processed_inputs: Dict[str, types.Data] = {}
-        input_working_dir, found = self.get_injected_envvar(
-            _InjectedEnvVars.InputsWorkingDir
-        )
+        input_working_dir, found = self.get_injected_envvar(_InjectedEnvVars.InputsWorkingDir)
         input_dirmap = get_io_dirmap(self.config.inputs, input_working_dir)
         for i in self.config.inputs:
             # check if the input i is a parameter or not. By default, we assume it to
@@ -261,9 +244,7 @@ class JobRunnerV2(BaseRunner):
 
         return processed_inputs, input_dict
 
-    def _handle_output_asset(
-        self, key: str, value_type: ValueTypes, src: str, named_output_dir: str
-    ) -> str:
+    def _handle_output_asset(self, key: str, value_type: ValueTypes, src: str, named_output_dir: str) -> str:
         """takes a file that is to become an output asset and moves it to the correct
         place. Please note,
         currently only single files are supported.
@@ -363,13 +344,9 @@ class JobRunnerV2(BaseRunner):
         output_config = self.expected_outputs[data.Name]
         format = output_config["format"]
         if data.Format != format:
-            raise ValueError(
-                f"invalid format `{data.Format}` for `{data.Name}`. Expected `{format}`"
-            )
+            raise ValueError(f"invalid format `{data.Format}` for `{data.Name}`. Expected `{format}`")
 
-        output_working_dir, found = self.get_injected_envvar(
-            _InjectedEnvVars.OutputsWorkingDir
-        )
+        output_working_dir, found = self.get_injected_envvar(_InjectedEnvVars.OutputsWorkingDir)
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
         print(os.listdir(output_working_dir))
@@ -379,25 +356,18 @@ class JobRunnerV2(BaseRunner):
 
         # here we check if the output item in question is an artifact or not. If it
         # is not, then we dont process any supporting artifact file.
-        if output_config["type"] == ValueTypes.URL.value or output_config.get(
-            types._IS_ARTIFACT_ATTR_NAME, False
-        ):
-            value = self._handle_output_asset(
-                data.Name, ValueTypes.URL, str(data.Value), str(named_output_dir)
-            )
+        if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
+            value = self._handle_output_asset(data.Name, ValueTypes.URL, str(data.Value), str(named_output_dir))
             data.Value = value
 
         # setting the type
         data.Type = output_config["type"]
 
         if hasattr(data, "Properties"):
-            if "properties" not in output_config and data.Properties is not None:
-                raise ValueError(
-                    f"found properties for output `{data.Name}` but config has "
-                    "no properties set"
-                )
-            elif "properties" in output_config and data.Properties is None:
-                data.Properties = types._PropertiesFromConfig(output_config)
+            if "properties" not in output_config and data.Properties is not None:  # type: ignore
+                raise ValueError(f"found properties for output `{data.Name}` but config has " "no properties set")
+            elif "properties" in output_config and data.Properties is None:  # type: ignore
+                data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
 
         output = data.model_dump(by_alias=True)
 
@@ -457,7 +427,7 @@ class JobRunnerV2(BaseRunner):
         self._logger.info("inference finished")
         raise exc
 
-    def run_model_inference(self) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
+    def run_model_inference(self, *args: Any, **kwargs: Any) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
         start_time = get_current_utc_time_iso()
 
         rvals = self._collect_inputs()

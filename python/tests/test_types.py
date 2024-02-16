@@ -15,7 +15,6 @@ def test_clb_serialise_dict() -> None:
         "err_msg": "",
         "inputs": None,
         "result": None,
-        "outputs": None,
         "logs": "",
         "outputs": None,
         "user_logs": "",

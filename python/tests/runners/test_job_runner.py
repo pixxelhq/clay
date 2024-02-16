@@ -8,7 +8,6 @@ from typing import Any
 
 import pytest
 import shortuuid
-
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
@@ -43,9 +42,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
     async def test_read_inputs(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -130,9 +127,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
     async def test_set_outputs(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -249,9 +244,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
     async def test_read_inputs_and_download_remote_asset(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -358,16 +351,12 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         assert os.path.exists(os.path.join(raster_input_dir, "test-raster.tiff"))
         with open(os.path.join(raster_input_dir, "spec.json"), "r") as f:
             d = json.load(f)
-        assert os.path.samefile(
-            d["value"], os.path.join(raster_input_dir, "test-raster.tiff")
-        )
+        assert os.path.samefile(d["value"], os.path.join(raster_input_dir, "test-raster.tiff"))
         env_patcher.stop()
 
     async def test_auto_upload_generated_assets_enabled_success(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
@@ -489,9 +478,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
     async def test_read_inputs_backward_compatible(self) -> None:
         class M(ModelWrapper):
-            def __init__(
-                self, config: str, protocol: str = "abfs", logger: Logger = None
-            ) -> None:
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
             def setup(self):
