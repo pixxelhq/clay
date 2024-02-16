@@ -37,8 +37,6 @@ def make_ymxplusc_input(x: float = 5.0, info: str = "Hopefully this works.") -> 
             "value": info,
         },
     ]
-    request: List[Dict[Any, Any]] = [
-        {"name": "task_id", "type": "str", "format": "string", "value": "123456"}
-    ]
+    request: List[Dict[Any, Any]] = [{"name": "task_id", "type": "str", "format": "string", "value": "123456"}]
     request.extend(inputs)
     return json.dumps(request)

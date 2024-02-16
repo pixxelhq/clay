@@ -8,9 +8,7 @@ class SuccessfulExecutionException(Exception):
     by models to runner methods.
     """
 
-    def __init__(
-        self, message: Any, data: Any = None, http_status_code: int = 200
-    ) -> None:
+    def __init__(self, message: Any, data: Any = None, http_status_code: int = 200) -> None:
         super().__init__(message)
         self.msg = message
         self.data = data

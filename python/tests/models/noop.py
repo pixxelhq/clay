@@ -28,8 +28,6 @@ def make_noop_input(x: float = 5.0) -> str:
     inputs: List[Dict[str, Union[str, float]]] = [
         {"name": "x", "type": "float", "format": "number", "value": x},
     ]
-    request: List[Dict[Any, Any]] = [
-        {"name": "task_id", "type": "str", "format": "string", "value": "123456"}
-    ]
+    request: List[Dict[Any, Any]] = [{"name": "task_id", "type": "str", "format": "string", "value": "123456"}]
     request.extend(inputs)
     return json.dumps(request)

@@ -79,9 +79,7 @@ class Converters:
         """just for consistency"""
         if not isinstance(value, str):
             if isinstance(value, Iterable):
-                raise TypeError(
-                    f"`value` of {type(value)} cannot be typecasted to string"
-                )
+                raise TypeError(f"`value` of {type(value)} cannot be typecasted to string")
             return str(value)
         return value
 
@@ -139,7 +137,7 @@ def pop_dict_with_err(d: Dict[Any, Any], key: Any) -> Tuple[Any, Optional[KeyErr
     return val, None
 
 
-def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str, Any]:
+def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str, Any]:  # noqa: E741
     d = {}
     for li in l:
         d[li[primary_key]] = li

@@ -40,26 +40,16 @@ class FormatTypes(Enum):
     TABULAR = "tabular"
 
 
-def add_inline_fields(
-    from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]
-) -> None:
+def add_inline_fields(from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]) -> None:
     for k, v in from_model.__annotations__.items():
         to_model.__annotations__[k] = v
 
 
 class RasterProperties(pydantic.BaseModel):
-    Bands: Annotated[
-        Optional[List[str]], Field(serialization_alias="bands", alias="bands")
-    ] = None
-    Source: Annotated[
-        Optional[str], Field(serialization_alias="source", alias="source")
-    ] = None
-    Collection: Annotated[
-        Optional[str], Field(serialization_alias="collection", alias="collection")
-    ] = None
-    Dtype: Annotated[
-        Optional[str], Field(serialization_alias="dtype", alias="dtype")
-    ] = None
+    Bands: Annotated[Optional[List[str]], Field(serialization_alias="bands", alias="bands")] = None
+    Source: Annotated[Optional[str], Field(serialization_alias="source", alias="source")] = None
+    Collection: Annotated[Optional[str], Field(serialization_alias="collection", alias="collection")] = None
+    Dtype: Annotated[Optional[str], Field(serialization_alias="dtype", alias="dtype")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
@@ -78,9 +68,7 @@ class TabularFileSchema(pydantic.BaseModel):
 
 class TabularProperties(pydantic.BaseModel):
     FileType: Annotated[Optional[str], Field(serialization_alias="file_type")] = None
-    FileSchema: Annotated[
-        Optional[TabularFileSchema], Field(serialization_alias="file_schema")
-    ] = None
+    FileSchema: Annotated[Optional[TabularFileSchema], Field(serialization_alias="file_schema")] = None
 
 
 Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
@@ -109,18 +97,10 @@ class ModelInfTimes(pydantic.BaseModel):
 
 class Callback(pydantic.BaseModel):
     Id: Annotated[str, Field(serialization_alias="id")]
-    State: Annotated[
-        ModelStates, Field(serialization_alias="state")
-    ] = ModelStates.INPROGRESS
-    Inputs: Annotated[
-        Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")
-    ] = None
-    Outputs: Annotated[
-        Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")
-    ] = None
-    Result: Annotated[
-        Optional[List[Dict[str, Any]]], Field(serialization_alias="result")
-    ] = None
+    State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
+    Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
+    Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
+    Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
     Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
     UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
     ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
@@ -128,18 +108,10 @@ class Callback(pydantic.BaseModel):
     SendTime: Annotated[Optional[str], Field(serialization_alias="send_time")] = None
     StartTime: Annotated[Optional[str], Field(serialization_alias="start_time")] = None
     EndTime: Annotated[Optional[str], Field(serialization_alias="end_time")] = None
-    BlockInfStartTime: Annotated[
-        Optional[str], Field(serialization_alias="block_inf_start_time")
-    ] = None
-    BlockInfEndTime: Annotated[
-        Optional[str], Field(serialization_alias="block_inf_end_time")
-    ] = None
-    ModelInfStartTime: Annotated[
-        Optional[str], Field(serialization_alias="model_inf_start_time")
-    ] = None
-    ModelInfEndTime: Annotated[
-        Optional[str], Field(serialization_alias="model_inf_end_time")
-    ] = None
+    BlockInfStartTime: Annotated[Optional[str], Field(serialization_alias="block_inf_start_time")] = None
+    BlockInfEndTime: Annotated[Optional[str], Field(serialization_alias="block_inf_end_time")] = None
+    ModelInfStartTime: Annotated[Optional[str], Field(serialization_alias="model_inf_start_time")] = None
+    ModelInfEndTime: Annotated[Optional[str], Field(serialization_alias="model_inf_end_time")] = None
     model_config = ConfigDict(use_enum_values=False)
 
 
@@ -161,9 +133,7 @@ class _DataMeta(pydantic.BaseModel):
         Optional[Union[int, float, str, bool]],
         Field(alias="default", serialization_alias="default"),
     ] = None
-    IsArtifact: Annotated[
-        Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")
-    ] = None
+    IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
 
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
@@ -333,6 +303,7 @@ class Number(_DataMeta):
 
 Data = Union[Raster, Vector, Date, Tabular, String, Number]
 
+
 _FormatModelMap = {
     FormatTypes.RASTER.value: Raster,
     FormatTypes.VECTOR.value: Vector,
@@ -346,7 +317,7 @@ OutputsBuffer = List[Data]
 
 
 def _serialize_output_buffer(b: OutputsBuffer) -> List[Dict[str, Any]]:
-    l = []
+    l = []  # noqa: E741
     for o in b:
         l.append(o.model_dump(by_alias=True, exclude_none=True))
     return l

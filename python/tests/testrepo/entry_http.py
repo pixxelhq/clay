@@ -1,8 +1,7 @@
-from test_b import bfunc
-
 import clay
 from clay import ModelWrapper
 from clay.runners import HTTPRunner
+from test_b import bfunc
 
 
 class M(ModelWrapper):

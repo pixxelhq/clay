@@ -52,6 +52,6 @@ setup(
         "boto3>=1.21.21",
         "fsspec>=2022.5.0",
     ],
-    package_data={"clay": ["templates/*.jinja", "py.typed"]},
+    package_data={"clay": ["py.typed"]},
     include_package_data=True,
 )

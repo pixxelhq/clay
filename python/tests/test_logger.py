@@ -6,9 +6,7 @@ from clay.logger import ClayLogger
 
 class TestClayLogger(TestCase):
     def test_logging_level(self):
-        logger = ClayLogger(
-            "test_logger", False, logging.INFO, create_console_handler=True
-        )
+        logger = ClayLogger("test_logger", False, logging.INFO, create_console_handler=True)
         assert logger.name == "test_logger"
         with self.assertLogs("test_logger", level="INFO") as capture:
             logger.info("This is info")

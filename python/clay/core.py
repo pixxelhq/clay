@@ -15,8 +15,6 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_a
 
 import requests
 import uvloop
-from matter import fs
-from matter.fs import AzureClient
 from requests.adapters import HTTPAdapter, Retry
 
 from clay import types
@@ -117,9 +115,7 @@ class InferenceCtx:
         self._model_inf_end_time = get_current_utc_time_iso()
 
     def get_model_inf_times(self) -> types.ModelInfTimes:
-        return types.ModelInfTimes(
-            InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time
-        )
+        return types.ModelInfTimes(InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time)
 
 
 class RunType(Enum):
@@ -157,15 +153,8 @@ class ModelWrapper:
         if parameters is not None:
             parameters = filter(lambda x: len(x) > 0, parameters)
             for param in parameters:
-                self.params[param["name"]] = cast_inputs(
-                    param["default"], param["type"].lower()
-                )
+                self.params[param["name"]] = cast_inputs(param["default"], param["type"].lower())
         self.setup(**self.params)
-
-    @cached_property
-    def fs(self) -> AzureClient:
-        filesystem = fs.filesystem(protocol=self.protocol)
-        return filesystem
 
     @cached_property
     def recieve_input_properties(self) -> bool:
@@ -195,10 +184,9 @@ class ModelWrapper:
         """
         for of in cls.__OVERRIDABLE_FUNCS__:
             func = getattr(cls, of, None)
-            assert asyncio.iscoroutinefunction(func), (
-                f"{of} is not a coroutine. "
-                "Method signatures should start with `async def` instead of `def`"
-            )
+            assert asyncio.iscoroutinefunction(
+                func
+            ), f"{of} is not a coroutine. Method signatures should start with `async def` instead of `def`"
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         pass
@@ -224,10 +212,7 @@ class ModelWrapper:
         # never actuall run, but is kept for safety
         # Casting Inputs:
         for item in inputs:
-            if (
-                isinstance(item.get("value", None), str)
-                and PRIMITIVE_TYPES[item["type"].lower()] is not str
-            ):
+            if isinstance(item.get("value", None), str) and PRIMITIVE_TYPES[item["type"].lower()] is not str:
                 item["value"] = cast_inputs(item["value"], item["type"])
 
         # filling in default values for any missing inputs
@@ -235,9 +220,7 @@ class ModelWrapper:
         for param in self.config.inputs:
             if param["name"] not in provided_inputs:
                 _param = {**param}
-                _param["value"] = cast_inputs(
-                    _param.pop("default"), _param["type"].lower()
-                )
+                _param["value"] = cast_inputs(_param.pop("default"), _param["type"].lower())
                 inputs.append(_param)
 
         # Setting the key-value pairs as required
@@ -266,9 +249,7 @@ class ModelWrapper:
     async def postprocess(self, *args: Any, **kwargs: Any) -> Dict[str, types.Data]:
         raise NotImplementedError
 
-    async def infer(
-        self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]
-    ) -> InferenceCtx:
+    async def infer(self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]) -> InferenceCtx:
         _inf_ctx = InferenceCtx(opts=opts)
         try:
             _return_vals = await self.preprocess(**inputs)
@@ -287,9 +268,7 @@ class ModelWrapper:
         # latter has duplication: `name` is both present in key and the type which is the
         # value
         for _, v in _return_vals.items():
-            assert isinstance(
-                v, get_args(types.Data)
-            ), f"return value can only be one of {types.Data}"
+            assert isinstance(v, get_args(types.Data)), f"return value can only be one of {types.Data}"
             _inf_ctx.output(v)
 
         return _inf_ctx
@@ -338,7 +317,7 @@ class BaseRunner(object):
                     f"{self._run_mode}_model_runner",
                     propagate=True,
                 )
-                .add_console_handler(level=logging.INFO)
+                .add_console_handler(level=logging.INFO)  # type: ignore
                 .add_buffer_handler(level=logging.DEBUG)
             )
         assert isinstance(logger, Logger)
@@ -390,9 +369,7 @@ class BaseRunner(object):
 
     def _fire_callback(self, clb: types.Callback) -> bool:
         if self._dexter_clb_url is None or self._dexter_clb_url == "":
-            self._logger.warning(
-                "`ORCHESTRATOR_URL` not set, and hence not firing callback"
-            )
+            self._logger.warning("`ORCHESTRATOR_URL` not set, and hence not firing callback")
             return False
 
         # Setting the headers
@@ -401,17 +378,13 @@ class BaseRunner(object):
         headers["Content-type"] = "application/json"
 
         session = requests.Session()
-        retries = Retry(
-            total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
-        )
+        retries = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])  # type: ignore
         session.mount("http://", HTTPAdapter(max_retries=retries))
 
         run_type = os.getenv("DEXTER_RUN_TYPE", RunType.WORKFLOW.value)
         if run_type == RunType.WORKFLOW.value:
             if self._dexter_clb_url is None or self._dexter_clb_url == "":
-                self._logger.warning(
-                    "`ORCHESTRATOR_URL` not set, and hence not firing callback"
-                )
+                self._logger.warning("`ORCHESTRATOR_URL` not set, and hence not firing callback")
                 return False
             data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
             self._logger.debug(f"Data for callback: {data}")
@@ -435,9 +408,7 @@ class BaseRunner(object):
             self._logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
-                url="{0}:{1}/v1alpha1/inferences/{2}".format(
-                    self._dexter_host, self._dexter_port, clb.Id
-                ),
+                url="{0}:{1}/v1alpha1/inferences/{2}".format(self._dexter_host, self._dexter_port, clb.Id),
                 json=data,
                 headers=headers,
             )
@@ -476,12 +447,7 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def success(
-        self,
-        # exc: SuccessfulExecutionException,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
+    def success(self) -> Any:
         # Accepts a clay.exceptions.SuccessfulExecutionException
         pass
 
@@ -501,5 +467,5 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def start(self, *args: Any, **kwargs: Any) -> None:
+    def start(self, **kwargs: Any) -> None:
         self.run_model_inference()

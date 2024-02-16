@@ -54,9 +54,7 @@ class JobRunner(BaseRunner):
         logger: Optional[Logger] = None,
         enable_uvloop: bool = False,
     ) -> None:
-        super().__init__(
-            JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop
-        )
+        super().__init__(JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop)
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, Any] = {}
 
@@ -79,9 +77,7 @@ class JobRunner(BaseRunner):
             return "", False
         return val, True
 
-    def set_injected_envvar(
-        self, key: _InjectedEnvVars, val: Optional[Union[bool, str]]
-    ) -> None:
+    def set_injected_envvar(self, key: _InjectedEnvVars, val: Optional[Union[bool, str]]) -> None:
         self._injected_envvars[key] = val
 
     def read_injected_envvars(self) -> None:
@@ -102,9 +98,7 @@ class JobRunner(BaseRunner):
     def update_model_outputs_dict(self, key: str, value: Any) -> None:
         self._model_outputs_dict[key] = value
 
-    def get_model_outputs_dict(
-        self, key: Optional[str] = None
-    ) -> Union[Any, Dict[str, Any]]:
+    def get_model_outputs_dict(self, key: Optional[str] = None) -> Union[Any, Dict[str, Any]]:
         if key is None:
             return self._model_outputs_dict
         return self._model_outputs_dict[key]
@@ -124,9 +118,7 @@ class JobRunner(BaseRunner):
     def update_passed_inputs_dict(self, key: str, value: Any) -> None:
         self._passed_inputs_dict[key] = value
 
-    def get_passed_inputs_dict(
-        self, key: Optional[str] = None
-    ) -> Union[Any, Dict[str, Any]]:
+    def get_passed_inputs_dict(self, key: Optional[str] = None) -> Union[Any, Dict[str, Any]]:
         if key is None:
             return self._passed_inputs_dict
         return self._passed_inputs_dict[key]
@@ -143,37 +135,27 @@ class JobRunner(BaseRunner):
             return data
         url_fragments = parse_url(str(data.Value))
         if url_fragments.scheme != "s3":
-            self.logger.warning(
-                f"unknown scheme while parsing {data.Value}: {url_fragments.scheme}"
-            )
+            self.logger.warning(f"unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
         file_name = os.path.basename(url_fragments.path)  # type: ignore
         local_path = pathlib.Path(named_input_dir, str(file_name))
         self._s3fs.get_file(data.Value, str(local_path))
         if not local_path.exists():
             raise FileNotFoundError(f"failed to find file {data.Value}")
         if named_remote_output_dir != "":
-            named_remote_output_dir = os.path.join(
-                named_remote_output_dir, str(file_name)
-            )
+            named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
             if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
-                self.logger.info(
-                    f"uploading file {str(local_path)} to {named_remote_output_dir}"
-                )
+                self.logger.info(f"uploading file {str(local_path)} to {named_remote_output_dir}")
                 # TODO: here we risk overwriting the file if it exists. Ideally, if the
                 # file exists in the named-remote-output-dir path, then we shouldnt upload
                 try:
                     self._s3fs.info(named_remote_output_dir)
                     # the line below is run only if the file exists in the said path
-                    self.logger.warn(
-                        f"file found at {named_remote_output_dir}. will be overwritten"
-                    )
+                    self.logger.warn(f"file found at {named_remote_output_dir}. will be overwritten")
                 except FileNotFoundError:
                     pass
                 print(str(local_path), named_remote_output_dir)
                 self._s3fs.put_file(str(local_path), named_remote_output_dir)
-                self.logger.info(
-                    f"upload of {local_path} to {named_remote_output_dir} complete"
-                )
+                self.logger.info(f"upload of {local_path} to {named_remote_output_dir} complete")
         data.Value = str(local_path)
         return data
 
@@ -181,9 +163,7 @@ class JobRunner(BaseRunner):
         if self._inf_opts.get(_ExpectedInfParameters.WorkflowId) is None:
             wfid = os.getenv(_ExpectedInfParameters.WorkflowId.value)
             if wfid is None:
-                raise ValueError(
-                    f"did not find `{_ExpectedInfParameters.WorkflowId.value}`"
-                )
+                raise ValueError(f"did not find `{_ExpectedInfParameters.WorkflowId.value}`")
             self._inf_opts[_ExpectedInfParameters.WorkflowId] = wfid
         if self._inf_opts.get(_ExpectedInfParameters.JobId) is None:
             jobid = os.getenv(_ExpectedInfParameters.JobId.value)
@@ -193,9 +173,7 @@ class JobRunner(BaseRunner):
         if self._inf_opts.get(_ExpectedInfParameters.LocalWorkingDir) is None:
             local_working_dir = os.getenv(_ExpectedInfParameters.LocalWorkingDir.value)
             if local_working_dir is None:
-                raise ValueError(
-                    f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`"
-                )
+                raise ValueError(f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`")
             self._inf_opts[_ExpectedInfParameters.LocalWorkingDir] = local_working_dir
             # The `None` assignment is to statisfy the type checker
 
@@ -208,10 +186,10 @@ class JobRunner(BaseRunner):
         tmp = {}
         for i in inputs:
             tmp[i["name"]] = i
-        inputs = tmp
+        dict_inputs = tmp
         # second we pop the parameters mentioned in `_InfOpts`
         for o in _ExpectedInfParameters:
-            val, ke = utils.pop_dict_with_err(inputs, o.value)
+            val, ke = utils.pop_dict_with_err(dict_inputs, o.value)
             if ke is not None:
                 # TODO: make this an fatal error
                 self.logger.warning(ke)
@@ -226,14 +204,12 @@ class JobRunner(BaseRunner):
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
 
         local_working_dir = self._inf_opts[_ExpectedInfParameters.LocalWorkingDir]
-        input_working_dir = pathlib.Path(
-            os.path.join(local_working_dir, workflow_id, job_id, task_id, "inputs")
-        )
+        input_working_dir = pathlib.Path(os.path.join(local_working_dir, workflow_id, job_id, task_id, "inputs"))
         input_working_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         input_config_dict = utils.convert_list_to_dict(self.config.inputs, "name")
         _processed_inputs = {}
-        for k, v in inputs.items():
+        for k, v in dict_inputs.items():
             model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
             if model.Value is None:
                 model.Value = input_config_dict[model.Name].get("default", None)
@@ -244,15 +220,11 @@ class JobRunner(BaseRunner):
             named_remote_working_dir = ""
             remote_prefix, found = self.get_injected_envvar(_InjectedEnvVars.RemotePrefix)
             if found:
-                remote_working_dir = os.path.join(
-                    remote_prefix, workflow_id, job_id, task_id, "inputs"
-                )
+                remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "inputs")
 
                 named_remote_working_dir = os.path.join(remote_working_dir, model.Name)
 
-            model = self._handle_input_assets(
-                model, str(named_input_dir), named_remote_working_dir
-            )
+            model = self._handle_input_assets(model, str(named_input_dir), named_remote_working_dir)
 
             i = model.model_dump(by_alias=True)
             with open(os.path.join(named_input_dir, DATA_SPEC_FILENAME), "w+") as f:
@@ -263,9 +235,7 @@ class JobRunner(BaseRunner):
             if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
                 remote_path = os.path.join(named_remote_working_dir, DATA_SPEC_FILENAME)
                 local_spec_file_path = os.path.join(named_input_dir, DATA_SPEC_FILENAME)
-                self.logger.info(
-                    f"starting to upload {local_spec_file_path} to {remote_path}"
-                )
+                self.logger.info(f"starting to upload {local_spec_file_path} to {remote_path}")
                 self._s3fs.put_file(local_spec_file_path, remote_path)
                 self.logger.info("upload complete")
 
@@ -273,7 +243,7 @@ class JobRunner(BaseRunner):
             self._inputs_prop_map[k] = i["properties"] if "properties" in i else None
             self.update_inputs_list(i)
             self.update_passed_inputs_dict(k, i)
-        return _processed_inputs, inputs
+        return _processed_inputs, dict_inputs
 
     def _handle_output_asset(
         self,
@@ -318,9 +288,7 @@ class JobRunner(BaseRunner):
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
 
         local_working_dir = self._inf_opts[_ExpectedInfParameters.LocalWorkingDir]
-        output_working_dir = pathlib.Path(
-            os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs")
-        )
+        output_working_dir = pathlib.Path(os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs"))
         output_working_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
@@ -330,15 +298,11 @@ class JobRunner(BaseRunner):
         named_remote_working_dir = ""
         remote_prefix, found = self.get_injected_envvar(_InjectedEnvVars.RemotePrefix)
         if found:
-            remote_working_dir = os.path.join(
-                remote_prefix, workflow_id, job_id, task_id, "outputs"
-            )
+            remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "outputs")
 
             named_remote_working_dir = os.path.join(remote_working_dir, data.Name)
 
-        if output_config["type"] == ValueTypes.URL.value or output_config.get(
-            types._IS_ARTIFACT_ATTR_NAME, False
-        ):
+        if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
             value = self._handle_output_asset(
                 data.Name,
                 ValueTypes.URL,
@@ -352,13 +316,10 @@ class JobRunner(BaseRunner):
         data.Type = output_config["type"]
 
         if hasattr(data, "Properties"):
-            if "properties" not in output_config and data.Properties is not None:
-                raise ValueError(
-                    f"found properties for output `{data.Name}` but config has "
-                    "no properties set"
-                )
-            elif "properties" in output_config and data.Properties is None:
-                data.Properties = types._PropertiesFromConfig(output_config)
+            if "properties" not in output_config and data.Properties is not None:  # type: ignore
+                raise ValueError(f"found properties for output `{data.Name}` but config has " "no properties set")
+            elif "properties" in output_config and data.Properties is None:  # type: ignore
+                data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
 
         output = data.model_dump(by_alias=True)
 
@@ -368,9 +329,7 @@ class JobRunner(BaseRunner):
 
         if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
             remote_path = os.path.join(named_remote_working_dir, DATA_SPEC_FILENAME)
-            self.logger.info(
-                f"starting to upload {local_spec_file_path} to {remote_path}"
-            )
+            self.logger.info(f"starting to upload {local_spec_file_path} to {remote_path}")
             self._s3fs.put_file(local_spec_file_path, remote_path)
             self.logger.info("upload complete")
 
@@ -382,7 +341,7 @@ class JobRunner(BaseRunner):
         for val in output_buffer:
             self._output_handler(val)
 
-    def success(self, *args: Any, **kwargs: Any) -> Any:
+    def success(self) -> Any:
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
         success = self._fire_callback(
             types.Callback(
@@ -425,9 +384,8 @@ class JobRunner(BaseRunner):
         )
         raise exc
 
-    def run_model_inference(self, inputs: Optional[Dict[str, Any]]) -> Any:
-        # inputs: Dict[str, Any] = kwargs.get("inputs")
-
+    def run_model_inference(self, *args: Any, **kwargs: Optional[Dict[str, Any]]) -> Any:
+        inputs: Optional[Dict[str, Any]] = kwargs.get("inputs")
         start_time = utils.get_current_utc_time_iso()
         if inputs is None:
             raise ValueError("inputs cannot be None")
@@ -445,9 +403,7 @@ class JobRunner(BaseRunner):
             self.logger.error("Failed to fire callback")
 
         try:
-            ctx = asyncio.run_coroutine_threadsafe(
-                self._model.infer(inputs=inputs, opts=None), self._loop
-            ).result()
+            ctx = asyncio.run_coroutine_threadsafe(self._model.infer(inputs=inputs, opts=None), self._loop).result()
         except Exception as exc:
             self._model.logger.error(exc, exc_info=exc)
             return [], exc

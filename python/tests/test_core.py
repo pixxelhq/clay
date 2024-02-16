@@ -6,7 +6,6 @@ from typing import Any
 from unittest import mock
 
 import pytest
-
 from clay import ModelWrapper, types
 from clay.core import BaseRunner, CallbackAuthMethod, HeaderBuilder
 
@@ -118,9 +117,7 @@ class TestBaseRunner(unittest.TestCase):
     @mock.patch("clay.core.requests.Session.post")
     def test_fire_callback_workflow_success(self, mock_post):
         mock_response = mock.Mock()
-        mock_response.json.return_value = {
-            "data": {"successful_update": "True", "updated_fields": {}, "err": ""}
-        }
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
@@ -135,9 +132,7 @@ class TestBaseRunner(unittest.TestCase):
         self.m = self._test_runnercls("job")
         self.m._init_model()
         self.m._init_model_inference_event_loop()
-        self.m._fire_callback(
-            types.Callback(Id="task123", State=types.ModelStates.INPROGRESS)
-        )
+        self.m._fire_callback(types.Callback(Id="task123", State=types.ModelStates.INPROGRESS))
         call_args = mock_post.call_args_list
         assert call_args[0][1]["url"] == dexter_url
         env_patcher.stop()
@@ -162,9 +157,7 @@ class TestBaseRunner(unittest.TestCase):
         self.m = self._test_runnercls("job")
         self.m._init_model()
         self.m._init_model_inference_event_loop()
-        self.m._fire_callback(
-            types.Callback(Id="task123", State=types.ModelStates.FAILED)
-        )
+        self.m._fire_callback(types.Callback(Id="task123", State=types.ModelStates.FAILED))
         call_args = mock_post.call_args_list
         assert call_args[0][1]["url"] == dexter_url
         env_patcher.stop()
