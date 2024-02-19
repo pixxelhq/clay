@@ -1,0 +1,17 @@
+{
+  "include": [
+    "python/clay"
+  ],
+  "exclude": [
+    "*env",
+    "**/node_modules",
+    "**/__pycache__",
+    "python/tests",
+    "api",
+    "pkg",
+    "cmd"
+  ],
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "reportSelfClsParameterName": false
+}

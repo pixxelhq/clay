@@ -1,11 +1,13 @@
 [tool.ruff]
-exclude = ["*env", ".eggs", ".git", ".ipynb_checkpoints", ".pyenv", ".pytest_cache", ".ruff_cache", ".venv", ".vscode", "build", "dist"]
+exclude = ["*env", ".eggs", ".git", ".ipynb_checkpoints", ".pyenv", ".pytest_cache", ".ruff_cache", ".venv", ".vscode", "build", "dist", "api"]
 line-length = 120
 indent-width = 4
 target-version = "py310"
 cache-dir = "~/.cache/ruff"
 fix = true
 extend-select = ["I"]
+src = ["python"]
+namespace-packages = ["python/clay"]
 ignore-init-module-imports = true
 
 [tool.ruff.per-file-ignores]
@@ -23,16 +25,11 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[tool.ruff.lint.isort]
-force-to-top = ["python"]
-
-
 [tool.pyright]
 include = ["python/clay"]
-exclude = ["*env", "**/node_modules", "**/__pycache__", "python/tests"]
+exclude = ["*env", "**/node_modules", "**/__pycache__", "python/tests", "api", "pkg", "cmd"]
 useLibraryCodeForTypes = true
-venvPath = "."
-venv = ".venv"
+reportSelfClsParameterName = false
 
 [tool.pytest.ini_options]
 filterwarnings = [
