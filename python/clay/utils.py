@@ -1,3 +1,4 @@
+import json
 import os
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -146,3 +147,12 @@ def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str,
 
 def get_current_utc_time_iso() -> str:
     return str(datetime.now(timezone.utc).isoformat())
+
+
+def try_json_loads(d: str) -> Optional[str]:
+    try:
+        v = json.loads(d)
+        return v.get("value", None)
+    except Exception:
+        pass
+    return None

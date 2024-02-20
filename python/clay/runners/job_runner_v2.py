@@ -19,6 +19,7 @@ from clay.utils import (
     get_current_utc_time_iso,
     get_filename_from_remote,
     get_io_dirmap,
+    try_json_loads,
 )
 
 
@@ -221,6 +222,13 @@ class JobRunnerV2(BaseRunner):
                 value = _input_parameters[i["name"]].get("value", None)
                 if value is None:
                     value = i.get("value")
+
+                # here we handle the scenario that the value passed is a stringified json.
+                # Normally, when a parameter is used as a user input, the value would
+                # always be a simple string. But in the case, the parameter value is to be
+                # derived from an earlier step output, it would be a stringified json
+                value = self.extract_parameter_value(value)
+
                 value_type = i["type"]
                 value = cast_inputs(value, value_type)
                 i["value"] = value
@@ -243,6 +251,12 @@ class JobRunnerV2(BaseRunner):
                 self.update_passed_inputs_dict(i["name"], value)
 
         return processed_inputs, input_dict
+
+    def extract_parameter_value(self, value: str) -> str:
+        value_if_dict = try_json_loads(value)
+        if value_if_dict is not None:
+            value = value_if_dict
+        return value
 
     def _handle_output_asset(self, key: str, value_type: ValueTypes, src: str, named_output_dir: str) -> str:
         """takes a file that is to become an output asset and moves it to the correct
