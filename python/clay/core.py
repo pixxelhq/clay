@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_a
 
 import requests
 import uvloop
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter, Retry  # type: ignore
 
 from clay import types
 from clay.exceptions import FailedExecutionException

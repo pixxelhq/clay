@@ -6,6 +6,7 @@ import unittest
 from typing import Any
 
 import shortuuid
+
 from clay import types
 from clay.core import ModelWrapper
 from clay.logger import Logger
@@ -131,8 +132,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             async def postprocess(self, raster, string) -> Any:
                 print(string)
                 return {
-                    "result": types.Raster(name="result", value=raster, parameter=True),
-                    "string": types.String(name="string", value=string.Value, parameter=True),
+                    "result": types.Raster(name="result", value=raster),
+                    "string": types.String(name="string", value=string.Value),
                 }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
@@ -151,15 +152,9 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         inputs_list = a.get_inputs_list()
         assert inputs_list[0] == self.raster
 
-        target_raster_asset_path = os.path.join(
-            self.testing_working_dir, "outputs", "result", "clipped.tiff"
-        )
-        target_raster_spec_path = os.path.join(
-            self.testing_working_dir, "outputs", "result", "spec.json"
-        )
-        target_string_spec_path = os.path.join(
-            self.testing_working_dir, "outputs", "string", "spec.json"
-        )
+        target_raster_asset_path = os.path.join(self.testing_working_dir, "outputs", "result", "clipped.tiff")
+        target_raster_spec_path = os.path.join(self.testing_working_dir, "outputs", "result", "spec.json")
+        target_string_spec_path = os.path.join(self.testing_working_dir, "outputs", "string", "spec.json")
         assert os.path.exists(target_raster_asset_path)
         assert os.path.exists(target_raster_spec_path)
         assert os.path.exists(target_string_spec_path)
@@ -277,4 +272,37 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         )
         self.assertRaises(ValueError, a.start)
 
+        env_patcher.stop()
+
+    async def test_receive_raw_input(self) -> None:
+        class M(ModelWrapper):
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
+                super().__init__(config, protocol, logger)
+
+            def setup(self):
+                self.receive_raw_inputs = True
+
+            async def preprocess(self, string, raster) -> Any:
+                assert not isinstance(raster, types.Raster)
+                assert raster == {
+                    "format": "raster",
+                    "name": "raster",
+                    "type": "url",
+                    "value": os.path.join(self.testing_working_dir, "inputs", "raster", "clipped.tiff"),
+                }
+
+                assert isinstance(string, types.String)
+                assert string == {"format": "string", "name": "string", "type": "str", "value": "hello world"}
+
+        env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
+        env_patcher.start()
+        print(os.getcwd())
+        a = JobRunnerV2(
+            "dummy",
+            M,
+            {"config": "./tests/runners/dummy-spec.yml"},
+            "./tests/runners/dummy-spec.yml",
+            None,
+        )
+        a.start()
         env_patcher.stop()
