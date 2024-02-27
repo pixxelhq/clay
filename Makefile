@@ -4,23 +4,11 @@ init:
 	pre-commit install --hook-type commit-msg
 
 package:
-		make build/package
-		make push/package
+	make build/package
 
 build/package:
-		pip install build
-		python -m build ./python
-
-push/package:
-		pip install twine
-		python -m twine upload \
-						--repository-url https://gitlab.com/api/v4/projects/38508365/packages/pypi \
-						--username ${CLAY_REGISTRY_NAME} \
-						--password ${CLAY_REGISTRY_PASS} \
-						--verbose \
-						--skip-existing \
-						python/dist/*
-
+	pip install build
+	python -m build ./python
 
 test:
 	go test ./...
