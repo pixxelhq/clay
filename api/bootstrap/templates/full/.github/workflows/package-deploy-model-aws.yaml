@@ -6,6 +6,9 @@ on:
       version:
         description: "model version eg. v0.0.1"
         required: true
+      docker-tag:
+        description: "docker tag for dev "
+        required: false
       push-to-orchestrator-dev:
         type: boolean
         description: "Push block to orchestrator dev"
@@ -25,7 +28,7 @@ env:
 
 jobs:
   image-build-push-dev:
-    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    runs-on: [ubuntu-latest]
     if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-dev == 'true')
     permissions:
       id-token: write
@@ -39,7 +42,6 @@ jobs:
           SHA: {{ "${{ github.sha }}" }}
         run: |
           echo "IMAGE_TAG=$SHA" >> $GITHUB_ENV
-
 
       - name: Set user given docker tag(dev)
         if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-dev == 'true' && github.event.inputs.docker-tag != '')
@@ -74,6 +76,19 @@ jobs:
         with:
           registry: {{ "${{ env.ECR_REGISTRY }}" }}
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: sigstore
+          aws-region: us-east-2
+
+
+      - name: Set aws codeartifact token for clay
+        id: codeartifact-token
+        run: |
+          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
+
       - name: Build and Push
         uses: docker/build-push-action@v4
         with:
@@ -81,14 +96,13 @@ jobs:
           platforms: linux/amd64
           push: true
           secrets: |
-              GITLAB_TOKEN_NAME={{ "${{ secrets.GITLAB_TOKEN_NAME }}" }}
-              GITLAB_TOKEN_PASS={{ "${{ secrets.GITLAB_TOKEN_PASS }}" }}
+              CODEARTIFACT_AUTH_TOKEN={{ "${{ env.CODEARTIFACT_AUTH_TOKEN }}" }}
           tags: |
               {{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ env.IMAGE_TAG }}" }}
 
 
   image-build-push-stg:
-    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    runs-on: [ubuntu-latest]
     if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-stg == 'true')
     permissions:
       id-token: write
@@ -139,6 +153,18 @@ jobs:
         with:
           registry: {{ "${{ env.ECR_REGISTRY }}" }}
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: sigstore
+          aws-region: us-east-2
+
+      - name: Set aws codeartifact token for clay
+        id: codeartifact-token
+        run: |
+          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
+
       - name: Build and Push
         uses: docker/build-push-action@v4
         with:
@@ -146,16 +172,13 @@ jobs:
           platforms: linux/amd64
           push: true
           secrets: |
-              GITLAB_TOKEN_NAME={{ "${{ secrets.GITLAB_TOKEN_NAME }}" }}
-              GITLAB_TOKEN_PASS={{ "${{ secrets.GITLAB_TOKEN_PASS }}" }}
+              CODEARTIFACT_AUTH_TOKEN={{ "${{ env.CODEARTIFACT_AUTH_TOKEN }}" }}
           tags: |
               {{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ env.IMAGE_TAG }}" }}
 
-
-
   push-block-to-dev:
     needs: [image-build-push-dev]
-    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    runs-on: [ubuntu-latest]
     env:
       ARN: REDACTED-AWS-ACCT
 
@@ -225,7 +248,7 @@ jobs:
 
 
   push-block-to-stg:
-    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    runs-on: [ubuntu-latest]
     needs: [image-build-push-stg]
     if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-stg == 'true' && needs.image-build-push-stg.result == 'success')
     env:

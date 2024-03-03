@@ -33,22 +33,18 @@ clean:
 		rm -rf **/__pycache__
 		rm -rf .pytest_cache
 
-
 dockerfile:
 		clay create dockerfile {{.ModelName}}/specifications/model_specification_dev.yaml {{.ModelName}}
 
-
 generate-secrets:
-		echo $$GITLAB_TOKEN_NAME > GITLAB_TOKEN_NAME.txt
-		echo $$GITLAB_TOKEN_PASS > GITLAB_TOKEN_PASS.txt
+		echo $$CODEARTIFACT_AUTH_TOKEN > CODEARTIFACT_AUTH_TOKEN.txt
 
 clean-secrets:
-		rm GITLAB_TOKEN_NAME.txt GITLAB_TOKEN_PASS.txt
+		rm CODEARTIFACT_AUTH_TOKEN.txt CODEARTIFACT_AUTH_TOKEN.txt
 
 docker-image: generate-secrets
 		sudo DOCKER_BUILDKIT=1 docker build \
-		--secret id=GITLAB_TOKEN_NAME,src=GITLAB_TOKEN_NAME.txt \
-		--secret id=GITLAB_TOKEN_PASS,src=GITLAB_TOKEN_PASS.txt \
+		--secret id=CODEARTIFACT_AUTH_TOKEN,src=CODEARTIFACT_AUTH_TOKEN.txt \
 		--build-arg AWS_ENV_PROFILE=$(AWS_ENV_PROFILE) \
 		-t {{.ModelName | ToLower}} \
 		-f Dockerfile \
