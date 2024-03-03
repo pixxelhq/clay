@@ -10,13 +10,11 @@ ENV PYTHONBUFFERED 1
 
 COPY {{ .Build.Requirements }} .
 
-RUN --mount=type=secret,id=GITLAB_TOKEN_NAME \
-    --mount=type=secret,id=GITLAB_TOKEN_PASS \
-    GITLAB_TOKEN_NAME=$(cat /run/secrets/GITLAB_TOKEN_NAME) && \
-    GITLAB_TOKEN_PASS=$(cat /run/secrets/GITLAB_TOKEN_PASS) && \
+RUN --mount=type=secret,id=CODEARTIFACT_AUTH_TOKEN \
+    CODEARTIFACT_AUTH_TOKEN=$(cat /run/secrets/CODEARTIFACT_AUTH_TOKEN) && \
     pip3 install --no-cache-dir \
     clay=={{ .Version }} \
-    --index-url https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN_PASS}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple \
+    --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
     -r {{ .Build.Requirements }}
 
 COPY {{ .SourceCodeFolder }} /app
