@@ -1,0 +1,67 @@
+name: 'Deploy Docs'
+
+on:
+  push:
+    paths:
+      - 'mkdocs/**'
+    branches:
+      - main
+
+env:
+  AWS_DEFAULT_REGION: us-east-2
+  ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: sigstore
+          aws-region: ${{env.AWS_DEFAULT_REGION}}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          docker build . -t $ECR_REGISTRY/${{ github.event.repository.name }}-docs:${{ github.sha }} -f clay-docs.Dockerfile
+          docker push $ECR_REGISTRY/${{ github.event.repository.name }}-docs:${{ github.sha }}
+
+  deploy:
+    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: sigstore
+          aws-region: ${{env.AWS_DEFAULT_REGION}}
+
+      - name: Deploy Helm
+        uses: bitovi/github-actions-deploy-eks-helm@v1.2.3
+        with:
+          aws-region: ${{env.AWS_DEFAULT_REGION}}
+          cluster-name: p-core-services-k8s
+          config-files: mkdocs/clay-docs-values.yaml
+          chart-path: raystack/app
+          chart-repository: https://raystack.github.io/charts/
+          namespace: docs
+          values: image.tag=${{ github.sha }}
+          name: clay-docs
+          helm-wait: true
+          timeout: 600s
