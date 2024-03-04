@@ -6,6 +6,15 @@ on:
       - 'mkdocs/**'
     branches:
       - main
+  release:
+    types:
+      - released
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: false
+        description: "Tag used to define Orchestrator's image"
+        default: latest
 
 env:
   AWS_DEFAULT_REGION: us-east-2
@@ -17,7 +26,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: [self-hosted, self-hosted-runners]
+    runs-on: [ self-hosted, self-hosted-runners ]
+    outputs:
+      img-tag: ${{ steps.persist_img_tag.outputs.IMG_TAG }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -29,19 +40,65 @@ jobs:
           audience: sigstore
           aws-region: ${{env.AWS_DEFAULT_REGION}}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Set Image Tag (PR On Main)
+        if: ${{ github.event_name == 'push' }}
+        env:
+          SHA: ${{ github.sha }}
         run: |
-          docker build . -t $ECR_REGISTRY/${{ github.event.repository.name }}-docs:${{ github.sha }} -f clay-docs.Dockerfile
-          docker push $ECR_REGISTRY/${{ github.event.repository.name }}-docs:${{ github.sha }}
+          echo "IMAGE_TAG=$SHA" >> $GITHUB_ENV
+
+      - name: Set Image Tag (Workflow Dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Set Image Tag (Release)
+        if: ${{ github.event_name == 'release'}}
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Persist Image Tag across Jobs
+        id: persist_img_tag
+        env:
+          TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          echo "IMG_TAG=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Login to AWS Container Registry
+        id: login-ecr
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.ECR_REGISTRY }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64
+          file: clay-docs.Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/clay-docs:${{ env.IMAGE_TAG }}
 
   deploy:
     runs-on: [self-hosted, self-hosted-runners]
     needs: build
     steps:
+      - name: Set Image tag
+        id: image_tag
+        run: |
+          IMAGE_TAG=${{ needs.build.outputs.img-tag }}
+          IMAGE_TAG=${IMAGE_TAG:-"latest"}
+          echo "$IMAGE_TAG"
+          echo "::set-output name=value::$IMAGE_TAG"
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -61,7 +118,7 @@ jobs:
           chart-path: raystack/app
           chart-repository: https://raystack.github.io/charts/
           namespace: docs
-          values: image.tag=${{ github.sha }}
+          values: image.tag=${{ steps.image_tag.outputs.value }}
           name: clay-docs
           helm-wait: true
           timeout: 600s
