@@ -8,9 +8,11 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
+import urllib3
 from s3fs import S3FileSystem
 from urllib3.util import parse_url
 
+import clay
 from clay import types, utils
 from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
@@ -133,6 +135,10 @@ class JobRunner(BaseRunner):
             return data
         if data.Type != ValueTypes.URL.value or not data.IsArtifact:
             return data
+
+        if data.Type == ValueTypes.URL.value and data.Format == types.FormatTypes.VECTOR.value:
+            return self._handle_vector_input_assets(data, named_input_dir)
+
         url_fragments = parse_url(str(data.Value))
         if url_fragments.scheme != "s3":
             self.logger.warning(f"unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
@@ -158,6 +164,25 @@ class JobRunner(BaseRunner):
                 self.logger.info(f"upload of {local_path} to {named_remote_output_dir} complete")
         data.Value = str(local_path)
         return data
+
+    def _handle_vector_input_assets(
+        self,
+        data: types.Data,
+        named_input_dir: str,
+    ) -> types.Data:  # type: ignore
+        try:
+            _ = parse_url(str(data.Value))
+        except urllib3.exceptions.LocationParseError:
+            # if the url is not parseable, then we assume it is a stringified geojson
+            try:
+                parsed_data = json.loads(str(data.Value))
+                local_path = pathlib.Path(named_input_dir, os.path.basename("input.geojson"))
+                with open(local_path, "w+") as f:
+                    json.dump(parsed_data, f, indent=4)
+                data.Value = str(local_path)
+                return data
+            except json.JSONDecodeError:
+                clay.failure("failed to parse geojson with value {0}".format(data.Value))
 
     def _backward_compatibility_missing_infparams(self) -> None:
         if self._inf_opts.get(_ExpectedInfParameters.WorkflowId) is None:
