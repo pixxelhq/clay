@@ -3,6 +3,9 @@ init:
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
+init-requirements:
+	pip install -r python/requirements/requirements-dev.txt
+
 package:
 	make build/package
 
@@ -21,6 +24,9 @@ build-docs:
 
 serve-docs:
 		cd mkdocs; mkdocs serve
+
+docs:
+	cd mkdocs; mkdocs build; mkdocs serve;
 
 format:
 		@cd python; \

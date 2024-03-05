@@ -1,29 +1,72 @@
 theme:
   name: material
+  icon:
+    admonition:
+      note: fontawesome/solid/note-sticky
+    pymdownx.details:
+      tip: fontawesome/solid/bullhorn
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
   # logo: img/favicon.png
 site_name: Clay Documentation
-
+repo_name: Clay
+repo_url: https://github.com/example/clay
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+  - attr_list
+  - md_in_html
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.details
+  - admonition
   - toc:
       permalink: "#"
 
+extra:
+  version:
+    provider: mike
 plugins:
   - search
   - mkdocstrings:
       enable_inventory: true
       handlers:
         python:
-          paths: [..]
+          paths: ["../python"]
           options:
-            docstring_style: sphinx
+            docstring_style: google
+            show_root_toc_entry: false
+            heading_level: 4
+            show_source: true
+            show_bases: false
+            show_object_full_path: true
           import:
-            - https://docs.python-requests.org/en/master/objects.inv
-            - https://docs.python.org/3.9/objects.inv
+            - url: https://docs.python-requests.org/en/master/objects.inv
+            - url: https://docs.python.org/3.9/objects.inv
+            - url: https://docs.pydantic.dev/latest/objects.inv
+          domains: ["py", "std"]
 
 nav:
   - Home: "index.md"
+  - 10000 Feet View: "overview.md"
+  - Five Minute Blitz: "blitz-concepts.md"
+  - Usage: "usage.md"
+  - Types: "types.md"
+  - Block Specification: "spec.md"
+  - FAQs: "faq.md"
+  - API Reference: "api-reference.md"
+  - CLI Reference: "cli-reference.md"
