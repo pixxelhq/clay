@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: REDACTED.dkr.ecr.us-east-2.amazonaws.com/clay-docs
+
+migration:
+  enabled: false
+
+service:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: tcp
+      protocol: TCP
+      name: tcp
+
+ingress:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+
+container:
+  ports:
+    - name: tcp
+      containerPort: 8080
+      protocol: TCP
+  livenessProbe:
+    httpGet:
+      path: /
+      port: tcp
+  readinessProbe:
+    httpGet:
+      path: /
+      port: tcp
+
+config:
+  DOMAIN: clay.example.com

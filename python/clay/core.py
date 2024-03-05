@@ -148,6 +148,7 @@ class ModelWrapper:
         self.run_setup()
 
     def run_setup(self) -> None:
+        """Runs setup"""
         self.params = {}
         parameters = getattr(self.config, "parameters", None)
         if parameters is not None:
