@@ -4,20 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "model version eg. v0.0.1"
+        description: "Version of the model eg. v0.0.1"
         required: true
       docker-tag:
-        description: "docker tag for dev "
+        description: "Custom Docker Tag (For Dev Release)"
         required: false
-      push-to-orchestrator-dev:
-        type: boolean
-        description: "Push block to orchestrator dev"
-        default: true
-      push-to-orchestrator-stg:
-        type: boolean
-        description: "Push block to orchestrator stg"
-        default: false
-
+      environment:
+        description: "Env to which the block is to be added"
+        type: choice
+        default: development
+        options:
+          - development
+          - staging
 
 env:
   AWS_DEFAULT_REGION: us-east-2
@@ -29,7 +27,7 @@ env:
 jobs:
   image-build-push-dev:
     runs-on: [ubuntu-latest]
-    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-dev == 'true')
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
     permissions:
       id-token: write
       contents: write
@@ -37,14 +35,14 @@ jobs:
       img-tag: {{ "${{ steps.persist_img_tag.outputs.IMG_TAG }}" }}
     steps:
       - name: Set SHA as docker tag(dev)
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-dev == 'true' && github.event.inputs.docker-tag == '')
+        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.docker-tag == '')
         env:
           SHA: {{ "${{ github.sha }}" }}
         run: |
           echo "IMAGE_TAG=$SHA" >> $GITHUB_ENV
 
       - name: Set user given docker tag(dev)
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-dev == 'true' && github.event.inputs.docker-tag != '')
+        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.docker-tag != '')
         env:
           TAG: {{ "${{ github.event.inputs.docker-tag }}" }}
         run: |
@@ -103,7 +101,7 @@ jobs:
 
   image-build-push-stg:
     runs-on: [ubuntu-latest]
-    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-stg == 'true')
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     permissions:
       id-token: write
       contents: write
@@ -117,7 +115,7 @@ jobs:
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Create Git tag
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-stg == 'true')
+        if: (github.event_name == 'workflow_dispatch')
         uses: actions/github-script@v5
         with:
           script: |
@@ -182,7 +180,7 @@ jobs:
     env:
       ARN: REDACTED-AWS-ACCT
 
-    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-dev == 'true')
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
     permissions:
       id-token: write
       contents: write
@@ -250,7 +248,7 @@ jobs:
   push-block-to-stg:
     runs-on: [ubuntu-latest]
     needs: [image-build-push-stg]
-    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.push-to-orchestrator-stg == 'true' && needs.image-build-push-stg.result == 'success')
+    if: (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging' && needs.image-build-push-stg.result == 'success')
     env:
       ARN: REDACTED-AWS-ACCT
     permissions:

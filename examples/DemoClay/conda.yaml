@@ -1,7 +1,0 @@
-name: env
-channels:
-  - conda-forge
-dependencies:
-  - gdal=3.6.2
-  - rasterio
-  - fiona
