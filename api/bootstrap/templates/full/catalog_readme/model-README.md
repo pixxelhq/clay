@@ -28,8 +28,8 @@ Fill in the details in below section
 ---
 name: Name of model
 author: authorname
-input-img: ![]({{ addUrl "sample_input.png" }})
-output-img: ![]({{ addUrl "sample_output.png" }})
+input-img: {{ addUrl "sample_input.png" }}
+output-img: {{ addUrl "sample_output.png" }}
 inputs: {input1: 'input description', input2: 'input description'}
 outputs: {output1: 'output description', output2: 'output description' }
 ---

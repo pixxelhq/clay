@@ -228,7 +228,7 @@ jobs:
         run: |
           sed -i "s|image:.*|image: \"{{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ steps.image_tag.outputs.value }}" }}\"|" {{ .ModelName }}/specifications/model_specification_dev.yaml
           sed -i "s|catalog_content_url:.*|catalog_content_url: \"{{ "${{ steps.upload_readme.outputs.url }}" }}\"|" {{ .ModelName }}/specifications/model_specification_dev.yaml
-          sed -i "s|version:.*|version: \"{{ "${{ env.VERSION }}" }}\"|" {{ .ModelName }}/specifications/model_specification_dev.yaml
+          sed -i "s|^version:.*|version: \"{{ "${{ env.VERSION }}" }}\"|" {{ .ModelName }}/specifications/model_specification_dev.yaml
 
       - name: Push model to orchestrator
         run: |
@@ -238,7 +238,7 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -a -m "Add changes"
+          git commit -a -m "updated image + catalog url + version"
 
       - name: Push changes back to github
         uses: ad-m/github-push-action@master
@@ -299,7 +299,7 @@ jobs:
         run: |
           sed -i "s|image:.*|image: \"{{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ steps.image_tag.outputs.value }}" }} \"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
           sed -i "s|catalog_content_url:.*|catalog_content_url: \"{{ "${{ steps.upload_readme.outputs.url }}" }}\"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
-          sed -i "s|version:.*|version: \"{{ "${{ env.VERSION }}" }}\"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
+          sed -i "s|^version:.*|version: \"{{ "${{ env.VERSION }}" }}\"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
 
       - name: Push model to orchestrator
         run: |
@@ -309,7 +309,7 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -a -m "Add changes"
+          git commit -a -m "updated image + catalog url + version"
 
       - name: Push changes back to github
         uses: ad-m/github-push-action@master
