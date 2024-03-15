@@ -20,7 +20,7 @@ on:
 env:
   AWS_DEFAULT_REGION: us-east-2
   ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
-  Frontier_Sub: {{ "${{ secrets.AUTH_SUB}}" }}
+  Frontier_Sub: {{ "${{ secrets.AUTH_SUB }}" }}
   Frontier_Org_Ids: {{ "${{ secrets.AUTH_ORG_IDS }}" }}
   VERSION: {{ "${{ github.event.inputs.version }}" }}
 
