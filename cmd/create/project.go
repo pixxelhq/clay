@@ -15,6 +15,9 @@ var projectCmd = &cobra.Command{
 	Long:  heredoc.Doc(`Generate starter files for your model`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 2 {
+			return fmt.Errorf("invalid argument to the command please check `clay create project --help`")
+		}
 		outputDir := args[0]
 		modelName := args[1]
 		err := bootstrap.CreateProject(outputDir, modelName)
