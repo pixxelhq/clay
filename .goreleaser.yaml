@@ -9,6 +9,7 @@ builds:
     goarch: [amd64, arm64]
     binary: clay
     main: ./main.go
+    ldflags: -X cmd.Version={{ .Tag }}
     env:
       - CGO_ENABLED=0
 
