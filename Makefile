@@ -19,6 +19,9 @@ test:
 
 .PHONY: docs
 
+spell-check-docs:
+	codespell mkdocs/docs/*.md
+
 build-docs:
 		cd mkdocs; mkdocs build
 
@@ -26,7 +29,7 @@ serve-docs:
 		cd mkdocs; mkdocs serve
 
 docs:
-	cd mkdocs; mkdocs build; mkdocs serve;
+	cd mkdocs; mkdocs build -v; mkdocs serve;
 
 format:
 		@cd python; \

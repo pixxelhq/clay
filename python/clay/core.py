@@ -96,7 +96,19 @@ class HeaderBuilder:
 
 
 class InferenceCtx:
+    """
+    Utility object whose lifetime is scoped to a single inference run. This object is essentially used
+    to move data in and out of a model wthin a runner. It also stores simple metrics recorded by the
+    _ModelWrapper_ like inference start and end times among other things that are to be shipped
+    back to orchestrator once the model execution completes.
+    """
+
     def __init__(self, opts: Optional[types.InferenceOpts] = None) -> None:
+        """
+        Args:
+            opts (Optional[types.InferenceOpts], optional):
+                Data being passed into the model. Defaults to None.
+        """
         self._outputs_buffer: types.OutputsBuffer = []
         self._opts = opts
         self._model_inf_start_time: str = ""
@@ -124,6 +136,11 @@ class RunType(Enum):
 
 
 class ModelWrapper:
+    """The base class that wraps all user defined models. Every user defined model is expected
+    to inherit this class. This enforces a defined structure on the user and ensures proper
+    integration with execution modes.
+    """
+
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
     def __init__(
@@ -132,6 +149,16 @@ class ModelWrapper:
         protocol: str = "abfs",
         logger: Optional[Logger] = None,
     ) -> None:
+        """
+        Args:
+            config (str): Path to model specification file.
+            protocol (str, optional):
+                Storage protocol to be used internally. Defaults to "abfs".
+            logger (Optional[Logger], optional):
+                Custom logger. If not provided, _clay_ uses it's internal default logger.
+                Defaults to None.
+        """
+
         self.protocol = protocol
         self.config = yaml_to_namespace(config)
         if logger is None:
@@ -159,15 +186,18 @@ class ModelWrapper:
 
     @cached_property
     def recieve_input_properties(self) -> bool:
+        """
+        Returns:
+            bool: _description_
+        """
         return False
 
     @cached_property
     def receive_raw_inputs(self) -> bool:
-        """returns the raw inputs accepted by the mode. If `False`, returns the inputs as
-        processed by clay.
-
-        Returns:
-            bool: Returns processed inputs if value is set
+        """If set to `True`, `preprocess` would receive unprocessed, raw inputs,
+        instead of data items cleaned and processed in to `clay.types`. This is
+        generally a very unsafe operation and is not recommended. This kept for
+        reasons for backward compatibility.
         """
         return False
 
@@ -193,17 +223,17 @@ class ModelWrapper:
         pass
 
     def setup(self, *args: Any, **kwargs: Any) -> None:
+        """Abstract method that is to be overriden in the user model.
+        This method will always run before any user code is executed. Any form of
+        model setup code (download model weights etc) is to be defined in the `setup`
+        method of the subclass (i.e. the model code).
+
+        The arguments to this method are the items defined in the _parameter_ (WIP) section
+        of the model spec file.
+        """
         raise NotImplementedError
 
     def _dep_parse_inputs(self, inputs: list) -> dict:
-        """
-        Makes sure all the inputs are correctly cast into expected types
-        We leave items with unidentified `type`s as strings by default
-
-        Returns a dict mapping the parameter names to one of:
-            - the value of the parameter
-            - the entire set of properties of the parameter along with the values
-        """
         # remove empty dicts
         inputs = list(filter(lambda x: len(x) > 0, inputs))
 
@@ -242,15 +272,98 @@ class ModelWrapper:
         pass
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
+        """The preprocess abstract method. This the first method that the model
+        needs to *compulsorily* override.
+
+        The arguments are defined by the user and *has to* corressponds
+        to the inputs mentioned in the *block spec* [WIP, link block spec inputs here].
+
+        While there is no compulsion, the
+        _recommended practice_ is that any type of data massaging and cleaning, like
+        flattening, normalization etc, should be done here. Such that in the case of
+        a runtime exception, it is easier to isolate the fault.
+
+        This method can **only return a dict** wherein each key is a string identifier and
+        the corressponding value could be of any type. The only contraint is that the next
+        method in the chain (`inference` in this case) needs to have named arguments identical
+        to the dictionary keys.
+
+        !!! note
+            There is a future plan to support tuples and lists as return values.
+
+        Raises:
+            NotImplementedError:
+                Raised during runtime if the model doesn't implement the method.
+
+        Returns:
+            Any:
+                Returns a Dict of values
+        """
         raise NotImplementedError
 
     async def inference(self, *args: Any, **kwargs: Any) -> Any:
+        """The inference abstact method. This is the second method that the user is **compulsorily**
+        required to define.
+
+        The arguments to this method are to be defined by the user.
+
+        !!! warning
+            The arguments should be same as the keys of the dictionary returned from
+            the preprocess method.
+
+        Raises:
+            NotImplementedError: Raised during runtime if the method is not defined by the user.
+
+        Returns:
+            Any: Returns a Dict of values.
+        """
         raise NotImplementedError
 
     async def postprocess(self, *args: Any, **kwargs: Any) -> Dict[str, types.Data]:
+        """The postprocess abstract method. This is the third method that the user is **compulsorily**
+        required to defined.
+
+        The arguments to this method are to be defined by the user.
+
+        !!! warning
+            The arguments should be same as the keys of the dictionary returned from
+            the inference method.
+
+        Raises:
+            NotImplementedError: Raised during runtime if the method is not defined.
+
+        Returns:
+            Dict[str, types.Data]: Returns a dict of values.
+        """
         raise NotImplementedError
 
     async def infer(self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]) -> InferenceCtx:
+        """Entrypoint to the model inference process. All runners would call the
+        `infer` method defined on the model at a certain point to start the actual
+        inference process.
+
+        This is the common entrypoint into models used by all runner implementations.
+
+        Internally, the `infer` method, would call the *three user defined* methods in
+        the following order, **preprocess** -> **inference** -> **postprocess**
+
+        Args:
+            inputs (Dict[str, Any]):
+                The inputs are provided to this method as a dictionary with string keys.
+                If `receive_raw_inputs` is set to `True`, then the values would be python
+                dictionaries. If set to `False`, the values would a type defined in
+                `clay.types`.
+            opts (Optional[types.InferenceOpts]):
+                Data scoped to a single inference run. This contextual information
+                is not used by the model in anyway. Rather this data is used by clay
+                to perform housekeeping, infrastructur related tasks like callbacks
+                and, more importantly, pass out a list of outputs to the runner.
+
+                For more information, see [this faq.](faq.md#why-do-we-have-a-inferencectx-type-and-why-does-infer-return-a-inferencectx)
+
+        Returns:
+            InferenceCtx: A context class scoped to the inference run.
+        """
         _inf_ctx = InferenceCtx(opts=opts)
         try:
             _return_vals = await self.preprocess(**inputs)
@@ -275,21 +388,17 @@ class ModelWrapper:
         return _inf_ctx
 
     def get_logs(self) -> Optional[str]:
-        """Returns all model logs stored in the buffered stream
-
-        :return: model logs
-        """
+        """returns the logger buffer as a string"""
         return get_streamvalues(self.logger)
 
     def get_user_logs(self) -> Optional[str]:
-        """Gets the user logs logged at INFO level or above with the model's logger
-
-        :return: user logs
-        """
+        """Gets the user logs logged at INFO level or above with the model's logger"""
         return get_user_logs(self.logger)
 
 
 class BaseRunner(object):
+    """The base class that wraps all runner implementations."""
+
     _SUPPORTED_RUN_MODES: List[str] = ["argo", "http", "job"]
     _DEFAULT_EVENT_LOOP_POLICY = uvloop.EventLoopPolicy()
 

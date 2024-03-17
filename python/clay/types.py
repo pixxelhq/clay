@@ -40,68 +40,83 @@ class FormatTypes(Enum):
     TABULAR = "tabular"
 
 
-def add_inline_fields(
-    from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]
-) -> None:
+def add_inline_fields(from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]) -> None:
     for k, v in from_model.__annotations__.items():
         to_model.__annotations__[k] = v
 
 
 class RasterProperties(pydantic.BaseModel):
-    """Hello
+    """Supported properties for a raster
 
     Attributes:
-        Bands: _description_
-        Source: source
-        Collection: collection
-        Dtype: dtype
+        Bands:
+            List of bands that the raster contains. This list is expected to be *ordered*, meaning
+            that the order of bands in the raster should corresspond with the order of bands in this
+            list. Defaults to `None`.
+        Source:
+            The orignal provider of the tiles. While this is a string and can really contain any values,
+            we generally support `planetary` and `pixxel`. Defaults to `None`.
+        Collection:
+            The satellite collection. Defaults to `None`.
+        Dtype:
+            The type of literal values in the raster. Defaults to `None`.
     """
 
-    Bands: Annotated[
-        Optional[List[str]], Field(serialization_alias="bands", alias="bands")
-    ] = None
+    Bands: Annotated[Optional[List[str]], Field(serialization_alias="bands", alias="bands")] = None
 
-    Source: Annotated[
-        Optional[str], Field(serialization_alias="source", alias="source")
-    ] = None
-    Collection: Annotated[
-        Optional[str], Field(serialization_alias="collection", alias="collection")
-    ] = None
-    Dtype: Annotated[
-        Optional[str], Field(serialization_alias="dtype", alias="dtype")
-    ] = None
+    Source: Annotated[Optional[str], Field(serialization_alias="source", alias="source")] = None
+    Collection: Annotated[Optional[str], Field(serialization_alias="collection", alias="collection")] = None
+    Dtype: Annotated[Optional[str], Field(serialization_alias="dtype", alias="dtype")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
 
 class VectorProperties(pydantic.BaseModel):
-    Geometry: Annotated[Optional[str], Field(serialization_alias="geometry")] = None
+    """Supported properties for a vector
+
+    Attributes:
+        Geometry: Corresponds to the geometry of the geojson. Defaults to `None`.
+    """
+
+    Geometry: Annotated[Optional[str], Field(serialization_alias="geometry", alias="geometry")] = None
 
 
 class DateProperties(pydantic.BaseModel):
-    """_summary_
+    """Properties of a date
 
-    :param pydantic: _description_
-    :type pydantic: _type_
+    Attributes:
+        FromAoi:
+            True if the date is to be taken from the AOI. False, otherwise. Defaults to `None`.
     """
 
     FromAoi: Annotated[Optional[bool], Field(serialization_alias="from_aoi")] = None
 
 
 class TabularFileSchema(pydantic.BaseModel):
+    """Represents the schema of a table
+
+    Attributes:
+        Headers: The ordered list of columns in the table. Defaults to `None`.
+    """
+
     Headers: Annotated[Optional[List[str]], Field(serialization_alias="headers")] = None
 
 
 class TabularProperties(pydantic.BaseModel):
+    """Propertiers for a table
+
+    Attributes:
+        FileType:
+            Type of the file. Usually, `csv`. Defaults to `None`.
+        FileSchema:
+            Schema of the table. Defaults to `None`.
+    """
+
     FileType: Annotated[Optional[str], Field(serialization_alias="file_type")] = None
-    FileSchema: Annotated[
-        Optional[TabularFileSchema], Field(serialization_alias="file_schema")
-    ] = None
+    FileSchema: Annotated[Optional[TabularFileSchema], Field(serialization_alias="file_schema")] = None
 
 
-Properties = Union[
-    RasterProperties, VectorProperties, DateProperties, TabularProperties
-]
+Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
 
 
 FormatPropertyMap = {
@@ -113,6 +128,7 @@ FormatPropertyMap = {
 
 
 def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Optional[Properties]:
+    print(output_cfg)
     format = output_cfg["format"]
     props = output_cfg.get("properties")
     if props is None:
@@ -127,18 +143,10 @@ class ModelInfTimes(pydantic.BaseModel):
 
 class Callback(pydantic.BaseModel):
     Id: Annotated[str, Field(serialization_alias="id")]
-    State: Annotated[
-        ModelStates, Field(serialization_alias="state")
-    ] = ModelStates.INPROGRESS
-    Inputs: Annotated[
-        Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")
-    ] = None
-    Outputs: Annotated[
-        Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")
-    ] = None
-    Result: Annotated[
-        Optional[List[Dict[str, Any]]], Field(serialization_alias="result")
-    ] = None
+    State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
+    Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
+    Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
+    Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
     Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
     UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
     ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
@@ -146,22 +154,27 @@ class Callback(pydantic.BaseModel):
     SendTime: Annotated[Optional[str], Field(serialization_alias="send_time")] = None
     StartTime: Annotated[Optional[str], Field(serialization_alias="start_time")] = None
     EndTime: Annotated[Optional[str], Field(serialization_alias="end_time")] = None
-    BlockInfStartTime: Annotated[
-        Optional[str], Field(serialization_alias="block_inf_start_time")
-    ] = None
-    BlockInfEndTime: Annotated[
-        Optional[str], Field(serialization_alias="block_inf_end_time")
-    ] = None
-    ModelInfStartTime: Annotated[
-        Optional[str], Field(serialization_alias="model_inf_start_time")
-    ] = None
-    ModelInfEndTime: Annotated[
-        Optional[str], Field(serialization_alias="model_inf_end_time")
-    ] = None
+    BlockInfStartTime: Annotated[Optional[str], Field(serialization_alias="block_inf_start_time")] = None
+    BlockInfEndTime: Annotated[Optional[str], Field(serialization_alias="block_inf_end_time")] = None
+    ModelInfStartTime: Annotated[Optional[str], Field(serialization_alias="model_inf_start_time")] = None
+    ModelInfEndTime: Annotated[Optional[str], Field(serialization_alias="model_inf_end_time")] = None
     model_config = ConfigDict(use_enum_values=False)
 
 
 class InferenceOpts(pydantic.BaseModel):
+    """Stores data whose lifetimes are scoped to a particular
+    inference run.
+
+    This data is meant to be used internally by _clay_.
+
+    Attributes:
+        Id (str): A uuidv4 string uniquely identifying this inference run.
+        InputList (List[Dict[str, Any]]):
+            List of inputs provided to the model. This data is used by the runner during callbacks.
+        InputPropMap (Dict[str, Any]):
+            A dictionary mapping the input names with their values.
+    """
+
     Id: str
     InputList: List[Dict[str, Any]] = []
     InputPropMap: Dict[str, Any] = defaultdict(None)
@@ -169,9 +182,7 @@ class InferenceOpts(pydantic.BaseModel):
 
 class _DataMeta(pydantic.BaseModel):
     Format: Annotated[str, Field(alias="format", serialization_alias="format")]
-    Type: Annotated[
-        Optional[str], Field(alias="type", serialization_alias="type")
-    ] = None
+    Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
     Name: Annotated[str, Field(alias="name", serialization_alias="name")]
     Value: Annotated[
         Optional[Union[int, float, str, bool]],
@@ -181,15 +192,13 @@ class _DataMeta(pydantic.BaseModel):
         Optional[Union[int, float, str, bool]],
         Field(alias="default", serialization_alias="default"),
     ] = None
-    IsArtifact: Annotated[
-        Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")
-    ] = None
+    IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
 
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
 
 class Raster(_DataMeta):
-    """Raster type"""
+    """Type representing `TIFFs` and `GeoTIFFs`"""
 
     Properties: Annotated[
         Optional[RasterProperties],
@@ -208,9 +217,7 @@ class Raster(_DataMeta):
         *args: Any,
         **kwargs: Any,
     ):
-        """The type representing a `Raster`. A `Raster` in this context generally
-        means a `Tiff`/`GeoTiff` file.
-
+        """
         Args:
             name (str): Name of the data item
             value (Union[int, float, str, bool]): The value of the raster.Usually a url
@@ -236,7 +243,7 @@ class Raster(_DataMeta):
 
 
 class Vector(_DataMeta):
-    """Vector Type"""
+    """Type representing Vectors i.e. `GeoJSONs`"""
 
     Properties: Annotated[
         Optional[VectorProperties],
@@ -255,15 +262,15 @@ class Vector(_DataMeta):
         *args: Any,
         **kwargs: Any,
     ):
-        """This type represents a Vector, i.e. Geojsons.
-
+        """
         Args:
             name (str): Name of the data item.
             value (str): Value of the file.
             default (Optional[Union[str, int, float, bool]], optional):
                 Any default value for this item. Defaults to None.
-            is_artifact (Optional[bool], optional): _description_. Defaults to True.
-            properties (Optional[VectorProperties], optional): _description_.
+            is_artifact (Optional[bool], optional):
+                True if the data item has a supporting asset. Defaults to True.
+            properties (Optional[VectorProperties], optional): Properties of the GeoJSON.
                 Defaults to None.
         """
         super().__init__(
@@ -278,6 +285,8 @@ class Vector(_DataMeta):
 
 
 class Date(_DataMeta):
+    """Type representing a Date"""
+
     Properties: Annotated[
         Optional[DateProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -294,6 +303,14 @@ class Date(_DataMeta):
         *args: Any,
         **kwargs: Any,
     ):
+        """
+
+        Args:
+            name (str): Name of the data item.
+            value (str): Value of the item.
+            properties (Optional[DateProperties], optional): Properties of the date. Defaults to None.
+            default (Optional[Union[str, int, float, bool]], optional): _description_. Defaults to None.
+        """
         super().__init__(
             Format=FormatTypes.DATE.value,
             Type=PrimitiveTypes.STR.value,
@@ -306,6 +323,8 @@ class Date(_DataMeta):
 
 
 class Tabular(_DataMeta):
+    """Type representing a table"""
+
     Properties: Annotated[
         Optional[TabularProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -323,6 +342,15 @@ class Tabular(_DataMeta):
         *args: Any,
         **kwargs: Any,
     ):
+        """
+
+        Args:
+            name (str): Name of the data item.
+            value (str): Value of the item.
+            is_artifact (Optional[bool], optional): True if the data item has a supporting asset. Defaults to True.
+            properties (Optional[TabularProperties], optional): Properties of the table. Defaults to None.
+            default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
+        """
         super().__init__(
             Format=FormatTypes.TABULAR.value,
             Value=value,
@@ -335,6 +363,8 @@ class Tabular(_DataMeta):
 
 
 class String(_DataMeta):
+    """Type representing a string."""
+
     # pydantic throws error without this
     __null__: Any
 
@@ -346,6 +376,12 @@ class String(_DataMeta):
         *args: Any,
         **kwargs: Any,
     ):
+        """
+        Args:
+            name (str): Name of the data item.
+            value (Optional[str], optional): Value of the data item. Defaults to `None`.
+            default (Optional[Union[str, int, float, bool]], optional): Ant default value. Defaults to None.
+        """
         super().__init__(
             Format=FormatTypes.STRING.value,
             Name=name,
@@ -357,6 +393,8 @@ class String(_DataMeta):
 
 
 class Number(_DataMeta):
+    """Type representing a number."""
+
     # pydantic throws error without this
     __null__: Any
 
@@ -368,6 +406,13 @@ class Number(_DataMeta):
         *args: Any,
         **kwargs: Any,
     ):
+        """
+
+        Args:
+            name (str): Name of the data item.
+            value (Union[int, float, None], optional): Value of the data item. Defaults to None.
+            default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
+        """
         super().__init__(
             Format=FormatTypes.NUMBER.value,
             Name=name,

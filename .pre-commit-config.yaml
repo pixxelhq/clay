@@ -2,12 +2,11 @@
 # See https://pre-commit.com/hooks.html for more hooks
 exclude: "clay/templates"
 repos:
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.11
     hooks:
       - id: ruff
-        args: [ --fix ]
+        args: [--fix]
       - id: ruff-format
         name: Formatting with Ruff
 
@@ -32,7 +31,7 @@ repos:
     hooks:
       - id: pyright
         name: Type Checking with Pyright
-        args: [ --project=pyright-config.json ]
+        args: [--project=pyright-config.json]
 
   - repo: https://github.com/TekWizely/pre-commit-golang
     rev: v1.0.0-rc.1
@@ -45,3 +44,10 @@ repos:
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
