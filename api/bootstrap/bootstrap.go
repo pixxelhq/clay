@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 // Embedding Templates in final build
@@ -23,8 +25,9 @@ func CreateProject(outputDir, modelName string) error {
 	if err != nil {
 		return err
 	}
-	modelName = strings.ToLower(modelName)
-	data := getTemplateData(modelName)
+	titlemodelName := strcase.ToCamel(modelName)
+	specmodelName := strings.ToLower(modelName)
+	data := getTemplateData(titlemodelName, specmodelName)
 	outputDir = filepath.Join(outputDir, modelName)
 	fmt.Printf("Cleaning up %s ...\n-----------------\n", outputDir)
 	deleteDir(outputDir)
@@ -40,7 +43,7 @@ func CreateProject(outputDir, modelName string) error {
 		}
 		relPath, _ := filepath.Rel(fullTemplateRoot, path)
 		outPath := filepath.Join(outputDir, relPath)
-		outPath = strings.Replace(outPath, "src", modelName, 1)
+		outPath = strings.Replace(outPath, "src", titlemodelName, 1)
 		if d.IsDir() {
 			if err := os.Mkdir(outPath, 0755); err != nil {
 				fmt.Println(outPath, err)

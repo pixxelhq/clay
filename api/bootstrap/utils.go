@@ -109,20 +109,20 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 	return nil
 }
 
-func getTemplateData(modelName string) map[string]TemplateData {
+func getTemplateData(titlemodelName string, specmodelName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"model.py":                      Model{ModelName: modelName},
-		"entry.py":                      Entry{ModelName: modelName},
-		"README.md":                     Readme{Name: modelName},
-		"model_specification_dev.yaml":  ModelSpecification{Name: modelName},
-		"model_specification_prod.yaml": ModelSpecification{Name: modelName},
-		"model_specification_stg.yaml":  ModelSpecification{Name: modelName},
-		"test_model.py":                 TestModel{ModelName: modelName},
-		"Makefile":                      Makefile{ModelName: modelName},
-		"test_main.py":                  TestModel{ModelName: modelName},
-		"pyproject.toml":                PyProject{ModelName: modelName},
-		"package-deploy-model-aws.yaml": GithubWorkflow{ModelName: modelName, Version: Version},
-		"build.yaml":                    GithubWorkflow{ModelName: modelName},
+		"model.py":                      Model{ModelName: titlemodelName},
+		"entry.py":                      Entry{ModelName: titlemodelName},
+		"README.md":                     Readme{Name: titlemodelName},
+		"model_specification_dev.yaml":  ModelSpecification{Name: specmodelName},
+		"model_specification_prod.yaml": ModelSpecification{Name: specmodelName},
+		"model_specification_stg.yaml":  ModelSpecification{Name: specmodelName},
+		"test_model.py":                 TestModel{ModelName: titlemodelName},
+		"Makefile":                      Makefile{ModelName: titlemodelName},
+		"test_main.py":                  TestModel{ModelName: titlemodelName},
+		"pyproject.toml":                PyProject{ModelName: titlemodelName},
+		"package-deploy-model-aws.yaml": GithubWorkflow{ModelName: specmodelName, Version: Version},
+		"build.yaml":                    GithubWorkflow{ModelName: specmodelName},
 	}
 	return data
 }

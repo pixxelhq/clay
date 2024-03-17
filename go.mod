@@ -8,6 +8,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/aws/aws-sdk-go v1.45.14
+	github.com/iancoleman/strcase v0.3.0
 	github.com/example/orchestrator v0.2.3-0.20240108180844-192d5d519d2d
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
