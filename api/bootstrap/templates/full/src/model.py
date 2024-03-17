@@ -1,42 +1,38 @@
 from typing import Any, Dict
 
 from clay.core import ModelWrapper
-from clay.types import Date, Number, Raster, String, Tabular, Vector, Data
-
+from clay.types import Number, String, Data
+import rasterio
+import numpy
 
 class {{.ModelName}}(ModelWrapper):
-    def setup(self, weights: int, **hyperparameters) -> None:   # type: ignore
+    def setup(self, weight: int, **hyperparameters) -> None:  # type: ignore
         # download weights, initialize model,
         # setup directories, etc.
-        self.weights = weights
+        self.weight = weight
 
-    async def preprocess(    # type: ignore
+    async def preprocess(  # type: ignore
         self,
-        input1: Raster,
-        input2: Vector,
-        input3: Date,
-        input4: String,
-        input5: Number,
-        input6: Tabular,
-        extra: Data
-    ) -> Dict[str, Any]:   # type: ignore
+        input1: String,
+        input2: Number,
+    ) -> Dict[str, Any]:
         # function takes inputs for a model
         # input name in the function needs to match input name from spec file
-        self.logger.warning("In pre-process. Use self.logger for all logging. Avoid print statements")
-        return {"input1": input1, "extra": extra}
+        self.logger.warning(
+            "In pre-process. Use self.logger for all logging. Avoid print statements"
+        )
+        self.logger.info(f"Input1 is {input1.Value}")
+        return {"input1": input1, "input2": input2}
 
-    async def inference(self, input1: Raster, extra: Data) -> Dict[str, Any]:   # type: ignore
+    async def inference(self, input1: String, input2: Number) -> Dict[str, Any]:  # type: ignore
         # simply run inference and return the results
         # and anything extra if required
         self.logger.info("In inference. I can access all `self` parameters throughout the model ")
-        inference_results = input1.Value
-        return {"inference_results": inference_results, "extra": extra}
+        return {"input1": input1, "input2": input2}
 
-    async def postprocess(self, inference_results, extra) -> Dict[str, Data]:   # type: ignore
+    async def postprocess(self, input1: String, input2: Number) -> Dict[str, Data]:  # type: ignore
         # perform any post-processing
         self.logger.info("In postprocessing")
-        output_path1, output_path2 = 'output_raster.tif', 'output_vector.geojson'
         return {
-            "output1": Raster(name="output1", value=output_path1),
-            "output2": Vector(name="output2", value=output_path2),
+            "output1": Number(name="output1", value=input2.Value),
         }

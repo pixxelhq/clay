@@ -25,20 +25,14 @@
     },
     {
         "name": "input1",
-        "type": "url",
-        "format": "raster",
-        "value": "Please modify the types, formats and values of your inputs appropriately"
+        "type": "str",
+        "format": "string",
+        "value": "starting-point"
     },
     {
         "name": "input2",
-        "type": "url",
-        "format": "vector",
-        "value": "Remember to leave the workflow,job,task-id,local-working-dir parameter as is"
-    },
-    {
-        "name": "input3",
-        "type": "str",
-        "format": "string",
-        "value": "another one bites the dust..."
+        "type": "int",
+        "format": "number",
+        "value": 5
     }
 ]
