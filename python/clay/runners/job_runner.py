@@ -45,6 +45,20 @@ class _ExpectedInfParameters(Enum):
 
 
 class JobRunner(BaseRunner):
+    """Runner that executes the model in **job** mode. This is generally the case when the model
+    is to be executed in isolation, meaning, the outputs of the models are not be fed into
+    some other model execute sequentially.
+
+    Mostly, a model running locally, on CI or on orchestrator in direct inference mode, would be using this
+    runner.
+
+    Ideally, the only place the model author would interact with the this class is when writing tests.
+
+    !!! note
+
+        We are planning to abstract that as well such that the `Run` function can be used even in tests.
+    """
+
     RUN_MODE: str = "job"
 
     def __init__(
@@ -56,6 +70,19 @@ class JobRunner(BaseRunner):
         logger: Optional[Logger] = None,
         enable_uvloop: bool = False,
     ) -> None:
+        """
+        Args:
+            model_name (str): Name of the model being run.
+            modelcls (ModelWrapper):
+                The `uninstantiated` model class.
+            model_args (Dict[str, Any]):
+                Arguments that are to be passed into the model. Almost always, it would be
+                `{"cfg_path": "path/to/model/spec"}`. This is the result of an inconsistent
+                design choice and would be removed soon.
+            cfg_path (str): Path to the model spec file.
+            logger (Optional[Logger], optional): Any custom logger. Defaults to None.
+            enable_uvloop (bool, optional): Legacy, would be removed. Defaults to False.
+        """
         super().__init__(JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop)
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, Any] = {}
@@ -205,6 +232,7 @@ class JobRunner(BaseRunner):
     def _collect_inputs(
         self, inputs: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
+        """Collects inputs. More details to be added"""
         # first we convert list of dicts to a dict of dicts
         if inputs is None:
             raise ValueError("inputs cannot be None")
@@ -295,6 +323,7 @@ class JobRunner(BaseRunner):
         return dest
 
     def _output_handler(self, data: types.Data) -> None:
+        """processes each output item. More details to be added."""
         if data.Name not in self.expected_outputs:
             self.logger.error(f"`{data.Name}` not found in outputs")
             return
@@ -339,13 +368,13 @@ class JobRunner(BaseRunner):
 
         # setting the type
         data.Type = output_config["type"]
-
         if hasattr(data, "Properties"):
             if "properties" not in output_config and data.Properties is not None:  # type: ignore
                 raise ValueError(f"found properties for output `{data.Name}` but config has " "no properties set")
             elif "properties" in output_config and data.Properties is None:  # type: ignore
+                print("in elif")
                 data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
-
+        print(data)
         output = data.model_dump(by_alias=True)
 
         local_spec_file_path = named_output_dir.joinpath(DATA_SPEC_FILENAME)
@@ -452,6 +481,13 @@ class JobRunner(BaseRunner):
         return result, None
 
     def start(self, **kwargs: Any) -> None:
+        """Entrypoint into the runner. Starts the actual process of execution. This involves setting up the model
+        runtime, collecting inputs etc.
+
+        Raises:
+            ValueError: Raised when arguments are not found but is expected.
+            exc: Any other exeception raised by the model.
+        """
         self.read_injected_envvars()
         inputs = kwargs.get("args")
         if inputs is None:

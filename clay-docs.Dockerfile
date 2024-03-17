@@ -6,8 +6,8 @@ COPY . site/
 WORKDIR site/
 
 
-RUN python3 -m pip install mkdocs-material mkdocstrings mkdocstrings-python &&\
-      apk add --no-cache make
+RUN python3 -m pip install mkdocs-material mkdocstrings mkdocstrings-python mkdocs-autorefs mkdocs-schema-reader codespell tomli &&\
+    apk add --no-cache make
 
 RUN make init-requirements &&\
     make build-docs

@@ -2,7 +2,7 @@
 
 #### Why do we need `Types`?
 
-You might be wondering, *why do we even need types? what is this additional layer of complexity? why should I learn one more thing?.* The answer kinda boils down to this,
+You might be wondering, *why do we even need types? what is this additional layer of complexity? why should I learn one more thing?* The answer boils down to this,
 
 > For models to work together and with each other, they need to speak the same language.
 
@@ -30,11 +30,11 @@ Hence, we use [Pydantic's](https://docs.pydantic.dev/latest/) [Model Objects](ht
 
     The user is not expected to interact with Pydantic's APIs with respect to Clay's Types, during usage.
 
-These `Types` represent **high level** concepts that *mean something in the broader system*. Some types like [Rasters](#raster) and [Tabular](#tabular) are not programming concepts but are concepts that are relevant in the broader context of our product (1). On the other hand, types like [String](#string) and [Number](#number) have a meaning in programming constructs. It just so happens that, they also have a meaning in our broader product.
+These `Types` represent **high level** concepts that *mean something in the broader system*. Some types like [Rasters](#raster) and [Tabular](#tabular) are not programming concepts but are concepts that are relevant in the broader context of our product (1). On the other hand, types like [String](#string) and [Number](#number) have a meaning in programming constructs. Incidentally, it just so happens that these types also have a meaning in our product context.
 
 #### Supported `Types`
 
-While this is the list of types we are starting with, we are very interested in including more types, if the model authors deem the necissity to include more types.
+While these are the types we are starting with, this list is in no way complete and we will be considering including more types as we go forward.
 
 * **Raster** - *Used to represent GeoTIFFs*
 * **Vector** - *Used to represent GeoJSONs*
@@ -43,17 +43,7 @@ While this is the list of types we are starting with, we are very interested in 
 * **Number** - *Used to represent numerical data*
 * **String** - *Used to represent strings*
 
-All the types are defined in `clay.types`. While each type might have some *properties* specific to it, they all share some common attributes. The common attributes are documented at [Common Attributes](#common-attributes). The entire list of types supported are mentioned in the subsequent [Fundamental Types](#fundamental-types) section.
-
-Before we go ahead into the fundamental types, there are a few things we need to cover,
-
-* Python as a language doesn't have a *strong type system*.
-* Users **are recommended** to interact with the type systems only via the methods as defined in the documents. They ideally shouldn't attempt to directly manipulate type attributes. All interactions with the types should be via their `__init__` constructors as if they are just a class.
-
-*
-
-
-## Common Attributes
+All the types are defined in `clay.types`. While each type might have some specific *properties*, they all share some common attributes. The common attributes are documented at [Common Attributes](#common-attributes). The entire list of types supported are mentioned in the subsequent [Fundamental Types](#fundamental-types) section.
 
 ## Fundamental Types
 

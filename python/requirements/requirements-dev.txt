@@ -16,8 +16,11 @@ pika
 requests
 httpx
 mkdocs-material
+mkdocs-schema-reader
 mkdocstrings
 mkdocstrings-python
+mkdocs-autorefs
 shortuuid
 pydantic
 s3fs
+codespell

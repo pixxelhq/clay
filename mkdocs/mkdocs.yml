@@ -42,6 +42,10 @@ extra:
     provider: mike
 plugins:
   - search
+  - autorefs
+  - schema_reader:
+      include:
+        - ./docs/block-spec-schema.json
   - mkdocstrings:
       enable_inventory: true
       handlers:
@@ -58,10 +62,12 @@ plugins:
             - url: https://docs.python-requests.org/en/master/objects.inv
             - url: https://docs.python.org/3.9/objects.inv
             - url: https://docs.pydantic.dev/latest/objects.inv
+            - url: https://typing-extensions.readthedocs.io/en/latest/objects.inv
           domains: ["py", "std"]
 
 nav:
   - Home: "index.md"
+  - Installation: "installation.md"
   - 10000 Feet View: "overview.md"
   - Five Minute Blitz: "blitz-concepts.md"
   - Usage: "usage.md"

@@ -49,6 +49,25 @@ REQUIRED_ENVVAR = set(
 
 
 class JobRunnerV2(BaseRunner):
+    """Runner that executes the model in `argo` execution mode. The only situation in which
+    this runner would be used, is if the model is part of a workflow.
+
+    This implements support of executing argo workflow nodes.
+
+    Args:
+        BaseRunner (_type_): _description_
+
+    Raises:
+        FileNotFoundError: _description_
+        OutputOverwriteException: _description_
+        ValueError: _description_
+        ValueError: _description_
+        exc: _description_
+
+    Returns:
+        _type_: _description_
+    """
+
     RUN_MODE: str = "argo"
 
     def __init__(

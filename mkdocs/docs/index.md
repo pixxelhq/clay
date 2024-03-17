@@ -1,6 +1,6 @@
 # Welcome to Clay
 
-[Vist the project on Github](https://github.com/example/clay)
+[Visit the project on Github](https://github.com/example/clay)
 
 Clay is the in-house framework used to deploy models onto Pixxel's infrastructure.
 
