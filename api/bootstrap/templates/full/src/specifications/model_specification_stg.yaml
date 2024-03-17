@@ -22,73 +22,23 @@ resources:
     max: 0
 
 parameters: # model initialization params
-  - name: param1
-    type: string
-    default: default string
-  - name: param2
-    type: float
-    default: 1.0
+  - name: weight
+    type: int
+    default: 5
 
 inputs:
   - name: input1
-    format: raster
-    type: url
-    properties:
-      source: planetary
-      collection: sentinel2a
-      dtype: uint16
-      bands:
-        - B04
-        - B03
-        - B02
-    is_artifact: true
-
-  - name: input2
-    format: vector
-    type: url
-    properties:
-      geometry: Polygon
-    is_artifact: true
-
-  - name: input3
-    format: date
-    type: str
-    properties:
-      from_aoi: false
-
-  - name: input4
     format: string
     type: str
 
-  - name: input5
+  - name: input2
     format: number
     type: int
 
-  - name: input6
-    format: tabular
-    type: url
-
-
 outputs:
   - name: output1
-    format: raster
-    type: url
-    properties:
-      source: planetary
-      collection: sentinel2a
-      dtype: uint16
-      bands:
-        - B04
-        - B03
-        - B02
-    is_artifact: true
-
-  - name: output2
-    format: vector
-    type: url
-    properties:
-      geometry: Polygon
-    is_artifact: true
+    format: number
+    type: int
 
 build:
   python-version: "3.10"
