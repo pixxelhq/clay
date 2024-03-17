@@ -8,6 +8,7 @@ import numpy
 class {{.ModelName}}(ModelWrapper):
     def setup(self, weight: int, **hyperparameters) -> None:  # type: ignore
         # download weights, initialize model,
+        # input name in the function needs to match the parameter name in the spec file
         # setup directories, etc.
         self.weight = weight
 

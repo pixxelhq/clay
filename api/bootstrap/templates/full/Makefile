@@ -37,10 +37,10 @@ dockerfile:
 		clay create dockerfile {{.ModelName}}/specifications/model_specification_dev.yaml {{.ModelName}}
 
 generate-secrets:
-		echo $$CODEARTIFACT_AUTH_TOKEN > 
+		aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > 
 
 clean-secrets:
-		rm  
+		rm 
 
 docker-image: generate-secrets
 		sudo DOCKER_BUILDKIT=1 docker build \
