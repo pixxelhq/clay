@@ -5,15 +5,15 @@ indent-width = 4
 target-version = "py310"
 cache-dir = "~/.cache/ruff"
 fix = true
-extend-select = ["I"]
 src = ["python"]
 namespace-packages = ["python/clay"]
-ignore-init-module-imports = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.ruff.lint]
+ignore-init-module-imports = true
+extend-select = ["I"]
 select = ["E4", "E7", "E9", "F"]
 fixable = ["ALL"]
 unfixable = []

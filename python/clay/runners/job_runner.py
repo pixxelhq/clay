@@ -6,7 +6,8 @@ import shutil
 import time
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from logging import Logger
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 import urllib3
 from s3fs import S3FileSystem
@@ -16,7 +17,6 @@ import clay
 from clay import types, utils
 from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
-from clay.logger import Logger, get_streamvalues
 
 __LOCAL_WORKING_DIR__ = "/tmp"
 __DEFAULT_AUTO_DOWNLOAD_ASSETS__ = False
@@ -64,11 +64,12 @@ class JobRunner(BaseRunner):
     def __init__(
         self,
         model_name: str,
-        modelcls: ModelWrapper,
+        modelcls: Type[ModelWrapper],
         model_args: Dict[str, Any],
         cfg_path: str,
         logger: Optional[Logger] = None,
         enable_uvloop: bool = False,
+        enable_debug_logs: bool = False,
     ) -> None:
         """
         Args:
@@ -83,7 +84,7 @@ class JobRunner(BaseRunner):
             logger (Optional[Logger], optional): Any custom logger. Defaults to None.
             enable_uvloop (bool, optional): Legacy, would be removed. Defaults to False.
         """
-        super().__init__(JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop)
+        super().__init__(JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop, enable_debug_logs)
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, Any] = {}
 
@@ -168,7 +169,7 @@ class JobRunner(BaseRunner):
 
         url_fragments = parse_url(str(data.Value))
         if url_fragments.scheme != "s3":
-            self.logger.warning(f"unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
+            self.logger.warning(f"Unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
         file_name = os.path.basename(url_fragments.path)  # type: ignore
         local_path = pathlib.Path(named_input_dir, str(file_name))
         self._s3fs.get_file(data.Value, str(local_path))
@@ -177,18 +178,17 @@ class JobRunner(BaseRunner):
         if named_remote_output_dir != "":
             named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
             if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
-                self.logger.info(f"uploading file {str(local_path)} to {named_remote_output_dir}")
+                self.logger.info(f"Uploading {str(local_path)} to {named_remote_output_dir}")
                 # TODO: here we risk overwriting the file if it exists. Ideally, if the
                 # file exists in the named-remote-output-dir path, then we shouldnt upload
                 try:
                     self._s3fs.info(named_remote_output_dir)
                     # the line below is run only if the file exists in the said path
-                    self.logger.warn(f"file found at {named_remote_output_dir}. will be overwritten")
+                    self.logger.warning(f"File found at {named_remote_output_dir}. will be overwritten")
                 except FileNotFoundError:
                     pass
-                print(str(local_path), named_remote_output_dir)
                 self._s3fs.put_file(str(local_path), named_remote_output_dir)
-                self.logger.info(f"upload of {local_path} to {named_remote_output_dir} complete")
+                self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
         data.Value = str(local_path)
         return data
 
@@ -245,7 +245,7 @@ class JobRunner(BaseRunner):
             val, ke = utils.pop_dict_with_err(dict_inputs, o.value)
             if ke is not None:
                 # TODO: make this an fatal error
-                self.logger.warning(ke)
+                self.logger.debug(ke)
             if val is not None:
                 self._inf_opts[o] = val.get("value")
                 continue
@@ -288,9 +288,9 @@ class JobRunner(BaseRunner):
             if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
                 remote_path = os.path.join(named_remote_working_dir, DATA_SPEC_FILENAME)
                 local_spec_file_path = os.path.join(named_input_dir, DATA_SPEC_FILENAME)
-                self.logger.info(f"starting to upload {local_spec_file_path} to {remote_path}")
+                self.logger.info(f"Uploading {local_spec_file_path} to {remote_path}")
                 self._s3fs.put_file(local_spec_file_path, remote_path)
-                self.logger.info("upload complete")
+                self.logger.info("Finished uploading.")
 
             _processed_inputs[k] = model
             self._inputs_prop_map[k] = i["properties"] if "properties" in i else None
@@ -307,18 +307,18 @@ class JobRunner(BaseRunner):
         named_remote_output_dir: str,
     ) -> str:
         if not os.path.exists(src):
-            raise FileNotFoundError(f"cannot find src file `{src}`")
+            raise FileNotFoundError(f"Cannot find source file `{src}`")
         file_name = os.path.basename(src)
         dest = os.path.join(named_output_dir, file_name)
-        self.logger.info(f"copying file from `{src}` to `{dest}`")
+        self.logger.info(f"Copying file: `{src}` to `{dest}`")
         _ = shutil.copy(src, dest)
         if named_remote_output_dir != "":
             named_remote_output_dir = os.path.join(named_remote_output_dir, file_name)
             # TODO: Upload to s3 here
             if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
-                self.logger.info(f"uploading file {dest} to {named_remote_output_dir}")
+                self.logger.info(f"Uploading file: {dest} to {named_remote_output_dir}")
                 self._s3fs.put_file(dest, named_remote_output_dir)
-                self.logger.info("upload complete")
+                self.logger.info("Finished Uploading")
             return named_remote_output_dir
         return dest
 
@@ -329,7 +329,7 @@ class JobRunner(BaseRunner):
             return
 
         if data.Name in self._output_keys_written:
-            self.logger.error(f"rewritting output key `{data.Name}`")
+            self.logger.error(f"Rewriting output key: `{data.Name}`")
             raise OutputOverwriteException("attempting to overwrite output")
 
         output_config = self.expected_outputs[data.Name]
@@ -372,9 +372,8 @@ class JobRunner(BaseRunner):
             if "properties" not in output_config and data.Properties is not None:  # type: ignore
                 raise ValueError(f"found properties for output `{data.Name}` but config has " "no properties set")
             elif "properties" in output_config and data.Properties is None:  # type: ignore
-                print("in elif")
                 data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
-        print(data)
+
         output = data.model_dump(by_alias=True)
 
         local_spec_file_path = named_output_dir.joinpath(DATA_SPEC_FILENAME)
@@ -383,9 +382,9 @@ class JobRunner(BaseRunner):
 
         if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
             remote_path = os.path.join(named_remote_working_dir, DATA_SPEC_FILENAME)
-            self.logger.info(f"starting to upload {local_spec_file_path} to {remote_path}")
+            self.logger.info(f"Uploading file: {local_spec_file_path} to {remote_path}")
             self._s3fs.put_file(local_spec_file_path, remote_path)
-            self.logger.info("upload complete")
+            self.logger.info("Finished uploading")
 
         self._output_keys_written.add(data.Name)
         self.update_model_outputs_dict(data.Name, data.Value)
@@ -402,11 +401,13 @@ class JobRunner(BaseRunner):
                 Id=task_id,
                 State=types.ModelStates.COMPLETED,
                 Outputs=self.get_outputs_list(),
-                Logs=get_streamvalues(self._logger),
             )
         )
-        if not success:
-            self.logger.error("failed to fire callback")
+        # We do it this way so that we can:
+        # 1. Fire orchestrator logs only when we're not running locally
+        # 2. Still maintain the correct log level
+        if not success and self.enable_debug_logs:
+            self.logger.error("FAILED: Could not fire Orchestrator callback")
 
     def failure(
         self,
@@ -417,14 +418,13 @@ class JobRunner(BaseRunner):
     ) -> Any:
         dexter_clb_url, found = self.get_injected_envvar(_InjectedEnvVars.ClbUrl)
         if not found:
-            self.logger.warning("`ORCHESTRATOR_URL` is not set. hence, not firing callback")
+            self.logger.debug("`ORCHESTRATOR_URL` is not set. hence, not firing callback")
             return
         if isinstance(exc, FailedExecutionException):
             err_msg = exc.msg
         else:
             err_msg = ""
 
-        logs = get_streamvalues(self._logger)
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
         end_time = utils.get_current_utc_time_iso()
         self._fire_callback(
@@ -432,13 +432,14 @@ class JobRunner(BaseRunner):
                 Id=task_id,
                 State=types.ModelStates.FAILED,
                 ErrMsg=err_msg,
-                Logs=logs,
                 EndTime=end_time,
             )
         )
         raise exc
 
-    def run_model_inference(self, *args: Any, **kwargs: Optional[Dict[str, Any]]) -> Any:
+    def run_model_inference(
+        self, *args: Any, **kwargs: Optional[Dict[str, Any]]
+    ) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
         inputs: Optional[Dict[str, Any]] = kwargs.get("inputs")
         start_time = utils.get_current_utc_time_iso()
         if inputs is None:
@@ -453,8 +454,11 @@ class JobRunner(BaseRunner):
                 StartTime=start_time,
             )
         )
-        if not success:
-            self.logger.error("Failed to fire callback")
+        # We do it this way so that we can:
+        # 1. Fire orchestrator logs only when we're not running locally
+        # 2. Still maintain the correct log level
+        if not success and self.enable_debug_logs:
+            self.logger.error("FAILED: Could not fire Orchestrator callback")
 
         try:
             ctx = asyncio.run_coroutine_threadsafe(self._model.infer(inputs=inputs, opts=None), self._loop).result()
@@ -476,8 +480,8 @@ class JobRunner(BaseRunner):
             BlockInfEndTime=inf_times.InfEndTime,
         )
         success = self._fire_callback(clb)
-        if not success:
-            self._logger.warn("failed to fire callback successfully")
+        if not success and self.enable_debug_logs:
+            self.logger.error("Failed to fire callback successfully")
         return result, None
 
     def start(self, **kwargs: Any) -> None:
@@ -504,12 +508,12 @@ class JobRunner(BaseRunner):
             self._init_model()
             self._init_model_inference_event_loop()
         except Exception as exc:
-            self._logger.error(exc)
+            self.logger.error(exc)
             if self._loop.is_running():
                 self._loop.call_soon_threadsafe(self._loop.stop)
             time.sleep(2)
-            self._logger.debug(f"Event loop running status: {self._loop.is_running()}")
-            self._logger.debug(f"thread alive status: {self._t.is_alive()}")
+            self.logger.debug(f"Event loop running status: {self._loop.is_running()}")
+            self.logger.debug(f"thread alive status: {self._t.is_alive()}")
 
             task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
             self._fire_callback(
@@ -517,7 +521,6 @@ class JobRunner(BaseRunner):
                     Id=task_id,
                     State=types.ModelStates.FAILED,
                     ErrMsg="internal server error",
-                    Logs=get_streamvalues(self._logger),
                 )
             )
             raise exc
@@ -525,7 +528,8 @@ class JobRunner(BaseRunner):
             _input_dict = rvals[1]
         else:
             _input_dict = rvals[0]
+        self.logger.info("Inputs", _input_dict)
         result, exc = self.run_model_inference(inputs=_input_dict)  # type: ignore
         if exc is not None:
             self.failure(exc)
-        self.logger.info(f"results: {result}")
+        self.logger.info(f"Results: {result}")

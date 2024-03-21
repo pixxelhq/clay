@@ -19,7 +19,7 @@ from requests.adapters import HTTPAdapter, Retry  # type: ignore
 
 from clay import types
 from clay.exceptions import FailedExecutionException
-from clay.logger import ClayLogger, Logger, get_streamvalues, get_user_logs
+from clay.logger import ClayLogger, Logger, get_streamvalues
 from clay.utils import (
     PRIMITIVE_TYPES,
     cast_inputs,
@@ -43,6 +43,13 @@ class ValueTypes(Enum):
 
 
 C = TypeVar("C", bound="CallbackAuthMethod")
+
+
+def running_locally() -> bool:
+    """
+    returns True if EXECUTOR_ENVVAR is not set, which means that we're running the model locally
+    """
+    return os.getenv(types.EXECUTOR_ENVVAR) is None
 
 
 class CallbackAuthMethod(Enum):
@@ -148,6 +155,7 @@ class ModelWrapper:
         config: str,
         protocol: str = "abfs",
         logger: Optional[Logger] = None,
+        enable_debug_logs: Optional[bool] = None,
     ) -> None:
         """
         Args:
@@ -158,21 +166,23 @@ class ModelWrapper:
                 Custom logger. If not provided, _clay_ uses it's internal default logger.
                 Defaults to None.
         """
-
         self.protocol = protocol
         self.config = yaml_to_namespace(config)
+        if enable_debug_logs is None:
+            self.enable_debug_logs = not self.is_running_locally
+        else:
+            self.enable_debug_logs = enable_debug_logs
         if logger is None:
-            logger = ClayLogger(
-                self.__class__.__name__,
-                False,
-                create_buffer_handler=True,
-                create_console_handler=True,
-                create_user_logs_handler=True,
-            )
+            log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
+            logger = ClayLogger(logger_name=self.__class__.__name__, propagate=True, level=log_level)
         self.logger: Logger = logger
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
 
         self.run_setup()
+
+    @property
+    def is_running_locally(self) -> bool:
+        return running_locally()
 
     def run_setup(self) -> None:
         """Runs setup"""
@@ -391,9 +401,8 @@ class ModelWrapper:
         """returns the logger buffer as a string"""
         return get_streamvalues(self.logger)
 
-    def get_user_logs(self) -> Optional[str]:
-        """Gets the user logs logged at INFO level or above with the model's logger"""
-        return get_user_logs(self.logger)
+
+ModelWrapperType = TypeVar("ModelWrapperType", bound=ModelWrapper)
 
 
 class BaseRunner(object):
@@ -405,11 +414,12 @@ class BaseRunner(object):
     def __init__(
         self,
         run_mode: str,
-        modelcls: ModelWrapper,
+        modelcls: Type[ModelWrapper],
         model_args: Dict[str, Any],
         cfg_path: str,
         logger: Union[None, Logger],
         enable_uvloop: bool = False,
+        enable_debug_logs: Optional[bool] = None,
     ) -> None:
         self.run_mode = run_mode
         self._modelcls = modelcls
@@ -419,17 +429,15 @@ class BaseRunner(object):
         self._dexter_host = os.getenv("DEXTER_HOST", "http://localhost")
         self._dexter_port = os.getenv("DEXTER_PORT", "8080")
         self.config = yaml_to_namespace(cfg_path)
-
+        if enable_debug_logs is None:
+            self.enable_debug_logs = not self.is_running_locally
+        else:
+            self.enable_debug_logs = enable_debug_logs
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
-            logger = (
-                ClayLogger(
-                    f"{self._run_mode}_model_runner",
-                    propagate=True,
-                )
-                .add_console_handler(level=logging.INFO)  # type: ignore
-                .add_buffer_handler(level=logging.DEBUG)
-            )
+            log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
+            logger = ClayLogger(logger_name=f"{self._run_mode}_model_runner", propagate=True, level=log_level)
+
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
 
@@ -449,22 +457,26 @@ class BaseRunner(object):
         self._run_mode = value
 
     @property
+    def is_running_locally(self) -> bool:
+        return running_locally()
+
+    @property
     def logger(self) -> Logger:
         return self._logger
 
     def _init_model(self) -> None:
-        self._logger.info("Initializing model...")
+        self.logger.info("Initializing Model...")
         self._model: ModelWrapper = self._modelcls(**self._model_args)
-        self._logger.info("Model initialization complete.")
+        self.logger.info("Model initialization complete.")
 
     def _run_event_loop(self, _loop: asyncio.AbstractEventLoop) -> None:
-        self._logger.debug("Start model inference event loop ...")
+        self.logger.debug("Start model inference event loop ...")
         asyncio.set_event_loop(_loop)
         _loop.run_forever()
-        self._logger.debug("Event loop stopped")
+        self.logger.debug("Event loop stopped")
 
     def _init_model_inference_event_loop(self) -> None:
-        self._logger.debug("Starting model inference thread ...")
+        self.logger.debug("Starting model inference thread ...")
         asyncio.set_event_loop_policy(self._DEFAULT_EVENT_LOOP_POLICY)
         self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self._t = threading.Thread(
@@ -475,11 +487,11 @@ class BaseRunner(object):
         )
         self._t.start()
         time.sleep(1)
-        self._logger.debug("Started model inference thread.")
+        self.logger.debug("Started model inference thread.")
 
     def _fire_callback(self, clb: types.Callback) -> bool:
         if self._dexter_clb_url is None or self._dexter_clb_url == "":
-            self._logger.warning("`ORCHESTRATOR_URL` not set, and hence not firing callback")
+            self.logger.debug("`ORCHESTRATOR_URL` not set, and hence not firing callback")
             return False
 
         # Setting the headers
@@ -494,39 +506,40 @@ class BaseRunner(object):
         run_type = os.getenv("DEXTER_RUN_TYPE", RunType.WORKFLOW.value)
         if run_type == RunType.WORKFLOW.value:
             if self._dexter_clb_url is None or self._dexter_clb_url == "":
-                self._logger.warning("`ORCHESTRATOR_URL` not set, and hence not firing callback")
+                self.logger.debug("`ORCHESTRATOR_URL` not set, and hence not firing callback")
                 return False
             data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
-            self._logger.debug(f"Data for callback: {data}")
-            self.logger.info(f"Data for callback: {data}")
+            self.logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
                 url=self._dexter_clb_url,
                 json=data,
                 headers=headers,
             )
-            self._logger.info(f"Response from orchestrator: {pformat(resp)}")
+            self.logger.debug(f"Response from orchestrator: {pformat(resp)}")
             if resp.status_code != HTTPStatus.ACCEPTED:
-                self._logger.info("Successfully updated state with Orchestrator.")
+                self.logger.debug("Successfully updated state with Orchestrator.")
             else:
-                self._logger.error("State Update failed.")
+                if self.enable_debug_logs:
+                    self.logger.error("State Update failed.")
 
             return resp.json()["data"]["successful_update"]
 
         else:
             data = {"status": clb.State.value, "output": clb.Result}  # type: ignore
-            self._logger.debug(f"Data for callback: {data}")
+            self.logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
                 url="{0}:{1}/v1alpha1/inferences/{2}".format(self._dexter_host, self._dexter_port, clb.Id),
                 json=data,
                 headers=headers,
             )
-            self._logger.info(f"Response from orchestrator: {pformat(resp)}")
+            self.logger.debug(f"Response from orchestrator: {pformat(resp)}")
             if resp.status_code == 204:
-                self._logger.info("Successfully updated state with Orchestrator.")
+                self.logger.debug("Successfully updated state with Orchestrator.")
             else:
-                self._logger.error("State Update failed.")
+                if self.enable_debug_logs:
+                    self.logger.error("State Update failed.")
             return True
 
     @abstractmethod

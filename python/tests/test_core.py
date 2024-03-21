@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+
 from clay import ModelWrapper, types
 from clay.core import BaseRunner, CallbackAuthMethod, HeaderBuilder
 
