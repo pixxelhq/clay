@@ -6,13 +6,13 @@ import shutil
 import time
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from logging import Logger
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 import clay
 from clay import types
-from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes
+from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapperType, ValueTypes
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
-from clay.logger import Logger, get_streamvalues
 from clay.utils import (
     cast_inputs,
     convert_list_to_dict,
@@ -73,13 +73,14 @@ class JobRunnerV2(BaseRunner):
     def __init__(
         self,
         model_name: str,
-        modelcls: ModelWrapper,
+        modelcls: Type[ModelWrapperType],
         model_args: Dict[str, Any],
         cfg_path: str,
         logger: Union[Logger, None] = None,
         enable_uvloop: bool = False,
+        enable_debug_logs: bool = False,
     ) -> None:
-        super().__init__(JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop)
+        super().__init__(JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop, enable_debug_logs)
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, str] = {}
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
@@ -110,9 +111,12 @@ class JobRunnerV2(BaseRunner):
             val = os.getenv(e.value)
             if val is None:
                 if e in REQUIRED_ENVVAR:
-                    self.logger.error(f"required env-var `{e.name}` not found")
-                    clay.failure("missing required configuration")
-                self.logger.warn(f"env-var `{e.name}` not found")
+                    err = LookupError(
+                        "Missing required configuration: required environment variable not found: `{e.name}`"
+                    )
+                    self.logger.error(err, exc_info=err)
+                    raise err
+                self.logger.debug(f"Environment variable not found: `{e.name}`")
                 continue
             self.set_injected_envvar(e, val)
 
@@ -159,7 +163,8 @@ class JobRunnerV2(BaseRunner):
     def _read_argo_template_spec(self) -> None:
         s = os.getenv(_ArgoConfEnvVars.ArgoTemplate.value)
         if s is None:
-            self.logger.warning(f"could not read {_ArgoConfEnvVars.ArgoTemplate.value} from env")
+            if self.enable_debug_logs:
+                self.logger.warning(f"Could not read {_ArgoConfEnvVars.ArgoTemplate.value} from env")
             return
         self._argo_template_spec = json.loads(s)
 
@@ -291,7 +296,13 @@ class JobRunnerV2(BaseRunner):
         Returns:
             str: The remote path of the asset
         """
-        print("handle output asset ", key, value_type, src, named_output_dir)
+        asset_log_dict = {
+            "asset_key": key,
+            "asset_value_type": value_type,
+            "asset_source": src,
+            "output_directory": named_output_dir,
+        }
+        self.logger.debug(f"Handling output asset: {asset_log_dict}")
         # replaces any preexisting files
         if not os.path.exists(src):
             raise FileNotFoundError(f"cannot find src file `{src}`")
@@ -367,12 +378,14 @@ class JobRunnerV2(BaseRunner):
         """
 
         if data.Name not in self.expected_outputs:
-            self.logger.error(f"`{data.Name}` not found in outputs config")
+            self.logger.error(f"`{data.Name}` is not listed as an expected output in the config/specification file.")
             return
 
         if data.Name in self._output_keys_written:
-            self.logger.error(f"rewritting output key `{data.Name}`")
-            raise OutputOverwriteException("attempting key overwrite")
+            self.logger.error(
+                f"Received output for `{data.Name}` again. Please ensure each output is returned only once."
+            )
+            raise OutputOverwriteException(f"Duplicate output received for `{data.Name}`")
 
         output_config = self.expected_outputs[data.Name]
         format = output_config["format"]
@@ -382,10 +395,9 @@ class JobRunnerV2(BaseRunner):
         output_working_dir, found = self.get_injected_envvar(_InjectedEnvVars.OutputsWorkingDir)
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
-        print(os.listdir(output_working_dir))
         assert os.path.exists(named_output_dir)
-        print("named output dir ", named_output_dir)
-        print("data: ", data)
+        self.logger.info(f"Asset info: {data}")
+        self.logger.info(f"Asset output directory (`{data.Name}`): {named_output_dir}")
 
         # here we check if the output item in question is an artifact or not. If it
         # is not, then we dont process any supporting artifact file.
@@ -425,11 +437,13 @@ class JobRunnerV2(BaseRunner):
                 Id=task_id,
                 State=types.ModelStates.COMPLETED,
                 Outputs=self.get_outputs_list(),
-                Logs=get_streamvalues(self._logger),
             )
         )
-        if not success:
-            self.logger.error("failed to fire callback")
+        # We do it this way so that we can:
+        # 1. Fire orchestrator logs only when we're not running locally
+        # 2. Still maintain the correct log level
+        if not success and self.enable_debug_logs:
+            self.logger.error("FAILED: Could not fire Orchestrator callback")
 
     def failure(
         self,
@@ -438,14 +452,14 @@ class JobRunnerV2(BaseRunner):
         **kwargs: Any,
     ) -> Any:
         if self._dexter_clb_url is None:
-            self._logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
+            if self.enable_debug_logs:
+                self.logger.warning("`ORCHESTRATOR_URL` is not set, hence not firing callback")
             return
         if isinstance(exc, FailedExecutionException):
             err_msg = exc.msg
         else:
             err_msg = ""
 
-        logs = get_streamvalues(self._logger)
         task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
         end_time = get_current_utc_time_iso()
         self._fire_callback(
@@ -453,11 +467,10 @@ class JobRunnerV2(BaseRunner):
                 Id=task_id,
                 State=types.ModelStates.FAILED,
                 ErrMsg=err_msg,
-                Logs=logs,
                 EndTime=end_time,
             )
         )
-        self._logger.info("inference finished")
+        self.logger.info("Inference finished")
         raise exc
 
     def run_model_inference(self, *args: Any, **kwargs: Any) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
@@ -465,7 +478,6 @@ class JobRunnerV2(BaseRunner):
 
         rvals = self._collect_inputs()
         assert rvals is not None
-        print(rvals)
         if self._model.receive_raw_inputs:
             input_dict = rvals[1]  # type: ignore
         else:
@@ -482,15 +494,16 @@ class JobRunnerV2(BaseRunner):
                 StartTime=start_time,
             )
         )
-        if not success:
-            self.logger.error("failed to fire callback")
+
+        if not success and self.enable_debug_logs:
+            self.logger.error("FAILED: Could not fire Orchestrator callback")
 
         opts = types.InferenceOpts(
             Id=id,
             InputList=self.get_inputs_list(),
             InputPropMap=self.get_inputs_propmap(None),
         )
-        print(input_dict)
+        self.logger.info("Inputs", input_dict)
         try:
             ctx = asyncio.run_coroutine_threadsafe(
                 self._model.infer(inputs=input_dict, opts=opts),
@@ -516,8 +529,8 @@ class JobRunnerV2(BaseRunner):
             EndTime=end_time,
         )
         success = self._fire_callback(clb)
-        if not success:
-            self.logger.warn("could not successfully fire callback")
+        if not success and self.enable_debug_logs:
+            self.logger.warning("FAILED: Could not fire Orchestrator callback")
         return result, None
 
     def start(self, **kwargs: Any) -> None:
@@ -526,12 +539,12 @@ class JobRunnerV2(BaseRunner):
             self._init_model()
             self._init_model_inference_event_loop()
         except Exception as exc:
-            self._logger.error(exc)
+            self.logger.error(exc)
             if self._loop.is_running():
                 self._loop.call_soon_threadsafe(self._loop.stop)
             time.sleep(2)
-            self._logger.debug(f"Event loop running status: {self._loop.is_running()}")
-            self._logger.debug(f"thread alive status: {self._t.is_alive()}")
+            self.logger.debug(f"Event loop running status: {self._loop.is_running()}")
+            self.logger.debug(f"thread alive status: {self._t.is_alive()}")
 
             task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
             self._fire_callback(
@@ -539,11 +552,10 @@ class JobRunnerV2(BaseRunner):
                     Id=task_id,
                     State=types.ModelStates.FAILED,
                     ErrMsg="internal server error",
-                    Logs=get_streamvalues(self._logger),
                 )
             )
 
         result, exc = self.run_model_inference()  # type: ignore
         if exc is not None:
             self.failure(exc)
-        self._logger.info(f"results: {result}")
+        self.logger.info(f"Inference Results: {result}")

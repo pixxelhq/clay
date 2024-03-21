@@ -5,6 +5,7 @@ import pathlib
 import shutil
 import unittest
 from typing import Any
+from unittest.mock import patch  # noqa
 
 import pytest
 import shortuuid

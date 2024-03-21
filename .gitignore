@@ -23,4 +23,5 @@ site
 bin
 .DS_Store
 .idea/
+/python/logs/
 examples/DemoClay/runs

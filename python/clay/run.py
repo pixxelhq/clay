@@ -3,10 +3,10 @@ import sys
 from enum import Enum
 from typing import Type, Union
 
-from .core import ModelWrapper
-from .runners.job_runner import JobRunner
-from .runners.job_runner_v2 import JobRunnerV2
-from .types import EXECUTOR_ENVVAR
+from clay.core import ModelWrapper
+from clay.runners.job_runner import JobRunner
+from clay.runners.job_runner_v2 import JobRunnerV2
+from clay.types import EXECUTOR_ENVVAR
 
 _RunnerTypes = Union[JobRunner, JobRunnerV2]
 
@@ -33,7 +33,7 @@ class SupportedExecutors(Enum):
     LOCAL = "local"
 
 
-__executor_runner_map__ = {
+_executor_runner_map = {
     SupportedExecutors.ARGO: {"runner": JobRunnerV2, "requires_args": False},
     SupportedExecutors.KUBE: {"runner": JobRunner, "requires_args": True},
     SupportedExecutors.LOCAL: {"runner": JobRunner, "requires_args": True},
@@ -76,7 +76,7 @@ def Run(model: Type[ModelWrapper], name: str, cfg_path: str) -> None:
         raise FileNotFoundError(cfg_path)
 
     executor = _get_executor_type()
-    v = __executor_runner_map__[executor]
+    v = _executor_runner_map[executor]
     _runnercls: _RunnerTypes = v["runner"]  # type: ignore
     requires_args: bool = v["requires_args"]  # type: ignore
     _runnerobj: _RunnerTypes = _runnercls(
