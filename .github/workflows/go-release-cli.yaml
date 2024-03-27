@@ -1,3 +1,4 @@
+
 name: Release clay CLI
 
 on:
@@ -21,6 +22,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
 
+
+      - name: Configure private token url
+        env:
+          GO_RELEASE_TOKEN: ${{ secrets.GO_RELEASE }}
+        run: |
+          git config --global url."https://${GO_RELEASE_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -28,4 +35,4 @@ jobs:
           version: latest
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GO_RELEASE }}
