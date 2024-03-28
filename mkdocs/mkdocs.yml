@@ -76,3 +76,4 @@ nav:
   - FAQs: "faq.md"
   - API Reference: "api-reference.md"
   - CLI Reference: "cli-reference.md"
+  - Benchmarking Models: "benchmarking.md"
