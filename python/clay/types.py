@@ -63,10 +63,13 @@ class RasterProperties(pydantic.BaseModel):
     """
 
     Bands: Annotated[Optional[List[str]], Field(serialization_alias="bands", alias="bands")] = None
-
     Source: Annotated[Optional[str], Field(serialization_alias="source", alias="source")] = None
     Collection: Annotated[Optional[str], Field(serialization_alias="collection", alias="collection")] = None
     Dtype: Annotated[Optional[str], Field(serialization_alias="dtype", alias="dtype")] = None
+    SunElevation: Annotated[Optional[float], Field(serialization_alias="sun_elevation", alias="sun_elevation")] = None
+    SatelliteLookAngle: Annotated[
+        Optional[float], Field(serialization_alias="satellite_look_angle", alias="satellite_look_angle")
+    ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
@@ -114,6 +117,7 @@ class TabularProperties(pydantic.BaseModel):
 
     FileType: Annotated[Optional[str], Field(serialization_alias="file_type")] = None
     FileSchema: Annotated[Optional[TabularFileSchema], Field(serialization_alias="file_schema")] = None
+    FileSchema: Annotated[Optional[TabularFileSchema], Field(serialization_alias="file_schema")] = None
 
 
 Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
@@ -147,6 +151,10 @@ class Callback(pydantic.BaseModel):
     Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
     Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
     Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
+    State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
+    Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
+    Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
+    Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
     Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
     UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
     ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
@@ -154,6 +162,10 @@ class Callback(pydantic.BaseModel):
     SendTime: Annotated[Optional[str], Field(serialization_alias="send_time")] = None
     StartTime: Annotated[Optional[str], Field(serialization_alias="start_time")] = None
     EndTime: Annotated[Optional[str], Field(serialization_alias="end_time")] = None
+    BlockInfStartTime: Annotated[Optional[str], Field(serialization_alias="block_inf_start_time")] = None
+    BlockInfEndTime: Annotated[Optional[str], Field(serialization_alias="block_inf_end_time")] = None
+    ModelInfStartTime: Annotated[Optional[str], Field(serialization_alias="model_inf_start_time")] = None
+    ModelInfEndTime: Annotated[Optional[str], Field(serialization_alias="model_inf_end_time")] = None
     BlockInfStartTime: Annotated[Optional[str], Field(serialization_alias="block_inf_start_time")] = None
     BlockInfEndTime: Annotated[Optional[str], Field(serialization_alias="block_inf_end_time")] = None
     ModelInfStartTime: Annotated[Optional[str], Field(serialization_alias="model_inf_start_time")] = None
@@ -183,6 +195,7 @@ class InferenceOpts(pydantic.BaseModel):
 class _DataMeta(pydantic.BaseModel):
     Format: Annotated[str, Field(alias="format", serialization_alias="format")]
     Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
+    Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
     Name: Annotated[str, Field(alias="name", serialization_alias="name")]
     Value: Annotated[
         Optional[Union[int, float, str, bool]],
@@ -192,6 +205,7 @@ class _DataMeta(pydantic.BaseModel):
         Optional[Union[int, float, str, bool]],
         Field(alias="default", serialization_alias="default"),
     ] = None
+    IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
     IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
 
     model_config = {"validate_assignment": True, "populate_by_name": True}

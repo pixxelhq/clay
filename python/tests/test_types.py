@@ -55,6 +55,38 @@ def test_init_raster_model_from_dict_with_None_props_success() -> None:
     assert r.Properties is None
 
 
+def test_init_raster_model_from_dict_with_sun_elevation() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {
+            "sun_elevation": 1.2,
+        },
+    }
+
+    r = types.Raster.model_validate(d)
+    assert r.Properties.SunElevation == 1.2
+    assert r.Properties.SatelliteLookAngle is None
+
+
+def test_init_raster_model_from_dict_with_satellite_look_angle() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {
+            "satellite_look_angle": 3.4,
+        },
+    }
+
+    r = types.Raster.model_validate(d)
+    assert r.Properties.SatelliteLookAngle == 3.4
+    assert r.Properties.SunElevation is None
+
+
 def test_init_string_model_with_default_value() -> None:
     d = {"format": "string", "type": "str", "name": "s", "default": "hello"}
     s = types.String.model_validate(d)
