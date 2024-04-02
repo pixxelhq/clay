@@ -188,6 +188,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                             Source="a-random-sat",
                             Collection="a-random-coll",
                             Dtype="uint8",
+                            SunElevation=5.1,
                         ),
                     ),
                     "string": types.String(name="string", value="hello world", parameter=True),
@@ -227,6 +228,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 "source": "a-random-sat",
                 "collection": "a-random-coll",
                 "dtype": "uint8",
+                "sun_elevation": 5.1,
+                "satellite_look_angle": None,
             },
         }
 
