@@ -39,6 +39,7 @@ def test_init_raster_model_from_dict_success() -> None:
     }
 
     r = types.Raster.model_validate(d, context={"a": "b"})
+    assert r.Properties is not None
     assert r.Properties.Bands == ["B01", "B02"]
 
 

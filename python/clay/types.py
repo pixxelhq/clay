@@ -83,6 +83,8 @@ class VectorProperties(pydantic.BaseModel):
 
     Geometry: Annotated[Optional[str], Field(serialization_alias="geometry", alias="geometry")] = None
 
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
 
 class DateProperties(pydantic.BaseModel):
     """Properties of a date
@@ -92,7 +94,9 @@ class DateProperties(pydantic.BaseModel):
             True if the date is to be taken from the AOI. False, otherwise. Defaults to `None`.
     """
 
-    FromAoi: Annotated[Optional[bool], Field(serialization_alias="from_aoi")] = None
+    FromAoi: Annotated[Optional[bool], Field(serialization_alias="from_aoi", alias="from_aoi")] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
 
 class TabularFileSchema(pydantic.BaseModel):
@@ -102,7 +106,9 @@ class TabularFileSchema(pydantic.BaseModel):
         Headers: The ordered list of columns in the table. Defaults to `None`.
     """
 
-    Headers: Annotated[Optional[List[str]], Field(serialization_alias="headers")] = None
+    Headers: Annotated[Optional[List[str]], Field(serialization_alias="headers", alias="headers")] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
 
 class TabularProperties(pydantic.BaseModel):
@@ -115,9 +121,12 @@ class TabularProperties(pydantic.BaseModel):
             Schema of the table. Defaults to `None`.
     """
 
-    FileType: Annotated[Optional[str], Field(serialization_alias="file_type")] = None
-    FileSchema: Annotated[Optional[TabularFileSchema], Field(serialization_alias="file_schema")] = None
-    FileSchema: Annotated[Optional[TabularFileSchema], Field(serialization_alias="file_schema")] = None
+    FileType: Annotated[Optional[str], Field(serialization_alias="file_type", alias="file_type")] = None
+    FileSchema: Annotated[
+        Optional[TabularFileSchema], Field(serialization_alias="file_schema", alias="file_schema")
+    ] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
 
 Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
