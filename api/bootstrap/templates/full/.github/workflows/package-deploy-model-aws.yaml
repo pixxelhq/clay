@@ -295,7 +295,7 @@ jobs:
 
       - name: Create local changes
         run: |
-          sed -i "s|image:.*|image: \"{{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ steps.image_tag.outputs.value }}" }} \"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
+          sed -i "s|image:.*|image: \"{{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ steps.image_tag.outputs.value }}" }}\"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
           sed -i "s|catalog_content_url:.*|catalog_content_url: \"{{ "${{ steps.upload_readme.outputs.url }}" }}\"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
           sed -i "s|^version:.*|version: \"{{ "${{ env.VERSION }}" }}\"|" {{ .ModelName }}/specifications/model_specification_stg.yaml
 
