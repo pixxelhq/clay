@@ -1,4 +1,80 @@
 # Block Specification
+The spec file, such as `model_specifications_dev.yaml`, `model_specifications_stg.yaml`, and `model_specifications_prod.yaml`, is used to declare model information for deployment and compatibility with workflow and inference on the Platform platform. It defines:
+
+* Model's input and output specifications
+* Docker image building instructions
+* Infrastructure requirements
+* Options for running the model on GPU or other hardware accelerators
+
+This is how the generate spec file looks like. 
+
+```yaml
+kind: block
+type: processing
+name: ndvi
+version: 0.0.1
+title: <Title for model to be displayed on the platform>
+status: draft
+description: describe the model
+author: <please-fill-in-here>@pixxel.co.in
+tags:
+  - imagery
+  - processing
+
+resources:
+  cpu:
+    min: 1200m
+    max: 4000m
+  mem:
+    min: 1200Mi
+    max: 4000Mi
+  gpu:
+    min: 0
+    max: 0
+
+parameters: # model initialization params
+  - name: weight
+    type: int
+    default: 5
+
+inputs:
+  - name: input1
+    format: string
+    type: str
+
+  - name: input2
+    format: number
+    type: int
+
+outputs:
+  - name: output1
+    format: number
+    type: int
+
+build:
+  python-version: "3.10"
+  conda: false
+  gdal: true
+  apt-get:
+    - wget
+  requirements: #requirements.txt  or conda.yml
+
+runtime_opts:
+  image: REDACTED.dkr.ecr.us-east-2.amazonaws.com/ndvi:sample-version
+  K8sJobConfig: null
+  gpu: false
+
+options:
+  dry_run: null
+  preview: null
+  generate_k8s_spec: true
+
+catalog_content_url: "" # model description url
+
+```
+
+
+The keys are exaplined below 
 
 ## Kind
 

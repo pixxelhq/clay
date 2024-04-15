@@ -67,12 +67,14 @@ plugins:
 
 nav:
   - Home: "index.md"
-  - Installation: "installation.md"
   - 10000 Feet View: "overview.md"
   - Five Minute Blitz: "blitz-concepts.md"
-  - Usage: "usage.md"
+  - Getting Started: "getting-started.md"
+  - Tutorial: "model-development.md"
   - Types: "types.md"
   - Block Specification: "spec.md"
+  - Checklist: "checklist.md"
+  - Do's and don'ts: "dos-dont.md"
   - FAQs: "faq.md"
   - API Reference: "api-reference.md"
   - CLI Reference: "cli-reference.md"
