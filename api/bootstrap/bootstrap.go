@@ -69,9 +69,15 @@ func CreateProject(outputDir, modelName string) error {
 		return err
 	}
 
-	fmt.Printf("\n[IMPORTANT] To begin,\n1. Create and activate your Python environment.\n2. Make sure you have GDAL on your system and Clay package already installed in your python environment.\n3. Run `make setup` in your project directory\n\n")
-	fmt.Printf("To create a new environment:\nOpen your terminal with an existing Python or Conda installation, and use the below command to create an environment:\n\n")
-	fmt.Print("python -m venv ./env\n\n")
+	fmt.Printf("\n[IMPORTANT] To begin, navigate to your project directory in your terminal:\n1. Based on your requirement, create a python or conda env\n\n")
+	fmt.Printf("	Use the below command to create a python virtual env:\n")
+	fmt.Print("			python -m venv ./env\n")
+	fmt.Print("			source .venv/bin/activate\n\n")
+	fmt.Printf("	Use the below command to create a conda env:\n")
+	fmt.Print("			conda create -n envName python=3.9\n")
+	fmt.Print("			conda activate envName\n\n")
+	fmt.Print("2. Run `make setup` in your project directory")
+
 	return nil
 }
 

@@ -1,22 +1,30 @@
-setup:
+generate-secrets:
+		aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > CODEARTIFACT_AUTH_TOKEN.txt
+
+clean-secrets:
+		rm CODEARTIFACT_AUTH_TOKEN.txt
+
+setup:	generate-secrets
 		if ! git rev-parse --git-dir > /dev/null 2>&1; then \
 			echo "Initializing Git repository..."; \
 			git init; \
 		fi
 
-		# Find pip / pip3 and install the requirements
 		if command -v pip &> /dev/null; then \
-			echo "Using pip at: $$(command -v pip)"; \
-			pip install -r requirements-dev.txt -r requirements.txt; \
+			pip install -r requirements-dev.txt -r requirements.txt --extra-index-url https://aws:$$(cat CODEARTIFACT_AUTH_TOKEN.txt)@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
+ \
+; \
 		elif command -v pip3 &> /dev/null; then \
-			echo "Using pip3 at: $$(command -v pip3)"; \
-			pip3 install -r requirements-dev.txt -r requirements.txt; \
+			pip3 install -r requirements-dev.txt -r requirements.txt --extra-index-url https://aws:$$(cat CODEARTIFACT_AUTH_TOKEN.txt)@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
+ \
+; \
 		else \
 			echo "Error: pip and pip3 are not installed"; \
 		fi
 
 		pre-commit install
 		pre-commit install --hook-type commit-msg
+		$(MAKE) clean-secrets
 
 validate:
 		pytest -v
@@ -35,12 +43,6 @@ clean:
 
 dockerfile:
 		clay create dockerfile {{.ModelName}}/specifications/model_specification_dev.yaml {{.ModelName}}
-
-generate-secrets:
-		aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > CODEARTIFACT_AUTH_TOKEN.txt
-
-clean-secrets:
-		rm CODEARTIFACT_AUTH_TOKEN.txt
 
 docker-image: generate-secrets
 		sudo DOCKER_BUILDKIT=1 docker build \
