@@ -9,6 +9,8 @@ from enum import Enum
 from logging import Logger
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+from s3fs import S3FileSystem
+
 import clay
 from clay import types
 from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapperType, ValueTypes
@@ -31,6 +33,9 @@ class _InjectedEnvVars(Enum):
     OutputsWorkingDir = "OUTPUTS_WORKING_DIR"
     OutputsRemotePath = "OUTPUTS_REMOTE_PATH"
     Env = "ENV"
+
+
+_InjectedEnvVarsDefaults = {}
 
 
 class _ArgoConfEnvVars(Enum):
@@ -82,16 +87,18 @@ class JobRunnerV2(BaseRunner):
     ) -> None:
         super().__init__(JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop, enable_debug_logs)
         self.model_name = model_name
-        self._injected_envvars: Dict[_InjectedEnvVars, str] = {}
+        self._injected_envvars: Dict[_InjectedEnvVars, Any] = {}
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
         self._inputs_list: List[Dict[str, Any]] = []
         self._passed_inputs_dict: Dict[str, Any] = {}
         self._outputs_list: List[Dict[str, Any]] = []
+        self._param_outputs_local_remote_path_maping: List[Tuple[str, str]]
 
         self.expected_outputs = dict((oi["name"], oi) for oi in self.config.outputs)
         self._model_outputs_dict: Dict[str, Any] = {}
         self._output_keys_written: Set[str] = set()
 
+        self._s3fs = S3FileSystem()
         # Dict rep of https://argoproj.github.io/argo-workflows/fields/#template
         self._argo_template_spec: Dict[str, Any] = {}
 
@@ -103,21 +110,25 @@ class JobRunnerV2(BaseRunner):
             return "", False
         return val, True
 
-    def set_injected_envvar(self, key: _InjectedEnvVars, val: str) -> None:
+    def set_injected_envvar(self, key: _InjectedEnvVars, val: Any) -> None:
         self._injected_envvars[key] = val
 
     def read_injected_envvars(self) -> None:
         for e in _InjectedEnvVars:
-            val = os.getenv(e.value)
+            val = os.getenv(e.value) or _InjectedEnvVarsDefaults.get(e, None)
             if val is None:
                 if e in REQUIRED_ENVVAR:
-                    err = LookupError(
-                        "Missing required configuration: required environment variable not found: `{e.name}`"
-                    )
-                    self.logger.error(err, exc_info=err)
-                    raise err
+                    # checking if there are any defaults set
+                    if e in _InjectedEnvVarsDefaults:
+                        self.set_injected_envvar(e, _InjectedEnvVarsDefaults[e])
+                    else:
+                        err = LookupError(
+                            "Missing required configuration: required environment variable not found: `{e.name}`"
+                        )
+                        self.logger.error(err, exc_info=err)
+                        raise err
                 self.logger.debug(f"Environment variable not found: `{e.name}`")
-                continue
+
             self.set_injected_envvar(e, val)
 
         # additionally reading argo related env fields
@@ -313,6 +324,17 @@ class JobRunnerV2(BaseRunner):
         remote_path = os.path.join(remote_path, key, file_name)
         return remote_path
 
+    def _upload_parameter_output_spec_file(self, data_item_name: str, local_spec_file_path: str) -> None:
+        file_name = os.path.basename(local_spec_file_path)
+        remote_path, found = self.get_injected_envvar(_InjectedEnvVars.OutputsRemotePath)
+        if not found:
+            self.logger.error("cannot upload parameter output spec files since `OUTPUTS_REMOTE_PATH` is not send")
+            return None
+        remote_path = os.path.join(remote_path, data_item_name, file_name)
+        self.logger.info(f"starting to upload {local_spec_file_path} to {remote_path}")
+        self._s3fs.put_file(local_spec_file_path, remote_path)
+        self.logger.info("upload complete")
+
     def _output_handler(self, data: types.Data) -> None:
         """Set an output asset. This method is responsible for creating the necessary
         output jsons and moving any required asset to its correct location without any
@@ -423,8 +445,12 @@ class JobRunnerV2(BaseRunner):
         self.update_model_outputs_dict(data.Name, data.Value)
         self.update_outputs_list(output)
 
-        with open(output_parameter_path.joinpath(DATA_SPEC_FILENAME), "w+") as f:
+        local_spec_file_path = output_parameter_path.joinpath(DATA_SPEC_FILENAME)
+        with open(local_spec_file_path, "w+") as f:
             json.dump(output, f)
+
+        if not data.IsArtifact:
+            self._upload_parameter_output_spec_file(data.Name, str(local_spec_file_path))
 
     def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
         for val in output_buffer:
