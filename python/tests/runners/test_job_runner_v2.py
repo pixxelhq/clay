@@ -13,6 +13,9 @@ from clay.core import ModelWrapper
 from clay.logger import Logger
 from clay.runners.job_runner_v2 import JobRunnerV2, _ArgoConfEnvVars, _InjectedEnvVars
 
+# mocking `_upload_parameter_output_spec_file` for tests
+JobRunnerV2._upload_parameter_output_spec_file = lambda self, data_item_name, local_spec_file_path: None
+
 
 class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
