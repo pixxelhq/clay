@@ -516,12 +516,12 @@ class BaseRunner(object):
                 json=data,
                 headers=headers,
             )
-            self.logger.debug(f"Response from orchestrator: {pformat(resp)}")
-            if resp.status_code != HTTPStatus.ACCEPTED:
-                self.logger.debug("Successfully updated state with Orchestrator.")
+
+            if resp.status_code == HTTPStatus.ACCEPTED:
+                self.logger.debug("Successfully updated state with Orchestrator")
             else:
                 if self.enable_debug_logs:
-                    self.logger.error("State Update failed.")
+                    self.logger.error(f"State Update failed. Response from orchestrator: {pformat(resp.json())}")
 
             return resp.json()["data"]["successful_update"]
 
@@ -534,12 +534,11 @@ class BaseRunner(object):
                 json=data,
                 headers=headers,
             )
-            self.logger.debug(f"Response from orchestrator: {pformat(resp)}")
             if resp.status_code == 204:
-                self.logger.debug("Successfully updated state with Orchestrator.")
+                self.logger.debug(f"Successfully updated state with Orchestrator. Response from orchestrator: {pformat(resp)}")
             else:
                 if self.enable_debug_logs:
-                    self.logger.error("State Update failed.")
+                    self.logger.error(f"State Update failed. Response from orchestrator: {pformat(resp.json())}")
             return True
 
     @abstractmethod
