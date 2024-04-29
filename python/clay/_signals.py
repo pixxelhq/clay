@@ -25,4 +25,8 @@ def failure(
     """
     if message is None:
         message = "Failure."
-    raise FailedExecutionException(message=message, clb_dict=clb_dict, http_status_code=http_status_code)
+    raise FailedExecutionException(
+        message=message,
+        clb_dict=clb_dict,
+        http_status_code=http_status_code,
+    )

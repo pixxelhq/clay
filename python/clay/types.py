@@ -14,6 +14,11 @@ _IS_ARTIFACT_ATTR_NAME = "is_artifact"
 EXECUTOR_ENVVAR = "EXECUTOR"
 
 
+class FailureTypes(str, Enum):
+    RUNTIME = "runtime_exception"
+    BADREQUEST = "bad_request"
+
+
 class ModelStates(str, Enum):
     STARTED = "created"
     INPROGRESS = "inprogress"
@@ -179,6 +184,7 @@ class Callback(pydantic.BaseModel):
     BlockInfEndTime: Annotated[Optional[str], Field(serialization_alias="block_inf_end_time")] = None
     ModelInfStartTime: Annotated[Optional[str], Field(serialization_alias="model_inf_start_time")] = None
     ModelInfEndTime: Annotated[Optional[str], Field(serialization_alias="model_inf_end_time")] = None
+    FailureType: Annotated[Optional[str], Field(serialization_alias="failure_type")] = None
     model_config = ConfigDict(use_enum_values=False)
 
 

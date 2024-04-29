@@ -9,7 +9,6 @@ from enum import Enum
 from logging import Logger
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
-import urllib3
 from s3fs import S3FileSystem
 from urllib3.util import parse_url
 
@@ -199,7 +198,8 @@ class JobRunner(BaseRunner):
     ) -> types.Data:  # type: ignore
         try:
             _ = parse_url(str(data.Value))
-        except urllib3.exceptions.LocationParseError:
+        except Exception as exc:
+            self.logger.warn(f"unable to parse json: {exc}")
             # if the url is not parseable, then we assume it is a stringified geojson
             try:
                 parsed_data = json.loads(str(data.Value))
@@ -207,6 +207,7 @@ class JobRunner(BaseRunner):
                 with open(local_path, "w+") as f:
                     json.dump(parsed_data, f, indent=4)
                 data.Value = str(local_path)
+                self.logger.info("found stringified json")
                 return data
             except json.JSONDecodeError:
                 clay.failure("failed to parse geojson with value {0}".format(data.Value))
@@ -422,8 +423,10 @@ class JobRunner(BaseRunner):
             return
         if isinstance(exc, FailedExecutionException):
             err_msg = exc.msg
+            failure_type = types.FailureTypes.BADREQUEST.value
         else:
             err_msg = ""
+            failure_type = types.FailureTypes.RUNTIME.value
 
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
         end_time = utils.get_current_utc_time_iso()
@@ -433,6 +436,7 @@ class JobRunner(BaseRunner):
                 State=types.ModelStates.FAILED,
                 ErrMsg=err_msg,
                 EndTime=end_time,
+                FailureType=failure_type,
             )
         )
         raise exc
@@ -531,5 +535,5 @@ class JobRunner(BaseRunner):
         self.logger.info("Inputs", _input_dict)
         result, exc = self.run_model_inference(inputs=_input_dict)  # type: ignore
         if exc is not None:
-            self.failure(exc)
+            self.failure(exc=exc)
         self.logger.info(f"Results: {result}")
