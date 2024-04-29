@@ -483,17 +483,16 @@ class JobRunnerV2(BaseRunner):
             return
         if isinstance(exc, FailedExecutionException):
             err_msg = exc.msg
+            failure_type = types.FailureTypes.BADREQUEST.value
         else:
             err_msg = ""
+            failure_type = types.FailureTypes.RUNTIME.value
 
         task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
         end_time = get_current_utc_time_iso()
         self._fire_callback(
             types.Callback(
-                Id=task_id,
-                State=types.ModelStates.FAILED,
-                ErrMsg=err_msg,
-                EndTime=end_time,
+                Id=task_id, State=types.ModelStates.FAILED, ErrMsg=err_msg, EndTime=end_time, FailureType=failure_type
             )
         )
         self.logger.info("Inference finished")

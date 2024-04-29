@@ -7,7 +7,7 @@ def test_clb_init() -> None:
 
 
 def test_clb_serialise_dict() -> None:
-    c = types.Callback(Id="task123", State=types.ModelStates.FAILED)
+    c = types.Callback(Id="task123", State=types.ModelStates.FAILED, FailureType="bad_request")
     d = c.model_dump(by_alias=True)
     assert d == {
         "id": "task123",
@@ -26,6 +26,7 @@ def test_clb_serialise_dict() -> None:
         "block_inf_end_time": None,
         "model_inf_start_time": None,
         "model_inf_end_time": None,
+        "failure_type": "bad_request",
     }
 
 
