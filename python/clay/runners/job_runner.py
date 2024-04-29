@@ -208,9 +208,9 @@ class JobRunner(BaseRunner):
                     json.dump(parsed_data, f, indent=4)
                 data.Value = str(local_path)
                 self.logger.info("found stringified json")
-                return data
             except json.JSONDecodeError:
                 clay.failure("failed to parse geojson with value {0}".format(data.Value))
+        return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
         if self._inf_opts.get(_ExpectedInfParameters.WorkflowId) is None:
