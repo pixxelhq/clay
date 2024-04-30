@@ -165,10 +165,6 @@ class Callback(pydantic.BaseModel):
     Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
     Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
     Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
-    State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
-    Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
-    Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
-    Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
     Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
     UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
     ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
