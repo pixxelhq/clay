@@ -526,7 +526,8 @@ class BaseRunner(object):
             return resp.json()["data"]["successful_update"]
 
         else:
-            data = {"status": clb.State.value, "output": clb.Result}  # type: ignore
+            # TODO: Refactor this to use clb.model_dump
+            data = {"status": clb.State.value, "output": clb.Result, "failure_type": clb.FailureType}  # type: ignore
             self.logger.debug(f"Data for callback: {data}")
 
             resp = session.post(
