@@ -123,6 +123,7 @@ func getTemplateData(titlemodelName string, specmodelName string) map[string]Tem
 		"pyproject.toml":                PyProject{ModelName: titlemodelName},
 		"package-deploy-model-aws.yaml": GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"build.yaml":                    GithubWorkflow{ModelName: specmodelName},
+		"add-model-readme.yaml":         GithubWorkflow{ModelName: specmodelName},
 	}
 	return data
 }

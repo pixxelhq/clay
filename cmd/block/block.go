@@ -82,7 +82,7 @@ func GetBlockCmd() *cobra.Command {
 				return err
 			}
 			if specData == nil {
-				fmt.Printf("No block found in %s for the given details:\n blockname %s\n version %s\n status %s\n", env, blockName, blockVersion, status)
+				fmt.Println("No block found for the given details")
 				return nil
 			}
 
@@ -296,7 +296,9 @@ func UpdateBlockCmd() *cobra.Command {
 			if blockVersion != "" && !common.IsValidVersion(blockVersion) {
 				return pkg.ErrInvalidValue("invalid version syntax. Follow semVer pattern eg. v0.0.1")
 			}
-
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 
@@ -309,7 +311,6 @@ func UpdateBlockCmd() *cobra.Command {
 			if blockVersion == "" {
 				return errors.New("provide valid version. Use list block cmd to list available block versions,if needed")
 			}
-
 			err = block.UpdateBlock(ctx, logger, blockName, blockVersion, specFilePath, env, status)
 			if err != nil {
 				return err
