@@ -1,0 +1,164 @@
+name: "Add block to production(High risk)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version of the model eg. v0.0.1"
+        required: true
+
+
+env:
+  AWS_DEFAULT_REGION: us-east-2
+  ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
+  Frontier_Sub: {{ "${{ secrets.AUTH_SUB }}" }}
+  Frontier_Org_Ids: {{ "${{ secrets.AUTH_ORG_IDS }}" }}
+  VERSION: {{ "${{ github.event.inputs.version }}" }}
+
+jobs:
+
+  image-build-push-prod:
+    runs-on: [ubuntu-latest]
+    if: (github.event_name == 'workflow_dispatch')
+    permissions:
+      id-token: write
+      contents: write
+    outputs:
+      img-tag: {{ "${{ steps.persist_img_tag.outputs.IMG_TAG }}" }}
+    steps:
+      - name: Set docker image Tag(prod)
+        env:
+          TAG: {{ "${{ github.event.inputs.version }}" }}
+        run: |
+          echo "IMAGE_TAG=prod-$TAG" >> $GITHUB_ENV
+
+      - name: Create Git tag
+        if: (github.event_name == 'workflow_dispatch')
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/{{ "${{ env.IMAGE_TAG }}" }}',
+              sha: context.sha
+            })
+      - name: Persist Image Tag across Jobs
+        id: persist_img_tag
+        env:
+          TAG: {{ "${{ env.IMAGE_TAG }}" }}
+        run: |
+          echo "IMG_TAG=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@b8c74de753fbcb4868bf2011fb2e15826ce973af
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          role-session-name: samplerolesession
+          aws-region: {{ "${{ env.AWS_DEFAULT_REGION }}" }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to AWS Container Registry
+        id: login-ecr
+        uses: docker/login-action@v2
+        with:
+          registry: {{ "${{ env.ECR_REGISTRY }}" }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: sigstore
+          aws-region: us-east-2
+
+      - name: Set aws codeartifact token for clay
+        id: codeartifact-token
+        run: |
+          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
+
+      - name: Build and Push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          secrets: |
+              CODEARTIFACT_AUTH_TOKEN={{ "${{ env.CODEARTIFACT_AUTH_TOKEN }}" }}
+          tags: |
+              {{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ env.IMAGE_TAG }}" }}
+
+
+  push-block-to-prod:
+    runs-on: [ubuntu-latest]
+    needs: [image-build-push-prod]
+    if: (github.event_name == 'workflow_dispatch' && needs.image-build-push-prod.result == 'success')
+    env:
+      ARN: REDACTED-AWS-ACCT
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::{{ "${{ env.ARN }}" }}:role/GithubDeployRole
+          audience: https://github.com/pixxelhq
+          aws-region: {{ "${{ env.AWS_DEFAULT_REGION }}" }}
+
+      - name: Download Clay Binaries
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+            repo: example/clay
+            tag: v0.3.10-alpha.7
+            token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
+            extension-matching: disable
+            platform: linux
+            arch: amd64
+            rename-to: clay
+            chmod: 0755
+
+      - name: Upload model readme to s3
+        id: upload_readme
+        run: |
+            echo "url=$(clay upload readme -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env prod)" >> $GITHUB_OUTPUT
+
+      - name: Get Image tag
+        id: image_tag
+        run: |
+          IMAGE_TAG={{ "${{ needs.image-build-push-prod.outputs.img-tag }}" }}
+          echo "$IMAGE_TAG"
+          echo "::set-output name=value::$IMAGE_TAG"
+
+
+      - name: Create local changes
+        run: |
+          sed -i "s|image:.*|image: \"{{ "${{ env.ECR_REGISTRY }}" }}/{{ .ModelName }}:{{ "${{ steps.image_tag.outputs.value }}" }}\"|" {{ .ModelName }}/specifications/model_specification_prod.yaml
+          sed -i "s|catalog_content_url:.*|catalog_content_url: \"{{ "${{ steps.upload_readme.outputs.url }}" }}\"|" {{ .ModelName }}/specifications/model_specification_prod.yaml
+          sed -i "s|^version:.*|version: \"{{ "${{ env.VERSION }}" }}\"|" {{ .ModelName }}/specifications/model_specification_prod.yaml
+
+      - name: Push model to orchestrator
+        run: |
+          clay add block {{ .ModelName }}/specifications/model_specification_prod.yaml --env prod
+
+      - name: Commit files
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -a -m "updated image + catalog url + version"
+
+      - name: Push changes back to github
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: {{ "${{ secrets.GITHUB_TOKEN }}" }}
+          branch: {{ "${{ github.ref }}" }}
