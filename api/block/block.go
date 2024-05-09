@@ -23,7 +23,7 @@ type WorkflowAPIRequest struct {
 }
 
 type UpdateAPIRequest struct {
-	Spec json.RawMessage `json:"spec"`
+	Spec map[string]json.RawMessage `json:"spec"`
 }
 
 type BlockSpec struct {
@@ -31,6 +31,20 @@ type BlockSpec struct {
 		Spec block.Block `json:"spec"`
 	} `json:"data"`
 }
+
+var (
+	// Setting the json fields that can be updated in this core entity via the `PUT` endpoints
+	toDeleteKeys = ([]string{
+		"kind",
+		"type",
+		"name",
+		"title",
+		"author",
+		"version",
+		"inputs",
+		"outputs",
+	})
+)
 
 func buildURL(blockUrl string, endpoint string) string {
 
@@ -225,17 +239,19 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 		return err
 	}
 
-	blockStruct := json.RawMessage{}
-
-	err = yaml.Unmarshal(specBytes, &blockStruct)
+	var tmpMap map[string]json.RawMessage
+	err = yaml.Unmarshal(specBytes, &tmpMap)
 	if err != nil {
-		logger.Error().Err(err).Stack().Msg(err.Error())
 		return err
+	}
+
+	for _, key := range toDeleteKeys {
+		delete(tmpMap, key)
 	}
 
 	//add spec key before sending POST request
 
-	updatedBlockSpec := UpdateAPIRequest{Spec: blockStruct}
+	updatedBlockSpec := UpdateAPIRequest{Spec: tmpMap}
 
 	blockJSON, err := json.Marshal(updatedBlockSpec)
 	if err != nil {
@@ -243,6 +259,7 @@ func UpdateBlock(ctx context.Context, logger *logger.Logger, blockname string, v
 		return err
 	}
 	data := bytes.NewBuffer(blockJSON)
+
 	dexterUrl := common.GetUrl(env)
 
 	blockUrl := buildURL(dexterUrl, fmt.Sprintf("%s?status=%s", blockId, status))
