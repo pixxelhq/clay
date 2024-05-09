@@ -121,9 +121,11 @@ func getTemplateData(titlemodelName string, specmodelName string) map[string]Tem
 		"Makefile":                      Makefile{ModelName: titlemodelName},
 		"test_main.py":                  TestModel{ModelName: titlemodelName},
 		"pyproject.toml":                PyProject{ModelName: titlemodelName},
-		"package-deploy-model-aws.yaml": GithubWorkflow{ModelName: specmodelName, Version: Version},
+		"add-block-dev-stg.yaml":        GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"build.yaml":                    GithubWorkflow{ModelName: specmodelName},
+		"add-block-prod.yaml":           GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"add-model-readme.yaml":         GithubWorkflow{ModelName: specmodelName},
+
 	}
 	return data
 }
