@@ -123,9 +123,9 @@ func getTemplateData(titlemodelName string, specmodelName string) map[string]Tem
 		"pyproject.toml":                PyProject{ModelName: titlemodelName},
 		"add-block-dev-stg.yaml":        GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"build.yaml":                    GithubWorkflow{ModelName: specmodelName},
+		"update-latest-block.yaml":      GithubWorkflow{ModelName: specmodelName},
 		"add-block-prod.yaml":           GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"add-model-readme.yaml":         GithubWorkflow{ModelName: specmodelName},
-
 	}
 	return data
 }
