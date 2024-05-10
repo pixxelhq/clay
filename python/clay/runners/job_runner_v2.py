@@ -436,6 +436,7 @@ class JobRunnerV2(BaseRunner):
             elif "properties" in output_config and data.Properties is None:  # type: ignore
                 data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
 
+        # Note: `exclude_None` to be added only after careful testing since there are lot of side effects
         output = data.model_dump(by_alias=True)
 
         output_parameter_path = pathlib.Path(os.path.join(output_working_dir, data.Name))

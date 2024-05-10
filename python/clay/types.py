@@ -50,6 +50,53 @@ def add_inline_fields(from_model: Type[pydantic.BaseModel], to_model: Type[pydan
         to_model.__annotations__[k] = v
 
 
+class VizContinuous(pydantic.BaseModel):
+    """Supported visualisation for continuous values.
+
+    Attributes:
+        ColorMapName (Annotated[Optional[str]]): Colormap to be used for the continous visualisation. Supported
+            colormaps can be found [here](https://cogeotiff.github.io/rio-tiler/colormap/#default-rio-tilers-colormaps).
+        Range (Annotated[Optional[List[List[float]]]]): Bandwise range of the pixel values in the format [min, max].
+    """
+
+    ColorMapName: Annotated[Optional[str], Field(serialization_alias="name", alias="name")] = None
+    Range: Annotated[Optional[List[List[float]]], Field(serialization_alias="range", alias="range")] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+
+class VizBucket(pydantic.BaseModel):
+    """Supported visualisation for histograms.
+
+    Attributes:
+        Range (Annotated[Optional[List[float]]]): Range of the pixel values in the format [min, max].
+        ColorCode (Annotated[Optional[str]]): Hex code of the color.
+    """
+
+    Range: Annotated[Optional[List[float]], Field(serialization_alias="range", alias="range")] = None
+    ColorCode: Annotated[Optional[str], Field(serialization_alias="color", alias="color")] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+
+class RasterVisualisation(pydantic.BaseModel):
+    """Supported visualisation options for a raster.
+
+    Attributes:
+        Type (str): Type of the visualisation. The supported values are [continuous, bucket, discrete].
+        Continuous (Annotated[Optional[List[VizContinuous]]]): Defines the options for _continuous_ visualisation.
+        Bucket (Annotated[Optional[List[List[VizBucket]]]]): Defines the options for _histogram_ based visualisatin.
+        Discrete (Annotated[Optional[Dict[str, str]]]): Defines the pixel class value and color mapping.
+    """
+
+    Type: Annotated[Optional[str], Field(serialization_alias="type", alias="type")] = None
+    Continuous: Annotated[Optional[VizContinuous], Field(serialization_alias="continuous", alias="continuous")] = None
+    Bucket: Annotated[Optional[List[List[VizBucket]]], Field(serialization_alias="bucket", alias="bucket")] = None
+    Discrete: Annotated[Optional[Dict[str, str]], Field(serialization_alias="discrete", alias="discrete")] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+
 class RasterProperties(pydantic.BaseModel):
     """Supported properties for a raster
 
@@ -65,6 +112,21 @@ class RasterProperties(pydantic.BaseModel):
             The satellite collection. Defaults to `None`.
         Dtype:
             The type of literal values in the raster. Defaults to `None`.
+        Visualisation:
+            It will help in the raster visualisation on client side. There are three type of visualisation supported.
+
+            1. Continuous:
+                Mentions the colormap gradient with a range of distribution values. We support colormaps from this [list](https://cogeotiff.github.io/rio-tiler/colormap/#default-rio-tilers-colormaps).
+                Supports multibands wherein the index of this list corressponds to the index of the band in the raster file to which this viz is intended
+                for.
+
+            2. Discrete:
+                Defines a mapping between pixel class values and corresponding color code. Each class would be given the
+                color code specified in their corressponding key. Discrete viz is intended only for single-band rasters.
+
+            3. Bucket:
+                Defines a histogram based visualisation technique for pixel values. Supports multibands wherein the index
+                of this list corressponds to the index of the band in the raster file to which this viz is intended for.
     """
 
     Bands: Annotated[Optional[List[str]], Field(serialization_alias="bands", alias="bands")] = None
@@ -74,6 +136,9 @@ class RasterProperties(pydantic.BaseModel):
     SunElevation: Annotated[Optional[float], Field(serialization_alias="sun_elevation", alias="sun_elevation")] = None
     SatelliteLookAngle: Annotated[
         Optional[float], Field(serialization_alias="satellite_look_angle", alias="satellite_look_angle")
+    ] = None
+    Visualisation: Annotated[
+        Optional[RasterVisualisation], Field(serialization_alias="visualisation", alias="visualisation")
     ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
@@ -161,6 +226,10 @@ class ModelInfTimes(pydantic.BaseModel):
 
 class Callback(pydantic.BaseModel):
     Id: Annotated[str, Field(serialization_alias="id")]
+    State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
+    Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
+    Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
+    Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
     State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
     Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
     Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
