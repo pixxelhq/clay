@@ -233,6 +233,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 "dtype": "uint8",
                 "sun_elevation": 5.1,
                 "satellite_look_angle": None,
+                "visualisation": None,
             },
         }
 

@@ -79,3 +79,16 @@ All the types are defined in `clay.types`. While each type might have some speci
 
 ### DateProperties
 ::: clay.types.DateProperties
+
+## Visualisation in supported types
+
+### RasterVisualisation
+::: clay.types.RasterVisualisation
+
+#### Raster Visualisation Types
+
+##### VizContinuous
+::: clay.types.VizContinuous
+
+##### VizBucket
+::: clay.types.VizBucket
