@@ -470,6 +470,20 @@ repo at:
 * AUTH_SUB
   > Connect with MLOps team for the above two tokens.
 
+## Add container registry for your repository.
+Ignore the keywords in the heading, you need to raise a PR on [infra](https://github.com/example/infra) by adding your repository link and name. It will be used to store the image for your repository on cloud.
+
+Sample PR: https://github.com/example/infra/commit/240cc0f8415c3960564864c17beda22adbebddb5 This PR is adding two service with name `courier` and `beacon` with their github repository. 
+
+Suppose your github reposity link is https://github.com/example/dummymodel
+then you need to add this in infra/aws/core/production/infrastructure/container_registry/variables.tf file.
+
+```hcl
+"dummymodel" = {
+      github = "https://github.com/example/dummymodel"
+    }
+```
+
 ## Uploading your model onto Orchestrator
 
 The process of adding a block to Orchestrator has the following steps,
