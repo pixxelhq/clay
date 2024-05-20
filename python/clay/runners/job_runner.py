@@ -334,9 +334,13 @@ class JobRunner(BaseRunner):
             raise OutputOverwriteException("attempting to overwrite output")
 
         output_config = self.expected_outputs[data.Name]
-        format = output_config["format"]
-        if data.Format != format:
+        _format = output_config["format"]
+        if data.Format != _format:
             raise ValueError(f"invalid format `{data.Format}` for `{data.Name}")
+
+        # set `displayName` and `description` from config
+        data.DisplayName = output_config.get("display_name", "")
+        data.Description = output_config.get("description", "")
 
         workflow_id = self._inf_opts[_ExpectedInfParameters.WorkflowId]
         job_id = self._inf_opts[_ExpectedInfParameters.JobId]

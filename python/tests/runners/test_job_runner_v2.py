@@ -223,6 +223,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "result",
+            "display_name": "",
+            "description": "",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
             "is_artifact": True,
             "default": None,
