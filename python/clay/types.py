@@ -275,7 +275,6 @@ class InferenceOpts(pydantic.BaseModel):
 class _DataMeta(pydantic.BaseModel):
     Format: Annotated[str, Field(alias="format", serialization_alias="format")]
     Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
-    Type: Annotated[Optional[str], Field(alias="type", serialization_alias="type")] = None
     Name: Annotated[str, Field(alias="name", serialization_alias="name")]
     Value: Annotated[
         Optional[Union[int, float, str, bool]],
@@ -286,7 +285,8 @@ class _DataMeta(pydantic.BaseModel):
         Field(alias="default", serialization_alias="default"),
     ] = None
     IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
-    IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
+    DisplayName: Annotated[Optional[str], Field(alias="display_name", serialization_alias="display_name")] = None
+    Description: Annotated[Optional[str], Field(alias="description", serialization_alias="description")] = None
 
     model_config = {"validate_assignment": True, "populate_by_name": True}
 

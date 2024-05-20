@@ -410,9 +410,13 @@ class JobRunnerV2(BaseRunner):
             raise OutputOverwriteException(f"Duplicate output received for `{data.Name}`")
 
         output_config = self.expected_outputs[data.Name]
-        format = output_config["format"]
-        if data.Format != format:
-            raise ValueError(f"invalid format `{data.Format}` for `{data.Name}`. Expected `{format}`")
+        _format = output_config["format"]
+        if data.Format != _format:
+            raise ValueError(f"invalid format `{data.Format}` for `{data.Name}`. Expected `{_format}`")
+
+        # set `displayName` and `description` from config
+        data.DisplayName = output_config.get("display_name", "")
+        data.Description = output_config.get("description", "")
 
         output_working_dir, found = self.get_injected_envvar(_InjectedEnvVars.OutputsWorkingDir)
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
