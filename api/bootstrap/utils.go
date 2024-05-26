@@ -8,6 +8,8 @@ import (
 	"unicode"
 
 	"errors"
+
+	"github.com/iancoleman/strcase"
 )
 
 var Version string
@@ -87,6 +89,7 @@ func createTemplate(name, t string) *template.Template {
 	funcMap := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
+		"ToSnake": strcase.ToSnake,
 	}
 	return template.Must(template.New(name).Funcs(funcMap).Parse(t))
 }
@@ -114,9 +117,9 @@ func getTemplateData(titlemodelName string, specmodelName string) map[string]Tem
 		"model.py":                      Model{ModelName: titlemodelName},
 		"entry.py":                      Entry{ModelName: titlemodelName},
 		"README.md":                     Readme{Name: titlemodelName},
-		"model_specification_dev.yaml":  ModelSpecification{Name: specmodelName},
-		"model_specification_prod.yaml": ModelSpecification{Name: specmodelName},
-		"model_specification_stg.yaml":  ModelSpecification{Name: specmodelName},
+		"model_specification_dev.yaml":  ModelSpecification{Name: titlemodelName},
+		"model_specification_prod.yaml": ModelSpecification{Name: titlemodelName},
+		"model_specification_stg.yaml":  ModelSpecification{Name: titlemodelName},
 		"test_model.py":                 TestModel{ModelName: titlemodelName},
 		"Makefile":                      Makefile{ModelName: titlemodelName},
 		"test_main.py":                  TestModel{ModelName: titlemodelName},
@@ -126,6 +129,7 @@ func getTemplateData(titlemodelName string, specmodelName string) map[string]Tem
 		"update-latest-block.yaml":      GithubWorkflow{ModelName: specmodelName},
 		"add-block-prod.yaml":           GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"add-model-readme.yaml":         GithubWorkflow{ModelName: specmodelName},
+		"benchmark.yaml":                GithubWorkflow{ModelName: specmodelName},
 	}
 	return data
 }

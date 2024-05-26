@@ -1,6 +1,6 @@
 [tool.isort]
 known_first_party = [
-    "{{.ModelName}}"
+    "{{.ModelName | ToSnake}}"
 ]
 include_trailing_comma = "True"
 multi_line_output = 3
@@ -29,5 +29,5 @@ warn_no_return = "False"
 
 [tool.pytest.ini_options]
 pythonpath = [
-  ".", "{{.ModelName}}"
+  ".", "{{.ModelName | ToSnake}}"
 ]

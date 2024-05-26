@@ -26,9 +26,9 @@ func CreateProject(outputDir, modelName string) error {
 		return err
 	}
 	titlemodelName := strcase.ToCamel(modelName)
-	specmodelName := strings.ToLower(modelName)
+	specmodelName := strcase.ToSnake(modelName)
 	data := getTemplateData(titlemodelName, specmodelName)
-	outputDir = filepath.Join(outputDir, modelName)
+	outputDir = filepath.Join(outputDir, specmodelName)
 	fmt.Printf("Cleaning up %s ...\n-----------------\n", outputDir)
 	deleteDir(outputDir)
 	// Create the output directory if it doesn't exist
@@ -43,7 +43,7 @@ func CreateProject(outputDir, modelName string) error {
 		}
 		relPath, _ := filepath.Rel(fullTemplateRoot, path)
 		outPath := filepath.Join(outputDir, relPath)
-		outPath = strings.Replace(outPath, "src", titlemodelName, 1)
+		outPath = strings.Replace(outPath, "src", specmodelName, 1)
 		if d.IsDir() {
 			if err := os.Mkdir(outPath, 0755); err != nil {
 				fmt.Println(outPath, err)
