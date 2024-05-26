@@ -1,6 +1,6 @@
 kind: block
 type: processing
-name: {{ .Name }}
+name: {{ .Name | ToLower}}
 version: 0.0.1
 title: <Title for model to be displayed on the platform>
 status: draft
@@ -49,7 +49,7 @@ build:
   requirements: #requirements.txt  or conda.yml
 
 runtime_opts:
-  image: REDACTED.dkr.ecr.us-east-2.amazonaws.com/{{ .Name | ToLower }}:sample-version
+  image: REDACTED.dkr.ecr.us-east-2.amazonaws.com/{{ .Name | ToSnake }}:sample-version
   K8sJobConfig: null
   gpu: false
 

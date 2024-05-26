@@ -1,0 +1,49 @@
+name: Run Benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      benchmark-id:
+        description: "Give any id which will identify this benchmarking uniquely"
+        required: true
+      mem-limits:
+        description: "Memory limit for the pod in Mi unit"
+        required: true
+      cpu-limits:
+        description: "Cpu limit for the pod in m unit"
+        required: true
+      docker-block-image-tag:
+        description: "Image tag which will be used for benchmarking"
+        required: true
+      input-file-directory-path:
+        required: false
+        default: "./tests/benchmark/inputs"
+
+env:
+  AWS_DEFAULT_REGION: us-east-2
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run_benchmarks:
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: https://github.com/pixxelhq
+          aws-region: {{ "${{ env.AWS_DEFAULT_REGION }}" }} 
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: run mbench
+        uses: example/mbench@feat/testing-custom-github-actions
+        with:
+          id: {{ "${{ github.event.inputs.benchmark-id }}" }}
+          mem-limits: {{ "${{ github.event.inputs.mem-limits }}" }}
+          cpu-limits: {{ "${{ github.event.inputs.cpu-limits }}" }}
+          docker-block-image-url: "REDACTED.dkr.ecr.us-east-2.amazonaws.com/{{ .ModelName }}:{{ "${{ github.event.inputs.docker-block-image-tag }}" }}"
+          block-name: "{{ .ModelName }}"
+          input-file-directory-path: {{ "${{ github.event.inputs.input-file-directory-path }}" }}
