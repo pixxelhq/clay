@@ -202,7 +202,7 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
             repo: example/clay
-            tag: v0.3.10-alpha.7
+            tag: v0.4.0
             token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
             extension-matching: disable
             platform: linux
@@ -272,7 +272,7 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
             repo: example/clay
-            tag: v0.3.10-alpha.7
+            tag: v0.4.0
             token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
             extension-matching: disable
             platform: linux
