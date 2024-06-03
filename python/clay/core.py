@@ -9,15 +9,11 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
-from http import HTTPStatus
-from pprint import pformat
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_args
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_args
 
-import requests
 import uvloop
-from requests.adapters import HTTPAdapter, Retry  # type: ignore
 
-from clay import types
+from clay import _network, types
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, Logger, get_streamvalues
 from clay.utils import (
@@ -67,41 +63,6 @@ class CallbackAuthMethod(Enum):
         return cls(val)
 
 
-class HeaderBuilder:
-    @staticmethod
-    def auth_via_static_token(header: Dict[str, Any]) -> Dict[str, Any]:
-        token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
-        header["Authorization"] = f"Token {token}"
-        return header
-
-    @staticmethod
-    def auth_via_jwt_token(header: Dict[str, Any]) -> Dict[str, Any]:
-        token = os.getenv("DEXTER_CLB_AUTH_TOKEN")
-        header["Authorization"] = f"Bearer {token}"
-        return header
-
-    @staticmethod
-    def auth_via_resource_owner_header(header: Dict[str, Any]) -> Dict[str, Any]:
-        uid = os.getenv(SUB_ENVVAR)
-        orgids = os.getenv(ORGIDS_ENVVAR)
-        if uid and orgids:
-            header[ORGIDS_HEADER_KEY] = orgids
-            header[SUB_HEADER_KEY] = uid
-        return header
-
-    @staticmethod
-    def init_header() -> Dict[str, Any]:
-        auth_method = CallbackAuthMethod.get_method()
-        h: Dict[str, Any] = {}
-        if auth_method == CallbackAuthMethod.GATEWAY_TOKEN:
-            h = HeaderBuilder.auth_via_resource_owner_header(h)
-        elif auth_method == CallbackAuthMethod.JWT_TOKEN:
-            h = HeaderBuilder.auth_via_jwt_token(h)
-        else:
-            h = HeaderBuilder.auth_via_static_token(h)
-        return h
-
-
 class InferenceCtx:
     """
     Utility object whose lifetime is scoped to a single inference run. This object is essentially used
@@ -142,6 +103,27 @@ class RunType(Enum):
     WORKFLOW = "workflow"
 
 
+def callback_wrapper(conn_params: Dict[Any, str]):
+    def _callback(logger: Logger, callback: types.Callback) -> None:
+        dexter_clb_url = conn_params.get(types._CommonEnvvars.ORCHESTRATOR_URL, None)
+        dexter_port = conn_params.get(types._CommonEnvvars.DEXTER_PORT, None)
+        dexter_host = conn_params.get(types._CommonEnvvars.DEXTER_HOST, None)
+
+        task_id = conn_params.get(types._CommonEnvvars.TASK_ID, None)
+        if not task_id:
+            logger.warning("`task_id` not found hence aborting `mark_progress`")
+            return None
+
+        if callback.Id is None or callback.Id == "":
+            callback.Id = task_id
+
+        success = _network._fire_callback_to_dexter(callback, logger, dexter_clb_url, dexter_host, dexter_port)
+        if not success:
+            logger.warning("failed to fire callback")
+
+    return _callback
+
+
 class ModelWrapper:
     """The base class that wraps all user defined models. Every user defined model is expected
     to inherit this class. This enforces a defined structure on the user and ensures proper
@@ -149,6 +131,11 @@ class ModelWrapper:
     """
 
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
+
+    _DEFAULT_MODEL_PROGRESS_MIN: float = 0
+    _DEFAULT_MODEL_PROGRESS_MAX: float = 100
+    _DEFAULT_MODEL_USER_PROGRESS_MIN: float = 5
+    _DEFAULT_MODEL_USER_PROGRESS_MAX: float = 95
 
     def __init__(
         self,
@@ -177,6 +164,10 @@ class ModelWrapper:
             logger = ClayLogger(logger_name=self.__class__.__name__, propagate=True, level=log_level)
         self.logger: Logger = logger
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
+
+        self._runner_properties: Dict[types._CommonEnvvars, Any] = defaultdict(None)
+        self._callback: Optional[Callable] = None
+        self._progress_counter: float = 0.0
 
         self.run_setup()
 
@@ -210,6 +201,10 @@ class ModelWrapper:
         reasons for backward compatibility.
         """
         return False
+
+    def set_callback_callable(self, callback_fn: Callable) -> None:
+        assert isinstance(callback_fn, Callable)
+        self._callback = callback_fn
 
     def _dep_format_output(self, outputs: tuple) -> Any:
         output_containers = deepcopy(self.config.outputs)
@@ -280,6 +275,51 @@ class ModelWrapper:
 
     async def cleanup_inference(self) -> None:
         pass
+
+    def get_progress(self) -> float:
+        return self._progress_counter
+
+    def set_progress(self, progress_delta: float) -> None:
+        _p = max(progress_delta, self._DEFAULT_MODEL_USER_PROGRESS_MIN)
+        _p = min(_p, self._DEFAULT_MODEL_USER_PROGRESS_MAX)
+        self._set_progress(_p)
+
+    def _set_progress(
+        self,
+        progress_delta: Optional[float] = None,
+        callback: Optional[types.Callback] = None,
+    ) -> None:
+        if progress_delta is not None and progress_delta < 0:
+            self.logger.warning("negative `progress_delta` not allowed")
+            return None
+
+        if not progress_delta and not callback:
+            self.logger.warning("`progress` called with neither `progress_delta` or `callback`")
+            return None
+
+        # checking if progress is set via the callback
+        if callback and callback.Progress is not None:
+            progress_delta = callback.Progress
+
+        _p = 0.0
+        # set to min or max bounds if user value is out of bounds
+        if progress_delta is not None:
+            _p = max(progress_delta, self._DEFAULT_MODEL_PROGRESS_MIN)
+            _p = min(_p, self._DEFAULT_MODEL_PROGRESS_MAX)
+
+        self._progress_counter = min(self._progress_counter + _p, self._DEFAULT_MODEL_PROGRESS_MAX)
+
+        if self._callback is None:
+            self.logger.warning("cannot fire callback as `_callback` is set to `None`")
+            return None
+
+        if callback is not None:
+            callback.Progress = self._progress_counter
+            self._callback(self.logger, callback)
+        else:
+            self._callback(
+                self.logger, types.Callback(Id="", State=types.ModelStates.INPROGRESS, Progress=self._progress_counter)
+            )
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         """The preprocess abstract method. This the first method that the model
@@ -425,9 +465,9 @@ class BaseRunner(object):
         self._modelcls = modelcls
         self._model_args = model_args
         self._enable_uvloop = enable_uvloop
-        self._dexter_clb_url = os.getenv("ORCHESTRATOR_URL")
-        self._dexter_host = os.getenv("DEXTER_HOST", "http://localhost")
-        self._dexter_port = os.getenv("DEXTER_PORT", "8080")
+        self._dexter_clb_url = os.getenv(types._CommonEnvvars.ORCHESTRATOR_URL.value, "")
+        self._dexter_host = os.getenv(types._CommonEnvvars.DEXTER_HOST.value, "http://localhost")
+        self._dexter_port = os.getenv(types._CommonEnvvars.DEXTER_PORT.value, "8080")
         self.config = yaml_to_namespace(cfg_path)
         if enable_debug_logs is None:
             self.enable_debug_logs = not self.is_running_locally
@@ -436,7 +476,11 @@ class BaseRunner(object):
         # self._loop: Union[None, asyncio.AbstractEventLoop] = None
         if logger is None:
             log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
-            logger = ClayLogger(logger_name=f"{self._run_mode}_model_runner", propagate=True, level=log_level)
+            logger = ClayLogger(
+                logger_name=f"{self._run_mode}_model_runner",
+                propagate=True,
+                level=log_level,
+            )
 
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
@@ -488,59 +532,6 @@ class BaseRunner(object):
         self._t.start()
         time.sleep(1)
         self.logger.debug("Started model inference thread.")
-
-    def _fire_callback(self, clb: types.Callback) -> bool:
-        if self._dexter_clb_url is None or self._dexter_clb_url == "":
-            self.logger.debug("`ORCHESTRATOR_URL` not set, and hence not firing callback")
-            return False
-
-        # Setting the headers
-        headers = HeaderBuilder.init_header()
-
-        headers["Content-type"] = "application/json"
-
-        session = requests.Session()
-        retries = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])  # type: ignore
-        session.mount("http://", HTTPAdapter(max_retries=retries))
-
-        run_type = os.getenv("DEXTER_RUN_TYPE", RunType.WORKFLOW.value)
-        if run_type == RunType.WORKFLOW.value:
-            if self._dexter_clb_url is None or self._dexter_clb_url == "":
-                self.logger.debug("`ORCHESTRATOR_URL` not set, and hence not firing callback")
-                return False
-            data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
-            self.logger.debug(f"Data for callback: {data}")
-
-            resp = session.post(
-                url=self._dexter_clb_url,
-                json=data,
-                headers=headers,
-            )
-
-            if resp.status_code == HTTPStatus.ACCEPTED:
-                self.logger.debug("Successfully updated state with Orchestrator")
-            else:
-                if self.enable_debug_logs:
-                    self.logger.error(f"State Update failed. Response from orchestrator: {pformat(resp.json())}")
-
-            return resp.json()["data"]["successful_update"]
-
-        else:
-            # TODO: Refactor this to use clb.model_dump
-            data = {"status": clb.State.value, "output": clb.Result, "failure_type": clb.FailureType}  # type: ignore
-            self.logger.debug(f"Data for callback: {data}")
-
-            resp = session.post(
-                url="{0}:{1}/v1alpha1/inferences/{2}".format(self._dexter_host, self._dexter_port, clb.Id),
-                json=data,
-                headers=headers,
-            )
-            if resp.status_code == 204:
-                self.logger.debug(f"Successfully updated state with Orchestrator. Response from orchestrator: {pformat(resp)}")
-            else:
-                if self.enable_debug_logs:
-                    self.logger.error(f"State Update failed. Response from orchestrator: {pformat(resp.json())}")
-            return True
 
     @abstractmethod
     def _collect_inputs(

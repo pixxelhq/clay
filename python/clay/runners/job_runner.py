@@ -13,8 +13,8 @@ from s3fs import S3FileSystem
 from urllib3.util import parse_url
 
 import clay
-from clay import types, utils
-from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes
+from clay import _network, types, utils
+from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes, callback_wrapper
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
 
 __LOCAL_WORKING_DIR__ = "/tmp"
@@ -83,7 +83,15 @@ class JobRunner(BaseRunner):
             logger (Optional[Logger], optional): Any custom logger. Defaults to None.
             enable_uvloop (bool, optional): Legacy, would be removed. Defaults to False.
         """
-        super().__init__(JobRunner.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop, enable_debug_logs)
+        super().__init__(
+            JobRunner.RUN_MODE,
+            modelcls,
+            model_args,
+            cfg_path,
+            logger,
+            enable_uvloop,
+            enable_debug_logs,
+        )
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, Any] = {}
 
@@ -401,13 +409,13 @@ class JobRunner(BaseRunner):
 
     def success(self) -> Any:
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
-        success = self._fire_callback(
-            types.Callback(
-                Id=task_id,
-                State=types.ModelStates.COMPLETED,
-                Outputs=self.get_outputs_list(),
-            )
+        clb = types.Callback(
+            Id=task_id,
+            State=types.ModelStates.COMPLETED,
+            Outputs=self.get_outputs_list(),
         )
+        success = self._model._set_progress(100, clb)
+
         # We do it this way so that we can:
         # 1. Fire orchestrator logs only when we're not running locally
         # 2. Still maintain the correct log level
@@ -434,15 +442,15 @@ class JobRunner(BaseRunner):
 
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
         end_time = utils.get_current_utc_time_iso()
-        self._fire_callback(
-            types.Callback(
-                Id=task_id,
-                State=types.ModelStates.FAILED,
-                ErrMsg=err_msg,
-                EndTime=end_time,
-                FailureType=failure_type,
-            )
+        clb = types.Callback(
+            Id=task_id,
+            State=types.ModelStates.FAILED,
+            ErrMsg=err_msg,
+            EndTime=end_time,
+            FailureType=failure_type,
+            Progress=100,
         )
+        _ = self._model._set_progress(callback=clb)
         raise exc
 
     def run_model_inference(
@@ -453,14 +461,15 @@ class JobRunner(BaseRunner):
         if inputs is None:
             raise ValueError("inputs cannot be None")
 
-        id = self._inf_opts[_ExpectedInfParameters.TaskId]
-        success = self._fire_callback(
-            types.Callback(
-                Id=id,
+        task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
+        success = self._model._set_progress(
+            callback=types.Callback(
+                Id=task_id,
                 State=types.ModelStates.INPROGRESS,
                 Inputs=self.get_inputs_list(),
                 StartTime=start_time,
-            )
+                Progress=5,
+            ),
         )
         # We do it this way so that we can:
         # 1. Fire orchestrator logs only when we're not running locally
@@ -480,14 +489,15 @@ class JobRunner(BaseRunner):
         inf_times = ctx.get_model_inf_times()
         end_time = utils.get_current_utc_time_iso()
         clb = types.Callback(
-            Id=id,
+            Id=task_id,
             State=types.ModelStates.COMPLETED,
             Result=serialized_result,
             EndTime=end_time,
             BlockInfStartTime=inf_times.InfStartTime,
             BlockInfEndTime=inf_times.InfEndTime,
+            Progress=100,
         )
-        success = self._fire_callback(clb)
+        success = self._model._set_progress(callback=clb)
         if not success and self.enable_debug_logs:
             self.logger.error("Failed to fire callback successfully")
         return result, None
@@ -524,14 +534,29 @@ class JobRunner(BaseRunner):
             self.logger.debug(f"thread alive status: {self._t.is_alive()}")
 
             task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
-            self._fire_callback(
-                types.Callback(
-                    Id=task_id,
-                    State=types.ModelStates.FAILED,
-                    ErrMsg="internal server error",
-                )
+            clb = types.Callback(
+                Id=task_id,
+                State=types.ModelStates.FAILED,
+                ErrMsg="internal server error",
+            )
+            _network._fire_callback_to_dexter(
+                clb,
+                self.logger,
+                self.get_injected_envvar(_InjectedEnvVars.ClbUrl)[0],  # yes I know this is dirty
+                self._dexter_host,
+                self._dexter_port,
             )
             raise exc
+
+        conn_params = {
+            types._CommonEnvvars.DEXTER_HOST: self._dexter_host,
+            types._CommonEnvvars.DEXTER_PORT: self._dexter_port,
+            types._CommonEnvvars.ORCHESTRATOR_URL: self.get_injected_envvar(_InjectedEnvVars.ClbUrl.ClbUrl),
+            types._CommonEnvvars.TASK_ID: self._inf_opts[_ExpectedInfParameters.TaskId],
+        }
+        callback_fn = callback_wrapper(conn_params)
+        self._model.set_callback_callable(callback_fn)
+
         if self._model.receive_raw_inputs:
             _input_dict = rvals[1]
         else:

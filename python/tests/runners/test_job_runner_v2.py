@@ -1,3 +1,4 @@
+# type: ignore
 import json
 import os
 import pathlib
@@ -6,6 +7,7 @@ import unittest
 from typing import Any
 from unittest.mock import patch  # noqa
 
+import pytest
 import shortuuid
 
 from clay import types
@@ -83,7 +85,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
 
             async def preprocess(self, string, raster) -> Any:
                 print(string, raster)
-                return {"raster": raster, "string": string}
+                return {"raster": raster, "string": string.Value}
 
             async def inference(self, raster, string) -> None:
                 dummy_raster = pathlib.Path("clipped.tiff")
@@ -286,23 +288,34 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
 
     async def test_receive_raw_input(self) -> None:
         class M(ModelWrapper):
-            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
+            def __init__(_self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
                 super().__init__(config, protocol, logger)
 
-            def setup(self):
-                self.receive_raw_inputs = True
+            def setup(_self):
+                _self.receive_raw_inputs = True
 
-            async def preprocess(self, string, raster) -> Any:
+            async def preprocess(_self, string, raster) -> Any:
                 assert not isinstance(raster, types.Raster)
                 assert raster == {
                     "format": "raster",
                     "name": "raster",
                     "type": "url",
                     "value": os.path.join(self.testing_working_dir, "inputs", "raster", "clipped.tiff"),
+                    "properties": {
+                        "bands": ["A", "B", "C"],
+                        "source": "some-source",
+                        "collection": "some-collection",
+                        "dtype": "some-dtype",
+                    },
                 }
 
-                assert isinstance(string, types.String)
-                assert string == {"format": "string", "name": "string", "type": "str", "value": "hello world"}
+                assert not isinstance(string, types.String)
+                assert string == {
+                    "format": "string",
+                    "name": "string",
+                    "type": "str",
+                    "value": "hello world",
+                }
 
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
@@ -314,5 +327,10 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start()
+        with pytest.raises(TypeError) as exc_info:
+            a.start()
+            assert (
+                exc_info.__str__
+                == "TypeError: clay.core.ModelWrapper.inference() argument after ** must be a mapping, not NoneType"
+            )
         env_patcher.stop()
