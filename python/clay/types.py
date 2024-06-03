@@ -14,6 +14,14 @@ _IS_ARTIFACT_ATTR_NAME = "is_artifact"
 EXECUTOR_ENVVAR = "EXECUTOR"
 
 
+class _CommonEnvvars(str, Enum):
+    ORCHESTRATOR_URL = "ORCHESTRATOR_URL"
+    DEXTER_RUN_TYPE = "DEXTER_RUN_TYPE"
+    DEXTER_HOST = "DEXTER_HOST"
+    DEXTER_PORT = "DEXTER_PORT"
+    TASK_ID = "task_id"
+
+
 class FailureTypes(str, Enum):
     RUNTIME = "runtime_exception"
     BADREQUEST = "bad_request"
@@ -90,9 +98,18 @@ class RasterVisualisation(pydantic.BaseModel):
     """
 
     Type: Annotated[Optional[str], Field(serialization_alias="type", alias="type")] = None
-    Continuous: Annotated[Optional[VizContinuous], Field(serialization_alias="continuous", alias="continuous")] = None
-    Bucket: Annotated[Optional[List[List[VizBucket]]], Field(serialization_alias="bucket", alias="bucket")] = None
-    Discrete: Annotated[Optional[Dict[str, str]], Field(serialization_alias="discrete", alias="discrete")] = None
+    Continuous: Annotated[
+        Optional[VizContinuous],
+        Field(serialization_alias="continuous", alias="continuous"),
+    ] = None
+    Bucket: Annotated[
+        Optional[List[List[VizBucket]]],
+        Field(serialization_alias="bucket", alias="bucket"),
+    ] = None
+    Discrete: Annotated[
+        Optional[Dict[str, str]],
+        Field(serialization_alias="discrete", alias="discrete"),
+    ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
@@ -133,12 +150,17 @@ class RasterProperties(pydantic.BaseModel):
     Source: Annotated[Optional[str], Field(serialization_alias="source", alias="source")] = None
     Collection: Annotated[Optional[str], Field(serialization_alias="collection", alias="collection")] = None
     Dtype: Annotated[Optional[str], Field(serialization_alias="dtype", alias="dtype")] = None
-    SunElevation: Annotated[Optional[float], Field(serialization_alias="sun_elevation", alias="sun_elevation")] = None
+    SunElevation: Annotated[
+        Optional[float],
+        Field(serialization_alias="sun_elevation", alias="sun_elevation"),
+    ] = None
     SatelliteLookAngle: Annotated[
-        Optional[float], Field(serialization_alias="satellite_look_angle", alias="satellite_look_angle")
+        Optional[float],
+        Field(serialization_alias="satellite_look_angle", alias="satellite_look_angle"),
     ] = None
     Visualisation: Annotated[
-        Optional[RasterVisualisation], Field(serialization_alias="visualisation", alias="visualisation")
+        Optional[RasterVisualisation],
+        Field(serialization_alias="visualisation", alias="visualisation"),
     ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
@@ -193,7 +215,8 @@ class TabularProperties(pydantic.BaseModel):
 
     FileType: Annotated[Optional[str], Field(serialization_alias="file_type", alias="file_type")] = None
     FileSchema: Annotated[
-        Optional[TabularFileSchema], Field(serialization_alias="file_schema", alias="file_schema")
+        Optional[TabularFileSchema],
+        Field(serialization_alias="file_schema", alias="file_schema"),
     ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
@@ -250,7 +273,8 @@ class Callback(pydantic.BaseModel):
     ModelInfStartTime: Annotated[Optional[str], Field(serialization_alias="model_inf_start_time")] = None
     ModelInfEndTime: Annotated[Optional[str], Field(serialization_alias="model_inf_end_time")] = None
     FailureType: Annotated[Optional[str], Field(serialization_alias="failure_type")] = None
-    model_config = ConfigDict(use_enum_values=False)
+    Progress: Annotated[Optional[float], Field(serialization_alias="progress", alias="progress")] = None
+    model_config = ConfigDict(use_enum_values=False, populate_by_name=True)
 
 
 class InferenceOpts(pydantic.BaseModel):

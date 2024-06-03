@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 from s3fs import S3FileSystem
 
 import clay
-from clay import types
-from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapperType, ValueTypes
+from clay import _network, types
+from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapperType, ValueTypes, callback_wrapper
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
 from clay.utils import (
     cast_inputs,
@@ -35,7 +35,7 @@ class _InjectedEnvVars(Enum):
     Env = "ENV"
 
 
-_InjectedEnvVarsDefaults = {}
+_InjectedEnvVarsDefaults = {_InjectedEnvVars.OutputsRemotePath: ""}
 
 
 class _ArgoConfEnvVars(Enum):
@@ -123,7 +123,7 @@ class JobRunnerV2(BaseRunner):
                         self.set_injected_envvar(e, _InjectedEnvVarsDefaults[e])
                     else:
                         err = LookupError(
-                            "Missing required configuration: required environment variable not found: `{e.name}`"
+                            f"Missing required configuration: required environment variable not found: `{e.name}`"
                         )
                         self.logger.error(err, exc_info=err)
                         raise err
@@ -327,7 +327,7 @@ class JobRunnerV2(BaseRunner):
     def _upload_parameter_output_spec_file(self, data_item_name: str, local_spec_file_path: str) -> None:
         file_name = os.path.basename(local_spec_file_path)
         remote_path, found = self.get_injected_envvar(_InjectedEnvVars.OutputsRemotePath)
-        if not found:
+        if not found or remote_path == "":
             self.logger.error("cannot upload parameter output spec files since `OUTPUTS_REMOTE_PATH` is not send")
             return None
         remote_path = os.path.join(remote_path, data_item_name, file_name)
@@ -463,13 +463,11 @@ class JobRunnerV2(BaseRunner):
 
     def success(self) -> None:
         task_id, found = self.get_injected_envvar(_InjectedEnvVars.TaskId)
-        success = self._fire_callback(
-            types.Callback(
-                Id=task_id,
-                State=types.ModelStates.COMPLETED,
-                Outputs=self.get_outputs_list(),
-            )
+        clb = types.Callback(
+            Id=task_id, State=types.ModelStates.COMPLETED, Outputs=self.get_outputs_list(), Progress=100.0
         )
+        success = self._model._set_progress(callback=clb)
+
         # We do it this way so that we can:
         # 1. Fire orchestrator logs only when we're not running locally
         # 2. Still maintain the correct log level
@@ -495,11 +493,16 @@ class JobRunnerV2(BaseRunner):
 
         task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
         end_time = get_current_utc_time_iso()
-        self._fire_callback(
-            types.Callback(
-                Id=task_id, State=types.ModelStates.FAILED, ErrMsg=err_msg, EndTime=end_time, FailureType=failure_type
-            )
+        callback = types.Callback(
+            Id=task_id,
+            State=types.ModelStates.FAILED,
+            ErrMsg=err_msg,
+            EndTime=end_time,
+            FailureType=failure_type,
+            Progress=100,
         )
+        self._model._set_progress(callback=callback)
+
         self.logger.info("Inference finished")
         raise exc
 
@@ -515,15 +518,11 @@ class JobRunnerV2(BaseRunner):
         assert isinstance(input_dict, dict)
         id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
 
-        # fire inprogress callback
-        success = self._fire_callback(
-            types.Callback(
-                Id=id,
-                State=types.ModelStates.INPROGRESS,
-                Inputs=self.get_inputs_list(),
-                StartTime=start_time,
-            )
+        callback = types.Callback(
+            Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list(), StartTime=start_time, Progress=5
         )
+        # fire inprogress callback
+        success = self._model._set_progress(callback=callback)
 
         if not success and self.enable_debug_logs:
             self.logger.error("FAILED: Could not fire Orchestrator callback")
@@ -557,8 +556,9 @@ class JobRunnerV2(BaseRunner):
             BlockInfStartTime=inf_times.InfStartTime,
             BlockInfEndTime=inf_times.InfEndTime,
             EndTime=end_time,
+            Progress=100,
         )
-        success = self._fire_callback(clb)
+        success = self._model._set_progress(callback=clb)
         if not success and self.enable_debug_logs:
             self.logger.warning("FAILED: Could not fire Orchestrator callback")
         return result, None
@@ -577,13 +577,23 @@ class JobRunnerV2(BaseRunner):
             self.logger.debug(f"thread alive status: {self._t.is_alive()}")
 
             task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
-            self._fire_callback(
-                types.Callback(
-                    Id=task_id,
-                    State=types.ModelStates.FAILED,
-                    ErrMsg="internal server error",
-                )
+            clb = types.Callback(
+                Id=task_id,
+                State=types.ModelStates.FAILED,
+                ErrMsg="internal server error",
             )
+            _network._fire_callback_to_dexter(
+                clb, self.logger, self._dexter_clb_url, self._dexter_host, self._dexter_port
+            )
+
+        conn_params = {
+            types._CommonEnvvars.DEXTER_HOST: self._dexter_host,
+            types._CommonEnvvars.DEXTER_PORT: self._dexter_port,
+            types._CommonEnvvars.ORCHESTRATOR_URL: self._dexter_clb_url,
+            types._CommonEnvvars.TASK_ID: self.get_injected_envvar(_InjectedEnvVars.TaskId),
+        }
+        callback_fn = callback_wrapper(conn_params)
+        self._model.set_callback_callable(callback_fn)
 
         result, exc = self.run_model_inference()  # type: ignore
         if exc is not None:
