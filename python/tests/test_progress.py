@@ -34,6 +34,7 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             "outputs-remote-path": "s3://workflow-id/job-id/task-id/outputs/",
             "env": "local",
             "AWS_PROFILE": "d-platform-services",
+            "ORCHESTRATOR_URL": "localhost",
         }
 
     def tearDown(self) -> None:

@@ -9,13 +9,14 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
+from logging import Logger
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_args
 
 import uvloop
 
 from clay import _network, types
 from clay.exceptions import FailedExecutionException
-from clay.logger import ClayLogger, Logger, get_streamvalues
+from clay.logger import ClayLogger, get_streamvalues
 from clay.utils import (
     PRIMITIVE_TYPES,
     cast_inputs,

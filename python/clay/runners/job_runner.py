@@ -108,7 +108,7 @@ class JobRunner(BaseRunner):
 
         self._s3fs = S3FileSystem()
 
-    def get_injected_envvar(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
+    def get_injected_envvar_if_found(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
         val = self._injected_envvars.get(key)
         if val is None:
             return "", False
@@ -280,7 +280,7 @@ class JobRunner(BaseRunner):
 
             remote_working_dir = ""
             named_remote_working_dir = ""
-            remote_prefix, found = self.get_injected_envvar(_InjectedEnvVars.RemotePrefix)
+            remote_prefix, found = self.get_injected_envvar_if_found(_InjectedEnvVars.RemotePrefix)
             if found:
                 remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "inputs")
 
@@ -363,7 +363,7 @@ class JobRunner(BaseRunner):
 
         remote_working_dir = ""
         named_remote_working_dir = ""
-        remote_prefix, found = self.get_injected_envvar(_InjectedEnvVars.RemotePrefix)
+        remote_prefix, found = self.get_injected_envvar_if_found(_InjectedEnvVars.RemotePrefix)
         if found:
             remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "outputs")
 
@@ -429,7 +429,7 @@ class JobRunner(BaseRunner):
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-        dexter_clb_url, found = self.get_injected_envvar(_InjectedEnvVars.ClbUrl)
+        dexter_clb_url, found = self.get_injected_envvar_if_found(_InjectedEnvVars.ClbUrl)
         if not found:
             self.logger.debug("`ORCHESTRATOR_URL` is not set. hence, not firing callback")
             return
@@ -542,7 +542,7 @@ class JobRunner(BaseRunner):
             _network._fire_callback_to_dexter(
                 clb,
                 self.logger,
-                self.get_injected_envvar(_InjectedEnvVars.ClbUrl)[0],  # yes I know this is dirty
+                self.get_injected_envvar_if_found(_InjectedEnvVars.ClbUrl)[0],  # yes I know this is dirty
                 self._dexter_host,
                 self._dexter_port,
             )
@@ -551,7 +551,7 @@ class JobRunner(BaseRunner):
         conn_params = {
             types._CommonEnvvars.DEXTER_HOST: self._dexter_host,
             types._CommonEnvvars.DEXTER_PORT: self._dexter_port,
-            types._CommonEnvvars.ORCHESTRATOR_URL: self.get_injected_envvar(_InjectedEnvVars.ClbUrl.ClbUrl),
+            types._CommonEnvvars.ORCHESTRATOR_URL: self.get_injected_envvar_if_found(_InjectedEnvVars.ClbUrl.ClbUrl)[0],
             types._CommonEnvvars.TASK_ID: self._inf_opts[_ExpectedInfParameters.TaskId],
         }
         callback_fn = callback_wrapper(conn_params)
