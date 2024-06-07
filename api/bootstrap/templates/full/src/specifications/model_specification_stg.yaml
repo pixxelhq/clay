@@ -3,7 +3,7 @@ type: processing
 name: {{ .Name | ToLower }}
 version: 0.0.1
 title: <Title for model to be displayed on the platform>
-status: draft
+status: released
 description: describe the model
 author: <please-fill-in-here>@pixxel.co.in
 tags:
