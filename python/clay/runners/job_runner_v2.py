@@ -104,7 +104,7 @@ class JobRunnerV2(BaseRunner):
 
         # self._manual_s3_sync_list: List[Tuple[]]
 
-    def get_injected_envvar(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
+    def get_injected_envvar_if_found(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
         val = self._injected_envvars.get(key)
         if val is None:
             return "", False
@@ -202,7 +202,7 @@ class JobRunnerV2(BaseRunner):
 
         input_dict: Dict[str, Any] = {}
         processed_inputs: Dict[str, types.Data] = {}
-        input_working_dir, found = self.get_injected_envvar(_InjectedEnvVars.InputsWorkingDir)
+        input_working_dir, found = self.get_injected_envvar_if_found(_InjectedEnvVars.InputsWorkingDir)
         input_dirmap = get_io_dirmap(self.config.inputs, input_working_dir)
         for i in self.config.inputs:
             # check if the input i is a parameter or not. By default, we assume it to
@@ -320,13 +320,13 @@ class JobRunnerV2(BaseRunner):
         file_name = os.path.basename(src)
         _ = shutil.copy(src, os.path.join(named_output_dir, file_name))
         assert os.path.exists(os.path.join(named_output_dir, file_name))
-        remote_path, found = self.get_injected_envvar(_InjectedEnvVars.OutputsRemotePath)
+        remote_path, found = self.get_injected_envvar_if_found(_InjectedEnvVars.OutputsRemotePath)
         remote_path = os.path.join(remote_path, key, file_name)
         return remote_path
 
     def _upload_parameter_output_spec_file(self, data_item_name: str, local_spec_file_path: str) -> None:
         file_name = os.path.basename(local_spec_file_path)
-        remote_path, found = self.get_injected_envvar(_InjectedEnvVars.OutputsRemotePath)
+        remote_path, found = self.get_injected_envvar_if_found(_InjectedEnvVars.OutputsRemotePath)
         if not found or remote_path == "":
             self.logger.error("cannot upload parameter output spec files since `OUTPUTS_REMOTE_PATH` is not send")
             return None
@@ -418,7 +418,7 @@ class JobRunnerV2(BaseRunner):
         data.DisplayName = output_config.get("display_name", "")
         data.Description = output_config.get("description", "")
 
-        output_working_dir, found = self.get_injected_envvar(_InjectedEnvVars.OutputsWorkingDir)
+        output_working_dir, found = self.get_injected_envvar_if_found(_InjectedEnvVars.OutputsWorkingDir)
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
         assert os.path.exists(named_output_dir)
@@ -462,7 +462,7 @@ class JobRunnerV2(BaseRunner):
             self._output_handler(val)
 
     def success(self) -> None:
-        task_id, found = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+        task_id, found = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
         clb = types.Callback(
             Id=task_id, State=types.ModelStates.COMPLETED, Outputs=self.get_outputs_list(), Progress=100.0
         )
@@ -491,7 +491,7 @@ class JobRunnerV2(BaseRunner):
             err_msg = ""
             failure_type = types.FailureTypes.RUNTIME.value
 
-        task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+        task_id, _ = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
         end_time = get_current_utc_time_iso()
         callback = types.Callback(
             Id=task_id,
@@ -516,7 +516,7 @@ class JobRunnerV2(BaseRunner):
         else:
             input_dict = rvals[0]  # type: ignore
         assert isinstance(input_dict, dict)
-        id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+        id, _ = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
 
         callback = types.Callback(
             Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list(), StartTime=start_time, Progress=5
@@ -576,7 +576,7 @@ class JobRunnerV2(BaseRunner):
             self.logger.debug(f"Event loop running status: {self._loop.is_running()}")
             self.logger.debug(f"thread alive status: {self._t.is_alive()}")
 
-            task_id, _ = self.get_injected_envvar(_InjectedEnvVars.TaskId)
+            task_id, _ = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
             clb = types.Callback(
                 Id=task_id,
                 State=types.ModelStates.FAILED,
@@ -590,7 +590,7 @@ class JobRunnerV2(BaseRunner):
             types._CommonEnvvars.DEXTER_HOST: self._dexter_host,
             types._CommonEnvvars.DEXTER_PORT: self._dexter_port,
             types._CommonEnvvars.ORCHESTRATOR_URL: self._dexter_clb_url,
-            types._CommonEnvvars.TASK_ID: self.get_injected_envvar(_InjectedEnvVars.TaskId),
+            types._CommonEnvvars.TASK_ID: self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)[0],
         }
         callback_fn = callback_wrapper(conn_params)
         self._model.set_callback_callable(callback_fn)
