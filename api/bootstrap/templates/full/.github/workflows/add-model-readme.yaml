@@ -69,7 +69,7 @@ jobs:
       - name: Update readme link in orchestrator
         id: update_block
         run: |
-            clay update block spec.txt -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env dev)
+            clay update block spec.txt -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env dev
             rm spec.txt
 
       - name: Create local changes
@@ -136,7 +136,7 @@ jobs:
 
       - name: Update readme link in orchestrator
         run: |
-          clay update block spec.txt -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env stg)
+          clay update block spec.txt -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env stg
           rm spec.txt
 
       - name: Create local changes
@@ -203,7 +203,7 @@ jobs:
 
       - name: Update readme link in orchestrator
         run: |
-            clay update block spec.txt -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env prod)
+            clay update block spec.txt -n {{ .ModelName }} -v {{ "${{ env.VERSION }}" }} --env prod
             rm spec.txt
 
       - name: Create local changes
