@@ -432,7 +432,7 @@ class JobRunner(BaseRunner):
         dexter_clb_url, found = self.get_injected_envvar_if_found(_InjectedEnvVars.ClbUrl)
         if not found:
             self.logger.debug("`ORCHESTRATOR_URL` is not set. hence, not firing callback")
-            return
+            raise exc
         if isinstance(exc, FailedExecutionException):
             err_msg = exc.msg
             failure_type = types.FailureTypes.BADREQUEST.value
