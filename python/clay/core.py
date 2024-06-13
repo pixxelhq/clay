@@ -135,7 +135,7 @@ class ModelWrapper:
 
     _DEFAULT_MODEL_PROGRESS_MIN: float = 0
     _DEFAULT_MODEL_PROGRESS_MAX: float = 100
-    _DEFAULT_MODEL_USER_PROGRESS_MIN: float = 5
+    _DEFAULT_MODEL_USER_PROGRESS_MIN: float = 0
     _DEFAULT_MODEL_USER_PROGRESS_MAX: float = 95
 
     def __init__(

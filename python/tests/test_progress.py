@@ -72,6 +72,7 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
 
             async def postprocess(_self, raster, string) -> Any:
                 _self._set_progress(25)
+                _self.set_progress(0.5)
                 r = types.Raster(
                     name="result",
                     value=raster,
@@ -138,7 +139,8 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
         assert call_args[1][1]["json"]["data"]["progress"] == 30.0
         assert call_args[2][1]["json"]["data"]["progress"] == 45.0
         assert call_args[3][1]["json"]["data"]["progress"] == 70.0
-        assert call_args[4][1]["json"]["data"]["progress"] == 100.0
+        assert call_args[4][1]["json"]["data"]["progress"] == 70.5
+        assert call_args[5][1]["json"]["data"]["progress"] == 100.0
 
 
 class TestJobRunnerV2_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
