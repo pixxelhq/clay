@@ -332,6 +332,7 @@ class Raster(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
         properties: Optional[RasterProperties] = None,
+        type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         *args: Any,
         **kwargs: Any,
     ):
@@ -346,6 +347,10 @@ class Raster(_DataMeta):
             properties (Optional[RasterProperties], optional): Properties of the raster.
                 Defaults to None.
         """
+        if isinstance(type, str):
+            _type = PrimitiveTypes(type)
+        else:
+            _type = type
 
         # `Type` is set as best guess here. This would anyway be overriden based on
         # the output config
@@ -377,6 +382,7 @@ class Vector(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
         properties: Optional[VectorProperties] = None,
+        type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         *args: Any,
         **kwargs: Any,
     ):
@@ -391,9 +397,14 @@ class Vector(_DataMeta):
             properties (Optional[VectorProperties], optional): Properties of the GeoJSON.
                 Defaults to None.
         """
+        if isinstance(type, str):
+            _type = PrimitiveTypes(type)
+        else:
+            _type = type
+
         super().__init__(
             Format=FormatTypes.VECTOR.value,
-            Type=PrimitiveTypes.URL.value,
+            Type=_type.value,
             Name=name,
             Value=value,
             IsArtifact=is_artifact,
@@ -418,6 +429,7 @@ class Date(_DataMeta):
         value: str,
         properties: Optional[DateProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
+        type: Union[str, PrimitiveTypes] = PrimitiveTypes.STR,
         *args: Any,
         **kwargs: Any,
     ):
@@ -429,6 +441,10 @@ class Date(_DataMeta):
             properties (Optional[DateProperties], optional): Properties of the date. Defaults to None.
             default (Optional[Union[str, int, float, bool]], optional): _description_. Defaults to None.
         """
+        if isinstance(type, str):
+            _type = PrimitiveTypes(type)
+        else:
+            _type = type
         super().__init__(
             Format=FormatTypes.DATE.value,
             Type=PrimitiveTypes.STR.value,
@@ -457,6 +473,7 @@ class Tabular(_DataMeta):
         is_artifact: Optional[bool] = True,
         properties: Optional[TabularProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
+        type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         *args: Any,
         **kwargs: Any,
     ):
@@ -469,6 +486,11 @@ class Tabular(_DataMeta):
             properties (Optional[TabularProperties], optional): Properties of the table. Defaults to None.
             default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
         """
+        if isinstance(type, str):
+            _type = PrimitiveTypes(type)
+        else:
+            _type = type
+
         super().__init__(
             Format=FormatTypes.TABULAR.value,
             Value=value,
@@ -491,6 +513,7 @@ class String(_DataMeta):
         name: str,
         value: Optional[str] = None,
         default: Optional[Union[str, int, float, bool]] = None,
+        type: Union[str, PrimitiveTypes] = PrimitiveTypes.STR,
         *args: Any,
         **kwargs: Any,
     ):
@@ -500,6 +523,11 @@ class String(_DataMeta):
             value (Optional[str], optional): Value of the data item. Defaults to `None`.
             default (Optional[Union[str, int, float, bool]], optional): Ant default value. Defaults to None.
         """
+        if isinstance(type, str):
+            _type = PrimitiveTypes(type)
+        else:
+            _type = type
+
         super().__init__(
             Format=FormatTypes.STRING.value,
             Name=name,
@@ -521,6 +549,7 @@ class Number(_DataMeta):
         name: str,
         value: Union[int, float, None] = None,
         default: Optional[Union[str, int, float, bool]] = None,
+        type: Union[str, PrimitiveTypes] = PrimitiveTypes.FLOAT,
         *args: Any,
         **kwargs: Any,
     ):
@@ -531,6 +560,11 @@ class Number(_DataMeta):
             value (Union[int, float, None], optional): Value of the data item. Defaults to None.
             default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
         """
+        if isinstance(type, str):
+            _type = PrimitiveTypes(type)
+        else:
+            _type = type
+
         super().__init__(
             Format=FormatTypes.NUMBER.value,
             Name=name,
