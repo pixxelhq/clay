@@ -120,16 +120,16 @@ class TestBaseRunner(unittest.TestCase):
         self.r._init_model()
         self.r._init_model_inference_event_loop()
 
-        self.r._model._set_progress(13)
+        self.r._model.set_progress(13)
         assert self.r._model.get_progress() == 13
 
-        self.r._model._set_progress(13)
+        self.r._model.set_progress(26)
         assert self.r._model.get_progress() == 26
 
-        self.r._model._set_progress(5)
+        self.r._model.add_progress(5)
         assert self.r._model.get_progress() == 31
 
-        self.r._model._set_progress(100)
+        self.r._model.set_progress(100)
         assert self.r._model.get_progress() == 100
 
     def test_progress_update_with_multiple_increments_greater_than_max(self):
@@ -137,10 +137,10 @@ class TestBaseRunner(unittest.TestCase):
         self.r._init_model()
         self.r._init_model_inference_event_loop()
 
-        self.r._model._set_progress(100)
+        self.r._model.set_progress(100)
         assert self.r._model.get_progress() == 100
 
-        self.r._model._set_progress(13)
+        self.r._model.set_progress(13)
         assert self.r._model.get_progress() == 100
 
     def test_progress_update_with_negative_increment(self):
@@ -149,7 +149,7 @@ class TestBaseRunner(unittest.TestCase):
         self.r._init_model_inference_event_loop()
 
         assert self.r._model.get_progress() == 0
-        self.r._model._set_progress(-10)
+        self.r._model.set_progress(-10)
         assert self.r._model.get_progress() == 0
 
 

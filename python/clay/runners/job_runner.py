@@ -414,7 +414,7 @@ class JobRunner(BaseRunner):
             State=types.ModelStates.COMPLETED,
             Outputs=self.get_outputs_list(),
         )
-        success = self._model._set_progress(100, clb)
+        success = self._model.send_callback(clb)
 
         # We do it this way so that we can:
         # 1. Fire orchestrator logs only when we're not running locally
@@ -450,7 +450,7 @@ class JobRunner(BaseRunner):
             FailureType=failure_type,
             Progress=100,
         )
-        _ = self._model._set_progress(callback=clb)
+        _ = self._model.send_callback(callback=clb)
         raise exc
 
     def run_model_inference(
@@ -462,7 +462,7 @@ class JobRunner(BaseRunner):
             raise ValueError("inputs cannot be None")
 
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
-        success = self._model._set_progress(
+        success = self._model.send_callback(
             callback=types.Callback(
                 Id=task_id,
                 State=types.ModelStates.INPROGRESS,
@@ -497,7 +497,7 @@ class JobRunner(BaseRunner):
             BlockInfEndTime=inf_times.InfEndTime,
             Progress=100,
         )
-        success = self._model._set_progress(callback=clb)
+        success = self._model.send_callback(callback=clb)
         if not success and self.enable_debug_logs:
             self.logger.error("Failed to fire callback successfully")
         return result, None

@@ -466,7 +466,7 @@ class JobRunnerV2(BaseRunner):
         clb = types.Callback(
             Id=task_id, State=types.ModelStates.COMPLETED, Outputs=self.get_outputs_list(), Progress=100.0
         )
-        success = self._model._set_progress(callback=clb)
+        success = self._model.send_callback(callback=clb)
 
         # We do it this way so that we can:
         # 1. Fire orchestrator logs only when we're not running locally
@@ -501,7 +501,7 @@ class JobRunnerV2(BaseRunner):
             FailureType=failure_type,
             Progress=100,
         )
-        self._model._set_progress(callback=callback)
+        self._model.send_callback(callback=callback)
 
         self.logger.info("Inference finished")
         raise exc
@@ -522,7 +522,7 @@ class JobRunnerV2(BaseRunner):
             Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list(), StartTime=start_time, Progress=5
         )
         # fire inprogress callback
-        success = self._model._set_progress(callback=callback)
+        success = self._model.send_callback(callback=callback)
 
         if not success and self.enable_debug_logs:
             self.logger.error("FAILED: Could not fire Orchestrator callback")
@@ -558,7 +558,7 @@ class JobRunnerV2(BaseRunner):
             EndTime=end_time,
             Progress=100,
         )
-        success = self._model._set_progress(callback=clb)
+        success = self._model.send_callback(callback=clb)
         if not success and self.enable_debug_logs:
             self.logger.warning("FAILED: Could not fire Orchestrator callback")
         return result, None
