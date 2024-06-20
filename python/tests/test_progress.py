@@ -61,18 +61,18 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
                 pass
 
             async def preprocess(_self, string, raster) -> Any:
-                _self._set_progress(25)
+                _self.set_progress(25)
                 return {"raster": raster, "string": string}
 
             async def inference(_self, raster, string) -> None:
                 dummy_raster = pathlib.Path("../clipped.tiff")
                 dummy_raster.touch()
-                _self._set_progress(15)
+                _self.add_progress(15)
                 return {"raster": str(dummy_raster), "string": "this is hello"}
 
             async def postprocess(_self, raster, string) -> Any:
-                _self._set_progress(25)
-                _self.set_progress(0.5)
+                _self.add_progress(25)
+                _self.set_progress(87.4)
                 r = types.Raster(
                     name="result",
                     value=raster,
@@ -136,10 +136,10 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
 
         call_args = mock_post.call_args_list
         assert call_args[0][1]["json"]["data"]["progress"] == 5.0
-        assert call_args[1][1]["json"]["data"]["progress"] == 30.0
-        assert call_args[2][1]["json"]["data"]["progress"] == 45.0
-        assert call_args[3][1]["json"]["data"]["progress"] == 70.0
-        assert call_args[4][1]["json"]["data"]["progress"] == 70.5
+        assert call_args[1][1]["json"]["data"]["progress"] == 25.0
+        assert call_args[2][1]["json"]["data"]["progress"] == 40.0
+        assert call_args[3][1]["json"]["data"]["progress"] == 65.0
+        assert call_args[4][1]["json"]["data"]["progress"] == 87.4
         assert call_args[5][1]["json"]["data"]["progress"] == 100.0
 
 
@@ -189,15 +189,15 @@ class TestJobRunnerV2_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
                 pass
 
             async def preprocess(_self, string) -> Any:
-                _self._set_progress(25)
+                _self.set_progress(25)
                 return {"string": string}
 
             async def inference(_self, string) -> None:
-                _self._set_progress(15)
+                _self.set_progress(43)
                 return {"string": "this is hello"}
 
             async def postprocess(_self, string) -> Any:
-                _self._set_progress(25)
+                _self.add_progress(25)
                 s = types.String(name="string", value=string)
                 return {
                     "string": s,
@@ -217,7 +217,7 @@ class TestJobRunnerV2_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
 
         call_args = mock_post.call_args_list
         assert call_args[0][1]["json"]["data"]["progress"] == 5.0
-        assert call_args[1][1]["json"]["data"]["progress"] == 30.0
-        assert call_args[2][1]["json"]["data"]["progress"] == 45.0
-        assert call_args[3][1]["json"]["data"]["progress"] == 70.0
+        assert call_args[1][1]["json"]["data"]["progress"] == 25.0
+        assert call_args[2][1]["json"]["data"]["progress"] == 43.0
+        assert call_args[3][1]["json"]["data"]["progress"] == 68.0
         assert call_args[4][1]["json"]["data"]["progress"] == 100.0

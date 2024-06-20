@@ -10,7 +10,18 @@ from copy import deepcopy
 from enum import Enum
 from functools import cached_property
 from logging import Logger
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, get_args
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+)
 
 import uvloop
 
@@ -278,49 +289,103 @@ class ModelWrapper:
         pass
 
     def get_progress(self) -> float:
+        """Returns the current progress of the model.
+
+        Returns:
+            float: Current model progress.
+        """
         return self._progress_counter
 
-    def set_progress(self, progress_delta: float) -> None:
-        _p = max(progress_delta, self._DEFAULT_MODEL_USER_PROGRESS_MIN)
-        _p = min(_p, self._DEFAULT_MODEL_USER_PROGRESS_MAX)
-        self._set_progress(_p)
+    def __check_progress_bounds(self, progress: float) -> bool:
+        if progress < self._DEFAULT_MODEL_PROGRESS_MIN:
+            self.logger.warning("progress cannot be set to a value lower than min progress")
+            return False
+        if progress > self._DEFAULT_MODEL_PROGRESS_MAX:
+            self.logger.warning("progress cannot be set to a value higher than the max progress")
+            return False
+        return True
 
-    def _set_progress(
-        self,
-        progress_delta: Optional[float] = None,
-        callback: Optional[types.Callback] = None,
-    ) -> None:
-        if progress_delta is not None and progress_delta < 0:
-            self.logger.warning("negative `progress_delta` not allowed")
+    def send_callback(self, callback: types.Callback) -> None:
+        if callback.Progress is not None:
+            if not self.__check_progress_bounds(callback.Progress):
+                callback.Progress = None
+            if callback.Progress and callback.Progress < self._progress_counter:
+                self.logger.warning(
+                    f"progress cannot be less than current progress, found: {callback.Progress}, current: {self._progress_counter}"
+                )
+                callback.Progress = None
+            if callback.Progress:
+                self._progress_counter = callback.Progress
+        self._set_progress(callback)
+
+    def set_progress(self, progress: float) -> None:
+        """This method is an **absolute setter method**. Meaning, the current progress of the model would be set to
+        _progress_ (assuming _progress_ is a valid value). The idea behind this method is to indicate *in absolute terms,
+        what the is progress of a model at a particular point*. Unline, _add_progress_, this is not an additive method.
+
+        Args:
+            progress (float): The value to which current model progress is to be set
+        """
+        if not self.__check_progress_bounds(progress):
+            self.logger.warning("progress cannot be set to a value higher than the max progress")
+            return None
+        if progress < self._progress_counter:
+            self.logger.warning("progress cannot be set to a value lower than the current progress")
             return None
 
-        if not progress_delta and not callback:
-            self.logger.warning("`progress` called with neither `progress_delta` or `callback`")
-            return None
-
-        # checking if progress is set via the callback
-        if callback and callback.Progress is not None:
-            progress_delta = callback.Progress
-
-        _p = 0.0
-        # set to min or max bounds if user value is out of bounds
-        if progress_delta is not None:
-            _p = max(progress_delta, self._DEFAULT_MODEL_PROGRESS_MIN)
-            _p = min(_p, self._DEFAULT_MODEL_PROGRESS_MAX)
-
-        self._progress_counter = min(self._progress_counter + _p, self._DEFAULT_MODEL_PROGRESS_MAX)
+        self._progress_counter = progress
 
         if self._callback is None:
             self.logger.warning("cannot fire callback as `_callback` is set to `None`")
             return None
 
-        if callback is not None:
-            callback.Progress = self._progress_counter
-            self._callback(self.logger, callback)
-        else:
-            self._callback(
-                self.logger, types.Callback(Id="", State=types.ModelStates.INPROGRESS, Progress=self._progress_counter)
+        self._set_progress(
+            types.Callback(
+                Id="",
+                State=types.ModelStates.INPROGRESS,
+                Progress=self._progress_counter,
             )
+        )
+        return None
+
+    def add_progress(self, progress_delta: float) -> None:
+        """This method adds a progress `delta` to the progress calculated so far. The difference between
+        `add_progress` and `set_progress` is that the `add_progress` is an **relative additive** method, while the
+        `set_progress` is an *abosulte setter* method. `add_progress` *add* the *progress_delta* to the current progress.
+        For example, if the progress of the model prior to the function call was 25 and _progress_delta_ was set to 5, post
+        execution of this function the progress of the model would be 30.
+
+        This method should be used when the model would want to indicate a certain delta in progress. For example, _every iteration
+        of this loop would add a unit of 5 to the total model progress_.
+
+        Args:
+            progress_delta (float): Amount of change that is to be reflected in the model progress.
+
+        """
+        if progress_delta < self._DEFAULT_MODEL_USER_PROGRESS_MIN:
+            self.logger.warning("progress_delta cannot be set to a value lower than the min progress")
+            return None
+        if progress_delta > self._DEFAULT_MODEL_USER_PROGRESS_MAX:
+            self.logger.warning("progress_delta cannot be set to a value higher than the max progress")
+            return None
+        self._progress_counter += progress_delta
+        self._set_progress(
+            types.Callback(
+                Id="",
+                State=types.ModelStates.INPROGRESS,
+                Progress=self._progress_counter,
+            )
+        )
+
+    def _set_progress(self, callback: types.Callback) -> None:
+        if self._callback is None:
+            self.logger.warning("cannot fire callback as `_callback` is set to `None`")
+            return None
+
+        if callback.Progress is None:
+            callback.Progress = self._progress_counter
+
+        self._callback(self.logger, callback)
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         """The preprocess abstract method. This the first method that the model

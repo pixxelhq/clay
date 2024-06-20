@@ -73,6 +73,7 @@ nav:
   - Tutorial: "model-development.md"
   - Types: "types.md"
   - Block Specification: "spec.md"
+  - Indicating Model Progress: "progress.md"
   - Checklist: "checklist.md"
   - Do's and don'ts: "dos-dont.md"
   - FAQs: "faq.md"
