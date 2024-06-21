@@ -456,26 +456,10 @@ class JobRunner(BaseRunner):
     def run_model_inference(
         self, *args: Any, **kwargs: Optional[Dict[str, Any]]
     ) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
+        task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
         inputs: Optional[Dict[str, Any]] = kwargs.get("inputs")
-        start_time = utils.get_current_utc_time_iso()
         if inputs is None:
             raise ValueError("inputs cannot be None")
-
-        task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
-        success = self._model.send_callback(
-            callback=types.Callback(
-                Id=task_id,
-                State=types.ModelStates.INPROGRESS,
-                Inputs=self.get_inputs_list(),
-                StartTime=start_time,
-                Progress=5,
-            ),
-        )
-        # We do it this way so that we can:
-        # 1. Fire orchestrator logs only when we're not running locally
-        # 2. Still maintain the correct log level
-        if not success and self.enable_debug_logs:
-            self.logger.error("FAILED: Could not fire Orchestrator callback")
 
         try:
             ctx = asyncio.run_coroutine_threadsafe(self._model.infer(inputs=inputs, opts=None), self._loop).result()
@@ -510,6 +494,8 @@ class JobRunner(BaseRunner):
             ValueError: Raised when arguments are not found but is expected.
             exc: Any other exeception raised by the model.
         """
+        start_time = utils.get_current_utc_time_iso()
+
         self.read_injected_envvars()
         inputs = kwargs.get("args")
         if inputs is None:
@@ -562,6 +548,23 @@ class JobRunner(BaseRunner):
         else:
             _input_dict = rvals[0]
         self.logger.info("Inputs", _input_dict)
+
+        task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
+        success = self._model.send_callback(
+            callback=types.Callback(
+                Id=task_id,
+                State=types.ModelStates.INPROGRESS,
+                Inputs=self.get_inputs_list(),
+                StartTime=start_time,
+                Progress=5,
+            ),
+        )
+        # We do it this way so that we can:
+        # 1. Fire orchestrator logs only when we're not running locally
+        # 2. Still maintain the correct log level
+        if not success and self.enable_debug_logs:
+            self.logger.error("FAILED: Could not fire Orchestrator callback")
+
         result, exc = self.run_model_inference(inputs=_input_dict)  # type: ignore
         if exc is not None:
             self.failure(exc=exc)
