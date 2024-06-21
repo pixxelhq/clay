@@ -482,13 +482,11 @@ class ModelWrapper:
         """
         _inf_ctx = InferenceCtx(opts=opts)
         try:
-            _return_vals = await self.preprocess(**inputs)
-
             _inf_ctx.set_model_inf_start_time()
+            _return_vals = await self.preprocess(**inputs)
             _return_vals = await self.inference(**_return_vals)
-            _inf_ctx.set_model_inf_end_time()
-
             _return_vals = await self.postprocess(**_return_vals)
+            _inf_ctx.set_model_inf_end_time()
         finally:
             await self.cleanup_inference()
 

@@ -507,7 +507,11 @@ class JobRunnerV2(BaseRunner):
         raise exc
 
     def run_model_inference(self, *args: Any, **kwargs: Any) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
-        start_time = get_current_utc_time_iso()
+        if "start_time" in kwargs:
+            start_time = kwargs.get("start_time")
+        else:
+            self.logger.info("`start_time` not found in kwargs")
+            start_time = get_current_utc_time_iso()
 
         rvals = self._collect_inputs()
         assert rvals is not None
@@ -564,6 +568,7 @@ class JobRunnerV2(BaseRunner):
         return result, None
 
     def start(self, **kwargs: Any) -> None:
+        start_time = get_current_utc_time_iso()
         self.read_injected_envvars()
         try:
             self._init_model()
@@ -595,7 +600,7 @@ class JobRunnerV2(BaseRunner):
         callback_fn = callback_wrapper(conn_params)
         self._model.set_callback_callable(callback_fn)
 
-        result, exc = self.run_model_inference()  # type: ignore
+        result, exc = self.run_model_inference(start_time=start_time)  # type: ignore
         if exc is not None:
             self.failure(exc)
         self.logger.info(f"Inference Results: {result}")
