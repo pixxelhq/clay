@@ -129,6 +129,8 @@ class RasterProperties(pydantic.BaseModel):
             The satellite collection. Defaults to `None`.
         Dtype:
             The type of literal values in the raster. Defaults to `None`.
+        Date:
+            The date of the Raster
         Visualisation:
             It will help in the raster visualisation on client side. There are three type of visualisation supported.
 
@@ -162,6 +164,7 @@ class RasterProperties(pydantic.BaseModel):
         Optional[RasterVisualisation],
         Field(serialization_alias="visualisation", alias="visualisation"),
     ] = None
+    Date: Annotated[Optional[str], Field(serialization_alias="date", alias="date")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 

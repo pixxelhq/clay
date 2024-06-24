@@ -194,6 +194,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                             Collection="a-random-coll",
                             Dtype="uint8",
                             SunElevation=5.1,
+                            Date="20-04-2024",
                         ),
                     ),
                     "string": types.String(name="string", value="hello world", parameter=True),
@@ -238,6 +239,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 "sun_elevation": 5.1,
                 "satellite_look_angle": None,
                 "visualisation": None,
+                "date": "20-04-2024",
             },
         }
 
@@ -268,6 +270,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                             Source="a-random-sat",
                             Collection="a-random-coll",
                             Dtype="uint8",
+                            Date="20-04-2024",
                         ),
                     ),
                     "string": types.String(name="string", value="hello world"),
