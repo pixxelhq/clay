@@ -75,6 +75,23 @@ def test_init_raster_model_from_dict_with_sun_elevation() -> None:
     assert r.Properties.SatelliteLookAngle is None
 
 
+def test_init_raster_model_from_dict_with_date_in_props() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {
+            "date": "1/1/2022",
+        },
+    }
+
+    r = types.Raster.model_validate(d)
+    assert r.Properties is not None
+    assert r.Properties.Date == "1/1/2022"
+    assert r.Properties.SatelliteLookAngle is None
+
+
 def test_init_raster_model_from_dict_with_satellite_look_angle() -> None:
     d = {
         "format": "raster",
