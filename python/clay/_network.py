@@ -76,6 +76,11 @@ def _fire_callback_to_dexter(
             "status": clb.State.value,
             "output": clb.Result,
             "failure_type": clb.FailureType,
+            "start_time": clb.StartTime,
+            "end_time": clb.EndTime,
+            "block_inf_start_time": clb.BlockInfStartTime,
+            "block_inf_end_time": clb.BlockInfEndTime,
+            "err_msg": clb.ErrMsg,
         }
         logger.debug(f"Data for callback: {data}")
 
