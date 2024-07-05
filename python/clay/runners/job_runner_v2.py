@@ -33,6 +33,7 @@ class _InjectedEnvVars(Enum):
     OutputsWorkingDir = "OUTPUTS_WORKING_DIR"
     OutputsRemotePath = "OUTPUTS_REMOTE_PATH"
     Env = "ENV"
+    BlockName = "BLOCK_NAME"
 
 
 _InjectedEnvVarsDefaults = {_InjectedEnvVars.OutputsRemotePath: ""}
@@ -418,6 +419,14 @@ class JobRunnerV2(BaseRunner):
         data.DisplayName = output_config.get("display_name", "")
         data.Description = output_config.get("description", "")
 
+        # add block-name to metadata if available
+        block_name, found = self.get_injected_envvar_if_found(_InjectedEnvVars.BlockName)
+        if found:
+            if data.Metadata:
+                data.Metadata["block-name"] = block_name
+            else:
+                data.Metadata = {"block-name": block_name}
+
         output_working_dir, found = self.get_injected_envvar_if_found(_InjectedEnvVars.OutputsWorkingDir)
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
@@ -588,7 +597,7 @@ class JobRunnerV2(BaseRunner):
                 ErrMsg="internal server error",
             )
             _network._fire_callback_to_dexter(
-                clb, self.logger, self._dexter_clb_url, self._dexter_host, self._dexter_port
+                clb, self.logger, self._dexter_clb_url, self._dexter_host, self._dexter_port, self.enable_debug_logs
             )
 
         conn_params = {

@@ -216,3 +216,81 @@ def test_init_raster_model_from_dict_with_bucket_viz() -> None:
     assert r.Properties.Visualisation.Bucket[0][0].Range == [-4, -1]
     assert r.Properties.Visualisation.Bucket[0][1].ColorCode == "#colorcode2"
     assert r.Properties.Visualisation.Bucket[0][1].Range == [-5, -4]
+
+
+def test_init_raster_model_from_dict_with_discretization_interval() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {
+            "discretization": {
+                "type": "interval",
+                "classes": [
+                    {
+                        "name": "low-stress",
+                        "range": [-2, -1],
+                        "color": "blue",
+                    },
+                    {
+                        "name": "high-stress",
+                        "range": [1, 2],
+                        "color": "red",
+                    },
+                ],
+            }
+        },
+    }
+    target = types.Raster(
+        name="raster",
+        type="url",
+        value="some.tiff",
+        properties=types.RasterProperties(
+            Discretization=types.RasterDiscretization(
+                Type="interval",
+                Classes=[
+                    types.DiscretizationItem(Name="low-stress", Range=[-2, -1], Color="blue"),
+                    types.DiscretizationItem(Name="high-stress", Range=[1, 2], Color="red"),
+                ],
+            )
+        ),
+    )
+
+    r = types.Raster.model_validate(d)
+    assert r == target
+
+
+def test_init_raster_model_from_dict_with_discretization_index() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {
+            "discretization": {
+                "type": "index",
+                "classes": [
+                    {"name": "low-stress", "color": "blue", "value": "1"},
+                    {"name": "high-stress", "color": "red", "value": "2"},
+                ],
+            }
+        },
+    }
+    target = types.Raster(
+        name="raster",
+        type="url",
+        value="some.tiff",
+        properties=types.RasterProperties(
+            Discretization=types.RasterDiscretization(
+                Type="index",
+                Classes=[
+                    types.DiscretizationItem(Name="low-stress", Value="1", Color="blue"),
+                    types.DiscretizationItem(Name="high-stress", Value="2", Color="red"),
+                ],
+            )
+        ),
+    )
+
+    r = types.Raster.model_validate(d)
+    assert r == target
