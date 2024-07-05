@@ -431,6 +431,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         mock_env_vars["AUTO_DOWNLOAD_ASSETS"] = "true"
         mock_env_vars["REMOTE_PREFIX"] = "s3://d-platform-orchestrator-lulc-artifacts-s3-01"
         mock_env_vars["DISABLE_AUTO_UPLOAD"] = "false"
+        mock_env_vars["BLOCK_NAME"] = "test-artifact"
         env_patcher = unittest.mock.patch.dict(os.environ, mock_env_vars)
         env_patcher.start()
         a = JobRunner(
@@ -478,6 +479,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         with open(os.path.join(result_output_dir, "spec.json"), "r") as f:
             d = json.load(f)
         assert d["value"] == remote_raster_path
+        assert d["metadata"] == {"block-name": "test-artifact"}
         env_patcher.stop()
 
     async def test_read_inputs_backward_compatible(self) -> None:

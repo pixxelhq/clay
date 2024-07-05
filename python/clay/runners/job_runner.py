@@ -27,6 +27,7 @@ class _InjectedEnvVars(Enum):
     AutoDownloadAssets = "AUTO_DOWNLOAD_ASSETS"
     DisableAutoUpload = "DISABLE_AUTO_UPLOAD"
     RemotePrefix = "REMOTE_PREFIX"
+    BlockName = "BLOCK_NAME"
 
 
 _InjectedEnvVarsDefaults = {
@@ -350,6 +351,14 @@ class JobRunner(BaseRunner):
         data.DisplayName = output_config.get("display_name", "")
         data.Description = output_config.get("description", "")
 
+        # set `block-name` if available
+        block_name, found = self.get_injected_envvar_if_found(_InjectedEnvVars.BlockName)
+        if found:
+            if data.Metadata:
+                data.Metadata["block-name"] = block_name
+            else:
+                data.Metadata = {"block-name": block_name}
+
         workflow_id = self._inf_opts[_ExpectedInfParameters.WorkflowId]
         job_id = self._inf_opts[_ExpectedInfParameters.JobId]
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
@@ -531,6 +540,7 @@ class JobRunner(BaseRunner):
                 self.get_injected_envvar_if_found(_InjectedEnvVars.ClbUrl)[0],  # yes I know this is dirty
                 self._dexter_host,
                 self._dexter_port,
+                self.enable_debug_logs,
             )
             raise exc
 

@@ -50,6 +50,7 @@ def _fire_callback_to_dexter(
     dexter_clb_url: Optional[str] = None,
     dexter_host: Optional[str] = None,
     dexter_port: Optional[str] = None,
+    enable_debug_logs: bool = False,
 ) -> bool:
     headers = HeaderBuilder.init_header()
 
@@ -62,7 +63,8 @@ def _fire_callback_to_dexter(
     run_type = os.getenv(types._CommonEnvvars.DEXTER_RUN_TYPE.value, core.RunType.WORKFLOW.value)
     if run_type == core.RunType.WORKFLOW.value:
         data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
-        logger.debug(f"Data for callback: {data}")
+        if enable_debug_logs:
+            logger.debug(f"Data for callback: {data}")
 
         # check if `dexter_clb_url` is set
         if dexter_clb_url is None or dexter_clb_url == "":
@@ -82,7 +84,8 @@ def _fire_callback_to_dexter(
             "block_inf_end_time": clb.BlockInfEndTime,
             "err_msg": clb.ErrMsg,
         }
-        logger.debug(f"Data for callback: {data}")
+        if enable_debug_logs:
+            logger.debug(f"Data for callback: {data}")
 
         if dexter_host is None or dexter_port is None or dexter_host == "" or dexter_port == "":
             logger.warning("found invalid values for `dexter_host` and / or `dexter_port` hence not firing callback.")
@@ -94,13 +97,16 @@ def _fire_callback_to_dexter(
             headers=headers,
         )
 
-    if (
+    if not (
         resp.status_code == HTTPStatus.ACCEPTED
         or resp.status_code == HTTPStatus.NO_CONTENT
         or resp.status_code == HTTPStatus.OK
     ):
-        logger.info("successfully update state")
-    else:
-        logger.error(f"state update failed with status code: {resp.status_code}")
+        if enable_debug_logs:
+            logger.error(f"state update failed with status code: {resp.status_code}")
         return False
+
+    if enable_debug_logs:
+        logger.info("successfully updated state")
+
     return True

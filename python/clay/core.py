@@ -116,7 +116,7 @@ class RunType(Enum):
 
 
 def callback_wrapper(conn_params: Dict[Any, str]):
-    def _callback(logger: Logger, callback: types.Callback) -> None:
+    def _callback(logger: Logger, callback: types.Callback, enable_debug_logs: bool = False) -> None:
         dexter_clb_url = conn_params.get(types._CommonEnvvars.ORCHESTRATOR_URL, None)
         dexter_port = conn_params.get(types._CommonEnvvars.DEXTER_PORT, None)
         dexter_host = conn_params.get(types._CommonEnvvars.DEXTER_HOST, None)
@@ -129,7 +129,9 @@ def callback_wrapper(conn_params: Dict[Any, str]):
         if callback.Id is None or callback.Id == "":
             callback.Id = task_id
 
-        success = _network._fire_callback_to_dexter(callback, logger, dexter_clb_url, dexter_host, dexter_port)
+        success = _network._fire_callback_to_dexter(
+            callback, logger, dexter_clb_url, dexter_host, dexter_port, enable_debug_logs
+        )
         if not success:
             logger.warning("failed to fire callback")
 
@@ -316,7 +318,7 @@ class ModelWrapper:
                 callback.Progress = None
             if callback.Progress:
                 self._progress_counter = callback.Progress
-        self._set_progress(callback)
+        self._set_progress(callback, enable_debug_logs=True)
 
     def set_progress(self, progress: float) -> None:
         """This method is an **absolute setter method**. Meaning, the current progress of the model would be set to
@@ -377,7 +379,7 @@ class ModelWrapper:
             )
         )
 
-    def _set_progress(self, callback: types.Callback) -> None:
+    def _set_progress(self, callback: types.Callback, enable_debug_logs: bool = False) -> None:
         if self._callback is None:
             self.logger.warning("cannot fire callback as `_callback` is set to `None`")
             return None
@@ -385,7 +387,7 @@ class ModelWrapper:
         if callback.Progress is None:
             callback.Progress = self._progress_counter
 
-        self._callback(self.logger, callback)
+        self._callback(self.logger, callback, enable_debug_logs=enable_debug_logs)
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         """The preprocess abstract method. This the first method that the model

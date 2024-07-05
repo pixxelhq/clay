@@ -58,6 +58,36 @@ def add_inline_fields(from_model: Type[pydantic.BaseModel], to_model: Type[pydan
         to_model.__annotations__[k] = v
 
 
+class DiscretizationItem(pydantic.BaseModel):
+    Color: Annotated[Optional[str], Field(serialization_alias="color", alias="color")] = None
+    Name: Annotated[Optional[str], Field(serialization_alias="name", alias="name")] = None
+    Value: Annotated[Optional[str], Field(serialization_alias="value", alias="value")] = None
+    Range: Annotated[Optional[List[float]], Field(serialization_alias="range", alias="range")] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+
+class RasterDiscretization(pydantic.BaseModel):
+    """Supports discretization of the underlying pixel distribution. This is to be used when we want to
+    convey one of two things,
+    1. Represent a continuous distribution as discrete intervals.
+    2. Represent information regarding the underlying discrete distribution.
+
+
+    Args:
+        Type (Optional[str]): Type of discretization done. Values are `interval` or `index`.
+        Classes (Optional[List[DiscretizationItem]]): Information regarding each class in the resultant discrete dist.
+    """
+
+    Type: Annotated[Optional[str], Field(serialization_alias="type", alias="type")] = None
+    Classes: Annotated[
+        Optional[List[DiscretizationItem]],
+        Field(serialization_alias="classes", alias="classes"),
+    ] = None
+
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+
 class VizContinuous(pydantic.BaseModel):
     """Supported visualisation for continuous values.
 
@@ -165,6 +195,10 @@ class RasterProperties(pydantic.BaseModel):
         Field(serialization_alias="visualisation", alias="visualisation"),
     ] = None
     Date: Annotated[Optional[str], Field(serialization_alias="date", alias="date")] = None
+    Discretization: Annotated[
+        Optional[RasterDiscretization],
+        Field(serialization_alias="discretization", alias="discretization"),
+    ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
@@ -302,7 +336,10 @@ class _DataMeta(pydantic.BaseModel):
     IsArtifact: Annotated[Optional[bool], Field(alias="is_artifact", serialization_alias="is_artifact")] = None
     DisplayName: Annotated[Optional[str], Field(alias="display_name", serialization_alias="display_name")] = None
     Description: Annotated[Optional[str], Field(alias="description", serialization_alias="description")] = None
-
+    Metadata: Annotated[
+        Optional[Dict[str, str]],
+        Field(alias="metadata", serialization_alias="metadata"),
+    ] = {}
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
 
@@ -322,6 +359,7 @@ class Raster(_DataMeta):
         value: Union[int, float, str, bool],
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
+        metadata: Dict[str, str] = {},
         properties: Optional[RasterProperties] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         *args: Any,
@@ -352,6 +390,7 @@ class Raster(_DataMeta):
             Type=PrimitiveTypes.URL.value,
             Default=default,
             IsArtifact=is_artifact,
+            Metadata=metadata,
         )
         __pydantic_self__.Properties = properties
 

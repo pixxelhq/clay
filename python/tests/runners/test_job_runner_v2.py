@@ -230,6 +230,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "description": "",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
             "is_artifact": True,
+            "metadata": {},
             "default": None,
             "properties": {
                 "bands": ["B10"],
@@ -238,8 +239,83 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 "dtype": "uint8",
                 "sun_elevation": 5.1,
                 "satellite_look_angle": None,
+                "discretization": None,
                 "visualisation": None,
                 "date": "20-04-2024",
+            },
+        }
+
+    async def test_set_output_with_autopopulated_metadata(self) -> None:
+        class M(ModelWrapper):
+            def __init__(self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
+                super().__init__(config, protocol, logger)
+
+            def setup(self):
+                pass
+
+            async def preprocess(self, string: types.String, raster: types.Raster) -> Any:
+                print(string, raster)
+                return {"raster": raster, "string": string}
+
+            async def inference(self, raster, string) -> None:
+                dummy_raster = pathlib.Path("clipped.tiff")
+                dummy_raster.touch()
+                return {"raster": str(dummy_raster), "string": string}
+
+            async def postprocess(self, raster, string) -> Any:
+                return {
+                    "result": types.Raster(
+                        name="result",
+                        value=raster,
+                        is_artifact=True,
+                    ),
+                    "string": types.String(name="string", value="hello world", parameter=True),
+                }
+
+        env_list = self.mock_env_vars
+        env_list["BLOCK_NAME"] = "test-artifact"
+        env_patcher = unittest.mock.patch.dict(os.environ, env_list)
+        env_patcher.start()
+        a = JobRunnerV2(
+            "dummy",
+            M,
+            {"config": "./tests/runners/dummy-spec-with-props.yml"},
+            "./tests/runners/dummy-spec-with-props.yml",
+            None,
+        )
+        a.start()
+
+        env_patcher.stop()
+
+        target_raster_asset_path = os.path.join(self.testing_working_dir, "outputs", "result", "clipped.tiff")
+        target_raster_spec_path = os.path.join(self.testing_working_dir, "outputs", "result", "spec.json")
+
+        assert os.path.exists(target_raster_asset_path)
+        assert os.path.exists(target_raster_spec_path)
+
+        with open(target_raster_spec_path) as f:
+            d = json.load(f)
+
+        assert d == {
+            "format": "raster",
+            "type": "url",
+            "name": "result",
+            "display_name": "",
+            "description": "",
+            "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
+            "is_artifact": True,
+            "metadata": {"block-name": "test-artifact"},
+            "default": None,
+            "properties": {
+                "bands": ["B10"],
+                "source": "a-random-sat",
+                "collection": "a-random-coll",
+                "dtype": "uint8",
+                "sun_elevation": None,
+                "satellite_look_angle": None,
+                "discretization": None,
+                "visualisation": None,
+                "date": None,
             },
         }
 
