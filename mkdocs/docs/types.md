@@ -92,3 +92,11 @@ All the types are defined in `clay.types`. While each type might have some speci
 
 ##### VizBucket
 ::: clay.types.VizBucket
+
+## Raster Discretization
+
+##### RasterDiscretization
+::: clay.types.RasterDiscretization
+
+##### DiscretizationItem
+::: clay.types.DiscretizationItem
