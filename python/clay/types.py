@@ -59,6 +59,19 @@ def add_inline_fields(from_model: Type[pydantic.BaseModel], to_model: Type[pydan
 
 
 class DiscretizationItem(pydantic.BaseModel):
+    """Identifies each class in the _discretized_ distribution. In the case of an `interval` based discretization,
+    we specify the `Range` attribute, denoting the range of the pixel values which fall under a particular class.
+    In the case of an `index` based discretization, we specify the `Value` attribute, denoting the index value which
+    represents the class. The `Range` and `Value` attributes are mutually-exclusive.
+
+    Args:
+        Color (Optional[str]): Color of the class. Represented in [Hex Code](https://www.color-hex.com/).
+        Name (Optional[str]): Name of the class.
+        Value (Optional[str]): Index value representing the class, in the case of `index`-based discretization.
+        Range (Optional[List[float]]): List representing the `min` and `max` for a given range, that represents
+            a class, given that the type of discretization is `interval`.
+    """
+
     Color: Annotated[Optional[str], Field(serialization_alias="color", alias="color")] = None
     Name: Annotated[Optional[str], Field(serialization_alias="name", alias="name")] = None
     Value: Annotated[Optional[str], Field(serialization_alias="value", alias="value")] = None
@@ -70,9 +83,10 @@ class DiscretizationItem(pydantic.BaseModel):
 class RasterDiscretization(pydantic.BaseModel):
     """Supports discretization of the underlying pixel distribution. This is to be used when we want to
     convey one of two things,
-    1. Represent a continuous distribution as discrete intervals.
-    2. Represent information regarding the underlying discrete distribution.
 
+    1. Represent a continuous distribution as discrete intervals.
+
+    2. Represent information regarding the underlying discrete distribution.
 
     Args:
         Type (Optional[str]): Type of discretization done. Values are `interval` or `index`.
@@ -161,6 +175,10 @@ class RasterProperties(pydantic.BaseModel):
             The type of literal values in the raster. Defaults to `None`.
         Date:
             The date of the Raster
+        SunElevation:
+            Sun Elevation angle of the raster
+        SatelliteLookAngle:
+            Satellite Look angle of the raster.
         Visualisation:
             It will help in the raster visualisation on client side. There are three type of visualisation supported.
 
@@ -176,6 +194,13 @@ class RasterProperties(pydantic.BaseModel):
             3. Bucket:
                 Defines a histogram based visualisation technique for pixel values. Supports multibands wherein the index
                 of this list corressponds to the index of the band in the raster file to which this viz is intended for.
+        Discretization:
+           This helps in one of two things,
+
+            1. Discretizing an continuous distribution.
+
+            2. Passing along metadata for an already discrete interval.
+
     """
 
     Bands: Annotated[Optional[List[str]], Field(serialization_alias="bands", alias="bands")] = None
@@ -373,6 +398,11 @@ class Raster(_DataMeta):
                 value. Defaults to None.
             is_artifact (Optional[bool], optional): Signifies whether the raster has a
                 supporting asset. Defaults to True.
+            metadata (Optional[Dict[str, str]], optional): A map containing an arbitary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets some
+                values to this dict for each housekeeping purposes. If the user provides a
+                map as well, the final map attached to the data item would be union.
+                Defaults to {}.
             properties (Optional[RasterProperties], optional): Properties of the raster.
                 Defaults to None.
         """

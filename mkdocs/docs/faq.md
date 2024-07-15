@@ -69,3 +69,66 @@ that the `ModelWrapper` can use to fire callbacks to Orchestrator updating state
 !!! warning
 
     This is an unsafe operation as it could lead to de-sync between the spec file and the actual model output. Going forward we will be putting more precise safeguards.
+
+
+### How to use `Discretization` in `RasterProperties`?
+
+The intention behind the _discretization_ attribute is two-fold,
+
+1. Represent a continuous distribution as an interval-based distribution (_i.e. discretize a continuous distribution_ ).
+
+2. Represent additional information about an underlying distribution that is already discrete (_i.e. what classes and colors does each index represent_).
+
+The object essentially communicates _three_ things,
+
+* _Intervals / index values_ for the underlying distribution.
+* _Classes_ represented by each interval / index.
+* _Color_ for each class.
+
+!!! note
+
+    We only support two types of discretization: `interval` and `index`.
+
+!!! note
+
+    When our discretization type is `interval` we specify the `range` attribute. When our discretization type is `index`, we specify the `value` attribute.
+
+For API Reference, check [types.md](types.md#raster-discretization).
+
+**Example for `index`-based discretization**
+
+```python
+target = types.Raster(
+        name="raster",
+        type="url",
+        value="some.tiff",
+        properties=types.RasterProperties(
+            Discretization=types.RasterDiscretization(
+                Type="index",
+                Classes=[
+                    types.DiscretizationItem(Name="low-stress", Value="1", Color="blue"),
+                    types.DiscretizationItem(Name="high-stress", Value="2", Color="red"),
+                ],
+            )
+        ),
+    )
+```
+
+**Example for `interval`-based discretization**
+
+```python
+target = types.Raster(
+        name="raster",
+        type="url",
+        value="some.tiff",
+        properties=types.RasterProperties(
+            Discretization=types.RasterDiscretization(
+                Type="interval",
+                Classes=[
+                    types.DiscretizationItem(Name="low-stress", Range=[-2, -1], Color="blue"),
+                    types.DiscretizationItem(Name="high-stress", Range=[1, 2], Color="red"),
+                ],
+            )
+        ),
+    )
+```
