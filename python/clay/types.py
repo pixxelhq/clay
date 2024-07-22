@@ -441,6 +441,7 @@ class Vector(_DataMeta):
         value: str,
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
+        metadata: Dict[str, str] = {},
         properties: Optional[VectorProperties] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         *args: Any,
@@ -456,6 +457,11 @@ class Vector(_DataMeta):
                 True if the data item has a supporting asset. Defaults to True.
             properties (Optional[VectorProperties], optional): Properties of the GeoJSON.
                 Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets some
+                values to this dict for each housekeeping purposes. If the user provides a
+                map as well, the final map attached to the data item would be union.
+                Defaults to {}.
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -469,6 +475,7 @@ class Vector(_DataMeta):
             Value=value,
             IsArtifact=is_artifact,
             Default=default,
+            Metadata=metadata,
         )
         __pydantic_self__.Properties = properties
 
@@ -490,6 +497,7 @@ class Date(_DataMeta):
         properties: Optional[DateProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.STR,
+        metadata: Dict[str, str] = {},
         *args: Any,
         **kwargs: Any,
     ):
@@ -500,6 +508,11 @@ class Date(_DataMeta):
             value (str): Value of the item.
             properties (Optional[DateProperties], optional): Properties of the date. Defaults to None.
             default (Optional[Union[str, int, float, bool]], optional): _description_. Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets some
+                values to this dict for each housekeeping purposes. If the user provides a
+                map as well, the final map attached to the data item would be union.
+                Defaults to {}.
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -512,6 +525,7 @@ class Date(_DataMeta):
             Value=value,
             IsArtifact=False,
             Default=default,
+            Metadata=metadata,
         )
         __pydantic_self__.Properties = properties
 
@@ -534,6 +548,7 @@ class Tabular(_DataMeta):
         properties: Optional[TabularProperties] = None,
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
+        metadata: Dict[str, str] = {},
         *args: Any,
         **kwargs: Any,
     ):
@@ -545,6 +560,11 @@ class Tabular(_DataMeta):
             is_artifact (Optional[bool], optional): True if the data item has a supporting asset. Defaults to True.
             properties (Optional[TabularProperties], optional): Properties of the table. Defaults to None.
             default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets some
+                values to this dict for each housekeeping purposes. If the user provides a
+                map as well, the final map attached to the data item would be union.
+                Defaults to {}.
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -558,6 +578,7 @@ class Tabular(_DataMeta):
             Type=PrimitiveTypes.URL.value,
             IsArtifact=is_artifact,
             Default=default,
+            Metadata=metadata,
         )
         __pydantic_self__.Properties = properties
 
@@ -574,6 +595,7 @@ class String(_DataMeta):
         value: Optional[str] = None,
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.STR,
+        metadata: Dict[str, str] = {},
         *args: Any,
         **kwargs: Any,
     ):
@@ -582,6 +604,11 @@ class String(_DataMeta):
             name (str): Name of the data item.
             value (Optional[str], optional): Value of the data item. Defaults to `None`.
             default (Optional[Union[str, int, float, bool]], optional): Ant default value. Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets some
+                values to this dict for each housekeeping purposes. If the user provides a
+                map as well, the final map attached to the data item would be union.
+                Defaults to {}.
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -595,6 +622,7 @@ class String(_DataMeta):
             Value=value,
             IsArtifact=False,
             Default=default,
+            Metadata=metadata,
         )
 
 
@@ -610,6 +638,7 @@ class Number(_DataMeta):
         value: Union[int, float, None] = None,
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.FLOAT,
+        metadata: Dict[str, str] = {},
         *args: Any,
         **kwargs: Any,
     ):
@@ -619,6 +648,11 @@ class Number(_DataMeta):
             name (str): Name of the data item.
             value (Union[int, float, None], optional): Value of the data item. Defaults to None.
             default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
+            metadata ([Dict[str, str], optional): A map containing an arbitary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets some
+                values to this dict for each housekeeping purposes. If the user provides a
+                map as well, the final map attached to the data item would be union.
+                Defaults to {}.
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -632,6 +666,7 @@ class Number(_DataMeta):
             Value=value,
             IsArtifact=False,
             Default=default,
+            Metadata=metadata,
         )
 
 
