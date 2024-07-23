@@ -83,6 +83,7 @@ def _fire_callback_to_dexter(
             "block_inf_start_time": clb.BlockInfStartTime,
             "block_inf_end_time": clb.BlockInfEndTime,
             "err_msg": clb.ErrMsg,
+            "progress": clb.Progress,
         }
         if enable_debug_logs:
             logger.debug(f"Data for callback: {data}")
