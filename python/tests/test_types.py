@@ -294,3 +294,24 @@ def test_init_raster_model_from_dict_with_discretization_index() -> None:
 
     r = types.Raster.model_validate(d)
     assert r == target
+
+
+def test_init_raster_model_from_dict_with_images_list() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "properties": {"images": ["url1", "url2"]},
+    }
+    target = types.Raster(
+        name="raster",
+        type="url",
+        value="some.tiff",
+        properties=types.RasterProperties(
+            Images=["url1", "url2"],
+        ),
+    )
+
+    r = types.Raster.model_validate(d)
+    assert r == target

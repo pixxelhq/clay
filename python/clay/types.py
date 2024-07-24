@@ -175,6 +175,8 @@ class RasterProperties(pydantic.BaseModel):
             The type of literal values in the raster. Defaults to `None`.
         Date:
             The date of the Raster
+        Images:
+            The STAC URLs of the images used to create the raster.
         SunElevation:
             Sun Elevation angle of the raster
         SatelliteLookAngle:
@@ -224,6 +226,7 @@ class RasterProperties(pydantic.BaseModel):
         Optional[RasterDiscretization],
         Field(serialization_alias="discretization", alias="discretization"),
     ] = None
+    Images: Annotated[Optional[List[str]], Field(serialization_alias="images", alias="images")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 

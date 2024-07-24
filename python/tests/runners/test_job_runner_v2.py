@@ -242,6 +242,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 "discretization": None,
                 "visualisation": None,
                 "date": "20-04-2024",
+                "images": None,
             },
         }
 
@@ -315,6 +316,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                 "satellite_look_angle": None,
                 "discretization": None,
                 "visualisation": None,
+                "images": None,
                 "date": None,
             },
         }
