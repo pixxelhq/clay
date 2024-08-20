@@ -538,8 +538,6 @@ class JobRunner(BaseRunner):
                 clb,
                 self.logger,
                 self.get_injected_envvar_if_found(_InjectedEnvVars.ClbUrl)[0],  # yes I know this is dirty
-                self._dexter_host,
-                self._dexter_port,
                 self.enable_debug_logs,
             )
             raise exc

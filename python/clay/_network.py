@@ -46,10 +46,8 @@ class HeaderBuilder:
 
 def _fire_callback_to_dexter(
     clb: types.Callback,
-    logger: logger.Logger,
+    _logger: logger.Logger,
     dexter_clb_url: Optional[str] = None,
-    dexter_host: Optional[str] = None,
-    dexter_port: Optional[str] = None,
     enable_debug_logs: bool = False,
 ) -> bool:
     headers = HeaderBuilder.init_header()
@@ -60,16 +58,16 @@ def _fire_callback_to_dexter(
     retries = Retry(total=3, backoff_factor=0.2, status_forcelist=[500, 502, 503, 504])  # type: ignore
     session.mount("http://", HTTPAdapter(max_retries=retries))
 
+    # check if `dexter_clb_url` is set
+    if dexter_clb_url is None or dexter_clb_url == "":
+        _logger.error(f"found `dexter_clb_url` as {dexter_clb_url}. " "Hence not firing callback")
+        return False
+
     run_type = os.getenv(types._CommonEnvvars.DEXTER_RUN_TYPE.value, core.RunType.WORKFLOW.value)
     if run_type == core.RunType.WORKFLOW.value:
         data = {"data": clb.model_dump(by_alias=True, exclude_none=True)}
         if enable_debug_logs:
-            logger.debug(f"Data for callback: {data}")
-
-        # check if `dexter_clb_url` is set
-        if dexter_clb_url is None or dexter_clb_url == "":
-            logger.warning(f"found `dexter_clb_url` as {dexter_clb_url}. Hence not firing callback")
-            return False
+            _logger.debug(f"Data for callback: {data}")
 
         resp = session.post(url=dexter_clb_url, json=data, headers=headers)
     else:
@@ -86,28 +84,23 @@ def _fire_callback_to_dexter(
             "progress": clb.Progress,
         }
         if enable_debug_logs:
-            logger.debug(f"Data for callback: {data}")
-
-        if dexter_host is None or dexter_port is None or dexter_host == "" or dexter_port == "":
-            logger.warning("found invalid values for `dexter_host` and / or `dexter_port` hence not firing callback.")
-            return False
+            _logger.debug(f"Data for callback: {data}")
 
         resp = session.post(
-            url="{0}:{1}/v1alpha1/inferences/{2}".format(dexter_host, dexter_port, clb.Id),
+            url=dexter_clb_url,
             json=data,
             headers=headers,
         )
 
-    if not (
+    if (
         resp.status_code == HTTPStatus.ACCEPTED
         or resp.status_code == HTTPStatus.NO_CONTENT
         or resp.status_code == HTTPStatus.OK
     ):
         if enable_debug_logs:
-            logger.error(f"state update failed with status code: {resp.status_code}")
-        return False
+            _logger.info("successfully updated state")
+        return True
 
     if enable_debug_logs:
-        logger.info("successfully updated state")
-
-    return True
+        _logger.error(f"state update failed with status code: {resp.status_code}")
+    return False

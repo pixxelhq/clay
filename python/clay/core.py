@@ -118,8 +118,6 @@ class RunType(Enum):
 def callback_wrapper(conn_params: Dict[Any, str]):
     def _callback(logger: Logger, callback: types.Callback, enable_debug_logs: bool = False) -> None:
         dexter_clb_url = conn_params.get(types._CommonEnvvars.ORCHESTRATOR_URL, None)
-        dexter_port = conn_params.get(types._CommonEnvvars.DEXTER_PORT, None)
-        dexter_host = conn_params.get(types._CommonEnvvars.DEXTER_HOST, None)
 
         task_id = conn_params.get(types._CommonEnvvars.TASK_ID, None)
         if not task_id:
@@ -129,11 +127,9 @@ def callback_wrapper(conn_params: Dict[Any, str]):
         if callback.Id is None or callback.Id == "":
             callback.Id = task_id
 
-        success = _network._fire_callback_to_dexter(
-            callback, logger, dexter_clb_url, dexter_host, dexter_port, enable_debug_logs
-        )
+        success = _network._fire_callback_to_dexter(callback, logger, dexter_clb_url, enable_debug_logs)
         if not success:
-            logger.warning("failed to fire callback")
+            logger.error("failed to fire callback")
 
     return _callback
 
