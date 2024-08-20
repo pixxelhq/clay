@@ -596,9 +596,7 @@ class JobRunnerV2(BaseRunner):
                 State=types.ModelStates.FAILED,
                 ErrMsg="internal server error",
             )
-            _network._fire_callback_to_dexter(
-                clb, self.logger, self._dexter_clb_url, self._dexter_host, self._dexter_port, self.enable_debug_logs
-            )
+            _network._fire_callback_to_dexter(clb, self.logger, self._dexter_clb_url, self.enable_debug_logs)
 
         conn_params = {
             types._CommonEnvvars.DEXTER_HOST: self._dexter_host,

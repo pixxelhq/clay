@@ -3,12 +3,13 @@ import sys
 import time
 import unittest
 from typing import Any
+from unittest import mock
 
 import pytest
 
-from clay import ModelWrapper
+from clay import ModelWrapper, logger, types
 from clay._network import HeaderBuilder
-from clay.core import BaseRunner, CallbackAuthMethod
+from clay.core import BaseRunner, CallbackAuthMethod, callback_wrapper
 
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
 from .utils import set_envvar
@@ -187,3 +188,64 @@ class TestHeaderBuilder(unittest.TestCase):
             header = HeaderBuilder.init_header()
             assert header["X-AuthService-Sub"] == "123"
             assert header["X-AuthService-Org_Ids"] == "456"
+
+
+class TestCallback(unittest.TestCase):
+    @mock.patch("clay._network.requests.Session.post")
+    def test_target_url_for_inference_callback(self, mock_post) -> None:
+        mock_response = mock.Mock()
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        test_url = "https://orchestrator.platform.svc.local:80/v1alpha1/inferences/123/"
+        test_host = "https://orchestrator.platform.svc.local"
+        test_port = "80"
+        task_id = "123"
+        env = {
+            "ORCHESTRATOR_URL": test_url,
+            "DEXTER_HOST": test_host,
+            "DEXTER_PORT": test_port,
+            "task_id": task_id,
+        }
+
+        _logger = logger.ClayLogger("test-logger")
+        c = callback_wrapper(env)
+
+        env_patcher = unittest.mock.patch.dict(os.environ, {"DEXTER_RUN_TYPE": "inference"})
+        env_patcher.start()
+        val = c(_logger, types.Callback(Id="123"), enable_debug_logs=True)
+        env_patcher.stop()
+
+        call_args_list = mock_post.call_args_list
+        assert val is None
+        assert len(call_args_list) == 1
+        assert call_args_list[0][1]["url"] == test_url
+
+    @mock.patch("clay._network.requests.Session.post")
+    def test_target_url_for_workflow_callback(self, mock_post) -> None:
+        mock_response = mock.Mock()
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        test_url = "https://orchestrator.platform.svc.local:80/v1alpha1/callback"
+        test_host = "https://orchestrator.platform.svc.local"
+        test_port = "80"
+        task_id = "123"
+        env = {
+            "ORCHESTRATOR_URL": test_url,
+            "DEXTER_HOST": test_host,
+            "DEXTER_PORT": test_port,
+            "task_id": task_id,
+        }
+
+        _logger = logger.ClayLogger("test-logger")
+        c = callback_wrapper(env)
+
+        val = c(_logger, types.Callback(Id="123"), enable_debug_logs=True)
+
+        call_args_list = mock_post.call_args_list
+        assert val is None
+        assert len(call_args_list) == 1
+        assert call_args_list[0][1]["url"] == test_url
