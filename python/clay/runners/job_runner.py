@@ -173,42 +173,21 @@ class JobRunner(BaseRunner):
             return data
 
         if data.Type == ValueTypes.URL.value and data.Format == types.FormatTypes.VECTOR.value:
-            return self._handle_vector_input_assets(data, named_input_dir)
+            return self._handle_vector_input_assets(data, named_input_dir, named_remote_output_dir)
 
-        url_fragments = parse_url(str(data.Value))
-        if url_fragments.scheme != "s3":
-            self.logger.warning(f"Unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
-        file_name = os.path.basename(url_fragments.path)  # type: ignore
-        local_path = pathlib.Path(named_input_dir, str(file_name))
-        self._s3fs.get_file(data.Value, str(local_path))
-        if not local_path.exists():
-            raise FileNotFoundError(f"failed to find file {data.Value}")
-        if named_remote_output_dir != "":
-            named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
-            if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
-                self.logger.info(f"Uploading {str(local_path)} to {named_remote_output_dir}")
-                # TODO: here we risk overwriting the file if it exists. Ideally, if the
-                # file exists in the named-remote-output-dir path, then we shouldnt upload
-                try:
-                    self._s3fs.info(named_remote_output_dir)
-                    # the line below is run only if the file exists in the said path
-                    self.logger.warning(f"File found at {named_remote_output_dir}. will be overwritten")
-                except FileNotFoundError:
-                    pass
-                self._s3fs.put_file(str(local_path), named_remote_output_dir)
-                self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
-        data.Value = str(local_path)
+        data = self._upload_assets_to_s3(data, named_input_dir, named_remote_output_dir)
         return data
 
     def _handle_vector_input_assets(
         self,
         data: types.Data,
         named_input_dir: str,
+        named_remote_output_dir: str
     ) -> types.Data:  # type: ignore
         try:
             _ = parse_url(str(data.Value))
         except Exception as exc:
-            self.logger.warn(f"unable to parse json: {exc}")
+            self.logger.warning(f"unable to parse json: {exc}")
             # if the url is not parseable, then we assume it is a stringified geojson
             try:
                 parsed_data = json.loads(str(data.Value))
@@ -217,9 +196,40 @@ class JobRunner(BaseRunner):
                     json.dump(parsed_data, f, indent=4)
                 data.Value = str(local_path)
                 self.logger.info("found stringified json")
+                named_remote_output_file = os.path.join(named_remote_output_dir, f"{data.Name}.geojson" )
+                self._s3fs.put_file(data.Value, named_remote_output_file )
+                self.logger.info(f"uploading {data.Value} to {named_remote_output_file}")
             except json.JSONDecodeError:
                 clay.failure("failed to parse geojson with value {0}".format(data.Value))
+            return data
+        data = self._upload_assets_to_s3(data, named_input_dir, named_remote_output_dir)
         return data
+        
+    def _upload_assets_to_s3(self, data, named_input_dir, named_remote_output_dir) -> types.Data:
+            url_fragments = parse_url(str(data.Value))
+            if url_fragments.scheme != "s3":
+                self.logger.warning(f"Unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
+            file_name = os.path.basename(url_fragments.path)  # type: ignore
+            local_path = pathlib.Path(named_input_dir, str(file_name))
+            self._s3fs.get_file(data.Value, str(local_path))
+            if not local_path.exists():
+                raise FileNotFoundError(f"failed to find file {data.Value}")
+            if named_remote_output_dir != "":
+                named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
+                if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
+                    self.logger.info(f"Uploading {str(local_path)} to {named_remote_output_dir}")
+                    # TODO: here we risk overwriting the file if it exists. Ideally, if the
+                    # file exists in the named-remote-output-dir path, then we shouldnt upload
+                    try:
+                        self._s3fs.info(named_remote_output_dir)
+                        # the line below is run only if the file exists in the said path
+                        self.logger.warning(f"File found at {named_remote_output_dir}. will be overwritten")
+                    except FileNotFoundError:
+                        pass
+                    self._s3fs.put_file(str(local_path), named_remote_output_dir)
+                    self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
+            data.Value = str(local_path)
+            return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
         if self._inf_opts.get(_ExpectedInfParameters.WorkflowId) is None:
@@ -288,7 +298,6 @@ class JobRunner(BaseRunner):
                 named_remote_working_dir = os.path.join(remote_working_dir, model.Name)
 
             model = self._handle_input_assets(model, str(named_input_dir), named_remote_working_dir)
-
             i = model.model_dump(by_alias=True)
             with open(os.path.join(named_input_dir, DATA_SPEC_FILENAME), "w+") as f:
                 json.dump(i, f)
