@@ -32,6 +32,7 @@ outputs:
   - format: raster
     type: url
     name: result
+    group: "raster_group"
     is_artifact: true
   - format: string
     type: str

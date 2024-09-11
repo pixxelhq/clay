@@ -41,7 +41,7 @@ def test_init_raster_model_from_dict_success() -> None:
     assert r.Properties.Bands == ["B01", "B02"]
 
 
-def test_init_raster_model_from_dict_with_None_props_success() -> None:
+def test_init_raster_model_from_dict_with_none_props_success() -> None:
     d = {
         "format": "raster",
         "type": "url",
@@ -308,6 +308,29 @@ def test_init_raster_model_from_dict_with_images_list() -> None:
         name="raster",
         type="url",
         value="some.tiff",
+        properties=types.RasterProperties(
+            Images=["url1", "url2"],
+        ),
+    )
+
+    r = types.Raster.model_validate(d)
+    assert r == target
+
+
+def test_init_raster_model_from_dict_with_group() -> None:
+    d = {
+        "format": "raster",
+        "type": "url",
+        "name": "raster",
+        "value": "some.tiff",
+        "group": "some_group",
+        "properties": {"images": ["url1", "url2"]},
+    }
+    target = types.Raster(
+        name="raster",
+        type="url",
+        value="some.tiff",
+        group="some_group",
         properties=types.RasterProperties(
             Images=["url1", "url2"],
         ),

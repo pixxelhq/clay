@@ -356,9 +356,10 @@ class JobRunner(BaseRunner):
         if data.Format != _format:
             raise ValueError(f"invalid format `{data.Format}` for `{data.Name}")
 
-        # set `displayName` and `description` from config
+        # set `displayName`, `description` and `group` from config
         data.DisplayName = output_config.get("display_name", "")
         data.Description = output_config.get("description", "")
+        data.Group = output_config.get("group", "")
 
         # set `block-name` if available
         block_name, found = self.get_injected_envvar_if_found(_InjectedEnvVars.BlockName)
