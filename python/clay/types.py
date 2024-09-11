@@ -368,6 +368,7 @@ class _DataMeta(pydantic.BaseModel):
         Optional[Dict[str, str]],
         Field(alias="metadata", serialization_alias="metadata"),
     ] = {}
+    Group: Annotated[str, Field(alias="group", serialization_alias="group")] = ""
     model_config = {"validate_assignment": True, "populate_by_name": True}
 
 
@@ -390,6 +391,7 @@ class Raster(_DataMeta):
         metadata: Dict[str, str] = {},
         properties: Optional[RasterProperties] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
+        group: str = "",
         *args: Any,
         **kwargs: Any,
     ):
@@ -401,11 +403,12 @@ class Raster(_DataMeta):
                 value. Defaults to None.
             is_artifact (Optional[bool], optional): Signifies whether the raster has a
                 supporting asset. Defaults to True.
-            metadata (Optional[Dict[str, str]], optional): A map containing an arbitary set of
-                key-value pairs. Ideally, this should not be used. Clay internally sets some
-                values to this dict for each housekeeping purposes. If the user provides a
-                map as well, the final map attached to the data item would be union.
-                Defaults to {}.
+            metadata (Optional[Dict[str, str]], optional): A map containing an arbitrary
+                set of key-value pairs. Ideally, this should not be used. Clay internally
+                sets some values to this dict for each housekeeping purposes. If the user
+                provides a map as well, the final map attached to the data item would be
+                union. Defaults to {}.
+            group (str): The common set this output item belongs to. Defaults to "".
             properties (Optional[RasterProperties], optional): Properties of the raster.
                 Defaults to None.
         """
@@ -414,7 +417,7 @@ class Raster(_DataMeta):
         else:
             _type = type
 
-        # `Type` is set as best guess here. This would anyway be overriden based on
+        # `Type` is set as best guess here. This would anyway be override based on
         # the output config
         super().__init__(
             Format=FormatTypes.RASTER.value,
@@ -424,6 +427,7 @@ class Raster(_DataMeta):
             Default=default,
             IsArtifact=is_artifact,
             Metadata=metadata,
+            Group=group,
         )
         __pydantic_self__.Properties = properties
 
@@ -445,6 +449,7 @@ class Vector(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
         metadata: Dict[str, str] = {},
+        group: str = "",
         properties: Optional[VectorProperties] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         *args: Any,
@@ -460,11 +465,12 @@ class Vector(_DataMeta):
                 True if the data item has a supporting asset. Defaults to True.
             properties (Optional[VectorProperties], optional): Properties of the GeoJSON.
                 Defaults to None.
-            metadata (Dict[str, str], optional): A map containing an arbitary set of
-                key-value pairs. Ideally, this should not be used. Clay internally sets some
-                values to this dict for each housekeeping purposes. If the user provides a
-                map as well, the final map attached to the data item would be union.
-                Defaults to {}.
+            metadata (Dict[str, str], optional): A map containing an arbitrary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets
+                some values to this dict for each housekeeping purposes.
+                If the user provides a map as well, the final map attached to the data
+                item would be union. Defaults to {}.
+            group (str): The common set this output item belongs to. Defaults to "".
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -479,6 +485,7 @@ class Vector(_DataMeta):
             IsArtifact=is_artifact,
             Default=default,
             Metadata=metadata,
+            Group=group,
         )
         __pydantic_self__.Properties = properties
 
@@ -501,6 +508,7 @@ class Date(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.STR,
         metadata: Dict[str, str] = {},
+        group: str = "",
         *args: Any,
         **kwargs: Any,
     ):
@@ -509,13 +517,16 @@ class Date(_DataMeta):
         Args:
             name (str): Name of the data item.
             value (str): Value of the item.
-            properties (Optional[DateProperties], optional): Properties of the date. Defaults to None.
-            default (Optional[Union[str, int, float, bool]], optional): _description_. Defaults to None.
-            metadata (Dict[str, str], optional): A map containing an arbitary set of
-                key-value pairs. Ideally, this should not be used. Clay internally sets some
-                values to this dict for each housekeeping purposes. If the user provides a
-                map as well, the final map attached to the data item would be union.
-                Defaults to {}.
+            properties (Optional[DateProperties], optional): Properties of the date.
+                Defaults to None.
+            default (Optional[Union[str, int, float, bool]], optional): _description_.
+                Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitrary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets
+                some values to this dict for each housekeeping purposes. If the user
+                provides a map as well, the final map attached to the data item would be
+                union. Defaults to {}.
+            group (str): The common set this output item belongs to. Defaults to "".
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -529,6 +540,7 @@ class Date(_DataMeta):
             IsArtifact=False,
             Default=default,
             Metadata=metadata,
+            Group=group,
         )
         __pydantic_self__.Properties = properties
 
@@ -552,6 +564,7 @@ class Tabular(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.URL.value,
         metadata: Dict[str, str] = {},
+        group: str = "",
         *args: Any,
         **kwargs: Any,
     ):
@@ -560,14 +573,18 @@ class Tabular(_DataMeta):
         Args:
             name (str): Name of the data item.
             value (str): Value of the item.
-            is_artifact (Optional[bool], optional): True if the data item has a supporting asset. Defaults to True.
-            properties (Optional[TabularProperties], optional): Properties of the table. Defaults to None.
-            default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
-            metadata (Dict[str, str], optional): A map containing an arbitary set of
-                key-value pairs. Ideally, this should not be used. Clay internally sets some
-                values to this dict for each housekeeping purposes. If the user provides a
-                map as well, the final map attached to the data item would be union.
-                Defaults to {}.
+            is_artifact (Optional[bool], optional): True if the data item has a supporting
+            asset. Defaults to True.
+            properties (Optional[TabularProperties], optional): Properties of the table.
+                Defaults to None.
+            default (Optional[Union[str, int, float, bool]], optional): Any default value.
+                Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitrary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets
+                some values to this dict for each housekeeping purposes. If the user
+                provides a map as well, the final map attached to the data item would be
+                union. Defaults to {}.
+           group (str): The common set this output item belongs to. Defaults to "".
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -582,6 +599,7 @@ class Tabular(_DataMeta):
             IsArtifact=is_artifact,
             Default=default,
             Metadata=metadata,
+            Group=group,
         )
         __pydantic_self__.Properties = properties
 
@@ -599,6 +617,7 @@ class String(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.STR,
         metadata: Dict[str, str] = {},
+        group: str = "",
         *args: Any,
         **kwargs: Any,
     ):
@@ -606,12 +625,14 @@ class String(_DataMeta):
         Args:
             name (str): Name of the data item.
             value (Optional[str], optional): Value of the data item. Defaults to `None`.
-            default (Optional[Union[str, int, float, bool]], optional): Ant default value. Defaults to None.
-            metadata (Dict[str, str], optional): A map containing an arbitary set of
-                key-value pairs. Ideally, this should not be used. Clay internally sets some
-                values to this dict for each housekeeping purposes. If the user provides a
-                map as well, the final map attached to the data item would be union.
-                Defaults to {}.
+            default (Optional[Union[str, int, float, bool]], optional): Ant default value.
+                Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitrary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets
+                some values to this dict for each housekeeping purposes. If the user
+                provides a map as well, the final map attached to the data item
+                would be union. Defaults to {}.
+            group (str): The common set this output item belongs to. Defaults to "".
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -626,6 +647,7 @@ class String(_DataMeta):
             IsArtifact=False,
             Default=default,
             Metadata=metadata,
+            Group=group,
         )
 
 
@@ -642,6 +664,7 @@ class Number(_DataMeta):
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.FLOAT,
         metadata: Dict[str, str] = {},
+        group: str = "",
         *args: Any,
         **kwargs: Any,
     ):
@@ -649,13 +672,16 @@ class Number(_DataMeta):
 
         Args:
             name (str): Name of the data item.
-            value (Union[int, float, None], optional): Value of the data item. Defaults to None.
-            default (Optional[Union[str, int, float, bool]], optional): Any default value. Defaults to None.
-            metadata ([Dict[str, str], optional): A map containing an arbitary set of
-                key-value pairs. Ideally, this should not be used. Clay internally sets some
-                values to this dict for each housekeeping purposes. If the user provides a
-                map as well, the final map attached to the data item would be union.
-                Defaults to {}.
+            value (Union[int, float, None], optional): Value of the data item.
+                Defaults to None.
+            default (Optional[Union[str, int, float, bool]], optional): Any default value.
+                Defaults to None.
+            metadata (Dict[str, str], optional): A map containing an arbitrary set of
+                key-value pairs. Ideally, this should not be used. Clay internally sets
+                some values to this dict for each housekeeping purposes.
+                If the user provides a map as well, the final map attached to the data
+                item would be union. Defaults to {}.
+            group (str): The common set this output item belongs to. Defaults to "".
         """
         if isinstance(type, str):
             _type = PrimitiveTypes(type)
@@ -670,6 +696,7 @@ class Number(_DataMeta):
             IsArtifact=False,
             Default=default,
             Metadata=metadata,
+            Group=group,
         )
 
 

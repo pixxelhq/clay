@@ -418,6 +418,7 @@ class JobRunnerV2(BaseRunner):
         # set `displayName` and `description` from config
         data.DisplayName = output_config.get("display_name", "")
         data.Description = output_config.get("description", "")
+        data.Group = output_config.get("group", "")
 
         # add block-name to metadata if available
         block_name, found = self.get_injected_envvar_if_found(_InjectedEnvVars.BlockName)

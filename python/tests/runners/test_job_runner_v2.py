@@ -231,6 +231,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
             "is_artifact": True,
             "metadata": {},
+            "group": "",
             "default": None,
             "properties": {
                 "bands": ["B10"],
@@ -307,6 +308,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "is_artifact": True,
             "metadata": {"block-name": "test-artifact"},
             "default": None,
+            "group": "",
             "properties": {
                 "bands": ["B10"],
                 "source": "a-random-sat",
