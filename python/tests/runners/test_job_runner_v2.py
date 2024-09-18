@@ -66,6 +66,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             _InjectedEnvVars.TaskId.value: "task123",
             _InjectedEnvVars.WorkingDir.value: self.testing_working_dir,
             _InjectedEnvVars.InputsWorkingDir.value: input_working_dir,
+            _InjectedEnvVars.InputsRemotePath.value: "",
             _InjectedEnvVars.OutputsWorkingDir.value: output_working_dir,
             _InjectedEnvVars.OutputsRemotePath.value: "s3://workflow-id/job-id/task-id/outputs/",  # noqa
             _InjectedEnvVars.Env.value: "local",
@@ -367,53 +368,4 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         )
         self.assertRaises(ValueError, a.start)
 
-        env_patcher.stop()
-
-    async def test_receive_raw_input(self) -> None:
-        class M(ModelWrapper):
-            def __init__(_self, config: str, protocol: str = "abfs", logger: Logger = None) -> None:
-                super().__init__(config, protocol, logger)
-
-            def setup(_self):
-                _self.receive_raw_inputs = True
-
-            async def preprocess(_self, string, raster) -> Any:
-                assert not isinstance(raster, types.Raster)
-                assert raster == {
-                    "format": "raster",
-                    "name": "raster",
-                    "type": "url",
-                    "value": os.path.join(self.testing_working_dir, "inputs", "raster", "clipped.tiff"),
-                    "properties": {
-                        "bands": ["A", "B", "C"],
-                        "source": "some-source",
-                        "collection": "some-collection",
-                        "dtype": "some-dtype",
-                    },
-                }
-
-                assert not isinstance(string, types.String)
-                assert string == {
-                    "format": "string",
-                    "name": "string",
-                    "type": "str",
-                    "value": "hello world",
-                }
-
-        env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
-        env_patcher.start()
-        print(os.getcwd())
-        a = JobRunnerV2(
-            "dummy",
-            M,
-            {"config": "./tests/runners/dummy-spec.yml"},
-            "./tests/runners/dummy-spec.yml",
-            None,
-        )
-        with pytest.raises(TypeError) as exc_info:
-            a.start()
-            assert (
-                exc_info.__str__
-                == "TypeError: clay.core.ModelWrapper.inference() argument after ** must be a mapping, not NoneType"
-            )
         env_patcher.stop()

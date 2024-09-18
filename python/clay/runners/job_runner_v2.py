@@ -20,7 +20,7 @@ from clay.utils import (
     convert_list_to_dict,
     get_current_utc_time_iso,
     get_filename_from_remote,
-    get_io_dirmap,
+    get_io_name_to_dir_map,
     try_json_loads,
 )
 
@@ -30,6 +30,7 @@ class _InjectedEnvVars(Enum):
     TaskName = "TASK_NAME"
     WorkingDir = "WORKING_DIR"
     InputsWorkingDir = "INPUTS_WORKING_DIR"
+    InputsRemotePath = "INPUTS_REMOTE_PATH"
     OutputsWorkingDir = "OUTPUTS_WORKING_DIR"
     OutputsRemotePath = "OUTPUTS_REMOTE_PATH"
     Env = "ENV"
@@ -191,102 +192,74 @@ class JobRunnerV2(BaseRunner):
     # The `None` assignment is to statisfy the type checker
     def _collect_inputs(
         self, inputs: Optional[List[Dict[str, Any]]] = None
-    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
-        # NOTE: we have removed default fills for inputs that the model expects and have
-        # not been provided. it is expected that this would be handled at the executor
-        # level. In-case, an input is received that is nor provided we fail the model
+    ) -> Tuple[Dict[str, types.Data], Dict[str, Any]]:
+        def extract_input_parameters_from_argo_template() -> Dict[str, Any]:
+            argo_inputs = self._argo_template_spec.get("inputs", {})
+            if "parameters" in argo_inputs:
+                return convert_list_to_dict(argo_inputs["parameters"], "name")
+            return {}
 
-        # get list of input parameters from argo template
-        _input_parameters: Dict[str, Any] = {}
-        if "parameters" in self._argo_template_spec.get("inputs", {}):
-            _input_parameters = convert_list_to_dict(self._argo_template_spec["inputs"].get("parameters"), "name")
+        def get_workflow_input_directory() -> str:
+            input_working_dir, _ = self.get_injected_envvar_if_found(_InjectedEnvVars.InputsWorkingDir)
+            return input_working_dir
 
-        input_dict: Dict[str, Any] = {}
-        processed_inputs: Dict[str, types.Data] = {}
-        input_working_dir, found = self.get_injected_envvar_if_found(_InjectedEnvVars.InputsWorkingDir)
-        input_dirmap = get_io_dirmap(self.config.inputs, input_working_dir)
-        for i in self.config.inputs:
-            # check if the input i is a parameter or not. By default, we assume it to
-            # be a parameter
-            if i.get(types._IS_ARTIFACT_ATTR_NAME, False):
-                path = input_dirmap.get(i["name"])
+        def is_artifact_input(input_config: Dict[str, Any]) -> bool:
+            return input_config.get(types._IS_ARTIFACT_ATTR_NAME, False)
 
-                if path is None:
-                    # fail the model if input is not found
-                    clay.failure(f"`{i['name']}` not found")
+        def process_artifact_input(input_config: Dict[str, Any], input_dirmap: Dict[str, str]) -> Tuple[Dict[str, Any], types.Data]:
+            path = input_dirmap.get(input_config["name"])
+            if path is None:
+                clay.failure(f"`{input_config['name']}` not found")
 
-                with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
-                    spec = json.load(f)
+            with open(os.path.join(path, DATA_SPEC_FILENAME)) as f: # type: ignore
+                spec = json.load(f)
+            spec["name"] = input_config["name"]
+            self.update_inputs_list(spec.copy())
 
-                # this is being done since the name in data at this point is carried over
-                # from whatever the output's name was in the previous component
-                spec["name"] = i["name"]
+            value = cast_inputs(spec["value"], spec["type"])
+            if spec["type"] == ValueTypes.URL.value:
+                filename = get_filename_from_remote(value)
+                value = os.path.join(path, filename) # type: ignore
 
-                # here we store the list of inputs as read from the json
-                self.update_inputs_list(spec.copy())
+            spec["value"] = value
+            data = types._FormatModelMap[input_config["format"]].model_validate(spec)
 
-                value_type = spec["type"]
-                value = cast_inputs(spec["value"], value_type)
+            return spec, data
 
-                # CRITICAL: At this point in the function we do two things,
-                # 1. If type is `url`, clay expects an asset file to be present in `path`.
-                # Please note, that
-                # clay expects that the filename of the asset would be the filename
-                #  specified
-                # by the url in the `value` parameter.
-                # 2. We take the filename, check if the file actually exists or not.
-                # If it does, we pass the local path to the relevant input parameter.
-                # If it does not, we fail the model.
-                if value_type == ValueTypes.URL.value:
-                    filename = get_filename_from_remote(value)
-                    # we convert the remote url to the local path of the asset
-                    value = os.path.join(path, filename)  # type: ignore
+        def process_parameter_input(input_config: Dict[str, Any], input_parameters: Dict[str, Any], input_working_dir: str) -> Tuple[Dict[str, Any], types.Data]:
+            value = input_parameters.get(input_config["name"], {}).get("value", None) or input_config.get("value")
+            value = self.extract_parameter_value(value) # type: ignore
+            value = cast_inputs(value, input_config["type"])
 
-                spec["value"] = value
-                data: types.Data = types._FormatModelMap[i["format"]].model_validate(spec)
-                input_dict[i["name"]] = spec
-                processed_inputs[i["name"]] = data
+            input_config["value"] = value
+            data = types._FormatModelMap[input_config["format"]].model_validate(input_config)
 
-                self.set_inputs_propmap(i["name"], spec)
+            data_dict = data.model_dump(by_alias=True)
+            spec_path = pathlib.Path(os.path.join(input_working_dir, input_config["name"]))
+            spec_path.mkdir(exist_ok=True, parents=True)
+            with open(os.path.join(spec_path, DATA_SPEC_FILENAME), "w+") as f:
+                json.dump(data_dict, f)
 
-                # here we update the dict storing the actual values that are passed to
-                # the model functions, post any cleanups
-                self.update_passed_inputs_dict(i["name"], value)
+            return input_config, data
+
+        input_parameters = extract_input_parameters_from_argo_template()
+        input_specs, typed_inputs = {}, {}
+        input_base_directory = get_workflow_input_directory()
+        input_name_to_dir_map = get_io_name_to_dir_map(self.config.inputs, input_base_directory)
+
+        for input_config in self.config.inputs:
+            if is_artifact_input(input_config):
+                spec, data = process_artifact_input(input_config, input_name_to_dir_map)
             else:
-                # if it is is not persistent parameter then for sure the data item is a
-                # parameter
-                value = _input_parameters[i["name"]].get("value", None)
-                if value is None:
-                    value = i.get("value")
+                spec, data = process_parameter_input(input_config, input_parameters, input_base_directory)
 
-                # here we handle the scenario that the value passed is a stringified json.
-                # Normally, when a parameter is used as a user input, the value would
-                # always be a simple string. But in the case, the parameter value is to be
-                # derived from an earlier step output, it would be a stringified json
-                value = self.extract_parameter_value(value)
+            typed_inputs[input_config["name"]] = data
+            input_specs[input_config["name"]] = spec
+            self.set_inputs_propmap(input_config["name"], spec)
+            self.update_inputs_list(spec)
+            self.update_passed_inputs_dict(input_config["name"], spec["value"])
 
-                value_type = i["type"]
-                value = cast_inputs(value, value_type)
-                i["value"] = value
-                data: types.Data = types._FormatModelMap[i["format"]].model_validate(i)  # type: ignore # noqa
-
-                # now we manually create a json representation of this data item since
-                # this is a parameter
-                data_dict = data.model_dump(by_alias=True)
-
-                # TODO: remove this and make it more efficient. ideally path ops should be
-                # dealt in the caller of _collect_inputs.
-                spec_path = pathlib.Path(os.path.join(input_working_dir, i["name"]))
-                spec_path.mkdir(exist_ok=True, parents=True)
-                with open(os.path.join(spec_path, DATA_SPEC_FILENAME), "w+") as f:
-                    json.dump(data_dict, f)
-                input_dict[i["name"]] = i
-                processed_inputs[i["name"]] = data
-                self.set_inputs_propmap(i["name"], data_dict)
-                self.update_inputs_list(data_dict)
-                self.update_passed_inputs_dict(i["name"], value)
-
-        return processed_inputs, input_dict
+        return typed_inputs, input_specs
 
     def extract_parameter_value(self, value: str) -> str:
         value_if_dict = try_json_loads(value)
@@ -471,6 +444,21 @@ class JobRunnerV2(BaseRunner):
         for val in output_buffer:
             self._output_handler(val)
 
+    def _flush_input_buffer(self) -> None:
+        local_input_path, found = self.get_injected_envvar_if_found(_InjectedEnvVars.InputsWorkingDir)
+        if not found or local_input_path == "":
+            self.logger.error("cannot upload input files since `INPUTS_WORKING_DIR` is not set")
+            return None
+
+        remote_input_path, found = self.get_injected_envvar_if_found(_InjectedEnvVars.InputsRemotePath)
+        if not found or remote_input_path == "":
+            self.logger.error("cannot upload input files since `INPUTS_REMOTE_PATH` is not set")
+            return None
+
+        self.logger.info(f"starting to upload {local_input_path} to {remote_input_path}")
+        self._s3fs.put(local_input_path, remote_input_path, recursive=True)
+        self.logger.info("upload complete")
+
     def success(self) -> None:
         task_id, found = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
         clb = types.Callback(
@@ -523,13 +511,10 @@ class JobRunnerV2(BaseRunner):
             self.logger.info("`start_time` not found in kwargs")
             start_time = get_current_utc_time_iso()
 
-        rvals = self._collect_inputs()
-        assert rvals is not None
-        if self._model.receive_raw_inputs:
-            input_dict = rvals[1]  # type: ignore
-        else:
-            input_dict = rvals[0]  # type: ignore
-        assert isinstance(input_dict, dict)
+        typed_inputs, _ = self._collect_inputs()
+        assert isinstance(typed_inputs, dict)
+
+        self._flush_input_buffer()
         id, _ = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
 
         callback = types.Callback(
@@ -546,10 +531,10 @@ class JobRunnerV2(BaseRunner):
             InputList=self.get_inputs_list(),
             InputPropMap=self.get_inputs_propmap(None),
         )
-        self.logger.info("Inputs", input_dict)
+        self.logger.info("Inputs", typed_inputs)
         try:
             ctx = asyncio.run_coroutine_threadsafe(
-                self._model.infer(inputs=input_dict, opts=opts),
+                self._model.infer(inputs=typed_inputs, opts=opts),
                 self._loop,
             ).result()
         except Exception as exc:

@@ -43,7 +43,6 @@ setup(
         "click",
         "click-plugins",
         "pyyaml",
-        "pydantic",
         "Jinja2",
         "uvloop",
         "pika",
