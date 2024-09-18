@@ -113,7 +113,7 @@ def to_tuple_if_required(x: Any) -> Any:
     return x
 
 
-def get_io_dirmap(io: List[Any], workingDir: str) -> Dict[str, str]:
+def get_io_name_to_dir_map(io: List[Any], workingDir: str) -> Dict[str, str]:
     paths = {}
     for i in io:
         expected_path = os.path.join(workingDir, i["name"])

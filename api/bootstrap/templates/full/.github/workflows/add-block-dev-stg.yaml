@@ -1,4 +1,4 @@
-name: "Package model in a docker container and deploy with Orchestrator"
+name: "add block to dev and stg"
 
 on:
   workflow_dispatch:
