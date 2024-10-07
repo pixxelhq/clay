@@ -8,7 +8,7 @@ import (
 
 	"registry/config"
 	store "registry/internal/store/sqlc"
-	"registry/pkg/block/log"
+	"registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
