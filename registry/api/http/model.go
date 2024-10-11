@@ -31,6 +31,7 @@ type Specification struct {
 	Outputs     json.RawMessage `json:"outputs"`
 	Build       json.RawMessage `json:"build"`
 }
+
 type BlockCreateRequest struct {
 	Name             string         `json:"name"`
 	Version          string         `json:"version"`

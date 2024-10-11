@@ -7,9 +7,39 @@ package store
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
-const createBlock = `-- name: CreateBlock :one
+const getBlock = `-- name: GetBlock :one
+SELECT
+    id,
+    name,
+    kind,
+    type,
+    created_at,
+    updated_at
+FROM 
+    public.blocks
+WHERE 
+    id = $1
+`
+
+func (q *Queries) GetBlock(ctx context.Context, id uuid.UUID) (Block, error) {
+	row := q.db.QueryRowContext(ctx, getBlock, id)
+	var i Block
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertBlock = `-- name: UpsertBlock :one
 INSERT INTO 
     public.blocks (
         name,
@@ -21,17 +51,21 @@ VALUES
         $1,
         $2,
         $3
-    ) RETURNING id, name, kind, type, created_at, updated_at
+    ) 
+ON CONFLICT(name) 
+DO UPDATE SET 
+    name = EXCLUDED.name
+RETURNING id, name, kind, type, created_at, updated_at
 `
 
-type CreateBlockParams struct {
+type UpsertBlockParams struct {
 	Name string
 	Kind string
 	Type string
 }
 
-func (q *Queries) CreateBlock(ctx context.Context, arg CreateBlockParams) (Block, error) {
-	row := q.db.QueryRowContext(ctx, createBlock, arg.Name, arg.Kind, arg.Type)
+func (q *Queries) UpsertBlock(ctx context.Context, arg UpsertBlockParams) (Block, error) {
+	row := q.db.QueryRowContext(ctx, upsertBlock, arg.Name, arg.Kind, arg.Type)
 	var i Block
 	err := row.Scan(
 		&i.ID,
