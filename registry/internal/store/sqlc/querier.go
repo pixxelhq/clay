@@ -6,10 +6,14 @@ package store
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
-	CreateBlock(ctx context.Context, arg CreateBlockParams) (Block, error)
+	CreateBlockVersion(ctx context.Context, arg CreateBlockVersionParams) (BlockVersion, error)
+	GetBlock(ctx context.Context, id uuid.UUID) (Block, error)
+	UpsertBlock(ctx context.Context, arg UpsertBlockParams) (Block, error)
 }
 
 var _ Querier = (*Queries)(nil)

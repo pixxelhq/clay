@@ -64,11 +64,9 @@ func Fatalf(format string, args ...interface{}) {
 }
 
 func Print(level zerolog.Level, args ...interface{}) {
-	l := logger.GetLevel()
-	logger.WithLevel(l).Msg(fmt.Sprint(args...))
+	logger.WithLevel(level).Msg(fmt.Sprint(args...))
 }
 
 func Printf(level zerolog.Level, format string, v ...interface{}) {
-	l := logger.GetLevel()
-	logger.WithLevel(l).Msgf(format, v...)
+	logger.WithLevel(level).Msgf(format, v...)
 }

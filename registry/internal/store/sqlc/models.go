@@ -22,7 +22,8 @@ type Block struct {
 
 type BlockVersion struct {
 	ID                uuid.UUID
-	BlockID           uuid.NullUUID
+	Version           string
+	BlockID           uuid.UUID
 	Specification     json.RawMessage
 	DocumenatationUrl sql.NullString
 	DockerImage       sql.NullString
