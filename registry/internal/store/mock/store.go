@@ -81,6 +81,21 @@ func (mr *MockStoreMockRecorder) GetBlock(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlock", reflect.TypeOf((*MockStore)(nil).GetBlock), arg0, arg1)
 }
 
+// GetBlocksWithLatestVersion mocks base method.
+func (m *MockStore) GetBlocksWithLatestVersion(arg0 context.Context) ([]store.GetBlocksWithLatestVersionRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlocksWithLatestVersion", arg0)
+	ret0, _ := ret[0].([]store.GetBlocksWithLatestVersionRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlocksWithLatestVersion indicates an expected call of GetBlocksWithLatestVersion.
+func (mr *MockStoreMockRecorder) GetBlocksWithLatestVersion(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlocksWithLatestVersion", reflect.TypeOf((*MockStore)(nil).GetBlocksWithLatestVersion), arg0)
+}
+
 // UpsertBlock mocks base method.
 func (m *MockStore) UpsertBlock(arg0 context.Context, arg1 store.UpsertBlockParams) (store.Block, error) {
 	m.ctrl.T.Helper()

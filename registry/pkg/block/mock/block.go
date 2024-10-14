@@ -49,3 +49,18 @@ func (mr *MockServiceMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockService)(nil).Create), arg0, arg1)
 }
+
+// GetBlocksWithLatestVersion mocks base method.
+func (m *MockService) GetBlocksWithLatestVersion(arg0 context.Context) ([]*block.Block, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlocksWithLatestVersion", arg0)
+	ret0, _ := ret[0].([]*block.Block)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlocksWithLatestVersion indicates an expected call of GetBlocksWithLatestVersion.
+func (mr *MockServiceMockRecorder) GetBlocksWithLatestVersion(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlocksWithLatestVersion", reflect.TypeOf((*MockService)(nil).GetBlocksWithLatestVersion), arg0)
+}

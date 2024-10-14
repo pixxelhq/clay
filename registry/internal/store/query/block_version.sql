@@ -15,3 +15,18 @@ VALUES
         $4,
         $5
     ) RETURNING *;
+
+-- name: GetBlocksWithLatestVersion :many
+SELECT distinct on (b.id)
+    b.id,
+    b.name,
+    bv.version,
+    bv.specification,
+    bv.documenatation_url,
+    bv.docker_image,
+    bv.created_at,
+    bv.updated_at
+FROM public.block_versions bv 
+    INNER JOIN public.blocks b
+    ON bv.block_id = b.id
+ORDER BY b.id, bv.version desc;

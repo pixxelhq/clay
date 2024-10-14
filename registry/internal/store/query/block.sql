@@ -20,7 +20,7 @@ RETURNING *;
 SELECT
     id,
     name,
-    kind,
+    kind,   
     type,
     created_at,
     updated_at

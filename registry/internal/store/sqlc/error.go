@@ -15,6 +15,11 @@ func PGErrorToRegistryError(err error) *rerr.RegistryError {
 				Code: rerr.ErrAlreadyExists,
 				Err:  err,
 			}
+		case "02000":
+			return &rerr.RegistryError{
+				Code: rerr.ErrDoesNotExists,
+				Err:  err,
+			}
 		}
 
 	default:

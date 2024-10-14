@@ -5,10 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
+	"time"
 
 	mock_store "registry/internal/store/mock"
 	store "registry/internal/store/sqlc"
+	rerr "registry/pkg/error"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -168,7 +171,8 @@ func TestCreate(t *testing.T) {
 						return fn(q)
 					})
 			},
-			expectedError: errors.New("create block version error"),
+			expectedError: &rerr.RegistryError{Err: errors.New("create block version error"),
+				Code: rerr.ErrInternal},
 		},
 	}
 
@@ -182,6 +186,87 @@ func TestCreate(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, resp)
+			}
+		})
+	}
+}
+
+func TestGetBlocksWithLatestVersion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mock_store.NewMockStore(ctrl)
+	sampleUUID := uuid.New()
+	sampleTime := time.Now()
+	tests := []struct {
+		name           string
+		mockSetup      func()
+		expectedBlocks []*Block
+		expectedError  error
+	}{
+		{
+			name: "should return the blocks with latest versions",
+			mockSetup: func() {
+				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return([]store.GetBlocksWithLatestVersionRow{
+					{
+						ID:                sampleUUID,
+						Name:              "Block1",
+						Version:           "v1.0",
+						Specification:     json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
+						DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
+						DockerImage:       sql.NullString{String: "example/image", Valid: true},
+						CreatedAt:         sql.NullTime{Time: sampleTime},
+						UpdatedAt:         sql.NullTime{Time: sampleTime},
+					},
+				}, nil)
+			},
+			expectedBlocks: []*Block{
+				{
+					ID:               sampleUUID.String(),
+					Name:             "Block1",
+					Version:          "v1.0",
+					Specification:    &Specification{Version: "1.0", Title: "Test Block"},
+					DocumentationURL: "http://example.com",
+					DockerImage:      "example/image",
+					CreatedAt:        sampleTime,
+					UpdatedAt:        sampleTime,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "should return empty list if there is not block found",
+			mockSetup: func() {
+				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return([]store.GetBlocksWithLatestVersionRow{}, nil)
+			},
+			expectedBlocks: []*Block{},
+			expectedError:  nil,
+		},
+		{
+			name: "should return error when db call fails",
+			mockSetup: func() {
+				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return(nil, errors.New("some error"))
+			},
+			expectedBlocks: nil,
+			expectedError:  errors.New("some error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+			bs := &block{store: mockStore}
+
+			blocks, err := bs.GetBlocksWithLatestVersion(context.Background())
+			if tt.expectedBlocks != nil {
+				assert.Equal(t, len(tt.expectedBlocks), len(blocks))
+				assert.Equal(t, true, reflect.DeepEqual(tt.expectedBlocks, blocks))
+				assert.NoError(t, err)
+			}
+
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError.Error(), err.Error())
 			}
 		})
 	}

@@ -37,6 +37,7 @@ type Block struct {
 
 type Service interface {
 	Create(ctx context.Context, block *Block) (*Block, error)
+	GetBlocksWithLatestVersion(ctx context.Context) ([]*Block, error)
 }
 
 type block struct {
@@ -110,4 +111,35 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 	}
 
 	return resp.(*Block), nil
+}
+
+func (bs *block) GetBlocksWithLatestVersion(ctx context.Context) ([]*Block, error) {
+	bwlv, err := bs.store.GetBlocksWithLatestVersion(ctx)
+	if store.PGErrorToRegistryError(err).Code == rerr.ErrDoesNotExists {
+		return []*Block{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	blocks := make([]*Block, 0, len(bwlv))
+	for _, b := range bwlv {
+		spec := &Specification{}
+		err = json.Unmarshal(b.Specification, spec)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &Block{
+			ID:               b.ID.String(),
+			Name:             b.Name,
+			Version:          b.Version,
+			Specification:    spec,
+			DocumentationURL: b.DocumenatationUrl.String,
+			DockerImage:      b.DockerImage.String,
+			CreatedAt:        b.CreatedAt.Time,
+			UpdatedAt:        b.UpdatedAt.Time,
+		})
+	}
+
+	return blocks, nil
 }
