@@ -39,6 +39,7 @@ type Service interface {
 	Create(ctx context.Context, block *Block) (*Block, error)
 	GetBlocksWithLatestVersion(ctx context.Context) ([]*Block, error)
 	GetBlockByName(ctx context.Context, name string) ([]*Block, error)
+	GetBlockByNameAndVersion(ctx context.Context, name, version string) (*Block, error)
 }
 
 type block struct {
@@ -174,4 +175,35 @@ func (bs *block) GetBlockByName(ctx context.Context, name string) ([]*Block, err
 	}
 
 	return blocks, nil
+}
+
+func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version string) (*Block, error) {
+	blockWithNameAndVersion, err := bs.store.GetBlockByNameAndVersion(ctx, store.GetBlockByNameAndVersionParams{
+		Name:    name,
+		Version: version,
+	})
+	if err != nil {
+		pgErr := store.PGErrorToRegistryError(err)
+		if pgErr.Code == rerr.ErrDoesNotExists {
+			pgErr.Message = "block with the given name and version does not exists"
+		}
+		return nil, pgErr
+	}
+	spec := &Specification{}
+	err = json.Unmarshal(blockWithNameAndVersion.Specification, spec)
+	if err != nil {
+		return nil, err
+	}
+	return &Block{
+		ID:               blockWithNameAndVersion.ID.String(),
+		Name:             blockWithNameAndVersion.Name,
+		Version:          blockWithNameAndVersion.Version,
+		DockerImage:      blockWithNameAndVersion.DockerImage.String,
+		DocumentationURL: blockWithNameAndVersion.DocumenatationUrl.String,
+		Specification:    spec,
+		Kind:             blockWithNameAndVersion.Kind,
+		Type:             blockWithNameAndVersion.Type,
+		CreatedAt:        blockWithNameAndVersion.CreatedAt.Time,
+		UpdatedAt:        blockWithNameAndVersion.UpdatedAt.Time,
+	}, nil
 }

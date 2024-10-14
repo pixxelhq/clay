@@ -111,6 +111,44 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 
 }
 
+func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
+	name := ctx.Param("name")
+	if name == "" {
+		ctx.JSON(http.StatusBadRequest, &RegistryResponse[any]{
+			Error: "name can't be empty",
+		})
+		return
+	}
+
+	version := ctx.Param("version")
+	if version == "" {
+		ctx.JSON(http.StatusBadRequest, &RegistryResponse[any]{
+			Error: "name can't be empty",
+		})
+		return
+	}
+
+	b, err := bh.service.GetBlockByNameAndVersion(ctx, name, version)
+	if err != nil {
+		handleErr(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &RegistryResponse[*GetBlockVersion]{
+		Data: &GetBlockVersion{
+			ID:            b.ID,
+			Name:          b.Name,
+			Kind:          b.Kind,
+			Type:          b.Type,
+			Version:       b.Version,
+			Specification: convertFromServiceSpecification(b.Specification),
+			CreatedAt:     b.CreatedAt,
+			UpdatedAt:     b.UpdatedAt,
+		},
+	})
+
+}
+
 func convertFromServiceSpecification(bSpec *block.Specification) *Specification {
 	return &Specification{
 		Version:     bSpec.Version,

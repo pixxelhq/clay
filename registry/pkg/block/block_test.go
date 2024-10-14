@@ -355,3 +355,77 @@ func TestGetBlockByName(t *testing.T) {
 		})
 	}
 }
+
+func TestGetBlockByNameAndVersion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mock_store.NewMockStore(ctrl)
+	sampleUUID := uuid.New()
+	sampleTime := time.Now()
+	tests := []struct {
+		name          string
+		blockName     string
+		version       string
+		mockSetup     func()
+		expectedBlock *Block
+		expectedError error
+	}{
+		{
+			name:      "should return block for valid request",
+			blockName: "Test Block",
+			version:   "1.0.0",
+			mockSetup: func() {
+				mockStore.EXPECT().GetBlockByNameAndVersion(gomock.Any(), gomock.Any()).Times(1).Return(store.GetBlockByNameAndVersionRow{
+					ID:                sampleUUID,
+					Name:              "Test Block",
+					Version:           "1.0.0",
+					Specification:     json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
+					DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
+					DockerImage:       sql.NullString{String: "example/image", Valid: true},
+					CreatedAt:         sql.NullTime{Time: sampleTime},
+					UpdatedAt:         sql.NullTime{Time: sampleTime},
+				}, nil)
+			},
+			expectedBlock: &Block{
+				ID:               sampleUUID.String(),
+				Name:             "Test Block",
+				Version:          "1.0.0",
+				Specification:    &Specification{Version: "1.0", Title: "Test Block"},
+				DocumentationURL: "http://example.com",
+				DockerImage:      "example/image",
+				CreatedAt:        sampleTime,
+				UpdatedAt:        sampleTime,
+			},
+			expectedError: nil,
+		},
+		{
+			name:      "should return error for store error",
+			blockName: "Test Block",
+			version:   "1.0.0",
+			mockSetup: func() {
+				mockStore.EXPECT().GetBlockByNameAndVersion(gomock.Any(), gomock.Any()).Times(1).Return(store.GetBlockByNameAndVersionRow{}, assert.AnError)
+			},
+			expectedBlock: nil,
+			expectedError: &rerr.RegistryError{Code: rerr.ErrInternal, Err: assert.AnError},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+			bs := &block{store: mockStore}
+
+			block, err := bs.GetBlockByNameAndVersion(context.Background(), tt.blockName, tt.version)
+			if tt.expectedBlock != nil {
+				assert.Equal(t, tt.expectedBlock, block)
+				assert.NoError(t, err)
+			}
+
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError.Error(), err.Error())
+			}
+		})
+	}
+}

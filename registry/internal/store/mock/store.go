@@ -96,6 +96,21 @@ func (mr *MockStoreMockRecorder) GetBlockAllVersionByName(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockAllVersionByName", reflect.TypeOf((*MockStore)(nil).GetBlockAllVersionByName), arg0, arg1)
 }
 
+// GetBlockByNameAndVersion mocks base method.
+func (m *MockStore) GetBlockByNameAndVersion(arg0 context.Context, arg1 store.GetBlockByNameAndVersionParams) (store.GetBlockByNameAndVersionRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockByNameAndVersion", arg0, arg1)
+	ret0, _ := ret[0].(store.GetBlockByNameAndVersionRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockByNameAndVersion indicates an expected call of GetBlockByNameAndVersion.
+func (mr *MockStoreMockRecorder) GetBlockByNameAndVersion(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByNameAndVersion", reflect.TypeOf((*MockStore)(nil).GetBlockByNameAndVersion), arg0, arg1)
+}
+
 // GetBlocksWithLatestVersion mocks base method.
 func (m *MockStore) GetBlocksWithLatestVersion(arg0 context.Context) ([]store.GetBlocksWithLatestVersionRow, error) {
 	m.ctrl.T.Helper()

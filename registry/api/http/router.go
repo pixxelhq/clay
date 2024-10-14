@@ -10,6 +10,7 @@ func (s *Server) MapRoutes() error {
 		v1.POST("/blocks", bh.Create)
 		v1.GET("/blocks", bh.GetBlocksWithLatestVersion)
 		v1.GET("/blocks/:name", bh.GetBlockByName)
+		v1.GET("/blocks/:name/versions/:version", bh.GetBlockByNameAndVersion)
 	}
 
 	return nil
