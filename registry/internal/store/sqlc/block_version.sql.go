@@ -75,7 +75,7 @@ SELECT
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
-WHERE name = $1
+WHERE b.name = $1
 ORDER BY b.id, bv.version desc
 `
 
@@ -120,6 +120,60 @@ func (q *Queries) GetBlockAllVersionByName(ctx context.Context, name string) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const getBlockByNameAndVersion = `-- name: GetBlockByNameAndVersion :one
+SELECT
+    b.id,
+    b.name,
+    bv.version,
+    b.type,
+    b.kind,
+    bv.specification,
+    bv.documenatation_url,
+    bv.docker_image,
+    bv.created_at,
+    bv.updated_at
+FROM public.block_versions bv
+    INNER JOIN public.blocks b
+    ON bv.block_id = b.id
+WHERE b.name = $1 and bv.version = $2
+`
+
+type GetBlockByNameAndVersionParams struct {
+	Name    string
+	Version string
+}
+
+type GetBlockByNameAndVersionRow struct {
+	ID                uuid.UUID
+	Name              string
+	Version           string
+	Type              string
+	Kind              string
+	Specification     json.RawMessage
+	DocumenatationUrl sql.NullString
+	DockerImage       sql.NullString
+	CreatedAt         sql.NullTime
+	UpdatedAt         sql.NullTime
+}
+
+func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNameAndVersionParams) (GetBlockByNameAndVersionRow, error) {
+	row := q.db.QueryRowContext(ctx, getBlockByNameAndVersion, arg.Name, arg.Version)
+	var i GetBlockByNameAndVersionRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Version,
+		&i.Type,
+		&i.Kind,
+		&i.Specification,
+		&i.DocumenatationUrl,
+		&i.DockerImage,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getBlocksWithLatestVersion = `-- name: GetBlocksWithLatestVersion :many

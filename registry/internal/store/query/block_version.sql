@@ -44,5 +44,22 @@ SELECT
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
-WHERE name = $1
+WHERE b.name = $1
 ORDER BY b.id, bv.version desc;
+
+-- name: GetBlockByNameAndVersion :one
+SELECT
+    b.id,
+    b.name,
+    bv.version,
+    b.type,
+    b.kind,
+    bv.specification,
+    bv.documenatation_url,
+    bv.docker_image,
+    bv.created_at,
+    bv.updated_at
+FROM public.block_versions bv
+    INNER JOIN public.blocks b
+    ON bv.block_id = b.id
+WHERE b.name = $1 and bv.version = $2;
