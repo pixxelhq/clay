@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	CreateBlockVersion(ctx context.Context, arg CreateBlockVersionParams) (BlockVersion, error)
 	GetBlock(ctx context.Context, id uuid.UUID) (Block, error)
+	GetBlockAllVersionByName(ctx context.Context, name string) ([]GetBlockAllVersionByNameRow, error)
 	GetBlocksWithLatestVersion(ctx context.Context) ([]GetBlocksWithLatestVersionRow, error)
 	UpsertBlock(ctx context.Context, arg UpsertBlockParams) (Block, error)
 }

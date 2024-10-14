@@ -62,3 +62,13 @@ type GetLatestBlock struct {
 	UpdatedAt     time.Time      `json:"updated_at"`
 	Specification *Specification `json:"specification"`
 }
+
+type GetBlockVersion struct {
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Version       string         `json:"version"`
+	Type          string         `json:"type"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Specification *Specification `json:"specification"`
+}
