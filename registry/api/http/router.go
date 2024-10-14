@@ -8,6 +8,7 @@ func (s *Server) MapRoutes() error {
 	{
 		bh := NewBlock(s.Block)
 		v1.POST("/blocks", bh.Create)
+		v1.GET("/blocks", bh.GetBlocksWithLatestVersion)
 	}
 
 	return nil

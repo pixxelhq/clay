@@ -7,7 +7,8 @@ import (
 
 type Data interface {
 	any |
-		BlockCreateResponse
+		CreateBlockResponse |
+		[]*GetLatestBlock
 }
 
 type Error struct {
@@ -32,7 +33,7 @@ type Specification struct {
 	Build       json.RawMessage `json:"build"`
 }
 
-type BlockCreateRequest struct {
+type CreateBlockRequest struct {
 	Name             string         `json:"name"`
 	Version          string         `json:"version"`
 	Kind             string         `json:"kind"`
@@ -42,7 +43,17 @@ type BlockCreateRequest struct {
 	Specification    *Specification `json:"specification"`
 }
 
-type BlockCreateResponse struct {
+type CreateBlockResponse struct {
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Version       string         `json:"version"`
+	Type          string         `json:"type"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Specification *Specification `json:"specification"`
+}
+
+type GetLatestBlock struct {
 	ID            string         `json:"id"`
 	Name          string         `json:"name"`
 	Version       string         `json:"version"`

@@ -17,8 +17,8 @@ func NewBlock(s block.Service) *blockHandler {
 	}
 }
 
-func (b *blockHandler) Create(ctx *gin.Context) {
-	var req BlockCreateRequest
+func (bh *blockHandler) Create(ctx *gin.Context) {
+	var req CreateBlockRequest
 	if err := ctx.BindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, &RegistryResponse[any]{
 			Error: err.Error(),
@@ -33,21 +33,47 @@ func (b *blockHandler) Create(ctx *gin.Context) {
 		return
 	}
 
-	blk, err := b.service.Create(ctx, convertToServiceBlock(req))
+	blk, err := bh.service.Create(ctx, convertToServiceBlock(req))
 	if err != nil {
 		handleErr(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, &RegistryResponse[BlockCreateResponse]{
-		Data: BlockCreateResponse{
+	ctx.JSON(http.StatusCreated, &RegistryResponse[CreateBlockResponse]{
+		Data: CreateBlockResponse{
 			ID:            blk.ID,
 			Name:          blk.Name,
 			Type:          blk.Type,
+			Version:       blk.Version,
 			CreatedAt:     blk.CreatedAt,
 			UpdatedAt:     blk.UpdatedAt,
 			Specification: convertFromServiceSpecification(blk.Specification),
 		},
+	})
+}
+
+func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
+	bwlv, err := bh.service.GetBlocksWithLatestVersion(ctx)
+	if err != nil {
+		handleErr(ctx, err)
+		return
+	}
+
+	blocks := make([]*GetLatestBlock, 0, len(bwlv))
+	for _, b := range bwlv {
+		blocks = append(blocks, &GetLatestBlock{
+			ID:            b.ID,
+			Name:          b.Name,
+			Version:       b.Version,
+			Specification: convertFromServiceSpecification(b.Specification),
+			CreatedAt:     b.CreatedAt,
+			UpdatedAt:     b.UpdatedAt,
+			Type:          b.Type,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, &RegistryResponse[[]*GetLatestBlock]{
+		Data: blocks,
 	})
 }
 
@@ -79,7 +105,7 @@ func convertToServiceSpecification(s *Specification) *block.Specification {
 	}
 }
 
-func convertToServiceBlock(req BlockCreateRequest) *block.Block {
+func convertToServiceBlock(req CreateBlockRequest) *block.Block {
 	return &block.Block{
 		Name:             req.Name,
 		Kind:             req.Kind,

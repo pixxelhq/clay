@@ -29,7 +29,7 @@ func (s *Specification) Validate() error {
 	return nil
 }
 
-func (bcr *BlockCreateRequest) Validate() error {
+func (bcr *CreateBlockRequest) Validate() error {
 	if bcr.Name == "" || bcr.Version == "" || bcr.DocumentationURL == "" || bcr.DockerImage == "" {
 		return &rerr.RegistryError{
 			Message: "name, version, docker_image and documentation_url can be empty",
