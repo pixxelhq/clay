@@ -77,6 +77,40 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 	})
 }
 
+func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
+	name := ctx.Param("name")
+	if name == "" {
+		ctx.JSON(http.StatusBadRequest, &RegistryResponse[any]{
+			Error: "name can't be empty",
+		})
+		return
+	}
+
+	blockVersions, err := bh.service.GetBlockByName(ctx, name)
+	if err != nil {
+		handleErr(ctx, err)
+		return
+	}
+
+	blocks := make([]*GetBlockVersion, 0, len(blockVersions))
+	for _, b := range blockVersions {
+		blocks = append(blocks, &GetBlockVersion{
+			ID:            b.ID,
+			Name:          b.Name,
+			Version:       b.Version,
+			Specification: convertFromServiceSpecification(b.Specification),
+			CreatedAt:     b.CreatedAt,
+			UpdatedAt:     b.UpdatedAt,
+			Type:          b.Type,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, &RegistryResponse[[]*GetBlockVersion]{
+		Data: blocks,
+	})
+
+}
+
 func convertFromServiceSpecification(bSpec *block.Specification) *Specification {
 	return &Specification{
 		Version:     bSpec.Version,

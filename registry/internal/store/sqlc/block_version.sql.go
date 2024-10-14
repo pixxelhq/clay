@@ -62,6 +62,66 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 	return i, err
 }
 
+const getBlockAllVersionByName = `-- name: GetBlockAllVersionByName :many
+SELECT
+    b.id,
+    b.name,
+    bv.version,
+    bv.specification,
+    bv.documenatation_url,
+    bv.docker_image,
+    bv.created_at,
+    bv.updated_at
+FROM public.block_versions bv
+    INNER JOIN public.blocks b
+    ON bv.block_id = b.id
+WHERE name = $1
+ORDER BY b.id, bv.version desc
+`
+
+type GetBlockAllVersionByNameRow struct {
+	ID                uuid.UUID
+	Name              string
+	Version           string
+	Specification     json.RawMessage
+	DocumenatationUrl sql.NullString
+	DockerImage       sql.NullString
+	CreatedAt         sql.NullTime
+	UpdatedAt         sql.NullTime
+}
+
+func (q *Queries) GetBlockAllVersionByName(ctx context.Context, name string) ([]GetBlockAllVersionByNameRow, error) {
+	rows, err := q.db.QueryContext(ctx, getBlockAllVersionByName, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetBlockAllVersionByNameRow{}
+	for rows.Next() {
+		var i GetBlockAllVersionByNameRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Version,
+			&i.Specification,
+			&i.DocumenatationUrl,
+			&i.DockerImage,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBlocksWithLatestVersion = `-- name: GetBlocksWithLatestVersion :many
 SELECT distinct on (b.id)
     b.id,

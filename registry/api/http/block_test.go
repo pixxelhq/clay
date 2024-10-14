@@ -191,6 +191,80 @@ func TestGetBlocksWithLatestVersion(t *testing.T) {
 	}
 }
 
+func TestGetBlockByName(t *testing.T) {
+	var blocks = getBlocks()
+	testCases := []struct {
+		name          string
+		blockName     string
+		setupMocks    func(s *mock_block.MockService)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:      "should return 200 and block for valid request",
+			blockName: "Test Block",
+			setupMocks: func(s *mock_block.MockService) {
+				s.EXPECT().GetBlockByName(gomock.Any(), "Test Block").Times(1).Return(blocks[:1], nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, recorder.Code)
+				data, err := io.ReadAll(recorder.Body)
+				assert.NoError(t, err)
+
+				resp := &RegistryResponse[[]*block.Block]{}
+				err = json.Unmarshal(data, &resp)
+				assert.NoError(t, err)
+				assert.Equal(t, "", resp.Error)
+				assert.Len(t, resp.Data, 1)
+				assert.Equal(t, "Test Block", resp.Data[0].Name)
+			},
+		},
+		{
+			name:      "should return 500 for service error",
+			blockName: "Test Block",
+			setupMocks: func(s *mock_block.MockService) {
+				s.EXPECT().GetBlockByName(gomock.Any(), "Test Block").Times(1).Return(nil, assert.AnError)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				data, err := io.ReadAll(recorder.Body)
+				assert.NoError(t, err)
+
+				resp := &RegistryResponse[[]*block.Block]{}
+				err = json.Unmarshal(data, &resp)
+				assert.NoError(t, err)
+				assert.Equal(t, "something went wrong", resp.Error)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctlr := gomock.NewController(t)
+			defer ctlr.Finish()
+
+			// route mapping with mocked block
+			block := mock_block.NewMockService(ctlr)
+			svr := NewServer()
+			svr.LoadConfig()
+			svr.Block = block
+			svr.MapRoutes()
+
+			tc.setupMocks(block)
+
+			// build request
+			url := "/v1/blocks/" + tc.blockName
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			recorder := httptest.NewRecorder()
+			svr.Router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
 func getBlocks() []*block.Block {
 	uuid1 := uuid.New()
 	uuid2 := uuid.New()

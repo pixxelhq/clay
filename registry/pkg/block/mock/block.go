@@ -50,6 +50,21 @@ func (mr *MockServiceMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockService)(nil).Create), arg0, arg1)
 }
 
+// GetBlockByName mocks base method.
+func (m *MockService) GetBlockByName(arg0 context.Context, arg1 string) ([]*block.Block, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockByName", arg0, arg1)
+	ret0, _ := ret[0].([]*block.Block)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockByName indicates an expected call of GetBlockByName.
+func (mr *MockServiceMockRecorder) GetBlockByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByName", reflect.TypeOf((*MockService)(nil).GetBlockByName), arg0, arg1)
+}
+
 // GetBlocksWithLatestVersion mocks base method.
 func (m *MockService) GetBlocksWithLatestVersion(arg0 context.Context) ([]*block.Block, error) {
 	m.ctrl.T.Helper()
