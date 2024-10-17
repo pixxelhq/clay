@@ -6,7 +6,7 @@ The spec file, such as `model_specifications_dev.yaml`, `model_specifications_st
 * Infrastructure requirements
 * Options for running the model on GPU or other hardware accelerators
 
-This is how the generate spec file looks like. 
+This is how the generate spec file looks like.
 
 ```yaml
 kind: block
@@ -41,11 +41,15 @@ inputs:
   - name: input1
     format: string
     type: str
+    validation:
+      regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
 
   - name: input2
     format: number
     type: int
-
+    validation:
+      min_value: 1
+      max_value: 20
 outputs:
   - name: output1
     format: number
@@ -74,7 +78,7 @@ catalog_content_url: "" # model description url
 ```
 
 
-The keys are exaplined below 
+The keys are exaplined below
 
 ## Kind
 
