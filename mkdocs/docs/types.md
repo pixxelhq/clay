@@ -45,6 +45,46 @@ While these are the types we are starting with, this list is in no way complete 
 
 All the types are defined in `clay.types`. While each type might have some specific *properties*, they all share some common attributes. The common attributes are documented at [Common Attributes](#common-attributes). The entire list of types supported are mentioned in the subsequent [Fundamental Types](#fundamental-types) section.
 
+## Input Validations
+We support validating input values, which is configured while defining inputs, for following types
+1. Number: checking if the number is in the range of `min_value` and `max_value`
+```yaml
+  - name: some_input
+    format: number
+    type: int
+    validation:
+      min_value: 1
+      max_value: 20
+```
+2. String: checking if the string value is matching with given `regex_match`. In the example, we are checking if `some_input_str` matches with `regex_match`
+```yaml
+  - name: some_input_str
+    format: string
+    type: str
+    validation:
+      regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
+```
+3. Raster: checking whether area of AOI for given raster is within the range of `min_area` and `max_area` in sqkm. In the given example, we are configure for validation if the area of some_raster is within 50 sqkm and 100sqkm.
+```yaml
+  - name: some_raster
+    format: raster
+    type: url
+    validation:
+      min_area: 50
+      max_area: 100
+```
+
+4. Vector: checking whether area of AOI for given vector is within the range of `min_area` and `max_area`. In the given example, we are configure for validation if the area of some_vector is within 50 sqkm and 100sqkm.
+```yaml
+  - name: some_vector
+    format: vector
+    type: int
+    validation:
+      min_area: 50
+      max_area: 100
+```
+
+
 ## Fundamental Types
 
 ### Raster
