@@ -1,0 +1,207 @@
+definitions:
+  http.CreateBlockResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      specification:
+        $ref: '#/definitions/http.Specification'
+      type:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: string
+    type: object
+  http.GetBlockVersion:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      kind:
+        type: string
+      name:
+        type: string
+      specification:
+        $ref: '#/definitions/http.Specification'
+      type:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: string
+    type: object
+  http.GetLatestBlock:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      specification:
+        $ref: '#/definitions/http.Specification'
+      type:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: string
+    type: object
+  http.RegistryResponse-any:
+    properties:
+      data: {}
+      error:
+        type: string
+    type: object
+  http.RegistryResponse-http_CreateBlockResponse:
+    properties:
+      data:
+        $ref: '#/definitions/http.CreateBlockResponse'
+      error:
+        type: string
+    type: object
+  http.RegistryResponse-http_GetBlockByNameResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/http.GetBlockVersion'
+        type: array
+      error:
+        type: string
+    type: object
+  http.RegistryResponse-http_GetBlockVersion:
+    properties:
+      data:
+        $ref: '#/definitions/http.GetBlockVersion'
+      error:
+        type: string
+    type: object
+  http.RegistryResponse-http_GetLatestBlocksResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/http.GetLatestBlock'
+        type: array
+      error:
+        type: string
+    type: object
+  http.Specification:
+    properties:
+      apiVersion:
+        type: string
+      author:
+        type: string
+      build:
+        type: object
+      description:
+        type: string
+      inputs:
+        type: object
+      outputs:
+        type: object
+      parameters:
+        type: object
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: mlops@pixxel.co.in
+    name: MLOps team
+  title: Clay Registry
+  version: 1.0.0
+paths:
+  /v1/blocks:
+    get:
+      description: Return all the model with latest version.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-http_GetLatestBlocksResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+      summary: Get the latest models from the registry
+      tags:
+      - Block
+    post:
+      description: publish the specific version of the model.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-http_CreateBlockResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+      summary: Publish the model to clay registry
+      tags:
+      - Block
+  /v1/blocks/{name}:
+    get:
+      description: Returns all the versions of the model name.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-http_GetBlockByNameResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+      summary: Get model by name.
+      tags:
+      - Block
+  /v1/blocks/{name}/versions/{version}:
+    get:
+      description: Returns the model for the given version and name.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-http_GetBlockVersion'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.RegistryResponse-any'
+      summary: Get model by name and version.
+      tags:
+      - Block
+swagger: "2.0"

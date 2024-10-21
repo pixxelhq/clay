@@ -8,7 +8,8 @@ import (
 type Data interface {
 	any |
 		CreateBlockResponse |
-		[]*GetLatestBlock
+		GetLatestBlocksResponse |
+		GetBlockByNameResponse
 }
 
 type Error struct {
@@ -53,6 +54,7 @@ type CreateBlockResponse struct {
 	Specification *Specification `json:"specification"`
 }
 
+type GetLatestBlocksResponse []*GetLatestBlock
 type GetLatestBlock struct {
 	ID            string         `json:"id"`
 	Name          string         `json:"name"`
@@ -62,6 +64,8 @@ type GetLatestBlock struct {
 	UpdatedAt     time.Time      `json:"updated_at"`
 	Specification *Specification `json:"specification"`
 }
+
+type GetBlockByNameResponse []*GetBlockVersion
 
 type GetBlockVersion struct {
 	ID            string         `json:"id"`

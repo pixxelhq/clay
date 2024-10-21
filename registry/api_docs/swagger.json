@@ -1,0 +1,317 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Clay Registry",
+        "contact": {
+            "name": "MLOps team",
+            "email": "mlops@pixxel.co.in"
+        },
+        "version": "1.0.0"
+    },
+    "host": "localhost:8080",
+    "paths": {
+        "/v1/blocks": {
+            "get": {
+                "description": "Return all the model with latest version.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Get the latest models from the registry",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-http_GetLatestBlocksResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "publish the specific version of the model.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Publish the model to clay registry",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-http_CreateBlockResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/blocks/{name}": {
+            "get": {
+                "description": "Returns all the versions of the model name.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Get model by name.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-http_GetBlockByNameResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/blocks/{name}/versions/{version}": {
+            "get": {
+                "description": "Returns the model for the given version and name.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Get model by name and version.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-http_GetBlockVersion"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/http.RegistryResponse-any"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "http.CreateBlockResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "specification": {
+                    "$ref": "#/definitions/http.Specification"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.GetBlockVersion": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "specification": {
+                    "$ref": "#/definitions/http.Specification"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.GetLatestBlock": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "specification": {
+                    "$ref": "#/definitions/http.Specification"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RegistryResponse-any": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RegistryResponse-http_CreateBlockResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/http.CreateBlockResponse"
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RegistryResponse-http_GetBlockByNameResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.GetBlockVersion"
+                    }
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RegistryResponse-http_GetBlockVersion": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/http.GetBlockVersion"
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RegistryResponse-http_GetLatestBlocksResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.GetLatestBlock"
+                    }
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.Specification": {
+            "type": "object",
+            "properties": {
+                "apiVersion": {
+                    "type": "string"
+                },
+                "author": {
+                    "type": "string"
+                },
+                "build": {
+                    "type": "object"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "inputs": {
+                    "type": "object"
+                },
+                "outputs": {
+                    "type": "object"
+                },
+                "parameters": {
+                    "type": "object"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
