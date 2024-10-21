@@ -4,10 +4,12 @@ import (
 	"log"
 	"registry/api/http"
 	"sync"
+
+	_ "registry/api_docs" // Swagger docs
 )
 
 // @title				Clay Registry
-// @version				1.0.0
+// @version				1.0
 // @host				localhost:8080
 // @contact.name		MLOps team
 // @contact.email		mlops@pixxel.co.in

@@ -75,6 +75,8 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/rs/zerolog v1.33.0
+	github.com/swaggo/files v1.0.1
+	github.com/swaggo/gin-swagger v1.6.0
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect

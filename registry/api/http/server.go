@@ -15,6 +15,8 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Server struct {
@@ -40,6 +42,7 @@ func (svr *Server) Init() {
 		svr.ConfigureStore,
 		svr.ConfigureService,
 		svr.MapRoutes,
+		svr.ConfigureSwagger,
 	)
 }
 
@@ -102,6 +105,11 @@ func (svr *Server) ConfigureService() error {
 	blockService := block.New(svr.Store)
 	svr.Block = blockService
 
+	return nil
+}
+
+func (svr *Server) ConfigureSwagger() error {
+	svr.Router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	return nil
 }
 

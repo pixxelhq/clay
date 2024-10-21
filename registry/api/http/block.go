@@ -106,6 +106,7 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 //	@Tags			Block
 //
 //	@Produce		json
+//	@Param			name		path	string		true	"Name of the model"
 //	@Success		200	{object}	RegistryResponse[GetBlockByNameResponse]
 //	@Failure		400	{object}	RegistryResponse[any]
 //	@Failure		500	{object}	RegistryResponse[any]
@@ -150,6 +151,8 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 //	@Description	Returns the model for the given version and name.
 //	@Tags			Block
 //
+//	@Param			name		path	string		true	"Name of the model"
+//	@Param			version		path	string		true	"Version of the model"
 //	@Produce		json
 //	@Success		200	{object}	RegistryResponse[GetBlockVersion]
 //	@Failure		400	{object}	RegistryResponse[any]
