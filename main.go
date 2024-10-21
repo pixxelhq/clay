@@ -7,6 +7,7 @@ import (
 	"github.com/example/clay/api/bootstrap"
 	"github.com/example/clay/api/dockerfile"
 	"github.com/example/clay/cmd"
+	"github.com/example/clay/pkg/docker"
 )
 
 //go:embed python/clay/__version__.py
@@ -23,4 +24,5 @@ func getSetVersion() {
 	Version := match[1]
 	bootstrap.Version = Version
 	dockerfile.Version = Version
+	docker.ClayVersion = Version
 }

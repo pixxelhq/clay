@@ -10,8 +10,9 @@ import (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "clay",
-	Short: "A tool to bridge gap between model development on local machines and deployment on the platform",
+	Use:          "clay",
+	SilenceUsage: true,
+	Short:        "A tool to bridge gap between model development on local machines and deployment on the platform",
 	Long: heredoc.Doc(`Clay provide users the tooling and the scaffolding needed to quickly:
 	1.Refactor their model in a pre-defined structure
 	2.Programmatically declare their inputs and outputs, environment and compute requirements
@@ -38,4 +39,5 @@ func init() {
 	RootCmd.AddCommand(AddNewCmd())
 	RootCmd.AddCommand(UpdateCmd())
 	RootCmd.AddCommand(UploadCmd())
+	RootCmd.AddCommand(buildDockerImageCmd())
 }

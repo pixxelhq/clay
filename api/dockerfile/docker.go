@@ -74,7 +74,7 @@ func buildDockerfile(useHttpRunner bool, build block.Build, runtimeOpts block.Ru
 	}
 
 	fmt.Println("Use the below command in your terminal to build the docker container:")
-	fmt.Println("make docker-image \nor using clay cli `clay create dockerfile [modelSpecificationPath] [sourceCodeFolder]`")
+	fmt.Println("make docker-image")
 	return nil
 }
 
