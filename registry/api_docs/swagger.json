@@ -6,7 +6,7 @@
             "name": "MLOps team",
             "email": "mlops@pixxel.co.in"
         },
-        "version": "1.0.0"
+        "version": "1.0"
     },
     "host": "localhost:8080",
     "paths": {
@@ -82,6 +82,15 @@
                     "Block"
                 ],
                 "summary": "Get model by name.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the model",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -114,6 +123,22 @@
                     "Block"
                 ],
                 "summary": "Get model by name and version.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the model",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Version of the model",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",

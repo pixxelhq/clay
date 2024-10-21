@@ -90,6 +90,15 @@ const docTemplate = `{
                     "Block"
                 ],
                 "summary": "Get model by name.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the model",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -122,6 +131,22 @@ const docTemplate = `{
                     "Block"
                 ],
                 "summary": "Get model by name and version.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the model",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Version of the model",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -326,7 +351,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0.0",
+	Version:          "1.0",
 	Host:             "localhost:8080",
 	BasePath:         "",
 	Schemes:          []string{},
