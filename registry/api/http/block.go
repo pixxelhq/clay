@@ -17,6 +17,17 @@ func NewBlock(s block.Service) *blockHandler {
 	}
 }
 
+// Publish Block	godoc
+//
+//	@Summary		Publish the model to clay registry
+//	@Description	publish the specific version of the model.
+//	@Tags			Block
+//
+//	@Produce		json
+//	@Success		200	{object}	RegistryResponse[CreateBlockResponse]
+//	@Failure		400	{object}	RegistryResponse[any]
+//	@Failure		500	{object}	RegistryResponse[any]
+//	@Router			/v1/blocks [post]
 func (bh *blockHandler) Create(ctx *gin.Context) {
 	var req CreateBlockRequest
 	if err := ctx.BindJSON(&req); err != nil {
@@ -52,6 +63,17 @@ func (bh *blockHandler) Create(ctx *gin.Context) {
 	})
 }
 
+// GetBlocksWithLatestVersion	godoc
+//
+//	@Summary		Get the latest models from the registry
+//	@Description	Return all the model with latest version.
+//	@Tags			Block
+//
+//	@Produce		json
+//	@Success		200	{object}	RegistryResponse[GetLatestBlocksResponse]
+//	@Failure		400	{object}	RegistryResponse[any]
+//	@Failure		500	{object}	RegistryResponse[any]
+//	@Router			/v1/blocks [get]
 func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 	bwlv, err := bh.service.GetBlocksWithLatestVersion(ctx)
 	if err != nil {
@@ -72,11 +94,22 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, &RegistryResponse[[]*GetLatestBlock]{
+	ctx.JSON(http.StatusOK, &RegistryResponse[GetLatestBlocksResponse]{
 		Data: blocks,
 	})
 }
 
+// GetBlockByName	godoc
+//
+//	@Summary		Get model by name.
+//	@Description	Returns all the versions of the model name.
+//	@Tags			Block
+//
+//	@Produce		json
+//	@Success		200	{object}	RegistryResponse[GetBlockByNameResponse]
+//	@Failure		400	{object}	RegistryResponse[any]
+//	@Failure		500	{object}	RegistryResponse[any]
+//	@Router			/v1/blocks/{name} [get]
 func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 	name := ctx.Param("name")
 	if name == "" {
@@ -105,12 +138,23 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, &RegistryResponse[[]*GetBlockVersion]{
+	ctx.JSON(http.StatusOK, &RegistryResponse[GetBlockByNameResponse]{
 		Data: blocks,
 	})
 
 }
 
+// GetBlockByNameAndVersion	godoc
+//
+//	@Summary		Get model by name and version.
+//	@Description	Returns the model for the given version and name.
+//	@Tags			Block
+//
+//	@Produce		json
+//	@Success		200	{object}	RegistryResponse[GetBlockVersion]
+//	@Failure		400	{object}	RegistryResponse[any]
+//	@Failure		500	{object}	RegistryResponse[any]
+//	@Router			/v1/blocks/{name}/versions/{version} [get]
 func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 	name := ctx.Param("name")
 	if name == "" {

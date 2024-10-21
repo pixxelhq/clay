@@ -27,3 +27,9 @@ sqlc:
 mock:
 	mockgen --build_flags=--mod=mod -package mock_store -destination internal/store/mock/store.go registry/internal/store/sqlc Store
 	mockgen --build_flags=--mod=mod -package mock_block -destination pkg/block/mock/block.go registry/pkg/block Service
+
+swag:
+	swag init -g cmd/app/registry.go --overridesFile override.swag -o api_docs
+
+swag-fmt:
+	swag fmt

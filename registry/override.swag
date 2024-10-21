@@ -1,0 +1,2 @@
+replace json.RawMessage object
+replace time.Time string
