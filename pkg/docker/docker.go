@@ -23,7 +23,7 @@ var (
 	ClayVersion string
 )
 
-type dockerConfig struct {
+type dockerFileConfig struct {
 	PythonVersion  string
 	SrcCodeDir     string
 	ClayVersion    string
@@ -33,7 +33,7 @@ type dockerConfig struct {
 }
 
 func CreateDockerFile(projectDir, outputDir string, cfg *config.Config) (string, error) {
-	dc := &dockerConfig{
+	dc := &dockerFileConfig{
 		PythonVersion:  cfg.Bulid.PythonVersion,
 		ClayVersion:    ClayVersion,
 		SrcCodeDir:     projectDir,
@@ -88,7 +88,7 @@ func GetDockerFile() (string, error) {
 	return dockerfilePath, nil
 }
 
-func BuildImage(buildtag, dockerfilePath string, secrets, buildArgs []string, noCache bool) error {
+func Build(buildtag, dockerfilePath string, secrets, buildArgs []string, noCache bool) error {
 	args := []string{}
 	args = append(args, "build", "-t", buildtag, "-f", dockerfilePath, ".")
 
@@ -107,12 +107,48 @@ func BuildImage(buildtag, dockerfilePath string, secrets, buildArgs []string, no
 	buildCmd := exec.Command("docker", args...)
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
-	if err := buildCmd.Start(); err != nil {
-		return fmt.Errorf("failed to build image: %w", err)
+
+	return buildCmd.Run()
+}
+
+func Push(buildtag string) error {
+	pushCmd := exec.Command("docker", "push", buildtag)
+	pushCmd.Stdout = os.Stdout
+	pushCmd.Stderr = os.Stderr
+
+	return pushCmd.Run()
+}
+
+func ImageExists(image string) error {
+	if image == "" {
+		return fmt.Errorf("build tag can't be empty")
 	}
 
-	if err := buildCmd.Wait(); err != nil {
-		return fmt.Errorf("failed to build image: %w", err)
+	listCmd := exec.Command("docker", "images", "-f", fmt.Sprintf("reference=%s", image))
+
+	repositoryName := strings.Split(image, ":")[0]
+	grepCmd := exec.Command("grep", repositoryName)
+
+	pipe, err := listCmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	grepCmd.Stdin = pipe
+
+	if err := listCmd.Start(); err != nil {
+		return err
+	}
+
+	if err := grepCmd.Start(); err != nil {
+		return err
+	}
+
+	if err := listCmd.Wait(); err != nil {
+		return err
+	}
+
+	if err := grepCmd.Wait(); err != nil {
+		return ErrDoesNotExists
 	}
 
 	return nil

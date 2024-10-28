@@ -7,7 +7,7 @@ package mock_block
 import (
 	context "context"
 	reflect "reflect"
-	block "registry/pkg/block"
+	block "github.com/example/clay/registry/pkg/block"
 
 	gomock "github.com/golang/mock/gomock"
 )

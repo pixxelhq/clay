@@ -6,10 +6,10 @@ import (
 	llog "log"
 	"net/http"
 
-	"registry/config"
-	store "registry/internal/store/sqlc"
-	"registry/pkg/block"
-	"registry/pkg/log"
+	"github.com/example/clay/registry/config"
+	store "github.com/example/clay/registry/internal/store/sqlc"
+	"github.com/example/clay/registry/pkg/block"
+	"github.com/example/clay/registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"

@@ -1,4 +1,4 @@
-module registry
+module github.com/example/clay/registry
 
 go 1.22.0
 

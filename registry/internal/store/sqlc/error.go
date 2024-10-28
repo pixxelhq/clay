@@ -1,7 +1,7 @@
 package store
 
 import (
-	rerr "registry/pkg/error"
+	rerr "github.com/example/clay/registry/pkg/error"
 
 	"github.com/lib/pq"
 )

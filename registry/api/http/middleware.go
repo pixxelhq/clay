@@ -1,8 +1,9 @@
 package http
 
 import (
-	"registry/pkg/log"
 	"time"
+
+	"github.com/example/clay/registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 )

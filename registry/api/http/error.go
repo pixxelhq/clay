@@ -3,8 +3,9 @@ package http
 import (
 	"errors"
 	"net/http"
-	rerr "registry/pkg/error"
-	"registry/pkg/log"
+
+	rerr "github.com/example/clay/registry/pkg/error"
+	"github.com/example/clay/registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 )

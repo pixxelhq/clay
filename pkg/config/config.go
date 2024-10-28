@@ -8,8 +8,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var cfg *Config
-
 type Build struct {
 	PythonVersion  string   `yaml:"python-version"`
 	Conda          bool     `yaml:"conda"`
@@ -18,16 +16,12 @@ type Build struct {
 }
 
 type Config struct {
-	Name  string `yaml:"name"`
-	Bulid *Build `yaml:"build"`
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+	Bulid   *Build `yaml:"build"`
 }
 
 func GetConfig(projectDir string) (*Config, error) {
-	//refactor this to have two separate fns GetConfig and GetConfigFrom
-	if cfg != nil {
-		return cfg, nil
-	}
-
 	specfilePath, err := getSpecfilePath(projectDir)
 	if err != nil {
 		return nil, err
@@ -52,7 +46,7 @@ func getSpecfilePath(projectDir string) (string, error) {
 	specfilePath := filepath.Join(projectDir, filepath.Base(projectDir), "specifications", "model_specification_dev.yaml") // assuming that scaffholding code has source
 	_, err := os.Stat(specfilePath)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("%s file does not exist in: %s, please try to run in the root folder of the project", specFileName, projectDir)
+		return "", fmt.Errorf("🙅‍♂️ %s file does not exist in: %s, please try to run the command in the root folder of the project", specFileName, projectDir)
 	}
 	if err != nil {
 		return "", err
