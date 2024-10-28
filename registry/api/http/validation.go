@@ -2,8 +2,9 @@ package http
 
 import (
 	"fmt"
-	rerr "registry/pkg/error"
 	"slices"
+
+	rerr "github.com/example/clay/registry/pkg/error"
 )
 
 var (

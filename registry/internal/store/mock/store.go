@@ -7,7 +7,7 @@ package mock_store
 import (
 	context "context"
 	reflect "reflect"
-	store "registry/internal/store/sqlc"
+	store "github.com/example/clay/registry/internal/store/sqlc"
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"

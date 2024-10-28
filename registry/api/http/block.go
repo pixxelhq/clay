@@ -2,7 +2,8 @@ package http
 
 import (
 	"net/http"
-	"registry/pkg/block"
+
+	"github.com/example/clay/registry/pkg/block"
 
 	"github.com/gin-gonic/gin"
 )

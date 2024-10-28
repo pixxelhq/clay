@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	mock_store "registry/internal/store/mock"
-	store "registry/internal/store/sqlc"
-	rerr "registry/pkg/error"
+	mock_store "github.com/example/clay/registry/internal/store/mock"
+	store "github.com/example/clay/registry/internal/store/sqlc"
+	rerr "github.com/example/clay/registry/pkg/error"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"

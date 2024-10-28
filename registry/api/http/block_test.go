@@ -6,9 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"registry/pkg/block"
-	mock_block "registry/pkg/block/mock"
 	"testing"
+
+	"github.com/example/clay/registry/pkg/block"
+	mock_block "github.com/example/clay/registry/pkg/block/mock"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"

@@ -2,10 +2,11 @@ package main
 
 import (
 	"log"
-	"registry/api/http"
 	"sync"
 
-	_ "registry/api_docs" // Swagger docs
+	"github.com/example/clay/registry/api/http"
+
+	_ "github.com/example/clay/registry/api_docs" // Swagger docs
 )
 
 // @title				Clay Registry

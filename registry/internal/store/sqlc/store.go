@@ -3,7 +3,8 @@ package store
 import (
 	"context"
 	"database/sql"
-	"registry/pkg/log"
+
+	"github.com/example/clay/registry/pkg/log"
 )
 
 type Store interface {

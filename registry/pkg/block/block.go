@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	store "registry/internal/store/sqlc"
-	rerr "registry/pkg/error"
-	"registry/pkg/log"
 	"time"
+
+	store "github.com/example/clay/registry/internal/store/sqlc"
+	rerr "github.com/example/clay/registry/pkg/error"
+	"github.com/example/clay/registry/pkg/log"
 )
 
 type Specification struct {
