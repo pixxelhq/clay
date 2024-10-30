@@ -41,58 +41,58 @@ jobs:
           docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-deploy_staging:
-  runs-on: [ubuntu-latest]
-  needs: build
-  environment: staging
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-        audience: https://github.com/pixxelhq
-        aws-region: ${{env.AWS_DEFAULT_REGION}}
-
-    - name: Render server configs
-      uses: example/configs-action@main
-      with:
-        vault_token: "${{ secrets.VAULT_TOKEN }}"
-        service: "clay-registry"
-        tag: "staging"
-        output: ./config.yaml
-
-    - name: Render helm values
-      uses: example/configs-action@main
-      with:
-        vault_token: "${{ secrets.VAULT_TOKEN }}"
-        service: "staging"
-        tag: "k8s_dev_values"
-        output: ./values.yaml
-
-    - name: Helm release courier
-      id: deploy
-      uses: bitovi/github-actions-deploy-eks-helm@v1.2.6
-      with:
-        aws-region: us-east-2
-        cluster-name: cluster-staging
-        config-files: ./values.yaml
-        chart-repository: https://raystack.github.io/charts/
-        chart-path: raystack/app
-        namespace: platform
-        name: courier
-        values: image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }},image.tag=${{ github.sha }},
-        helm-extra-args: "--set-file config.COURIER_CONFIG_PATH=./config.yaml"
-        helm-wait: false
-        timeout: 120s
-
-    - name: Announce deployment on slack
-      uses: example/deployment-announcer@main
-      if: ${{ always() }}
-      with:
-        status: ${{ steps.deploy.outcome }} #outcome of the last step goes as status
-        slack_bot_token: ${{ secrets.ANNOUNCER_BOT_TOKEN }} # should be preset
-        image: ${{ env.IMAGE_NAME }}/${{ github.sha }}
-        reference: "Env - staging"
+  deploy_staging:
+    runs-on: [ubuntu-latest]
+    needs: build
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+  
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: https://github.com/pixxelhq
+          aws-region: ${{env.AWS_DEFAULT_REGION}}
+  
+      - name: Render server configs
+        uses: example/configs-action@main
+        with:
+          vault_token: "${{ secrets.VAULT_TOKEN }}"
+          service: "clay-registry"
+          tag: "staging"
+          output: ./config.yaml
+  
+      - name: Render helm values
+        uses: example/configs-action@main
+        with:
+          vault_token: "${{ secrets.VAULT_TOKEN }}"
+          service: "staging"
+          tag: "k8s_dev_values"
+          output: ./values.yaml
+  
+      - name: Helm release courier
+        id: deploy
+        uses: bitovi/github-actions-deploy-eks-helm@v1.2.6
+        with:
+          aws-region: us-east-2
+          cluster-name: cluster-staging
+          config-files: ./values.yaml
+          chart-repository: https://raystack.github.io/charts/
+          chart-path: raystack/app
+          namespace: platform
+          name: courier
+          values: image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }},image.tag=${{ github.sha }},
+          helm-extra-args: "--set-file config.COURIER_CONFIG_PATH=./config.yaml"
+          helm-wait: false
+          timeout: 120s
+  
+      - name: Announce deployment on slack
+        uses: example/deployment-announcer@main
+        if: ${{ always() }}
+        with:
+          status: ${{ steps.deploy.outcome }} #outcome of the last step goes as status
+          slack_bot_token: ${{ secrets.ANNOUNCER_BOT_TOKEN }} # should be preset
+          image: ${{ env.IMAGE_NAME }}/${{ github.sha }}
+          reference: "Env - staging"
