@@ -1,4 +1,4 @@
-name: "GitHub CI/CD Pipelines for Clay"
+name: "Run tests and lint check"
 
 on:
   pull_request:
