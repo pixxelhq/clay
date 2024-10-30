@@ -1,4 +1,4 @@
-name: "Build and push package to registry"
+name: "Release clay python sdk [manual]"
 
 on: workflow_dispatch
 
