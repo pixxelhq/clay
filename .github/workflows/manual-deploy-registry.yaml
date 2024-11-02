@@ -35,7 +35,7 @@ jobs:
 
       - name: Build docker image
         run: |
-          docker build . -t ${{ env.IMAGE_NAME }}:${{ github.sha }} -f Dockerfile
+          docker build ./registry -t ${{ env.IMAGE_NAME }}:${{ github.sha }} -f registry/Dockerfile
 
       - name: Build, tag and push image to Amazon ECR
         run: |
