@@ -57,23 +57,15 @@ jobs:
           audience: https://github.com/pixxelhq
           aws-region: ${{env.AWS_DEFAULT_REGION}}
   
-      - name: Render server configs
-        uses: example/configs-action@main
-        with:
-          vault_token: "${{ secrets.VAULT_TOKEN }}"
-          service: "clay-registry"
-          tag: "staging"
-          output: ./config.yaml
-  
       - name: Render helm values
         uses: example/configs-action@main
         with:
           vault_token: "${{ secrets.VAULT_TOKEN }}"
-          service: "staging"
-          tag: "k8s_dev_values"
+          service: "clay"
+          tag: "registry_staging"
           output: ./values.yaml
   
-      - name: Helm release courier
+      - name: Helm release clay-registry
         id: deploy
         uses: bitovi/github-actions-deploy-eks-helm@v1.2.6
         with:
@@ -83,9 +75,8 @@ jobs:
           chart-repository: https://raystack.github.io/charts/
           chart-path: raystack/app
           namespace: platform
-          name: courier
+          name: clay-registry
           values: image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAME }},image.tag=${{ github.sha }},
-          helm-extra-args: "--set-file config.COURIER_CONFIG_PATH=./config.yaml"
           helm-wait: false
           timeout: 120s
   
