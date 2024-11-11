@@ -1,56 +1,72 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
+const configFileName = "clay.yaml"
+
 type Build struct {
-	PythonVersion  string   `yaml:"python-version"`
-	Conda          bool     `yaml:"conda"`
-	AptGetPkgs     []string `yaml:"apt-get"`
-	DependencyFile string   `yaml:"requirements"`
+	PythonVersion  string   `yaml:"python-version" json:"python-version"`
+	Conda          bool     `yaml:"conda" json:"conda"`
+	AptGetPkgs     []string `yaml:"apt-get" json:"apt-get"`
+	Gpu            bool     `yaml:"gpu" json:"gpu"`
+	DependencyFile string   `yaml:"requirements" json:"requirements"`
 }
 
 type Config struct {
-	Name    string `yaml:"name"`
-	Version string `yaml:"version"`
-	Bulid   *Build `yaml:"build"`
+	APIVersion string          `yaml:"apiVersion" json:"apiVersion"`
+	Kind       string          `yaml:"kind" json:"kind"`
+	Type       string          `yaml:"type" json:"type"`
+	Name       string          `yaml:"name" json:"name"`
+	Version    string          `yaml:"version" json:"version"`
+	Author     string          `yaml:"author" json:"author"`
+	Tags       []string        `yaml:"tags" json:"tags"`
+	Parameters json.RawMessage `yaml:"parameters" json:"parameters"`
+	Inputs     json.RawMessage `yaml:"inputs" json:"inputs"`
+	Outputs    json.RawMessage `yaml:"outputs" json:"outputs"`
+	Bulid      *Build          `yaml:"build" json:"build"`
 }
 
 func GetConfig(projectDir string) (*Config, error) {
-	specfilePath, err := getSpecfilePath(projectDir)
+	configFilePath, err := getConfigFilePath(projectDir)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := os.ReadFile(specfilePath)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return nil, err
+	}
+
+	dataJSON, err := yaml.YAMLToJSON(data)
+	if err != nil {
+		return nil, fmt.Errorf("error while converting config yaml to json")
 	}
 
 	config := &Config{}
-	err = yaml.Unmarshal(data, config)
+	err = json.Unmarshal(dataJSON, config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while unmarshalling json config into struct: %w", err)
 	}
 
 	return config, nil
 }
 
-func getSpecfilePath(projectDir string) (string, error) {
-	specFileName := "model_specification_dev.yaml"                                                                         //once clay.yaml is introduced, that clay.yaml config file should be used.
-	specfilePath := filepath.Join(projectDir, filepath.Base(projectDir), "specifications", "model_specification_dev.yaml") // assuming that scaffholding code has source
-	_, err := os.Stat(specfilePath)
+func getConfigFilePath(projectDir string) (string, error) {
+	configFilePath := filepath.Join(projectDir, configFileName) // assuming that scaffholding code has source
+	_, err := os.Stat(configFilePath)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("🙅‍♂️ %s file does not exist in: %s, please try to run the command in the root folder of the project", specFileName, projectDir)
+		return "", fmt.Errorf("🙅‍♂️ %s file does not exist in: %s, please try to run the command in the root folder of the project", configFilePath, projectDir)
 	}
 	if err != nil {
 		return "", err
 	}
 
-	return specfilePath, nil
+	return configFilePath, nil
 }

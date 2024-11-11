@@ -23,15 +23,13 @@ type RegistryResponse[T Data] struct {
 }
 
 type Specification struct {
-	Version     string          `json:"apiVersion"`
-	Title       string          `json:"title"`
-	Description string          `json:"description"`
-	Author      string          `json:"author"`
-	Tags        []string        `json:"tags"`
-	Parameters  json.RawMessage `json:"parameters"`
-	Inputs      json.RawMessage `json:"inputs"`
-	Outputs     json.RawMessage `json:"outputs"`
-	Build       json.RawMessage `json:"build"`
+	APIVersion string          `json:"apiVersion"`
+	Author     string          `json:"author"`
+	Tags       []string        `json:"tags"`
+	Parameters json.RawMessage `json:"parameters"`
+	Inputs     json.RawMessage `json:"inputs"`
+	Outputs    json.RawMessage `json:"outputs"`
+	Build      json.RawMessage `json:"build"`
 }
 
 type CreateBlockRequest struct {

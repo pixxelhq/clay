@@ -16,6 +16,10 @@ var Version string
 
 type TemplateData interface{}
 
+type Config struct {
+	Name string
+}
+
 type Readme struct {
 	Name string
 }
@@ -130,6 +134,7 @@ func getTemplateData(titlemodelName string, specmodelName string) map[string]Tem
 		"add-block-prod.yaml":           GithubWorkflow{ModelName: specmodelName, Version: Version},
 		"add-model-readme.yaml":         GithubWorkflow{ModelName: specmodelName},
 		"benchmark.yaml":                GithubWorkflow{ModelName: specmodelName},
+		"clay.yaml":                     Config{Name: titlemodelName},
 	}
 	return data
 }

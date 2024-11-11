@@ -40,5 +40,6 @@ func init() {
 	RootCmd.AddCommand(UpdateCmd())
 	RootCmd.AddCommand(UploadCmd())
 	RootCmd.AddCommand(buildDockerImageCmd())
-	RootCmd.AddCommand(pushToRegistryCmd())
+	RootCmd.AddCommand(pushToDockerRegistryCmd())
+	RootCmd.AddCommand(publishModelToRegistryCmd())
 }

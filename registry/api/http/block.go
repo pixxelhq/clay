@@ -199,29 +199,25 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 
 func convertFromServiceSpecification(bSpec *block.Specification) *Specification {
 	return &Specification{
-		Version:     bSpec.Version,
-		Title:       bSpec.Title,
-		Description: bSpec.Description,
-		Author:      bSpec.Author,
-		Tags:        bSpec.Tags,
-		Parameters:  bSpec.Parameters,
-		Inputs:      bSpec.Inputs,
-		Outputs:     bSpec.Outputs,
-		Build:       bSpec.Build,
+		APIVersion: bSpec.Version,
+		Author:     bSpec.Author,
+		Tags:       bSpec.Tags,
+		Parameters: bSpec.Parameters,
+		Inputs:     bSpec.Inputs,
+		Outputs:    bSpec.Outputs,
+		Build:      bSpec.Build,
 	}
 }
 
 func convertToServiceSpecification(s *Specification) *block.Specification {
 	return &block.Specification{
-		Version:     s.Version,
-		Title:       s.Title,
-		Description: s.Description,
-		Author:      s.Author,
-		Tags:        s.Tags,
-		Parameters:  s.Parameters,
-		Inputs:      s.Inputs,
-		Outputs:     s.Outputs,
-		Build:       s.Build,
+		Version:    s.APIVersion,
+		Author:     s.Author,
+		Tags:       s.Tags,
+		Parameters: s.Parameters,
+		Inputs:     s.Inputs,
+		Outputs:    s.Outputs,
+		Build:      s.Build,
 	}
 }
 

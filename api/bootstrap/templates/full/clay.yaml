@@ -1,0 +1,37 @@
+apiVersion: 0.0.1
+kind: block
+type: processing
+name: {{ .Name | ToLower }}
+version: 0.0.1
+author: <please-fill-in-here>@pixxel.co.in
+tags:
+  - imagery
+  - processing
+
+parameters: # model initialization params
+  - name: weight
+    type: int
+    default: 5
+
+inputs:
+  - name: input1
+    format: string
+    type: str
+
+  - name: input2
+    format: number
+    type: int
+
+outputs:
+  - name: output1
+    format: number
+    type: int
+
+build:
+  python-version: "3.10"
+  conda: false
+  gdal: true
+  gpu: true
+  apt-get:
+    - wget
+  requirements: requirements.txt 
