@@ -54,7 +54,7 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 	return buildImage(cwd, cfg)
 }
 
-func pushToRegistryCmd() *cobra.Command {
+func pushToDockerRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "push [IMAGE]",
 		Short:   "Push the docker image to registry.",
@@ -85,7 +85,7 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no image name was provided in the arguments, and neither `name` nor `version` is set in the clay.yaml file. Please specify an image name or ensure the configuration is complete in clay.yaml")
 	}
 
-	fmt.Printf("🧐 Serching image %s in docker images \n", image)
+	fmt.Printf("🧐 Serching image %s \n", image)
 	err = docker.ImageExists(image)
 	if err == docker.ErrDoesNotExists {
 		return fmt.Errorf("oops image %s does not exists. First build the image using `clay build` command to build this image", image)
@@ -102,7 +102,7 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("🎉 docker image %s has been pushed to specified registry", image)
+	fmt.Printf("🎉 docker image %s has been pushed to specified registry\n", image)
 	return nil
 }
 
@@ -137,7 +137,7 @@ func buildImage(projectDir string, cfg *config.Config) error {
 		return err
 	}
 
-	fmt.Printf("🎉 docker image %s has been built using %s", buildTag, dockerfilePath)
+	fmt.Printf("🎉 docker image %s has been built using %s \n", buildTag, dockerfilePath)
 	return nil
 }
 

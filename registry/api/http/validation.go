@@ -13,9 +13,9 @@ var (
 )
 
 func (s *Specification) Validate() error {
-	if s.Version == "" || s.Title == "" || s.Description == "" || s.Author == "" {
+	if s.APIVersion == "" || s.Author == "" {
 		return &rerr.RegistryError{
-			Message: "specification: apiVersion, title, description and author can't be empty",
+			Message: "specification: apiVersion and author can't be empty",
 			Code:    rerr.ErrBadRequest,
 		}
 	}
@@ -33,7 +33,7 @@ func (s *Specification) Validate() error {
 func (bcr *CreateBlockRequest) Validate() error {
 	if bcr.Name == "" || bcr.Version == "" || bcr.DocumentationURL == "" || bcr.DockerImage == "" {
 		return &rerr.RegistryError{
-			Message: "name, version, docker_image and documentation_url can be empty",
+			Message: "name, version, docker_image and documentation_url can not be empty",
 			Code:    rerr.ErrBadRequest,
 		}
 	}
