@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio_storage:/data
+    command: server --console-address ":9001" /data
+    env_file:
+      - .env
+    restart: always
+
+  createbucket:
+    image: minio/mc
+    depends_on:
+      - minio
+    volumes:
+      - ./demo-test/inputs:/tmp/inputs
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add s3minio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb s3minio/direct-insights s3minio/testinputs;
+      /usr/bin/mc cp --recursive /tmp/inputs s3minio/testinputs ;
+      exit 0;
+      "
+
+  model:
+    build:
+      context: "../../"
+      dockerfile: examples/runner/Dockerfile
+    container_name: model
+    env_file:
+      - .env
+
+networks:
+  app-network: 
+    driver: bridge
+volumes:
+  minio_storage:

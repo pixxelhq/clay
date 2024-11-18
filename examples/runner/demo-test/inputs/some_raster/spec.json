@@ -1,0 +1,7 @@
+{
+    "name": "some_raster",
+    "type": "url",
+    "format": "raster",
+    "value": "http://minio:9000/bucket/another-bucket/some_raster.tif",
+    "is_artifact": true
+}

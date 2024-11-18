@@ -1,0 +1,13 @@
+{
+    "format": "vector",
+    "type": "url",
+    "name": "some_vector",
+    "value": "http://minio:9000/bucket/another-bucket/some_vector.geojson",
+    "default": null,
+    "is_artifact": true,
+    "display_name": null,
+    "description": null,
+    "metadata": {},
+    "group": "",
+    "properties": null
+}

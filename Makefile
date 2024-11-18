@@ -72,3 +72,20 @@ go-binaries:
 	@for ARCH in $(LINUX_ARCH); do \
 		GOOS=linux GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-linux-$$ARCH; \
 	done
+
+test-with-runner:
+	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
+	echo 'Waiting for Minio to be ready...' 
+	sleep 10
+	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
+	sudo docker-compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='kube' model
+	cd examples/runner && sudo docker-compose run -e EXECUTOR='kube' model "$$(cat demo-test/sample_model_inputs.json)"
+
+test-with-runnerv2:
+	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
+	sudo docker-compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='argo' model
+	cd examples/runner && sudo docker-compose run -e EXECUTOR='argo' model
+
+tear-down:
+	cd examples/runner && sudo docker-compose down --volumes --remove-orphans
+	rm -r examples/runner/minio_storage
