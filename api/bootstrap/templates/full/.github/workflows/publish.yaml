@@ -1,0 +1,49 @@
+name: Publish model to Clay registry
+
+on:
+  workflow_dispatch
+
+permissions:
+    id-token: write
+    contents: read
+
+# TODO: This is incomplete, once new version of clay cli is released, update this to use the clay cli to publish the model.
+jobs:
+  publish:
+    runs-on: [ubuntu-latest]
+    if: (github.event_name == 'workflw_dispatch')
+    permission:
+      id-token: write
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@b8c74de753fbcb4868bf2011fb2e15826ce973af
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          role-session-name: samplerolesession
+          aws-region: {{ "${{ env.AWS_DEFAULT_REGION }}" }}
+
+      - name: Login to AWS Container Registry
+        id: login-ecr
+        uses: docker/login-action@v2
+        with:
+          registry: {{ "${{ env.ECR_REGISTRY }}" }}
+
+      - name: Login to AWS Container Registry
+        id: login-ecr
+        uses: docker/login-action@v2
+        with:
+          registry: {{ "${{ env.ECR_REGISTRY }}" }}
+
+
+
+      
+    
+
+

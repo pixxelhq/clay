@@ -44,6 +44,7 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 
 	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
 
+	// build image
 	buildCmd := exec.Command("clay", "build", "-t", image)
 	buildCmd.Stderr = os.Stderr
 	buildCmd.Stdout = os.Stdout
@@ -51,10 +52,20 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// push image to docker registry
 	pushCmd := exec.Command("clay", "push", image)
 	pushCmd.Stderr = os.Stderr
 	pushCmd.Stdout = os.Stdout
 	if err := pushCmd.Run(); err != nil {
+		return err
+	}
+
+	//TODO: refactor the upload cmd to push the doc with env flag
+	// upload doc to object store
+	uploadDocCmd := exec.Command("clay", "upload", "readme", "-n", cfg.Name, "-v", fmt.Sprintf("v%s", cfg.Version), "--env", "dev")
+	uploadDocCmd.Stderr = os.Stderr
+	uploadDocCmd.Stdout = os.Stdout
+	if err := uploadDocCmd.Run(); err != nil {
 		return err
 	}
 
@@ -65,6 +76,7 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	//publish model to clay registry
 	err = mr.Publish(req)
 	if err == registry.ErrAlreadyExists {
 		return fmt.Errorf("block %s with version %s already exists, skipping the publish", req.Name, req.Version)
