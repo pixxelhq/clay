@@ -43,35 +43,41 @@ type CreateBlockRequest struct {
 }
 
 type CreateBlockResponse struct {
-	ID            string         `json:"id"`
-	Name          string         `json:"name"`
-	Version       string         `json:"version"`
-	Type          string         `json:"type"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	Specification *Specification `json:"specification"`
+	ID               string         `json:"id"`
+	Name             string         `json:"name"`
+	Version          string         `json:"version"`
+	Type             string         `json:"type"`
+	DockerImage      string         `json:"docker_image"`
+	DocumentationURL string         `json:"documentation_url"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	Specification    *Specification `json:"specification"`
 }
 
 type GetLatestBlocksResponse []*GetLatestBlock
 type GetLatestBlock struct {
-	ID            string         `json:"id"`
-	Name          string         `json:"name"`
-	Version       string         `json:"version"`
-	Type          string         `json:"type"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	Specification *Specification `json:"specification"`
+	ID               string         `json:"id"`
+	Name             string         `json:"name"`
+	Version          string         `json:"version"`
+	Type             string         `json:"type"`
+	DockerImage      string         `json:"docker_image"`
+	DocumentationURL string         `json:"documentation_url"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	Specification    *Specification `json:"specification"`
 }
 
 type GetBlockByNameResponse []*GetBlockVersion
 
 type GetBlockVersion struct {
-	ID            string         `json:"id"`
-	Name          string         `json:"name"`
-	Version       string         `json:"version"`
-	Kind          string         `json:"kind"`
-	Type          string         `json:"type"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	Specification *Specification `json:"specification"`
+	ID               string         `json:"id"`
+	Name             string         `json:"name"`
+	Version          string         `json:"version"`
+	Kind             string         `json:"kind"`
+	Type             string         `json:"type"`
+	DockerImage      string         `json:"docker_image"`
+	DocumentationURL string         `json:"documentation_url"`
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	Specification    *Specification `json:"specification"`
 }

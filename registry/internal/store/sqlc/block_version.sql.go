@@ -234,3 +234,54 @@ func (q *Queries) GetBlocksWithLatestVersion(ctx context.Context) ([]GetBlocksWi
 	}
 	return items, nil
 }
+
+const getLatestBlockByName = `-- name: GetLatestBlockByName :one
+SELECT
+    b.id,
+    b.name,
+    bv.version,
+    b.type,
+    b.kind,
+    bv.specification,
+    bv.documenatation_url,
+    bv.docker_image,
+    bv.created_at,
+    bv.updated_at
+FROM public.block_versions bv
+    INNER JOIN public.blocks b
+    ON bv.block_id = b.id
+WHERE b.name = $1
+ORDER BY bv.version DESC
+LIMIT 1
+`
+
+type GetLatestBlockByNameRow struct {
+	ID                uuid.UUID
+	Name              string
+	Version           string
+	Type              string
+	Kind              string
+	Specification     json.RawMessage
+	DocumenatationUrl sql.NullString
+	DockerImage       sql.NullString
+	CreatedAt         sql.NullTime
+	UpdatedAt         sql.NullTime
+}
+
+func (q *Queries) GetLatestBlockByName(ctx context.Context, name string) (GetLatestBlockByNameRow, error) {
+	row := q.db.QueryRowContext(ctx, getLatestBlockByName, name)
+	var i GetLatestBlockByNameRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Version,
+		&i.Type,
+		&i.Kind,
+		&i.Specification,
+		&i.DocumenatationUrl,
+		&i.DockerImage,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

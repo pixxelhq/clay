@@ -84,7 +84,7 @@ func TestCreate(t *testing.T) {
 				resp := &RegistryResponse[CreateBlockRequest]{}
 				err = json.Unmarshal(data, &resp)
 				assert.NoError(t, err)
-				assert.Equal(t, "code: BAD REQUEST, err: name, version, docker_image and documentation_url can be empty", resp.Error)
+				assert.Equal(t, "code: BAD REQUEST, err: name, version, docker_image and documentation_url can not be empty", resp.Error)
 
 			},
 		},
