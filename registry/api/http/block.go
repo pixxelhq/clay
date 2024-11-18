@@ -184,14 +184,16 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, &RegistryResponse[*GetBlockVersion]{
 		Data: &GetBlockVersion{
-			ID:            b.ID,
-			Name:          b.Name,
-			Kind:          b.Kind,
-			Type:          b.Type,
-			Version:       b.Version,
-			Specification: convertFromServiceSpecification(b.Specification),
-			CreatedAt:     b.CreatedAt,
-			UpdatedAt:     b.UpdatedAt,
+			ID:               b.ID,
+			Name:             b.Name,
+			Kind:             b.Kind,
+			Type:             b.Type,
+			Version:          b.Version,
+			DockerImage:      b.DockerImage,
+			DocumentationURL: b.DocumentationURL,
+			Specification:    convertFromServiceSpecification(b.Specification),
+			CreatedAt:        b.CreatedAt,
+			UpdatedAt:        b.UpdatedAt,
 		},
 	})
 

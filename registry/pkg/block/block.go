@@ -179,6 +179,10 @@ func (bs *block) GetBlockByName(ctx context.Context, name string) ([]*Block, err
 }
 
 func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version string) (*Block, error) {
+	if version == "latest" {
+		return bs.GetLatestBlock(ctx, name)
+	}
+
 	blockWithNameAndVersion, err := bs.store.GetBlockByNameAndVersion(ctx, store.GetBlockByNameAndVersionParams{
 		Name:    name,
 		Version: version,
@@ -206,5 +210,34 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 		Type:             blockWithNameAndVersion.Type,
 		CreatedAt:        blockWithNameAndVersion.CreatedAt.Time,
 		UpdatedAt:        blockWithNameAndVersion.UpdatedAt.Time,
+	}, nil
+}
+
+func (bs *block) GetLatestBlock(ctx context.Context, name string) (*Block, error) {
+	b, err := bs.store.GetLatestBlockByName(ctx, name)
+	if err != nil {
+		pgErr := store.PGErrorToRegistryError(err)
+		if pgErr.Code == rerr.ErrDoesNotExists {
+			pgErr.Message = "block with the given name does not exists"
+		}
+		return nil, pgErr
+	}
+
+	spec := &Specification{}
+	err = json.Unmarshal(b.Specification, spec)
+	if err != nil {
+		return nil, err
+	}
+	return &Block{
+		ID:               b.ID.String(),
+		Name:             b.Name,
+		Version:          b.Version,
+		DockerImage:      b.DockerImage.String,
+		DocumentationURL: b.DocumenatationUrl.String,
+		Specification:    spec,
+		Kind:             b.Kind,
+		Type:             b.Type,
+		CreatedAt:        b.CreatedAt.Time,
+		UpdatedAt:        b.UpdatedAt.Time,
 	}, nil
 }
