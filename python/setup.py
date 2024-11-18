@@ -46,7 +46,6 @@ setup(
         "Jinja2",
         "uvloop",
         "pika",
-        "matter==0.4.2-alpha.2",
         "pydantic>=2.4.0",
         "boto3>=1.21.21",
         "fsspec>=2022.5.0",
