@@ -1,11 +1,5 @@
 [   
     {
-        "format": "string",
-        "name": "task-id",
-        "type": "str",
-        "value": "inference"
-    },
-    {
         "name": "some_raster",
         "type": "url",
         "format": "raster",

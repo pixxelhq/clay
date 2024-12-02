@@ -33,6 +33,9 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         # creating dummy inputs
         self.mock_env_vars = {
             "task-id": "task123",
+            "job-id": "job123",
+            "workflow-id": "wfk123",
+            "local-working-dir":  self.testing_working_dir,
             "working-dir": self.testing_working_dir,
             "inputs-working-dir": input_working_dir,
             "outputs-working-dir": output_working_dir,
@@ -89,30 +92,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": "hello world",
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wfk123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
         a = JobRunner(
@@ -122,7 +101,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[raster, string])
         passed_vals = a.get_passed_inputs_dict()
 
         assert passed_vals["raster"]["value"] == raster["value"]
@@ -174,30 +153,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": "hello world",
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wf123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
         a = JobRunner(
@@ -207,7 +162,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[raster, string])
         passed_vals = a.get_passed_inputs_dict()
 
         assert passed_vals["raster"]["value"] == raster["value"]
@@ -216,27 +171,27 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
         target_raster_asset_path = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "result",
             "clipped.tiff",
         )
         target_raster_spec_path = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "result",
             "spec.json",
         )
         target_string_spec_path = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "string",
             "spec.json",
@@ -291,30 +246,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": "hello world",
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wfk123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         mock_env_vars = copy.deepcopy(self.mock_env_vars)
         mock_env_vars["AUTO_DOWNLOAD_ASSETS"] = "true"
         mock_env_vars["REMOTE_PREFIX"] = "s3://d-platform-orchestrator-lulc-artifacts-s3-01"
@@ -327,14 +258,14 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[raster, string])
         passed_vals = a.get_passed_inputs_dict()
 
         raster_input_dir = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "inputs",
             "raster",
         )
@@ -343,9 +274,9 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             passed_vals["raster"]["value"],
             os.path.join(
                 self.testing_working_dir,
-                workflow_id["value"],
-                job_id["value"],
-                task_id["value"],
+                "wfk123",
+                "job123",
+                "task123",
                 "inputs",
                 "raster",
                 "test-raster.tiff",
@@ -403,30 +334,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": "hello world",
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wfk123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         mock_env_vars = copy.deepcopy(self.mock_env_vars)
         mock_env_vars["AUTO_DOWNLOAD_ASSETS"] = "true"
         mock_env_vars["REMOTE_PREFIX"] = "s3://d-platform-orchestrator-lulc-artifacts-s3-01"
@@ -441,22 +348,22 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[raster, string])
         passed_vals = a.get_passed_inputs_dict()
 
         result_output_dir = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "result",
         )
         remote_raster_path = os.path.join(
             "s3://d-platform-orchestrator-lulc-artifacts-s3-01",
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "result",
             "clipped.tiff",
@@ -466,9 +373,9 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             passed_vals["raster"]["value"],
             os.path.join(
                 self.testing_working_dir,
-                workflow_id["value"],
-                job_id["value"],
-                task_id["value"],
+                "wfk123",
+                "job123",
+                "task123",
                 "inputs",
                 "raster",
                 "test-raster.tiff",
@@ -527,13 +434,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": "hello world",
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-
         mock_env_vars = copy.deepcopy(self.mock_env_vars)
         mock_env_vars["local-working-dir"] = self.testing_working_dir
         mock_env_vars["workflow-id"] = "wfk123"
@@ -547,7 +447,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start(args=[raster, string, task_id])
+        a.start(args=[raster, string])
         passed_vals = a.get_passed_inputs_dict()
 
         assert a._inf_opts[_ExpectedInfParameters.WorkflowId] == "wfk123"
@@ -595,30 +495,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": '{"type":"Feature","geometry":{"type":"Point","coordinates":[125.6,10.1]},"properties":{"name":"Dinagat Islands"}}',
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wfk123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         mock_env_vars = copy.deepcopy(self.mock_env_vars)
         mock_env_vars["AUTO_DOWNLOAD_ASSETS"] = "true"
         mock_env_vars["REMOTE_PREFIX"] = "s3://d-platform-orchestrator-lulc-artifacts-s3-01"
@@ -632,22 +508,22 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-vector-spec.yml",
             None,
         )
-        a.start(args=[vector_file, vector_string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[vector_file, vector_string])
 
         result_output_dir = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "inputs",
             "vector_file",
         )
         
         remote_vector_path = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "inputs",
             "vector_file",
             "test_abc.geojson",
@@ -695,30 +571,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "value": '{"type":"Feature","geometry":{"type":"Point","coordinates":[125.6,10.1]},"properties":{"name":"Dinagat Islands"}}',
         }
 
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wfk123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         mock_env_vars = copy.deepcopy(self.mock_env_vars)
         mock_env_vars["AUTO_DOWNLOAD_ASSETS"] = "true"
         mock_env_vars["REMOTE_PREFIX"] = "s3://d-platform-orchestrator-lulc-artifacts-s3-01"
@@ -732,22 +584,22 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-vector-spec.yml",
             None,
         )
-        a.start(args=[vector_file, vector_string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[vector_file, vector_string])
         passed_vals = a.get_passed_inputs_dict()
 
         result_output_dir = os.path.join(
             self.testing_working_dir,
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "result",
         )
         remote_raster_path = os.path.join(
             "s3://d-platform-orchestrator-lulc-artifacts-s3-01",
-            workflow_id["value"],
-            job_id["value"],
-            task_id["value"],
+            "wfk123",
+            "job123",
+            "task123",
             "outputs",
             "result",
             "clipped.tiff",
@@ -757,9 +609,9 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             passed_vals["raster"]["value"],
             os.path.join(
                 self.testing_working_dir,
-                workflow_id["value"],
-                job_id["value"],
-                task_id["value"],
+                "wfk123",
+                "job123",
+                "task123",
                 "inputs",
                 "raster",
                 "test-raster.tiff",
