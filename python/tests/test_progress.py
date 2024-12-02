@@ -28,6 +28,9 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
         # creating dummy inputs
         self.mock_env_vars = {
             "task-id": "task123",
+            "job-id": "job123",
+            "workflow-id": "wfk123",
+            "local-working-dir":  self.testing_working_dir,
             "working-dir": self.testing_working_dir,
             "inputs-working-dir": input_working_dir,
             "outputs-working-dir": output_working_dir,
@@ -97,31 +100,6 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             "type": "str",
             "value": "hello world",
         }
-
-        task_id = {
-            "format": "string",
-            "name": "task-id",
-            "type": "str",
-            "value": "task123",
-        }
-        job_id = {
-            "format": "string",
-            "name": "job-id",
-            "type": "str",
-            "value": "job123",
-        }
-        workflow_id = {
-            "format": "string",
-            "name": "workflow-id",
-            "type": "str",
-            "value": "wfk123",
-        }
-        local_working_dir = {
-            "format": "string",
-            "name": "local-working-dir",
-            "type": "str",
-            "value": self.testing_working_dir,
-        }
         env_patcher = unittest.mock.patch.dict(os.environ, self.mock_env_vars)
         env_patcher.start()
         a = JobRunner(
@@ -131,7 +109,7 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             "./tests/runners/dummy-spec.yml",
             None,
         )
-        a.start(args=[raster, string, task_id, job_id, workflow_id, local_working_dir])
+        a.start(args=[raster, string])
         env_patcher.stop()
 
         call_args = mock_post.call_args_list
