@@ -154,7 +154,6 @@ func getOrCreateDockerfile(srcCodeDir string, cfg *config.Config) (string, error
 func generateAWSSecret() (*os.File, error) {
 	args := []string{}
 	args = append(args, "codeartifact", "get-authorization-token",
-		"--profile", "d-platform-services",
 		"--domain", "REDACTED-ARTIFACTORY",
 		"--domain-owner", "REDACTED-AWS-ACCT",
 		"--query", "authorizationToken",
