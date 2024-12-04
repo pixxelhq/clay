@@ -46,7 +46,7 @@ setup(
         "Jinja2",
         "uvloop",
         "pika",
-        "s3fs"
+        "s3fs",
         "pydantic>=2.4.0",
         "boto3>=1.21.21",
         "fsspec>=2022.5.0",
