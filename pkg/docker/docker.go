@@ -105,6 +105,7 @@ func Build(buildtag, dockerfilePath string, secrets, buildArgs []string, noCache
 	}
 
 	buildCmd := exec.Command("docker", args...)
+	buildCmd.Env = append(os.Environ(), "DOCKER_BUILDKIT=1")
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
 
