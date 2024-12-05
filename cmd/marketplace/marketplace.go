@@ -1,6 +1,7 @@
 package marketplace
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -14,6 +15,8 @@ import (
 )
 
 const localReadmeFolder = "catalog_readme/"
+
+var s3CatalogUrl string
 
 func UploadReadme() *cobra.Command {
 
@@ -73,7 +76,7 @@ func UploadReadme() *cobra.Command {
 				logger.Error().Err(err).Stack().Msg(err.Error())
 				return err
 			}
-			s3CatalogUrl := "https://" + bucket + ".s3.us-east-2.amazonaws.com/" + versionedModelName + "/catalog_readme/parsed.md"
+			s3CatalogUrl = "https://" + bucket + ".s3.us-east-2.amazonaws.com/" + versionedModelName + "/catalog_readme/parsed.md"
 			fmt.Print(string(s3CatalogUrl))
 			return nil
 		},
@@ -83,4 +86,12 @@ func UploadReadme() *cobra.Command {
 	cmd.MarkFlagRequired("name")
 	cmd.MarkFlagRequired("version")
 	return cmd
+}
+
+func GetS3CatalogUrl() (string, error) {
+	if s3CatalogUrl == "" {
+		return "", errors.New("catlog url is empty")
+	}
+
+	return s3CatalogUrl, nil
 }

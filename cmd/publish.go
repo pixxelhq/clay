@@ -7,14 +7,16 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/example/clay/cmd/marketplace"
 	"github.com/example/clay/pkg/config"
 	"github.com/example/clay/pkg/registry"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	modelRegistry  string
-	dockerRegistry string
+	modelRegistryHost string
+	dockerRegistry    string
 )
 
 func publishModelToRegistryCmd() *cobra.Command {
@@ -26,7 +28,7 @@ func publishModelToRegistryCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dockerRegistry, "docker-registry-host", "REDACTED.dkr.ecr.us-east-2.amazonaws.com", "If specified, the model's Docker image will be pushed to that registry. Otherwise, the default registry will be used")
-	cmd.Flags().StringVar(&modelRegistry, "model-registry-host", "http://localhost:8080", "If specified, the model will be published to that registry. Otherwise, the default registry will be used.")
+	cmd.Flags().StringVar(&modelRegistryHost, "model-registry-host", "http://localhost:8080", "If specified, the model will be published to that registry. Otherwise, the default registry will be used.")
 
 	return cmd
 }
@@ -69,9 +71,14 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	mr := registry.NewModelRegistry(modelRegistry, 5*time.Second)
+	mr := registry.NewModelRegistry(modelRegistryHost, 5*time.Second)
 
-	req, err := buildPublishModelRequest(cfg, image)
+	documentationURL, err := marketplace.GetS3CatalogUrl()
+	if err != nil {
+		return err
+	}
+
+	req, err := buildPublishModelRequest(cfg, documentationURL, image)
 	if err != nil {
 		return err
 	}
@@ -89,7 +96,7 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func buildPublishModelRequest(cfg *config.Config, dockerImage string) (*registry.PublishModelRequest, error) {
+func buildPublishModelRequest(cfg *config.Config, documentationURL, dockerImage string) (*registry.PublishModelRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
 		return nil, fmt.Errorf("error while marshalling build json: %w", err)
@@ -102,7 +109,7 @@ func buildPublishModelRequest(cfg *config.Config, dockerImage string) (*registry
 		Version:     cfg.Version,
 		DockerImage: dockerImage,
 		//TODO: add documentation url, push to s3 and then use tha link
-		DocumentationURL: "s3://clay-docs/docs.md",
+		DocumentationURL: documentationURL,
 		Specification: &registry.Specification{
 			APIVersion: cfg.APIVersion,
 			Title:      cfg.Name,
