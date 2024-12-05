@@ -248,25 +248,29 @@ class JobRunner(BaseRunner):
         return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
-        wfid = os.getenv(_ExpectedInfParameters.WorkflowId.value)
-        if wfid is None:
-            raise ValueError(f"did not find `{_ExpectedInfParameters.WorkflowId.value}`")
-        self._inf_opts[_ExpectedInfParameters.WorkflowId] = wfid
+        if _ExpectedInfParameters.WorkflowId not in self._inf_opts:
+            wfid = os.getenv(_ExpectedInfParameters.WorkflowId.value)
+            if wfid is None:
+                raise ValueError(f"did not find `{_ExpectedInfParameters.WorkflowId.value}`")
+            self._inf_opts[_ExpectedInfParameters.WorkflowId] = wfid
 
-        taskid = os.getenv(_ExpectedInfParameters.TaskId.value)
-        if taskid is None:
-            raise ValueError(f"did not find `{_ExpectedInfParameters.TaskId.value}`")
-        self._inf_opts[_ExpectedInfParameters.TaskId] = taskid
+        if _ExpectedInfParameters.TaskId not in self._inf_opts:
+            taskid = os.getenv(_ExpectedInfParameters.TaskId.value)
+            if taskid is None:
+                raise ValueError(f"did not find `{_ExpectedInfParameters.TaskId.value}`")
+            self._inf_opts[_ExpectedInfParameters.TaskId] = taskid
 
-        jobid = os.getenv(_ExpectedInfParameters.JobId.value)
-        if jobid is None:
-            raise ValueError(f"did not find `{_ExpectedInfParameters.JobId.value}`")
-        self._inf_opts[_ExpectedInfParameters.JobId] = jobid
+        if _ExpectedInfParameters.JobId not in self._inf_opts:
+            jobid = os.getenv(_ExpectedInfParameters.JobId.value)
+            if jobid is None:
+                raise ValueError(f"did not find `{_ExpectedInfParameters.JobId.value}`")
+            self._inf_opts[_ExpectedInfParameters.JobId] = jobid
 
-        local_working_dir = os.getenv(_ExpectedInfParameters.LocalWorkingDir.value)
-        if local_working_dir is None:
-            raise ValueError(f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`")
-        self._inf_opts[_ExpectedInfParameters.LocalWorkingDir] = local_working_dir
+        if _ExpectedInfParameters.LocalWorkingDir not in self._inf_opts:
+            local_working_dir = os.getenv(_ExpectedInfParameters.LocalWorkingDir.value)
+            if local_working_dir is None:
+                raise ValueError(f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`")
+            self._inf_opts[_ExpectedInfParameters.LocalWorkingDir] = local_working_dir
         # The `None` assignment is to statisfy the type checker
 
     def _collect_inputs(
@@ -290,11 +294,12 @@ class JobRunner(BaseRunner):
             val, ke = utils.pop_dict_with_err(dict_inputs, o.value)
             if ke is not None:
                 # TODO: make this an fatal error
-                self.logger.debug(ke)
+                self.logger.info(ke)
             if val is not None:
                 self._inf_opts[o] = val.get("value")
                 continue
             # self._inf_opts[o] = val
+        print(self._inf_opts)
         self._backward_compatibility_missing_infparams()
 
         workflow_id = self._inf_opts[_ExpectedInfParameters.WorkflowId]
