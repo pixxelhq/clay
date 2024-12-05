@@ -7,9 +7,11 @@ import unittest
 from typing import Any, Optional
 from unittest import mock
 
+import datatypes
 import shortuuid
 
 from clay import ModelWrapper, types
+from clay.core import FeatureFlags
 from clay.logger import Logger
 from clay.runners.job_runner import JobRunner
 from clay.runners.job_runner_v2 import JobRunnerV2, _ArgoConfEnvVars, _InjectedEnvVars
@@ -30,7 +32,7 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             "task-id": "task123",
             "job-id": "job123",
             "workflow-id": "wfk123",
-            "local-working-dir":  self.testing_working_dir,
+            "local-working-dir": self.testing_working_dir,
             "working-dir": self.testing_working_dir,
             "inputs-working-dir": input_working_dir,
             "outputs-working-dir": output_working_dir,
@@ -38,6 +40,8 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             "env": "local",
             "AWS_PROFILE": "d-platform-services",
             "ORCHESTRATOR_URL": "localhost",
+            FeatureFlags.ForceInputTypesToV2.value: "1",
+            FeatureFlags.ForceOutputTypesToV2.value: "1",
         }
 
     def tearDown(self) -> None:
@@ -76,11 +80,13 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             async def postprocess(_self, raster, string) -> Any:
                 _self.add_progress(25)
                 _self.set_progress(87.4)
-                r = types.Raster(
+                r = datatypes.Raster(
+                    format=datatypes.Format.raster,
+                    type="url",
                     name="result",
                     value=raster,
                 )
-                s = types.String(name="string", value=string)
+                s = types.String(format=datatypes.Format.string, type="str", name="string", value=string)
                 return {
                     "result": r,
                     "string": s,
@@ -141,6 +147,8 @@ class TestJobRunnerV2_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             _ArgoConfEnvVars.ArgoTemplate.value: '{"inputs": {"parameters":[{"name": "string", "value":"hello world"}]}}',  # noqa
             _InjectedEnvVars.Env.value: "local",
             "ORCHESTRATOR_URL": "123",
+            FeatureFlags.ForceInputTypesToV2.value: "1",
+            FeatureFlags.ForceOutputTypesToV2.value: "1",
         }
 
     def tearDown(self) -> None:
@@ -176,7 +184,7 @@ class TestJobRunnerV2_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
 
             async def postprocess(_self, string) -> Any:
                 _self.add_progress(25)
-                s = types.String(name="string", value=string)
+                s = datatypes.String(format=datatypes.Format.string, type="url", name="string", value=string)
                 return {
                     "string": s,
                 }

@@ -13,6 +13,9 @@ build/package:
 	pip install build
 	python -m build ./python
 
+python-test:
+	cd python; pytest -vv
+
 test:
 	go test ./...
 	cd python; pytest -vv
@@ -75,7 +78,7 @@ go-binaries:
 
 test-with-runner:
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
-	echo 'Waiting for Minio to be ready...' 
+	echo 'Waiting for Minio to be ready...'
 	sleep 10
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
 	sudo docker-compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='kube' model

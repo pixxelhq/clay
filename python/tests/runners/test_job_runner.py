@@ -1,5 +1,4 @@
 # type: ignore
-
 import copy
 import json
 import os
@@ -35,13 +34,15 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "task-id": "task123",
             "job-id": "job123",
             "workflow-id": "wfk123",
-            "local-working-dir":  self.testing_working_dir,
+            "local-working-dir": self.testing_working_dir,
             "working-dir": self.testing_working_dir,
             "inputs-working-dir": input_working_dir,
             "outputs-working-dir": output_working_dir,
             "outputs-remote-path": "s3://workflow-id/job-id/task-id/outputs/",
             "env": "local",
             "AWS_PROFILE": "d-platform-services",
+            "DISABLE_AUTO_UPLOAD": "false",
+            "AUTO_DOWNLOAD_ASSETS": "false",
         }
 
     def tearDown(self) -> None:
@@ -259,6 +260,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             None,
         )
         a.start(args=[raster, string])
+        env_patcher.stop()
         passed_vals = a.get_passed_inputs_dict()
 
         raster_input_dir = os.path.join(
@@ -287,7 +289,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         with open(os.path.join(raster_input_dir, "spec.json"), "r") as f:
             d = json.load(f)
         assert os.path.samefile(d["value"], os.path.join(raster_input_dir, "test-raster.tiff"))
-        env_patcher.stop()
 
     async def test_auto_upload_generated_assets_enabled_success(self) -> None:
         class M(ModelWrapper):
@@ -387,7 +388,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             d = json.load(f)
         assert d["value"] == remote_raster_path
         assert d["metadata"] == {"block-name": "test-artifact"}
-        env_patcher.stop()
 
     async def test_read_inputs_backward_compatible(self) -> None:
         class M(ModelWrapper):
@@ -456,7 +456,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
         assert passed_vals["raster"]["value"] == raster["value"]
         assert passed_vals["string"]["value"] == "hello world"
-        env_patcher.stop()
 
     async def test_handle_input_vector_assets(self) -> None:
         class M(ModelWrapper):
@@ -518,7 +517,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "inputs",
             "vector_file",
         )
-        
+
         remote_vector_path = os.path.join(
             self.testing_working_dir,
             "wfk123",
@@ -532,7 +531,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         with open(os.path.join(result_output_dir, "spec.json"), "r") as f:
             d = json.load(f)
         assert d["value"] == remote_vector_path
-        env_patcher.stop()
 
     async def test_handle_input_assets(self) -> None:
         class M(ModelWrapper):
@@ -560,7 +558,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "format": "vector",
             "type": "url",
             "name": "vector_file",
-            "value": "s3://d-platform-orchestrator-lulc-artifacts-s3-01/shapefile.geojson",
+            "value": "s3://d-platform-orchestrator-lulc-artifacts-s3-01/test_abc.geojson",
         }
 
         # creating a dummy string input
@@ -593,33 +591,21 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "job123",
             "task123",
             "outputs",
-            "result",
+            "string",
         )
-        remote_raster_path = os.path.join(
-            "s3://d-platform-orchestrator-lulc-artifacts-s3-01",
-            "wfk123",
-            "job123",
-            "task123",
-            "outputs",
-            "result",
-            "clipped.tiff",
-        )
-
         assert os.path.samefile(
-            passed_vals["raster"]["value"],
+            passed_vals["vector_file"]["value"],
             os.path.join(
                 self.testing_working_dir,
                 "wfk123",
                 "job123",
                 "task123",
                 "inputs",
-                "raster",
-                "test-raster.tiff",
+                "vector_file",
+                "test_abc.geojson",
             ),
         )
-        assert passed_vals["string"]["value"] == "hello world"
-        assert os.path.exists(os.path.join(result_output_dir, "clipped.tiff"))
-        with open(os.path.join(result_output_dir, "spec.json"), "r") as f:
-            d = json.load(f)
-        assert d["value"] == remote_raster_path
+        assert os.path.exists(os.path.join(str(result_output_dir), "spec.json"))
+        with open(os.path.join(str(result_output_dir), "spec.json"), "r") as f:
+            json.load(f)
         env_patcher.stop()

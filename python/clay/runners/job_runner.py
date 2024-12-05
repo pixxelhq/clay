@@ -9,12 +9,20 @@ from enum import Enum
 from logging import Logger
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+import datatypes
 from s3fs import S3FileSystem
 from urllib3.util import parse_url
 
 import clay
-from clay import _network, types, utils
-from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapper, ValueTypes, callback_wrapper
+from clay import _network, type_utils, types, utils
+from clay.core import (
+    DATA_SPEC_FILENAME,
+    BaseRunner,
+    FeatureFlags,
+    ModelWrapper,
+    ValueTypes,
+    callback_wrapper,
+)
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
 
 __LOCAL_WORKING_DIR__ = "/tmp"
@@ -107,6 +115,10 @@ class JobRunner(BaseRunner):
 
         self._inf_opts: Dict[_ExpectedInfParameters, str] = defaultdict(None)
 
+        self.convert_legacy_type = self.is_feature_flag_on(FeatureFlags.EnableTypesV2)
+        self.force_input_types_to_v2 = self.is_feature_flag_on(FeatureFlags.ForceInputTypesToV2)
+        self.force_output_types_to_v2 = self.is_feature_flag_on(FeatureFlags.ForceOutputTypesToV2)
+
         self._s3fs = S3FileSystem()
 
     def get_injected_envvar_if_found(self, key: _InjectedEnvVars) -> Tuple[str, bool]:
@@ -163,73 +175,77 @@ class JobRunner(BaseRunner):
 
     def _handle_input_assets(
         self,
-        data: types.Data,
+        data: datatypes.DataWrapperInterface,
         named_input_dir: str,
         named_remote_output_dir: str,
-    ) -> types.Data:
+    ) -> datatypes.DataWrapperInterface:
         if not self._injected_envvars[_InjectedEnvVars.AutoDownloadAssets]:
             return data
-        if data.Type != ValueTypes.URL.value or not data.IsArtifact:
+        if data.get_type() != ValueTypes.URL.value or not data.get_is_artifact():
             return data
 
-        if data.Type == ValueTypes.URL.value and data.Format == types.FormatTypes.VECTOR.value:
+        if data.get_type() == ValueTypes.URL.value and data.get_format() == types.FormatTypes.VECTOR.value:
             return self._handle_vector_input_assets(data, named_input_dir, named_remote_output_dir)
-
         data = self._upload_assets_to_s3(data, named_input_dir, named_remote_output_dir)
         return data
 
     def _handle_vector_input_assets(
         self,
-        data: types.Data,
+        data: datatypes.DataWrapperInterface,
         named_input_dir: str,
-        named_remote_output_dir: str
-    ) -> types.Data:  # type: ignore
+        named_remote_output_dir: str,
+    ) -> datatypes.DataWrapperInterface:  # type: ignore
         try:
-            _ = parse_url(str(data.Value))
+            _ = parse_url(data.get_value())
         except Exception as exc:
             self.logger.warning(f"unable to parse json: {exc}")
             # if the url is not parseable, then we assume it is a stringified geojson
             try:
-                parsed_data = json.loads(str(data.Value))
+                parsed_data = json.loads(data.get_value())
                 local_path = pathlib.Path(named_input_dir, os.path.basename("input.geojson"))
                 with open(local_path, "w+") as f:
                     json.dump(parsed_data, f, indent=4)
-                data.Value = str(local_path)
+                data.set_value(str(local_path))
                 self.logger.info("found stringified json")
-                named_remote_output_file = os.path.join(named_remote_output_dir, f"{data.Name}.geojson" )
-                self._s3fs.put_file(data.Value, named_remote_output_file )
-                self.logger.info(f"uploading {data.Value} to {named_remote_output_file}")
+                named_remote_output_file = os.path.join(named_remote_output_dir, f"{data.get_name()}.geojson")
+                self._s3fs.put_file(data.get_value(), named_remote_output_file)
+                self.logger.info(f"uploading {data.get_value()} to {named_remote_output_file}")
             except json.JSONDecodeError:
-                clay.failure("failed to parse geojson with value {0}".format(data.Value))
+                clay.failure("failed to parse geojson with value {0}".format(data.get_value()))
             return data
         data = self._upload_assets_to_s3(data, named_input_dir, named_remote_output_dir)
         return data
-        
-    def _upload_assets_to_s3(self, data, named_input_dir, named_remote_output_dir) -> types.Data:
-            url_fragments = parse_url(str(data.Value))
-            if url_fragments.scheme != "s3":
-                self.logger.warning(f"Unknown scheme while parsing {data.Value}: {url_fragments.scheme}")
-            file_name = os.path.basename(url_fragments.path)  # type: ignore
-            local_path = pathlib.Path(named_input_dir, str(file_name))
-            self._s3fs.get_file(data.Value, str(local_path))
-            if not local_path.exists():
-                raise FileNotFoundError(f"failed to find file {data.Value}")
-            if named_remote_output_dir != "":
-                named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
-                if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
-                    self.logger.info(f"Uploading {str(local_path)} to {named_remote_output_dir}")
-                    # TODO: here we risk overwriting the file if it exists. Ideally, if the
-                    # file exists in the named-remote-output-dir path, then we shouldnt upload
-                    try:
-                        self._s3fs.info(named_remote_output_dir)
-                        # the line below is run only if the file exists in the said path
-                        self.logger.warning(f"File found at {named_remote_output_dir}. will be overwritten")
-                    except FileNotFoundError:
-                        pass
-                    self._s3fs.put_file(str(local_path), named_remote_output_dir)
-                    self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
-            data.Value = str(local_path)
-            return data
+
+    def _upload_assets_to_s3(
+        self,
+        data: datatypes.DataWrapperInterface,
+        named_input_dir,
+        named_remote_output_dir,
+    ) -> datatypes.DataWrapperInterface:
+        url_fragments = parse_url(data.get_value())
+        if url_fragments.scheme != "s3":
+            self.logger.warning(f"Unknown scheme while parsing {data.get_value()}: {url_fragments.scheme}")
+        file_name = os.path.basename(url_fragments.path)  # type: ignore
+        local_path = pathlib.Path(named_input_dir, str(file_name))
+        self._s3fs.get_file(data.get_value(), str(local_path))
+        if not local_path.exists():
+            raise FileNotFoundError(f"failed to find file {data.get_value()}")
+        if named_remote_output_dir != "":
+            named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
+            if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
+                self.logger.info(f"Uploading {str(local_path)} to {named_remote_output_dir}")
+                # TODO: here we risk overwriting the file if it exists. Ideally, if the
+                # file exists in the named-remote-output-dir path, then we shouldnt upload
+                try:
+                    self._s3fs.info(named_remote_output_dir)
+                    # the line below is run only if the file exists in the said path
+                    self.logger.warning(f"File found at {named_remote_output_dir}. will be overwritten")
+                except FileNotFoundError:
+                    pass
+                self._s3fs.put_file(str(local_path), named_remote_output_dir)
+                self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
+        data.set_value(str(local_path))
+        return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
         wfid = os.getenv(_ExpectedInfParameters.WorkflowId.value)
@@ -251,11 +267,16 @@ class JobRunner(BaseRunner):
         if local_working_dir is None:
             raise ValueError(f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`")
         self._inf_opts[_ExpectedInfParameters.LocalWorkingDir] = local_working_dir
-            # The `None` assignment is to statisfy the type checker
+        # The `None` assignment is to statisfy the type checker
 
     def _collect_inputs(
         self, inputs: Optional[List[Dict[str, Any]]] = None
-    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
+    ) -> Optional[
+        Union[
+            Dict[str, Any],
+            Tuple[Dict[str, datatypes.DataWrapperInterface], Dict[str, Any]],
+        ]
+    ]:
         """Collects inputs. More details to be added"""
         # first we convert list of dicts to a dict of dicts
         if inputs is None:
@@ -287,10 +308,12 @@ class JobRunner(BaseRunner):
         input_config_dict = utils.convert_list_to_dict(self.config.inputs, "name")
         _processed_inputs = {}
         for k, v in dict_inputs.items():
-            model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
-            if model.Value is None:
-                model.Value = input_config_dict[model.Name].get("default", None)
-            named_input_dir = pathlib.Path(input_working_dir, model.Name)
+            model: datatypes.DataWrapperInterface = type_utils.TypeFromDict(v, self.force_input_types_to_v2)
+
+            # model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
+            if model.get_value() == "":  # TODO: check this condition
+                model.set_value(input_config_dict[model.get_name()].get("default", None))
+            named_input_dir = pathlib.Path(input_working_dir, model.get_name())
             named_input_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
             remote_working_dir = ""
@@ -299,10 +322,10 @@ class JobRunner(BaseRunner):
             if found:
                 remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "inputs")
 
-                named_remote_working_dir = os.path.join(remote_working_dir, model.Name)
+                named_remote_working_dir = os.path.join(remote_working_dir, model.get_name())
 
             model = self._handle_input_assets(model, str(named_input_dir), named_remote_working_dir)
-            i = model.model_dump(by_alias=True)
+            i = model.serialize_to_dict()
             with open(os.path.join(named_input_dir, DATA_SPEC_FILENAME), "w+") as f:
                 json.dump(i, f)
 
@@ -345,33 +368,35 @@ class JobRunner(BaseRunner):
             return named_remote_output_dir
         return dest
 
-    def _output_handler(self, data: types.Data) -> None:
+    def _output_handler(self, data: datatypes.DataWrapperInterface) -> None:
         """processes each output item. More details to be added."""
-        if data.Name not in self.expected_outputs:
-            self.logger.error(f"`{data.Name}` not found in outputs")
+        if data.get_name() not in self.expected_outputs:
+            self.logger.error(f"`{data.get_name()}` not found in outputs")
             return
 
-        if data.Name in self._output_keys_written:
-            self.logger.error(f"Rewriting output key: `{data.Name}`")
+        if data.get_name() in self._output_keys_written:
+            self.logger.error(f"Rewriting output key: `{data.get_name()}`")
             raise OutputOverwriteException("attempting to overwrite output")
 
-        output_config = self.expected_outputs[data.Name]
+        output_config = self.expected_outputs[data.get_name()]
         _format = output_config["format"]
-        if data.Format != _format:
-            raise ValueError(f"invalid format `{data.Format}` for `{data.Name}")
+        if data.get_format() != _format:
+            raise ValueError(f"invalid format `{data.get_format()}` for `{data.get_name()}")
 
         # set `displayName`, `description` and `group` from config
-        data.DisplayName = output_config.get("display_name", "")
-        data.Description = output_config.get("description", "")
-        data.Group = output_config.get("group", "")
+        data.set_field("display_name", output_config.get("display_name", ""))
+        data.set_field("description", output_config.get("description", ""))
+        data.set_field("group", output_config.get("group", ""))
 
         # set `block-name` if available
         block_name, found = self.get_injected_envvar_if_found(_InjectedEnvVars.BlockName)
         if found:
-            if data.Metadata:
-                data.Metadata["block-name"] = block_name
+            metadata = data.get_field("metadata")
+            if isinstance(metadata, dict):
+                metadata["block-name"] = block_name
             else:
-                data.Metadata = {"block-name": block_name}
+                metadata = {"block-name": block_name}
+            data.set_field("metadata", metadata)
 
         workflow_id = self._inf_opts[_ExpectedInfParameters.WorkflowId]
         job_id = self._inf_opts[_ExpectedInfParameters.JobId]
@@ -381,7 +406,7 @@ class JobRunner(BaseRunner):
         output_working_dir = pathlib.Path(os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs"))
         output_working_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-        named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
+        named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.get_name()))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         remote_working_dir = ""
@@ -390,27 +415,32 @@ class JobRunner(BaseRunner):
         if found:
             remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "outputs")
 
-            named_remote_working_dir = os.path.join(remote_working_dir, data.Name)
+            named_remote_working_dir = os.path.join(remote_working_dir, data.get_name())
 
         if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
             value = self._handle_output_asset(
-                data.Name,
+                data.get_name(),
                 ValueTypes.URL,
-                str(data.Value),
+                str(data.get_value()),
                 str(named_output_dir),
                 named_remote_working_dir,
             )
-            data.Value = value
+            data.set_value(value)
 
         # setting the type
-        data.Type = output_config["type"]
-        if hasattr(data, "Properties"):
-            if "properties" not in output_config and data.Properties is not None:  # type: ignore
-                raise ValueError(f"found properties for output `{data.Name}` but config has " "no properties set")
-            elif "properties" in output_config and data.Properties is None:  # type: ignore
-                data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
+        data.set_field("type", output_config["type"])
 
-        output = data.model_dump(by_alias=True)
+        properties = data.get_field("properties")
+        # TODO: change this from Properties to properties and use get_field only
+        if "properties" not in output_config and properties is not None:  # type: ignore
+            raise ValueError(f"found properties for output `{data.get_name()}` but config has " "no properties set")
+        elif "properties" in output_config and properties is None:  # type: ignore
+            properties = types._PropertiesFromConfig(output_config)
+            if properties:
+                properties = properties.to_types_v2()
+            data.set_properties(properties)
+
+        output = data.serialize_to_dict()
 
         local_spec_file_path = named_output_dir.joinpath(DATA_SPEC_FILENAME)
         with open(local_spec_file_path, "w+") as f:
@@ -422,11 +452,11 @@ class JobRunner(BaseRunner):
             self._s3fs.put_file(local_spec_file_path, remote_path)
             self.logger.info("Finished uploading")
 
-        self._output_keys_written.add(data.Name)
-        self.update_model_outputs_dict(data.Name, data.Value)
+        self._output_keys_written.add(data.get_name())
+        self.update_model_outputs_dict(data.get_name(), data.get_value())
         self.update_outputs_list(output)
 
-    def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
+    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapperInterface]) -> None:
         for val in output_buffer:
             self._output_handler(val)
 
@@ -478,9 +508,9 @@ class JobRunner(BaseRunner):
 
     def run_model_inference(
         self, *args: Any, **kwargs: Optional[Dict[str, Any]]
-    ) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
+    ) -> Tuple[List[datatypes.DataWrapperInterface], Optional[Exception]]:
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
-        inputs: Optional[Dict[str, Any]] = kwargs.get("inputs")
+        inputs: Optional[Dict[str, datatypes.DataWrapperInterface]] = kwargs.get("inputs")
         if inputs is None:
             raise ValueError("inputs cannot be None")
 
@@ -490,9 +520,12 @@ class JobRunner(BaseRunner):
             self._model.logger.error(exc, exc_info=exc)
             return [], exc
         result = ctx.get_output_buffer()
-        self._flush_output_buffer(result)
 
-        serialized_result = types._serialize_output_buffer(result)
+        wrapped_result = type_utils.WrapTypes(result, self.is_feature_flag_on(FeatureFlags.ForceOutputTypesToV2))
+
+        self._flush_output_buffer(wrapped_result)
+
+        serialized_result = types._serialize_output_buffer(wrapped_result)
         inf_times = ctx.get_model_inf_times()
         end_time = utils.get_current_utc_time_iso()
         clb = types.Callback(
@@ -507,7 +540,7 @@ class JobRunner(BaseRunner):
         success = self._model.send_callback(callback=clb)
         if not success and self.enable_debug_logs:
             self.logger.error("Failed to fire callback successfully")
-        return result, None
+        return wrapped_result, None
 
     def start(self, **kwargs: Any) -> None:
         """Entrypoint into the runner. Starts the actual process of execution. This involves setting up the model
@@ -590,4 +623,3 @@ class JobRunner(BaseRunner):
         result, exc = self.run_model_inference(inputs=_input_dict)  # type: ignore
         if exc is not None:
             self.failure(exc=exc)
-        self.logger.info(f"Results: {result}")

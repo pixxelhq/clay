@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import unittest
+import unittest.mock
 from typing import Any
 from unittest import mock
 
@@ -207,12 +208,13 @@ class TestCallback(unittest.TestCase):
             "DEXTER_HOST": test_host,
             "DEXTER_PORT": test_port,
             "task_id": task_id,
+            "DEXTER_RUN_TYPE": "inference",
         }
 
         _logger = logger.ClayLogger("test-logger")
         c = callback_wrapper(env)
 
-        env_patcher = unittest.mock.patch.dict(os.environ, {"DEXTER_RUN_TYPE": "inference"})
+        env_patcher = unittest.mock.patch.dict(os.environ, env)
         env_patcher.start()
         val = c(_logger, types.Callback(Id="123"), enable_debug_logs=True)
         env_patcher.stop()

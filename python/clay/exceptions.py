@@ -41,3 +41,8 @@ class OutputOverwriteException(Exception):
 
     def __init__(self, msg: str) -> None:
         super().__init__(msg)
+
+
+class UnknownFormatException(Exception):
+    def __init__(self, format: str) -> None:
+        super().__init__(f"{format} is an unknown exception type")

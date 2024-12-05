@@ -27,7 +27,7 @@ line-ending = "auto"
 
 [tool.pyright]
 include = ["python/clay"]
-exclude = ["*env", "**/node_modules", "**/__pycache__", "python/tests", "api", "pkg", "cmd"]
+exclude = ["*env", "**/node_modules", "**/__pycache__", "python/tests", "api", "pkg", "cmd", "python/build",  "python/dist"]
 useLibraryCodeForTypes = true
 reportSelfClsParameterName = false
 

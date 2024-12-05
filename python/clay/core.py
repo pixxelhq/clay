@@ -20,12 +20,12 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    get_args,
 )
 
+import datatypes
 import uvloop
 
-from clay import _network, types
+from clay import _network, type_utils, types
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, get_streamvalues
 from clay.utils import (
@@ -48,6 +48,12 @@ class ValueTypes(Enum):
     URL = "url"
     INT = "int"
     FLOAT = "float"
+
+
+class FeatureFlags(Enum):
+    EnableTypesV2 = "FEATURE_ENABLE_TYPES_V2"
+    ForceInputTypesToV2 = "FEATURE_FORCE_INPUT_TYPES_TO_V2"
+    ForceOutputTypesToV2 = "FEATURE_FORCE_OUTPUT_TYPES_TO_V2"
 
 
 C = TypeVar("C", bound="CallbackAuthMethod")
@@ -210,6 +216,10 @@ class ModelWrapper:
         generally a very unsafe operation and is not recommended. This kept for
         reasons for backward compatibility.
         """
+        return False
+
+    @cached_property
+    def wrap_inputs(self) -> bool:
         return False
 
     def set_callback_callable(self, callback_fn: Callable) -> None:
@@ -478,10 +488,17 @@ class ModelWrapper:
         Returns:
             InferenceCtx: A context class scoped to the inference run.
         """
+
+        d: Dict[str, Union[datatypes.DataWrapperInterface, datatypes.Data, types.Data]] = inputs
+        if not self.wrap_inputs:
+            # lift the wrapped types
+            for key, value in inputs.items():
+                d[key] = type_utils.lift_underlying_type(value)
+
         _inf_ctx = InferenceCtx(opts=opts)
         try:
             _inf_ctx.set_model_inf_start_time()
-            _return_vals = await self.preprocess(**inputs)
+            _return_vals = await self.preprocess(**d)
             _return_vals = await self.inference(**_return_vals)
             _return_vals = await self.postprocess(**_return_vals)
             _inf_ctx.set_model_inf_end_time()
@@ -494,7 +511,7 @@ class ModelWrapper:
         # latter has duplication: `name` is both present in key and the type which is the
         # value
         for _, v in _return_vals.items():
-            assert isinstance(v, get_args(types.Data)), f"return value can only be one of {types.Data}"
+            assert isinstance(v, types.OutputBufferItem), f"return value can only be of {types.OutputBufferItem}"
             _inf_ctx.output(v)
 
         return _inf_ctx
@@ -531,6 +548,7 @@ class BaseRunner(object):
         self._dexter_host = os.getenv(types._CommonEnvvars.DEXTER_HOST.value, "http://localhost")
         self._dexter_port = os.getenv(types._CommonEnvvars.DEXTER_PORT.value, "8080")
         self.config = yaml_to_namespace(cfg_path)
+
         if enable_debug_logs is None:
             self.enable_debug_logs = not self.is_running_locally
         else:
@@ -543,9 +561,11 @@ class BaseRunner(object):
                 propagate=True,
                 level=log_level,
             )
-
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
+
+        self._feature_flags = set()
+        self.__set_feature_flags__()
 
     def __init_subclass__(cls) -> None:
         assert "output" in dir(cls)
@@ -569,6 +589,31 @@ class BaseRunner(object):
     @property
     def logger(self) -> Logger:
         return self._logger
+
+    def set_feature_flag_on(self, *args: FeatureFlags) -> None:
+        for ai in args:
+            self._feature_flags.add(ai)
+
+    def is_feature_flag_on(self, flag: FeatureFlags) -> bool:
+        return flag.name in self._feature_flags
+
+    def __set_feature_flags__(self):
+        # env feature flags can only be set if the value of the env is 1
+        # set is 1 and unset is 0
+        for flag in FeatureFlags:
+            env_value = os.getenv(flag.value)
+            if env_value:
+                try:
+                    value = int(env_value)
+                except:  # noqa: E722
+                    self.logger.error(f"invalid feature flag value received for {flag.name}: {env_value}")
+                    continue
+                if value == 1 and flag.name not in self._feature_flags:
+                    self.logger.info(f"enabling {flag.name} via env")
+                    self._feature_flags.add(flag.name)
+                elif value == 0 and flag.name in self._feature_flags:
+                    self.logger.info(f"disabling {flag.name} via env")
+                    self._feature_flags.remove(flag.name)
 
     def _init_model(self) -> None:
         self.logger.info("Initializing Model...")
@@ -598,7 +643,7 @@ class BaseRunner(object):
     @abstractmethod
     def _collect_inputs(
         self, inputs: Optional[List[Dict[str, Any]]] = None
-    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, types.Data], Dict[str, Any]]]]:
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, datatypes.DataWrapperInterface], Dict[str, Any]]]]:
         pass
 
     @abstractmethod
@@ -639,7 +684,7 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
+    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapperInterface]) -> None:
         pass
 
     @abstractmethod
