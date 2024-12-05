@@ -9,11 +9,19 @@ from enum import Enum
 from logging import Logger
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+import datatypes
 from s3fs import S3FileSystem
 
 import clay
-from clay import _network, types
-from clay.core import DATA_SPEC_FILENAME, BaseRunner, ModelWrapperType, ValueTypes, callback_wrapper
+from clay import _network, type_utils, types
+from clay.core import (
+    DATA_SPEC_FILENAME,
+    BaseRunner,
+    FeatureFlags,
+    ModelWrapperType,
+    ValueTypes,
+    callback_wrapper,
+)
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
 from clay.utils import (
     cast_inputs,
@@ -87,7 +95,15 @@ class JobRunnerV2(BaseRunner):
         enable_uvloop: bool = False,
         enable_debug_logs: bool = False,
     ) -> None:
-        super().__init__(JobRunnerV2.RUN_MODE, modelcls, model_args, cfg_path, logger, enable_uvloop, enable_debug_logs)
+        super().__init__(
+            JobRunnerV2.RUN_MODE,
+            modelcls,
+            model_args,
+            cfg_path,
+            logger,
+            enable_uvloop,
+            enable_debug_logs,
+        )
         self.model_name = model_name
         self._injected_envvars: Dict[_InjectedEnvVars, Any] = {}
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
@@ -191,8 +207,8 @@ class JobRunnerV2(BaseRunner):
 
     # The `None` assignment is to statisfy the type checker
     def _collect_inputs(
-        self, inputs: Optional[List[Dict[str, Any]]] = None
-    ) -> Tuple[Dict[str, types.Data], Dict[str, Any]]:
+        self, inputs: Optional[List[Dict[str, datatypes.DataWrapperInterface]]] = None
+    ) -> Tuple[Dict[str, datatypes.DataWrapperInterface], Dict[str, Any]]:
         def extract_input_parameters_from_argo_template() -> Dict[str, Any]:
             argo_inputs = self._argo_template_spec.get("inputs", {})
             if "parameters" in argo_inputs:
@@ -206,36 +222,44 @@ class JobRunnerV2(BaseRunner):
         def is_artifact_input(input_config: Dict[str, Any]) -> bool:
             return input_config.get(types._IS_ARTIFACT_ATTR_NAME, False)
 
-        def process_artifact_input(input_config: Dict[str, Any], input_dirmap: Dict[str, str]) -> Tuple[Dict[str, Any], types.Data]:
+        def process_artifact_input(
+            input_config: Dict[str, Any], input_dirmap: Dict[str, str]
+        ) -> Tuple[Dict[str, Any], datatypes.DataWrapperInterface]:
             path = input_dirmap.get(input_config["name"])
             if path is None:
                 clay.failure(f"`{input_config['name']}` not found")
 
-            with open(os.path.join(path, DATA_SPEC_FILENAME)) as f: # type: ignore
+            with open(os.path.join(path, DATA_SPEC_FILENAME)) as f:  # type: ignore
                 spec = json.load(f)
-            spec["name"] = input_config["name"]
-            self.update_inputs_list(spec.copy())
 
+            data = type_utils.TypeFromDict(spec, self.is_feature_flag_on(FeatureFlags.ForceInputTypesToV2))
+
+            # TODO: why are we doing this?
+            data.set_field("name", input_config.get("name"))
+
+            # TODO: should we be casting the inputs given that value would always be str?
             value = cast_inputs(spec["value"], spec["type"])
-            if spec["type"] == ValueTypes.URL.value:
+            if data.get_type() == ValueTypes.URL.value:
                 filename = get_filename_from_remote(value)
-                value = os.path.join(path, filename) # type: ignore
-
-            spec["value"] = value
-            data = types._FormatModelMap[input_config["format"]].model_validate(spec)
+                value = os.path.join(path, filename)  # type: ignore
+            data.set_value(value)
 
             return spec, data
 
-        def process_parameter_input(input_config: Dict[str, Any], input_parameters: Dict[str, Any], input_working_dir: str) -> Tuple[Dict[str, Any], types.Data]:
+        def process_parameter_input(
+            input_config: Dict[str, Any],
+            input_parameters: Dict[str, Any],
+            input_working_dir: str,
+        ) -> Tuple[Dict[str, Any], datatypes.DataWrapperInterface]:
             value = input_parameters.get(input_config["name"], {}).get("value", None) or input_config.get("value")
-            value = self.extract_parameter_value(value) # type: ignore
+            value = self.extract_parameter_value(value)  # type: ignore
             value = cast_inputs(value, input_config["type"])
 
             input_config["value"] = value
-            data = types._FormatModelMap[input_config["format"]].model_validate(input_config)
+            data = type_utils.TypeFromDict(input_config, self.is_feature_flag_on(FeatureFlags.ForceInputTypesToV2))
 
-            data_dict = data.model_dump(by_alias=True)
-            spec_path = pathlib.Path(os.path.join(input_working_dir, input_config["name"]))
+            data_dict = data.serialize_to_dict()
+            spec_path = pathlib.Path(os.path.join(input_working_dir, data.get_name()))
             spec_path.mkdir(exist_ok=True, parents=True)
             with open(os.path.join(spec_path, DATA_SPEC_FILENAME), "w+") as f:
                 json.dump(data_dict, f)
@@ -257,7 +281,9 @@ class JobRunnerV2(BaseRunner):
             input_specs[input_config["name"]] = spec
             self.set_inputs_propmap(input_config["name"], spec)
             self.update_inputs_list(spec)
-            self.update_passed_inputs_dict(input_config["name"], spec["value"])
+
+            # TODO: no clue why this is here and required.
+            self.update_passed_inputs_dict(input_config["name"], data.serialize_to_dict()["value"])
 
         return typed_inputs, input_specs
 
@@ -309,7 +335,7 @@ class JobRunnerV2(BaseRunner):
         self._s3fs.put_file(local_spec_file_path, remote_path)
         self.logger.info("upload complete")
 
-    def _output_handler(self, data: types.Data) -> None:
+    def _output_handler(self, data: datatypes.DataWrapperInterface) -> None:
         """Set an output asset. This method is responsible for creating the necessary
         output jsons and moving any required asset to its correct location without any
         intervention from the user.
@@ -346,12 +372,7 @@ class JobRunnerV2(BaseRunner):
 
         Args:
             key (str): Name of the output parameter
-            value (Union[
-                types.URL,
-                types.Str,
-                types.Int,
-                types.Float,
-            ]):
+            value (datatypes.DataWrapperInterface):
                 The actual value of the output parameter.
 
         properties (
@@ -373,74 +394,81 @@ class JobRunnerV2(BaseRunner):
             overwrite an already written output file.
         """
 
-        if data.Name not in self.expected_outputs:
-            self.logger.error(f"`{data.Name}` is not listed as an expected output in the config/specification file.")
+        if data.get_name() not in self.expected_outputs:
+            self.logger.error(
+                f"`{data.get_name()}` is not listed as an expected output in the config/specification file."
+            )
             return
 
-        if data.Name in self._output_keys_written:
+        if data.get_name() in self._output_keys_written:
             self.logger.error(
-                f"Received output for `{data.Name}` again. Please ensure each output is returned only once."
+                f"Received output for `{data.get_name()}` again. Please ensure each output is returned only once."
             )
-            raise OutputOverwriteException(f"Duplicate output received for `{data.Name}`")
+            raise OutputOverwriteException(f"Duplicate output received for `{data.get_name()}`")
 
-        output_config = self.expected_outputs[data.Name]
+        output_config = self.expected_outputs[data.get_name()]
         _format = output_config["format"]
-        if data.Format != _format:
-            raise ValueError(f"invalid format `{data.Format}` for `{data.Name}`. Expected `{_format}`")
+        if data.get_format() != _format:
+            raise ValueError(f"invalid format `{data.get_format()}` for `{data.get_name()}`. Expected `{_format}`")
 
         # set `displayName` and `description` from config
-        data.DisplayName = output_config.get("display_name", "")
-        data.Description = output_config.get("description", "")
-        data.Group = output_config.get("group", "")
+        data.set_field("display_name", output_config.get("display_name", ""))
+        data.set_field("description", output_config.get("description", ""))
+        data.set_field("group", output_config.get("group", ""))
 
         # add block-name to metadata if available
         block_name, found = self.get_injected_envvar_if_found(_InjectedEnvVars.BlockName)
         if found:
-            if data.Metadata:
-                data.Metadata["block-name"] = block_name
+            metadata = data.get_field("metadata")
+            if isinstance(metadata, dict):
+                metadata["block-name"] = block_name
             else:
-                data.Metadata = {"block-name": block_name}
+                metadata = {"block-name": block_name}
+            data.set_field("metadata", metadata)
 
         output_working_dir, found = self.get_injected_envvar_if_found(_InjectedEnvVars.OutputsWorkingDir)
-        named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.Name))
+        named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.get_name()))
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
         assert os.path.exists(named_output_dir)
         self.logger.info(f"Asset info: {data}")
-        self.logger.info(f"Asset output directory (`{data.Name}`): {named_output_dir}")
+        self.logger.info(f"Asset output directory (`{data.get_name()}`): {named_output_dir}")
 
         # here we check if the output item in question is an artifact or not. If it
         # is not, then we dont process any supporting artifact file.
         if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
-            value = self._handle_output_asset(data.Name, ValueTypes.URL, str(data.Value), str(named_output_dir))
-            data.Value = value
+            value = self._handle_output_asset(data.get_name(), ValueTypes.URL, data.get_value(), str(named_output_dir))
+            data.set_value(value)
 
         # setting the type
-        data.Type = output_config["type"]
+        data.set_field("type", output_config["type"])
 
-        if hasattr(data, "Properties"):
-            if "properties" not in output_config and data.Properties is not None:  # type: ignore
-                raise ValueError(f"found properties for output `{data.Name}` but config has " "no properties set")
-            elif "properties" in output_config and data.Properties is None:  # type: ignore
-                data.Properties = types._PropertiesFromConfig(output_config)  # type: ignore
+        properties = data.get_field("properties")
+        if "properties" not in output_config and properties is not None:  # type: ignore
+            raise ValueError(f"found properties for output `{data.get_name()}` but config has " "no properties set")
+        elif "properties" in output_config and properties is None:  # type: ignore
+            # TODO: fix below line
+            properties = types._PropertiesFromConfig(output_config)  # type: ignore
+            if properties:
+                properties = properties.to_types_v2()
+            data.set_properties(properties)
 
-        # Note: `exclude_None` to be added only after careful testing since there are lot of side effects
-        output = data.model_dump(by_alias=True)
+        output = data.serialize_to_dict()
 
-        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, data.Name))
+        output_parameter_path = pathlib.Path(os.path.join(output_working_dir, data.get_name()))
         output_parameter_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-        self._output_keys_written.add(data.Name)
-        self.update_model_outputs_dict(data.Name, data.Value)
+        self._output_keys_written.add(data.get_name())
+        self.update_model_outputs_dict(data.get_name(), data.get_value())
         self.update_outputs_list(output)
 
         local_spec_file_path = output_parameter_path.joinpath(DATA_SPEC_FILENAME)
         with open(local_spec_file_path, "w+") as f:
             json.dump(output, f)
 
-        if not data.IsArtifact:
-            self._upload_parameter_output_spec_file(data.Name, str(local_spec_file_path))
+        if not data.get_is_artifact():
+            self._upload_parameter_output_spec_file(data.get_name(), str(local_spec_file_path))
 
-    def _flush_output_buffer(self, output_buffer: types.OutputsBuffer) -> None:
+    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapperInterface]) -> None:
         for val in output_buffer:
             self._output_handler(val)
 
@@ -462,7 +490,10 @@ class JobRunnerV2(BaseRunner):
     def success(self) -> None:
         task_id, found = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
         clb = types.Callback(
-            Id=task_id, State=types.ModelStates.COMPLETED, Outputs=self.get_outputs_list(), Progress=100.0
+            Id=task_id,
+            State=types.ModelStates.COMPLETED,
+            Outputs=self.get_outputs_list(),
+            Progress=100.0,
         )
         success = self._model.send_callback(callback=clb)
 
@@ -504,7 +535,9 @@ class JobRunnerV2(BaseRunner):
         self.logger.info("Inference finished")
         raise exc
 
-    def run_model_inference(self, *args: Any, **kwargs: Any) -> Tuple[types.OutputsBuffer, Optional[Exception]]:
+    def run_model_inference(
+        self, *args: Any, **kwargs: Any
+    ) -> Tuple[List[datatypes.DataWrapperInterface], Optional[Exception]]:
         if "start_time" in kwargs:
             start_time = kwargs.get("start_time")
         else:
@@ -518,7 +551,11 @@ class JobRunnerV2(BaseRunner):
         id, _ = self.get_injected_envvar_if_found(_InjectedEnvVars.TaskId)
 
         callback = types.Callback(
-            Id=id, State=types.ModelStates.INPROGRESS, Inputs=self.get_inputs_list(), StartTime=start_time, Progress=5
+            Id=id,
+            State=types.ModelStates.INPROGRESS,
+            Inputs=self.get_inputs_list(),
+            StartTime=start_time,
+            Progress=5,
         )
         # fire inprogress callback
         success = self._model.send_callback(callback=callback)
@@ -543,11 +580,13 @@ class JobRunnerV2(BaseRunner):
 
         result = ctx.get_output_buffer()
 
-        self._flush_output_buffer(result)
+        wrapped_result = type_utils.WrapTypes(result, self.is_feature_flag_on(FeatureFlags.ForceOutputTypesToV2))
+
+        self._flush_output_buffer(wrapped_result)
 
         inf_times = ctx.get_model_inf_times()
         end_time = get_current_utc_time_iso()
-        serialized_result = types._serialize_output_buffer(result)
+        serialized_result = types._serialize_output_buffer(wrapped_result)
         clb = types.Callback(
             Id=id,
             State=types.ModelStates.COMPLETED,
@@ -560,7 +599,7 @@ class JobRunnerV2(BaseRunner):
         success = self._model.send_callback(callback=clb)
         if not success and self.enable_debug_logs:
             self.logger.warning("FAILED: Could not fire Orchestrator callback")
-        return result, None
+        return wrapped_result, None
 
     def start(self, **kwargs: Any) -> None:
         start_time = get_current_utc_time_iso()
@@ -596,4 +635,6 @@ class JobRunnerV2(BaseRunner):
         result, exc = self.run_model_inference(start_time=start_time)  # type: ignore
         if exc is not None:
             self.failure(exc)
-        self.logger.info(f"Inference Results: {result}")
+
+        # yes this is a perf sink but at this time, there is
+        self.logger.info(f"Inference Results: {[r.serialize_to_dict() for r in result]}")

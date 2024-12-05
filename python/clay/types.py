@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Union
 
+import datatypes
 import pydantic
 from pydantic import ConfigDict, Field
 from typing_extensions import Annotated
@@ -16,10 +17,10 @@ EXECUTOR_ENVVAR = "EXECUTOR"
 
 class _CommonEnvvars(str, Enum):
     ORCHESTRATOR_URL = "ORCHESTRATOR_URL"
-    DEXTER_RUN_TYPE = "DEXTER_RUN_TYPE"
     DEXTER_HOST = "DEXTER_HOST"
     DEXTER_PORT = "DEXTER_PORT"
     TASK_ID = "task_id"
+    DEXTER_RUN_TYPE = "DEXTER_RUN_TYPE"
 
 
 class FailureTypes(str, Enum):
@@ -53,11 +54,6 @@ class FormatTypes(Enum):
     TABULAR = "tabular"
 
 
-def add_inline_fields(from_model: Type[pydantic.BaseModel], to_model: Type[pydantic.BaseModel]) -> None:
-    for k, v in from_model.__annotations__.items():
-        to_model.__annotations__[k] = v
-
-
 class DiscretizationItem(pydantic.BaseModel):
     """Identifies each class in the _discretized_ distribution. In the case of an `interval` based discretization,
     we specify the `Range` attribute, denoting the range of the pixel values which fall under a particular class.
@@ -78,6 +74,29 @@ class DiscretizationItem(pydantic.BaseModel):
     Range: Annotated[Optional[List[float]], Field(serialization_alias="range", alias="range")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+    def to_types_v2(self):
+        dc = datatypes.DiscretizationClass()
+        dc.color = self.Color or ""
+        dc.name = self.Name or ""
+        dc.value = self.Value or ""
+
+        assert self.Range is not None
+        dc.range.min = self.Range[0]
+        dc.range.max = self.Range[1]
+        return dc
+
+    @staticmethod
+    def from_types_v2(t: datatypes.DiscretizationClass):
+        dc = DiscretizationItem()
+        dc.Color = t.color
+        dc.Name = t.name
+        dc.Value = None if t.value == "" else t.value
+        if t.range is not None:
+            dc.Range = [t.range.min, t.range.max]
+        else:
+            dc.Range = None
+        return dc
 
 
 class RasterDiscretization(pydantic.BaseModel):
@@ -101,6 +120,26 @@ class RasterDiscretization(pydantic.BaseModel):
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
+    def to_types_v2(self):
+        classes = []
+        rd_v2 = datatypes.Discretization()
+        assert self.Classes is not None
+        for ci in self.Classes:
+            classes.append(ci.to_types_v2())
+        rd_v2.type = self.Type or ""
+        rd_v2.classes.extend(classes)
+        return rd_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Discretization):
+        rd = RasterDiscretization()
+        rd.Type = t.type
+        classes = []
+        for ci in t.classes:
+            classes.append(DiscretizationItem.from_types_v2(ci))
+        rd.Classes = classes
+        return rd
+
 
 class VizContinuous(pydantic.BaseModel):
     """Supported visualisation for continuous values.
@@ -116,6 +155,25 @@ class VizContinuous(pydantic.BaseModel):
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
+    def to_types_v2(self) -> datatypes.ContinuousViz:
+        vc_v2 = datatypes.ContinuousViz(color_map_name=self.ColorMapName)
+        assert self.Range is not None
+        bandwise_range = []
+        for band in self.Range:
+            bandwise_range.append(datatypes.Range(min=band[0], max=band[1]))
+        vc_v2.bandwise_range.extend(bandwise_range)
+        return vc_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.ContinuousViz):
+        vc = VizContinuous()
+        vc.ColorMapName = t.color_map_name
+        bandwise_range = []
+        for band in t.bandwise_range:
+            bandwise_range.append([band.min, band.max])
+        vc.Range = bandwise_range
+        return vc
+
 
 class VizBucket(pydantic.BaseModel):
     """Supported visualisation for histograms.
@@ -129,6 +187,24 @@ class VizBucket(pydantic.BaseModel):
     ColorCode: Annotated[Optional[str], Field(serialization_alias="color", alias="color")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+    def to_types_v2(self):
+        bucket_v2 = datatypes.Bucket()
+        assert self.Range is not None
+        bucket_v2.min = self.Range[0]
+        bucket_v2.max = self.Range[1]
+        bucket_v2.color_code = self.ColorCode or ""
+        return bucket_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Bucket):
+        vb = VizBucket()
+        vb.ColorCode = t.color_code
+        if t.min is not None and t.max is not None:
+            vb.Range = [t.min, t.max]
+        else:
+            vb.Range = None
+        return vb
 
 
 class RasterVisualisation(pydantic.BaseModel):
@@ -156,6 +232,44 @@ class RasterVisualisation(pydantic.BaseModel):
     ] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+    def to_types_v2(self):
+        t = datatypes.VizTypes.Name(datatypes.VizTypes.Value(self.Type or ""))
+        viz_v2 = datatypes.Visualization(type=t)
+        if self.Continuous:
+            assert self.Continuous is not None
+            viz_v2.continuous.CopyFrom(self.Continuous.to_types_v2())
+        if self.Discrete:
+            assert self.Discrete is not None
+            viz_v2.discrete.update(self.Discrete)
+        if self.Bucket:
+            bandwise = []
+            assert self.Bucket is not None
+            for band in self.Bucket:
+                items = []
+                for bucket in band:
+                    items.append(bucket.to_types_v2())
+                bandwise.append(datatypes.ListOfBuckets(items=items))
+            viz_v2.bucket.bandwise.extend(bandwise)
+        return viz_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Visualization):
+        rv = RasterVisualisation()
+        rv.Type = datatypes.VizTypes.Name(t.type)
+        if t.continuous:
+            rv.Continuous = VizContinuous.from_types_v2(t.continuous)
+        if t.discrete:
+            rv.Discrete = dict(t.discrete) if t.discrete else None
+        if t.bucket:
+            bandwise = []
+            for band in t.bucket.bandwise:
+                items = []
+                for bucket in band.items:
+                    items.append(VizBucket.from_types_v2(bucket))
+                bandwise.append(items)
+            rv.Bucket = bandwise
+        return rv
 
 
 class RasterProperties(pydantic.BaseModel):
@@ -230,6 +344,53 @@ class RasterProperties(pydantic.BaseModel):
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
+    def to_types_v2(self) -> datatypes.RasterProperties:
+        rp_v2 = datatypes.RasterProperties()
+
+        if self.Bands is not None:
+            rp_v2.bands.extend(self.Bands)
+        if self.Images is not None:
+            rp_v2.images.extend(self.Images)
+
+        rp_v2.collection = self.Collection or ""
+        rp_v2.source = self.Source or ""
+        rp_v2.date = self.Date or ""
+        rp_v2.dtype = self.Dtype or ""
+
+        if self.SatelliteLookAngle:
+            rp_v2.satellite_look_angle = self.SatelliteLookAngle  # type: ignore
+        if self.SunElevation:
+            rp_v2.sun_elevation = self.SunElevation  # type: ignore
+
+        rp_v2.date = self.Date or ""
+
+        if self.Visualisation:
+            assert self.Visualisation is not None
+            rp_v2.visualisation.CopyFrom(self.Visualisation.to_types_v2())
+
+        if self.Discretization:
+            assert self.Discretization is not None
+            rp_v2.discretization.CopyFrom(self.Discretization.to_types_v2())
+
+        return rp_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.RasterProperties):
+        rp = RasterProperties()
+        rp.Bands = list(t.bands)
+        rp.Collection = t.collection
+        rp.Source = t.source
+        rp.Date = t.date
+        rp.Dtype = t.dtype
+        rp.SunElevation = t.sun_elevation
+        rp.SatelliteLookAngle = t.satellite_look_angle
+        rp.Images = list(t.images)
+        if t.HasField("visualisation") and t.visualisation:
+            rp.Visualisation = RasterVisualisation.from_types_v2(t.visualisation)
+        if t.HasField("discretization") and t.discretization:
+            rp.Discretization = RasterDiscretization.from_types_v2(t.discretization)
+        return rp
+
 
 class VectorProperties(pydantic.BaseModel):
     """Supported properties for a vector
@@ -241,6 +402,17 @@ class VectorProperties(pydantic.BaseModel):
     Geometry: Annotated[Optional[str], Field(serialization_alias="geometry", alias="geometry")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+    def to_types_v2(self) -> datatypes.VectorProperties:
+        vp_v2 = datatypes.VectorProperties()
+        vp_v2.geometry = self.Geometry or ""
+        return vp_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.VectorProperties):
+        vp = VectorProperties()
+        vp.Geometry = t.geometry
+        return vp
 
 
 class DateProperties(pydantic.BaseModel):
@@ -255,6 +427,17 @@ class DateProperties(pydantic.BaseModel):
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
+    def to_types_v2(self) -> datatypes.DateProperties:
+        dp_v2 = datatypes.DateProperties()
+        dp_v2.from_aoi = self.FromAoi or False
+        return dp_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.DateProperties):
+        dp = DateProperties()
+        dp.FromAoi = t.from_aoi
+        return dp
+
 
 class TabularFileSchema(pydantic.BaseModel):
     """Represents the schema of a table
@@ -266,6 +449,18 @@ class TabularFileSchema(pydantic.BaseModel):
     Headers: Annotated[Optional[List[str]], Field(serialization_alias="headers", alias="headers")] = None
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
+
+    def to_types_v2(self):
+        tbf_v2 = datatypes.TabularFileSchema()
+        if self.Headers:
+            tbf_v2.headers.extend(self.Headers)
+        return tbf_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.TabularFileSchema):
+        tbf = TabularFileSchema()
+        tbf.Headers = list(t.headers)
+        return tbf
 
 
 class TabularProperties(pydantic.BaseModel):
@@ -286,9 +481,23 @@ class TabularProperties(pydantic.BaseModel):
 
     model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
+    def to_types_v2(self) -> datatypes.TabularProperties:
+        tb_v2 = datatypes.TabularProperties()
+        tb_v2.file_type = self.FileType or ""
+        if self.FileSchema:
+            tb_v2.file_schema.CopyFrom(self.FileSchema.to_types_v2())
+        return tb_v2
+
+    @staticmethod
+    def from_types_v2(t: datatypes.TabularProperties):
+        tb = TabularProperties()
+        tb.FileType = t.file_type
+        if t.HasField("file_schema") and t.file_schema:
+            tb.FileSchema = TabularFileSchema.from_types_v2(t.file_schema)
+        return tb
+
 
 Properties = Union[RasterProperties, VectorProperties, DateProperties, TabularProperties]
-
 
 FormatPropertyMap = {
     FormatTypes.RASTER.value: RasterProperties,
@@ -298,13 +507,15 @@ FormatPropertyMap = {
 }
 
 
-def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Optional[Properties]:
-    print(output_cfg)
+def _PropertiesFromConfig(output_cfg: Dict[str, Any], force_to_v2: bool = False) -> Optional[Properties]:
+    print("###### ", output_cfg)
     format = output_cfg["format"]
     props = output_cfg.get("properties")
     if props is None:
         return None
-    return FormatPropertyMap[format].model_validate(props)
+
+    properties: Properties = FormatPropertyMap[format].model_validate(props)
+    return properties
 
 
 class ModelInfTimes(pydantic.BaseModel):
@@ -431,6 +642,44 @@ class Raster(_DataMeta):
         )
         __pydantic_self__.Properties = properties
 
+    def to_types_v2(self) -> datatypes.DataWrapper:
+        r = datatypes.Raster()
+        r.format = datatypes.raster
+        r.type = self.Type or ""
+        r.name = self.Name
+        r.display_name = self.DisplayName or ""
+        r.description = self.Description or ""
+        r.is_artifact = self.IsArtifact or False
+        r.group = self.Group
+        r.default = str(self.Default or "")
+        r.version = datatypes.Version.v2
+
+        if self.Metadata is not None:
+            assert self.Metadata is not None
+            r.metadata.update(self.Metadata)
+
+        r.value = str(self.Value or "")
+
+        if self.Properties:
+            assert self.Properties is not None
+            r.properties.CopyFrom(self.Properties.to_types_v2())
+        return datatypes.DataWrapper(r)
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Raster):
+        r = Raster(name=t.name, value=t.value)
+        r.DisplayName = t.display_name
+        r.Description = t.description
+        r.IsArtifact = t.is_artifact
+        r.Group = t.group
+        r.Default = t.default
+        r.Metadata = dict(t.metadata)
+        if t.HasField("properties") and t.properties:
+            r.Properties = RasterProperties.from_types_v2(t.properties)
+        else:
+            r.Properties = None
+        return r
+
 
 class Vector(_DataMeta):
     """Type representing Vectors i.e. `GeoJSONs`"""
@@ -489,6 +738,43 @@ class Vector(_DataMeta):
         )
         __pydantic_self__.Properties = properties
 
+    def to_types_v2(self) -> datatypes.DataWrapper:
+        v = datatypes.Vector()
+        v.format = datatypes.vector
+        v.type = self.Type or ""
+        v.name = self.Name
+        v.display_name = self.DisplayName or ""
+        v.description = self.Description or ""
+        v.is_artifact = self.IsArtifact or False
+        v.group = self.Group
+        v.default = str(self.Default or "")
+        v.version = datatypes.Version.v2
+
+        if self.Metadata is not None:
+            assert self.Metadata is not None
+            v.metadata.update(self.Metadata)
+
+        v.value = str(self.Value or "")
+
+        if self.Properties:
+            v.properties.CopyFrom(self.Properties.to_types_v2())
+        return datatypes.DataWrapper(v)
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Vector):
+        v = Vector(name=t.name, value=t.value)
+        v.DisplayName = t.display_name
+        v.Description = t.description
+        v.IsArtifact = t.is_artifact
+        v.Group = t.group
+        v.Default = t.default
+        v.Metadata = dict(t.metadata)
+        if t.HasField("properties") and t.properties:
+            v.Properties = VectorProperties.from_types_v2(t.properties)
+        else:
+            v.Properties = None
+        return v
+
 
 class Date(_DataMeta):
     """Type representing a Date"""
@@ -543,6 +829,43 @@ class Date(_DataMeta):
             Group=group,
         )
         __pydantic_self__.Properties = properties
+
+    def to_types_v2(self) -> datatypes.DataWrapper:
+        d = datatypes.Date()
+        d.format = datatypes.date
+        d.type = self.Type or ""
+        d.name = self.Name
+        d.display_name = self.DisplayName or ""
+        d.description = self.Description or ""
+        d.is_artifact = self.IsArtifact or False
+        d.group = self.Group
+        d.default = str(self.Default or "")
+        d.version = datatypes.Version.v2
+
+        if self.Metadata is not None:
+            assert self.Metadata is not None
+            d.metadata.update(self.Metadata)
+
+        d.value = str(self.Value or "")
+
+        if self.Properties:
+            d.properties.CopyFrom(self.Properties.to_types_v2())
+        return datatypes.DataWrapper(d)
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Date):
+        d = Date(name=t.name, value=t.value)
+        d.DisplayName = t.display_name
+        d.Description = t.description
+        d.IsArtifact = t.is_artifact
+        d.Group = t.group
+        d.Default = t.default
+        d.Metadata = dict(t.metadata)
+        if t.HasField("properties") and t.properties:
+            d.Properties = DateProperties.from_types_v2(t.properties)
+        else:
+            d.Properties = None
+        return d
 
 
 class Tabular(_DataMeta):
@@ -603,6 +926,42 @@ class Tabular(_DataMeta):
         )
         __pydantic_self__.Properties = properties
 
+    def to_types_v2(self) -> datatypes.DataWrapper:
+        t = datatypes.Tabular()
+        t.format = datatypes.tabular
+        t.type = self.Type or ""
+        t.name = self.Name
+        t.display_name = self.DisplayName or ""
+        t.description = self.Description or ""
+        t.is_artifact = self.IsArtifact or False
+        t.group = self.Group
+        t.version = datatypes.Version.v2
+
+        if self.Metadata is not None:
+            assert self.Metadata is not None
+            t.metadata.update(self.Metadata)
+
+        t.value = str(self.Value or "")
+
+        if self.Properties:
+            t.properties.CopyFrom(self.Properties.to_types_v2())
+        return datatypes.DataWrapper(t)
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Tabular):
+        tl = Tabular(name=t.name, value=t.value)
+        tl.DisplayName = t.display_name
+        tl.Description = t.description
+        tl.IsArtifact = t.is_artifact
+        tl.Group = t.group
+        tl.Default = t.default
+        tl.Metadata = dict(t.metadata)
+        if t.HasField("properties") and t.properties:
+            tl.Properties = TabularProperties.from_types_v2(t.properties)
+        else:
+            tl.Properties = None
+        return tl
+
 
 class String(_DataMeta):
     """Type representing a string."""
@@ -650,6 +1009,36 @@ class String(_DataMeta):
             Group=group,
         )
 
+    def to_types_v2(self) -> datatypes.DataWrapper:
+        s = datatypes.String()
+        s.format = datatypes.string
+        s.type = self.Type or ""
+        s.name = self.Name
+        s.display_name = self.DisplayName or ""
+        s.description = self.Description or ""
+        s.is_artifact = self.IsArtifact or False
+        s.group = self.Group
+        s.version = datatypes.Version.v2
+
+        if self.Metadata is not None:
+            assert self.Metadata is not None
+            s.metadata.update(self.Metadata)
+
+        s.value = str(self.Value or "")
+
+        return datatypes.DataWrapper(s)
+
+    @staticmethod
+    def from_types_v2(t: datatypes.String):
+        s = String(name=t.name, value=t.value)
+        s.DisplayName = t.display_name
+        s.Description = t.description
+        s.IsArtifact = t.is_artifact
+        s.Group = t.group
+        s.Default = t.default
+        s.Metadata = dict(t.metadata)
+        return s
+
 
 class Number(_DataMeta):
     """Type representing a number."""
@@ -660,7 +1049,7 @@ class Number(_DataMeta):
     def __init__(
         __pydantic_self__,
         name: str,
-        value: Union[int, float, None] = None,
+        value: Union[str, int, float, None] = None,
         default: Optional[Union[str, int, float, bool]] = None,
         type: Union[str, PrimitiveTypes] = PrimitiveTypes.FLOAT,
         metadata: Dict[str, str] = {},
@@ -699,11 +1088,108 @@ class Number(_DataMeta):
             Group=group,
         )
 
+    def to_types_v2(self) -> datatypes.DataWrapper:
+        n = datatypes.Number()
+        n.format = datatypes.number
+        n.type = self.Type or ""
+        n.name = self.Name
+        n.display_name = self.DisplayName or ""
+        n.description = self.Description or ""
+        n.is_artifact = self.IsArtifact or False
+        n.group = self.Group
+        n.version = datatypes.Version.v2
 
-# add_inline_fields(DataMeta, Number)
+        if self.Metadata is not None:
+            assert self.Metadata is not None
+            n.metadata.update(self.Metadata)
+
+        n.value = str(self.Value or "")
+
+        return datatypes.DataWrapper(n)
+
+    @staticmethod
+    def from_types_v2(t: datatypes.Number):
+        n = Number(name=t.name, value=t.value)
+        n.DisplayName = t.display_name
+        n.Description = t.description
+        n.IsArtifact = t.is_artifact
+        n.Group = t.group
+        n.Default = t.default
+        n.Metadata = dict(t.metadata)
+        return n
+
+
+class LegacyTypeWrapper(datatypes.DataWrapperInterface):
+    def __init__(self, t: Data) -> None:
+        self._legacy_type: Data = t
+
+        self._alias_field_mapping: Dict[str, str] = {}
+        for field, meta in self._legacy_type.model_fields.items():
+            assert meta.alias is not None
+            self._alias_field_mapping[meta.alias] = field
+
+    @property
+    def DATA(self):  # type: ignore
+        return self._legacy_type
+
+    def get_type(self) -> str:
+        return self._legacy_type.Type  # type: ignore
+
+    def get_name(self) -> str:
+        return self._legacy_type.Name
+
+    def get_format(self) -> str:
+        return self._legacy_type.Format
+
+    def serialize_to_dict(self) -> Dict[str, Any]:
+        return self._legacy_type.model_dump(by_alias=True)
+
+    def serialize_to_json(self) -> str:
+        return self._legacy_type.model_dump_json(by_alias=True)
+
+    def get_value(self) -> str:
+        return str(self._legacy_type.Value)
+
+    def set_value(self, value: str) -> None:
+        self._legacy_type.Value = value
+
+    def get_default(self) -> str:
+        return str(self._legacy_type.Default)
+
+    def get_is_artifact(self) -> bool:
+        return self._legacy_type.IsArtifact  # type: ignore
+
+    def set_properties(self, value: Union[Properties, Dict[str, Any], None]) -> None:
+        f = self._alias_field_mapping["properties"]
+
+        if value is None:
+            setattr(self._legacy_type, f, None)
+            return
+
+        val: Optional[Properties] = None
+        if isinstance(value, datatypes.RasterProperties):
+            val = RasterProperties.from_types_v2(value)
+        elif isinstance(value, datatypes.VectorProperties):
+            val = VectorProperties.from_types_v2(value)
+        elif isinstance(value, datatypes.DateProperties):
+            val = DateProperties.from_types_v2(value)
+        elif isinstance(value, datatypes.TabularProperties):
+            val = TabularProperties.from_types_v2(value)
+
+        setattr(self._legacy_type, f, val)
+
+    def set_field(self, field: str, value: Any) -> None:
+        f = self._alias_field_mapping[field]
+        setattr(self._legacy_type, f, value)
+
+    def get_field(self, field: str) -> Any:
+        f = self._alias_field_mapping.get(field, None)
+        if not f:
+            return None
+        return getattr(self._legacy_type, f)
+
 
 Data = Union[Raster, Vector, Date, Tabular, String, Number]
-
 
 _FormatModelMap = {
     FormatTypes.RASTER.value: Raster,
@@ -714,11 +1200,14 @@ _FormatModelMap = {
     FormatTypes.TABULAR.value: Tabular,
 }
 
-OutputsBuffer = List[Data]
+OutputBufferItem = Union[Data, datatypes.Data, LegacyTypeWrapper, datatypes.DataWrapper]
+OutputsBuffer = List[OutputBufferItem]
 
 
-def _serialize_output_buffer(b: OutputsBuffer) -> List[Dict[str, Any]]:
+def _serialize_output_buffer(
+    b: List[datatypes.DataWrapperInterface],
+) -> List[Dict[str, Any]]:
     l = []  # noqa: E741
     for o in b:
-        l.append(o.model_dump(by_alias=True, exclude_none=True))
+        l.append(o.serialize_to_dict())
     return l

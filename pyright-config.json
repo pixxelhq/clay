@@ -9,7 +9,10 @@
     "python/tests",
     "api",
     "pkg",
-    "cmd"
+    "cmd",
+    "python/build",
+    "python/dist",
+    "python/clay.egg-info"
   ],
   "reportMissingImports": false,
   "reportMissingModuleSource": false,

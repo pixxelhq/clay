@@ -50,6 +50,7 @@ setup(
         "pydantic>=2.4.0",
         "boto3>=1.21.21",
         "fsspec>=2022.5.0",
+        "pixxel-datatypes",
     ],
     package_data={"clay": ["py.typed"]},
     include_package_data=True,

@@ -1,5 +1,9 @@
 name: "Run tests and lint check"
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   pull_request:
     branches: ["main"]
@@ -10,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8.1"]
+        python-version: ["3.10.14"]
 
     steps:
       - name: Checkout
@@ -19,27 +23,44 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Configure AWS Credentials for Code Artifact Access
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: sigstore
+          aws-region: us-east-2
+
+      - name: Set aws codeartifact token for clay
+        id: codeartifact-token
+        run: |
+          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
+
       - name: Install Dependencies
         run: |
-          pip install -r python/requirements/requirements-dev.txt
+          pip install --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ -r python/requirements/requirements-dev.txt
           pip install --index-url https://${{ secrets.GITLAB_TOKEN_NAME }}:${{ secrets.GITLAB_TOKEN_PASS }}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple matter
           pip install coverage pre-commit
+
       - name: Run Pytest
         working-directory: ./python
         run: |
           coverage run -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+
       - name: Upload Pytest Results
         if: ${{ !failure() }}
         uses: actions/upload-artifact@v3
         with:
           name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}
           path: python/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+
       - name: Coverage
         working-directory: ./python
         if: ${{ !failure() }}
         run: |
           coverage report
           coverage xml
+
       - name: Ruff Check
         uses: chartboost/ruff-action@v1
         with:
