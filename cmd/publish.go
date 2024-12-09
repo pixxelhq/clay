@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/example/clay/cmd/marketplace"
 	"github.com/example/clay/pkg/config"
 	"github.com/example/clay/pkg/registry"
 
@@ -17,6 +16,7 @@ import (
 var (
 	modelRegistryHost string
 	dockerRegistry    string
+	documentationURL  string
 )
 
 func publishModelToRegistryCmd() *cobra.Command {
@@ -29,6 +29,7 @@ func publishModelToRegistryCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&dockerRegistry, "docker-registry-host", "REDACTED.dkr.ecr.us-east-2.amazonaws.com", "If specified, the model's Docker image will be pushed to that registry. Otherwise, the default registry will be used")
 	cmd.Flags().StringVar(&modelRegistryHost, "model-registry-host", "http://localhost:8080", "If specified, the model will be published to that registry. Otherwise, the default registry will be used.")
+	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "If specified this can be used for model documentation")
 
 	return cmd
 }
@@ -62,21 +63,7 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	//TODO: refactor the upload cmd to push the doc with env flag
-	// upload doc to object store
-	uploadDocCmd := exec.Command("clay", "upload", "readme", "-n", cfg.Name, "-v", fmt.Sprintf("v%s", cfg.Version), "--env", "dev")
-	uploadDocCmd.Stderr = os.Stderr
-	uploadDocCmd.Stdout = os.Stdout
-	if err := uploadDocCmd.Run(); err != nil {
-		return err
-	}
-
 	mr := registry.NewModelRegistry(modelRegistryHost, 5*time.Second)
-
-	documentationURL, err := marketplace.GetS3CatalogUrl()
-	if err != nil {
-		return err
-	}
 
 	req, err := buildPublishModelRequest(cfg, documentationURL, image)
 	if err != nil {
@@ -108,7 +95,6 @@ func buildPublishModelRequest(cfg *config.Config, documentationURL, dockerImage 
 		Type:        cfg.Type,
 		Version:     cfg.Version,
 		DockerImage: dockerImage,
-		//TODO: add documentation url, push to s3 and then use tha link
 		DocumentationURL: documentationURL,
 		Specification: &registry.Specification{
 			APIVersion: cfg.APIVersion,
