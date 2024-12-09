@@ -43,7 +43,7 @@ func UploadReadme() *cobra.Command {
 			}
 
 			blockVersion, err = cmd.Flags().GetString("version")
-			if err != nil {
+			if err != nil || blockVersion == "" {
 				blockVersion = cfg.Version
 			}
 
@@ -52,7 +52,7 @@ func UploadReadme() *cobra.Command {
 			}
 
 			blockName, err = cmd.Flags().GetString("name")
-			if err != nil {
+			if err != nil || blockName == "" {
 				blockName = cfg.Name
 			}
 
