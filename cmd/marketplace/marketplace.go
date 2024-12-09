@@ -3,6 +3,7 @@ package marketplace
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,6 +12,7 @@ import (
 	"github.com/example/clay/cmd/block"
 	"github.com/example/clay/cmd/common"
 	"github.com/example/clay/pkg"
+	"github.com/example/clay/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -24,16 +26,25 @@ func UploadReadme() *cobra.Command {
 		blockVersion string
 		blockName    string
 		env          string
-		err          error
 	)
 
 	cmd := &cobra.Command{
 		Use:   "readme",
 		Short: "Upload the readme for the model to cloud",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			blockVersion, err = cmd.Flags().GetString("version")
+			cwd, err := os.Getwd()
 			if err != nil {
 				return err
+			}
+
+			cfg, err := config.GetConfig(cwd)
+			if err != nil {
+				return err
+			}
+
+			blockVersion, err = cmd.Flags().GetString("version")
+			if err != nil {
+				blockVersion = cfg.Version
 			}
 
 			if blockVersion != "" && !common.IsValidVersion(blockVersion) {
@@ -42,7 +53,7 @@ func UploadReadme() *cobra.Command {
 
 			blockName, err = cmd.Flags().GetString("name")
 			if err != nil {
-				return err
+				blockName = cfg.Name
 			}
 
 			env, err = cmd.Flags().GetString("env")
@@ -83,8 +94,6 @@ func UploadReadme() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&blockName, "name", "n", "", "Name of block as specified in spec file")
 	cmd.Flags().StringVarP(&blockVersion, "version", "v", "", "Version of block")
-	cmd.MarkFlagRequired("name")
-	cmd.MarkFlagRequired("version")
 	return cmd
 }
 
