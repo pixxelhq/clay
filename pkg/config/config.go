@@ -15,7 +15,6 @@ type Build struct {
 	PythonVersion  string   `yaml:"python-version" json:"python-version"`
 	Conda          bool     `yaml:"conda" json:"conda"`
 	AptGetPkgs     []string `yaml:"apt-get" json:"apt-get"`
-	Gpu            bool     `yaml:"gpu" json:"gpu"`
 	DependencyFile string   `yaml:"requirements" json:"requirements"`
 }
 
@@ -31,6 +30,7 @@ type Config struct {
 	Inputs     json.RawMessage `yaml:"inputs" json:"inputs"`
 	Outputs    json.RawMessage `yaml:"outputs" json:"outputs"`
 	Bulid      *Build          `yaml:"build" json:"build"`
+	Gpu        bool            `yaml:"gpu" json:"gpu"`
 }
 
 func GetConfig(projectDir string) (*Config, error) {
