@@ -30,6 +30,7 @@ type Specification struct {
 	Inputs     json.RawMessage `json:"inputs"`
 	Outputs    json.RawMessage `json:"outputs"`
 	Build      json.RawMessage `json:"build"`
+	GPU        bool            `json:"gpu"`
 }
 
 type CreateBlockRequest struct {

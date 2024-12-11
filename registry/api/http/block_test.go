@@ -49,6 +49,7 @@ func TestCreate(t *testing.T) {
 						"key": "value",
 					},
 					"build": gin.H{},
+					"gpu":   true,
 				},
 			},
 			setupMocks: func(s *mock_block.MockService) {
@@ -66,6 +67,7 @@ func TestCreate(t *testing.T) {
 
 				assert.Equal(t, "Test Block", resp.Data.Name)
 				assert.Equal(t, "1.0.0", resp.Data.Version)
+				assert.Equal(t, true, resp.Data.Specification.GPU)
 			},
 		},
 		{
@@ -364,6 +366,7 @@ func getBlocks() []*block.Block {
 				Inputs:      json.RawMessage(`{"key": "value"}`),
 				Outputs:     json.RawMessage(`{"key": "value"}`),
 				Build:       json.RawMessage(`{}`),
+				GPU:         true,
 			},
 		},
 		{

@@ -31,7 +31,8 @@ build:
   python-version: "3.10"
   conda: false
   gdal: true
-  gpu: true
   apt-get:
     - wget
-  requirements: requirements.txt 
+  requirements: requirements.txt
+
+gpu: false

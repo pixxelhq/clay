@@ -1159,7 +1159,7 @@ class LegacyTypeWrapper(datatypes.DataWrapperInterface):
     def get_is_artifact(self) -> bool:
         return self._legacy_type.IsArtifact  # type: ignore
 
-    def set_properties(self, value: Union[Properties, Dict[str, Any], None]) -> None:
+    def set_properties(self, value: Union[Properties, Dict[str, Any], None]) -> None: # type: ignore
         f = self._alias_field_mapping["properties"]
 
         if value is None:

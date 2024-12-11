@@ -208,6 +208,7 @@ func convertFromServiceSpecification(bSpec *block.Specification) *Specification 
 		Inputs:     bSpec.Inputs,
 		Outputs:    bSpec.Outputs,
 		Build:      bSpec.Build,
+		GPU:        bSpec.GPU,
 	}
 }
 
@@ -220,6 +221,7 @@ func convertToServiceSpecification(s *Specification) *block.Specification {
 		Inputs:     s.Inputs,
 		Outputs:    s.Outputs,
 		Build:      s.Build,
+		GPU:        s.GPU,
 	}
 }
 
