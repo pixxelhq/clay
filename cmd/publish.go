@@ -90,11 +90,11 @@ func buildPublishModelRequest(cfg *config.Config, documentationURL, dockerImage 
 	}
 
 	req := &registry.PublishModelRequest{
-		Name:        cfg.Name,
-		Kind:        cfg.Kind,
-		Type:        cfg.Type,
-		Version:     cfg.Version,
-		DockerImage: dockerImage,
+		Name:             cfg.Name,
+		Kind:             cfg.Kind,
+		Type:             cfg.Type,
+		Version:          cfg.Version,
+		DockerImage:      dockerImage,
 		DocumentationURL: documentationURL,
 		Specification: &registry.Specification{
 			APIVersion: cfg.APIVersion,
@@ -105,6 +105,7 @@ func buildPublishModelRequest(cfg *config.Config, documentationURL, dockerImage 
 			Inputs:     cfg.Inputs,
 			Outputs:    cfg.Outputs,
 			Build:      buildJSON,
+			Gpu:        cfg.Gpu,
 		},
 	}
 
