@@ -4,16 +4,58 @@ on:
   workflow_dispatch
 
 env:
-  CLAY_REGISTRY_HOST: clay-registry-sandbox.example.com
+  CLAY_REGISTRY_HOST: clay-registry-staging.example.com
+  CLAY_CLI_VERSION: v0.5.6-alpha
   AWS_DEFAULT_REGION: us-east-2
   ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
 
 permissions:
     id-token: write
-    contents: read
+    contents: write
 
 jobs:
-  publish:
+  publish-model-doc:
+    runs-on: [ubuntu-latest]
+    outputs:
+      doc-url: ${{ steps.upload_readme.outputs.DOC_URL }}
+    if: (github.event_name == 'workflow_dispatch')
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
+          audience: https://github.com/pixxelhq
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Download Clay Binaries
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+            repo: example/clay
+            tag: ${{ env.CLAY_CLI_VERSION }}
+            token: ${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN }}
+            extension-matching: disable
+            platform: linux
+            arch: amd64
+            rename-to: clay
+            chmod: 0755
+
+      - name: Upload model readme to s3
+        id: upload_readme
+        run: |
+            echo "DOC_URL=$(clay upload readme --env prod)" >> $GITHUB_OUTPUT
+            echo $DOC_URL
+
+  publish-model:
     runs-on: [ubuntu-latest]
     if: (github.event_name == 'workflow_dispatch')
     permissions:
@@ -27,10 +69,10 @@ jobs:
           fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@b8c74de753fbcb4868bf2011fb2e15826ce973af
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-          role-session-name: samplerolesession
+          audience: sigstore
           aws-region: {{ "${{ env.AWS_DEFAULT_REGION }}" }}
 
       - name: Login to AWS Container Registry
@@ -43,7 +85,7 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
             repo: example/clay
-            tag: v0.5.0-alpha
+            tag: ${{ env.CLAY_CLI_VERSION }}
             token: {{ "${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}" }}
             extension-matching: disable
             platform: linux
@@ -51,9 +93,11 @@ jobs:
             rename-to: clay
             chmod: 0755 
 
-      - name: Publish model to clay regitry
+      - name: Publish model to clay registry
         run: |
-          clay publish --model-registry-host=${{env.CLAY_REGISTRY_HOST}}
+          DOC_URL=${{ needs.push-model-doc.outputs.doc-url }}
+          echo "$DOC_URL"
+          clay publish --model-registry-host=${{env.CLAY_REGISTRY_HOST}} --documentation-url=$DOC_URL
 
 
 
