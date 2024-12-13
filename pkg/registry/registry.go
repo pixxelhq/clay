@@ -14,14 +14,18 @@ var (
 )
 
 type modelRegistry struct {
-	host    string
-	timeout time.Duration
+	httpClient *http.Client
+	host       string
+	timeout    time.Duration
 }
 
 func NewModelRegistry(host string, timeout time.Duration) *modelRegistry {
 	return &modelRegistry{
 		host:    host,
 		timeout: timeout,
+		httpClient: &http.Client{
+			Timeout: timeout,
+		},
 	}
 }
 
@@ -47,10 +51,29 @@ type PublishModelRequest struct {
 	Specification    *Specification `json:"specification"`
 }
 
-type PublishModelResponse struct {
-	Data  any    `json:"data"`
+type Data interface {
+	any |
+		Models |
+		Model
+}
+
+type RegistryResponse[T Data] struct {
+	Data  T      `json:"data"`
 	Error string `json:"error"`
 }
+
+type Model struct {
+	ID               string         `json:"id"`
+	Name             string         `json:"name"`
+	Kind             string         `json:"kind"`
+	Type             string         `json:"type"`
+	Version          string         `json:"version"`
+	DockerImage      string         `json:"docker_image"`
+	DocumentationURL string         `json:"documentation_url"`
+	Specification    *Specification `json:"specification,omitempty"`
+}
+
+type Models []*Model
 
 func (mr *modelRegistry) Publish(req *PublishModelRequest) error {
 	url := mr.host + "/v1/blocks"
@@ -67,23 +90,12 @@ func (mr *modelRegistry) Publish(req *PublishModelRequest) error {
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Timeout: mr.timeout,
-	}
-	resp, err := client.Do(httpReq)
+	resp, err := mr.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if err = handlerHTTPStatusCode(resp); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func handlerHTTPStatusCode(resp *http.Response) error {
 	if resp.StatusCode == http.StatusCreated {
 		return nil
 	}
@@ -92,10 +104,92 @@ func handlerHTTPStatusCode(resp *http.Response) error {
 		return ErrAlreadyExists
 	}
 
-	var respData PublishModelResponse
+	var respData RegistryResponse[any]
 	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return fmt.Errorf("failed to create block, status code: %d: %s", resp.StatusCode, respData.Error)
+	return fmt.Errorf("failed to publish model: %s, httpStatusCode: %v", respData.Error, resp.StatusCode)
+
+}
+
+func (mr *modelRegistry) ListBlocks() (Models, error) {
+	url := mr.host + "/v1/blocks"
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request for list blocks: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := mr.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request for list blocks: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var respData *RegistryResponse[Models]
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshall response for list blocks: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list blocks: %s", respData.Error)
+	}
+
+	return respData.Data, nil
+}
+
+func (mr *modelRegistry) GetBlockByName(name string) (Models, error) {
+	url := mr.host + fmt.Sprintf("/v1/blocks/%s", name)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request for list blocks with name %s: %w", name, err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := mr.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request for list blocks with name %s: %w", name, err)
+	}
+	defer resp.Body.Close()
+
+	var respData *RegistryResponse[Models]
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshall response for list blocks with name %s: %w", name, err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list blocks with name %s: %s", name, respData.Error)
+	}
+
+	return respData.Data, nil
+}
+
+func (mr *modelRegistry) GetBlockByNameAndVersion(name, version string) (*Model, error) {
+	url := mr.host + fmt.Sprintf("/v1/blocks/%s/versions/%s", name, version)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request for list block with name %s and version %s: %w", name, version, err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := mr.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request for list block with name %s and version %s: %w", name, version, err)
+	}
+	defer resp.Body.Close()
+
+	var respData *RegistryResponse[Model]
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshall response for list block with name %s and version %s: %w", name, version, err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to list block with name %s and version %s: %s", name, version, respData.Error)
+	}
+
+	return &respData.Data, nil
 }

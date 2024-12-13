@@ -21,6 +21,11 @@ func handleErr(ctx *gin.Context, err error) {
 				Error: re.Message,
 			})
 			return
+		case rerr.ErrDoesNotExists:
+			ctx.JSON(http.StatusNotFound, RegistryResponse[any]{
+				Error: re.Message,
+			})
+			return
 		case rerr.ErrAlreadyExists:
 			ctx.JSON(http.StatusConflict, RegistryResponse[any]{
 				Error: re.Message,
