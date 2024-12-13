@@ -85,13 +85,12 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 	blocks := make([]*GetLatestBlock, 0, len(bwlv))
 	for _, b := range bwlv {
 		blocks = append(blocks, &GetLatestBlock{
-			ID:            b.ID,
-			Name:          b.Name,
-			Version:       b.Version,
-			Specification: convertFromServiceSpecification(b.Specification),
-			CreatedAt:     b.CreatedAt,
-			UpdatedAt:     b.UpdatedAt,
-			Type:          b.Type,
+			ID:        b.ID,
+			Name:      b.Name,
+			Version:   b.Version,
+			CreatedAt: b.CreatedAt,
+			UpdatedAt: b.UpdatedAt,
+			Type:      b.Type,
 		})
 	}
 

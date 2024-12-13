@@ -65,7 +65,7 @@ type GetLatestBlock struct {
 	DocumentationURL string         `json:"documentation_url"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
-	Specification    *Specification `json:"specification"`
+	Specification    *Specification `json:"specification,omitempty"`
 }
 
 type GetBlockByNameResponse []*GetBlockVersion
