@@ -170,7 +170,7 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 	version := ctx.Param("version")
 	if version == "" {
 		ctx.JSON(http.StatusBadRequest, &RegistryResponse[any]{
-			Error: "name can't be empty",
+			Error: "version can't be empty",
 		})
 		return
 	}
