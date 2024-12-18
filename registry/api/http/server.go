@@ -10,6 +10,7 @@ import (
 	store "github.com/example/clay/registry/internal/store/sqlc"
 	"github.com/example/clay/registry/pkg/block"
 	"github.com/example/clay/registry/pkg/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -43,6 +44,7 @@ func (svr *Server) Init() {
 		svr.ConfigureService,
 		svr.MapRoutes,
 		svr.ConfigureSwagger,
+		svr.ConfigureMetric,
 	)
 }
 
@@ -110,6 +112,14 @@ func (svr *Server) ConfigureService() error {
 
 func (svr *Server) ConfigureSwagger() error {
 	svr.Router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	return nil
+}
+
+func (svr *Server) ConfigureMetric() error {
+	svr.Router.GET("/metrics", func(ctx *gin.Context) {
+		h := promhttp.Handler()
+		h.ServeHTTP(ctx.Writer, ctx.Request)
+	})
 	return nil
 }
 
