@@ -25,7 +25,7 @@ var (
 func buildDockerImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "build",
-		Short:   "Build an image from clay.yaml",
+		Short:   "Build an image from clay.yaml, This command uses sudo to build docker image",
 		Long:    "Build an image from clay.yaml. \nIf tag is not provided it will use `name` and `version` mentioned in the clay.yaml for image creation in the format `name:tag`",
 		Example: "clay build -t tagName -f ./Dockerfile",
 		RunE:    buildCmd,
@@ -57,7 +57,7 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 func pushToDockerRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "push [IMAGE]",
-		Short:   "Push the docker image to registry.",
+		Short:   "Push the docker image to registry. This command uses sudo to build docker image",
 		Long:    "Push the docker image to registry, if image is not provided, it will use `name` and `tag` mentioned in clay.yaml for image name in the format `name:tag`",
 		Example: "clay push registry.io/testing-model:0.0.1",
 		RunE:    pushCmd,
@@ -171,6 +171,7 @@ func generateAWSSecret() (*os.File, error) {
 	awsGenerateSecretCmd.Stderr = os.Stderr
 
 	if err := awsGenerateSecretCmd.Run(); err != nil {
+		defer os.Remove(outputFile.Name())
 		return nil, err
 	}
 

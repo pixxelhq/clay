@@ -90,7 +90,7 @@ func GetDockerFile() (string, error) {
 
 func Build(buildtag, dockerfilePath string, secrets, buildArgs []string, noCache bool) error {
 	args := []string{}
-	args = append(args, "build", "-t", buildtag, "-f", dockerfilePath, ".")
+	args = append(args, "docker", "build", "-t", buildtag, "-f", dockerfilePath, ".")
 
 	if noCache {
 		args = append(args, "--no-cache")
@@ -104,7 +104,7 @@ func Build(buildtag, dockerfilePath string, secrets, buildArgs []string, noCache
 		args = append(args, "--build-arg", buildArg)
 	}
 
-	buildCmd := exec.Command("docker", args...)
+	buildCmd := exec.Command("sudo", args...)
 	buildCmd.Env = append(os.Environ(), "DOCKER_BUILDKIT=1")
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
