@@ -36,6 +36,10 @@ class _InjectedEnvVars(Enum):
     DisableAutoUpload = "DISABLE_AUTO_UPLOAD"
     RemotePrefix = "REMOTE_PREFIX"
     BlockName = "BLOCK_NAME"
+    TaskId = "TASK_ID"
+    WorkflowId = "WORKFLOW_ID"
+    JobId = "JOB_ID"
+    LocalWorkingDir = "LOCAL_WORKING_DIR" 
 
 
 _InjectedEnvVarsDefaults = {
@@ -248,28 +252,28 @@ class JobRunner(BaseRunner):
         return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
-        if _ExpectedInfParameters.WorkflowId not in self._inf_opts:
-            wfid = os.getenv(_ExpectedInfParameters.WorkflowId.value)
+        if _ExpectedInfParameters.WorkflowId not in self._inf_opts: 
+            wfid = os.getenv(_InjectedEnvVars.WorkflowId.value)
             if wfid is None:
-                raise ValueError(f"did not find `{_ExpectedInfParameters.WorkflowId.value}`")
+                raise ValueError(f"did not find `{_InjectedEnvVars.WorkflowId.value}`")
             self._inf_opts[_ExpectedInfParameters.WorkflowId] = wfid
 
         if _ExpectedInfParameters.TaskId not in self._inf_opts:
-            taskid = os.getenv(_ExpectedInfParameters.TaskId.value)
+            taskid = os.getenv(_InjectedEnvVars.TaskId.value)
             if taskid is None:
-                raise ValueError(f"did not find `{_ExpectedInfParameters.TaskId.value}`")
+                raise ValueError(f"did not find `{_InjectedEnvVars.TaskId.value}`")
             self._inf_opts[_ExpectedInfParameters.TaskId] = taskid
 
         if _ExpectedInfParameters.JobId not in self._inf_opts:
-            jobid = os.getenv(_ExpectedInfParameters.JobId.value)
+            jobid = os.getenv(_InjectedEnvVars.JobId.value)
             if jobid is None:
-                raise ValueError(f"did not find `{_ExpectedInfParameters.JobId.value}`")
+                raise ValueError(f"did not find `{_InjectedEnvVars.JobId.value}`")
             self._inf_opts[_ExpectedInfParameters.JobId] = jobid
 
         if _ExpectedInfParameters.LocalWorkingDir not in self._inf_opts:
-            local_working_dir = os.getenv(_ExpectedInfParameters.LocalWorkingDir.value)
+            local_working_dir = os.getenv(_InjectedEnvVars.LocalWorkingDir.value)
             if local_working_dir is None:
-                raise ValueError(f"did not find `{_ExpectedInfParameters.LocalWorkingDir.value}`")
+                raise ValueError(f"did not find `{_InjectedEnvVars.LocalWorkingDir.value}`")
             self._inf_opts[_ExpectedInfParameters.LocalWorkingDir] = local_working_dir
         # The `None` assignment is to statisfy the type checker
 

@@ -29,10 +29,10 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
 
         # creating dummy inputs
         self.mock_env_vars = {
-            "task-id": "task123",
-            "job-id": "job123",
-            "workflow-id": "wfk123",
-            "local-working-dir": self.testing_working_dir,
+            "TASK_ID": "task123",
+            "JOB_ID": "job123",
+            "WORKFLOW_ID": "wfk123",
+            "LOCAL_WORKING_DIR": self.testing_working_dir,
             "working-dir": self.testing_working_dir,
             "inputs-working-dir": input_working_dir,
             "outputs-working-dir": output_working_dir,
