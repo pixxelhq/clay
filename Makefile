@@ -9,10 +9,9 @@ generate-secrets:
 clean-secrets:
 		rm 
 
-init-requirements:
- 	$(MAKE) generate-secrets
-    pip install -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat )@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
-    $(MAKE) clean-secrets
+init-requirements:	generate-secrets
+	pip install -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat )@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
+	$(MAKE) clean-secrets
 
 package:
 	make build/package
