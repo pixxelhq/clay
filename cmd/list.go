@@ -32,7 +32,7 @@ func ListBlockRegistryCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List block",
 		Long: heredoc.Doc(`
-		If not flag provided, it will ist all the latest block from clay registry
+		If no flag provided, it will list all the latest block from clay registry
 		Use flag "name" to list all the versions of the block.
 		Use flag "version" after "name" to list a specific version of the block.
 		Use flag "clay-registry-host" to list all the blocks from a specific registry.

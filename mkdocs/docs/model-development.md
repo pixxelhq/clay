@@ -1,7 +1,5 @@
 # Model Development
-
 Welcome to our tutorial on creating an NDVI model for Landsat imagery using Clay.
-
 
 ## Prerequisite
 
@@ -252,9 +250,8 @@ This method will take the return value of `inference` as input. Here we are taki
 
 
 
-
 ## Declare model specifications. 
-Once you are done with the model implementation using the above defined interface, you should define your model input/output in yaml files, which are created by clay in `./{Modelname}/specifications` directory, here it will be in `./Ndvi/specifications`.
+Once you are done with the model implementation using the above defined interface, you should define your model input/output in `clay.yaml` file generated at the root of your project.
 
 1. `parameters` which is being passed to the setup() to initialize you model named `bands`
 
@@ -284,7 +281,7 @@ Once you are done with the model implementation using the above defined interfac
 
 
 
-3. `ouputs` from your model which is being returned from `postprocess` names `result` of type Raster.
+3. `outputs` from your model which is being returned from `postprocess` names `result` of type Raster.
 
     ```yaml
     outputs:
@@ -386,7 +383,7 @@ INFO - 2024-04-12 01:07:18,006 - job_runner.py:470 - job_model_runner - results:
 You can notice here that the output of the model has been generated at `runs/wf123/job123/task123/outputs/result/result.tif`
 
 ## Build model in docker image
-Run `make docker-image`
+Run `clay build`
 
 The output will look something like
 

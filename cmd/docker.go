@@ -54,6 +54,41 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 	return buildImage(cwd, cfg)
 }
 
+func buildImage(projectDir string, cfg *config.Config) error {
+	if buildTag == "" {
+		buildTag = fmt.Sprintf("%s:%s", cfg.Name, cfg.Version)
+		fmt.Printf("No build tag provided. Using `name` and `version` from clay.yaml as the build tag: %s\n", buildTag)
+	}
+
+	if dockerfilePath == "" {
+		var err error
+		srcCodeDir := filepath.Base(projectDir)
+		dockerfilePath, err = getOrCreateDockerfile(srcCodeDir, cfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	//Generate AWS code artifact secret for downloaing clay python sdk
+	//This should be removed once clay is open sourced.
+	secretFile, err := generateAWSSecret()
+	if err != nil {
+		return err
+	}
+	defer os.Remove(secretFile.Name())
+
+	//Set secret and build-arg for AWS secret
+	buildSecrets = append(buildSecrets, fmt.Sprintf("id=%s,src=%s", awsSecretID, secretFile.Name()))
+
+	err = docker.Build(buildTag, dockerfilePath, buildSecrets, buildArgs, buildNoCache)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("🎉 docker image %s has been built using %s \n", buildTag, dockerfilePath)
+	return nil
+}
+
 func pushToDockerRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "push [IMAGE]",
@@ -103,41 +138,6 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("🎉 docker image %s has been pushed to specified registry\n", image)
-	return nil
-}
-
-func buildImage(projectDir string, cfg *config.Config) error {
-	if buildTag == "" {
-		buildTag = fmt.Sprintf("%s:%s", cfg.Name, cfg.Version)
-		fmt.Printf("No build tag provided. Using `name` and `version` from clay.yaml as the build tag: %s\n", buildTag)
-	}
-
-	if dockerfilePath == "" {
-		var err error
-		srcCodeDir := filepath.Base(projectDir)
-		dockerfilePath, err = getOrCreateDockerfile(srcCodeDir, cfg)
-		if err != nil {
-			return err
-		}
-	}
-
-	//Generate AWS code artifact secret for downloaing clay python sdk
-	//This should be removed once clay is open sourced.
-	secretFile, err := generateAWSSecret()
-	if err != nil {
-		return err
-	}
-	defer os.Remove(secretFile.Name())
-
-	//Set secret and build-arg for AWS secret
-	buildSecrets = append(buildSecrets, fmt.Sprintf("id=%s,src=%s", awsSecretID, secretFile.Name()))
-
-	err = docker.Build(buildTag, dockerfilePath, buildSecrets, buildArgs, buildNoCache)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("🎉 docker image %s has been built using %s \n", buildTag, dockerfilePath)
 	return nil
 }
 

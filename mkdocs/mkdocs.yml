@@ -71,7 +71,7 @@ nav:
   - Five Minute Blitz: "blitz-concepts.md"
   - Getting Started: "getting-started.md"
   - Tutorial: "model-development.md"
-  - Types: "types.md"
+  - Input/Output: "IO.md"
   - Block Specification: "spec.md"
   - Indicating Model Progress: "progress.md"
   - Checklist: "checklist.md"
