@@ -77,6 +77,12 @@ jobs:
         with:
           registry: ${{ env.ECR_REGISTRY }}
 
+      - name: Configure private token url
+        env:
+          GO_RELEASE_TOKEN: ${{ secrets.GO_RELEASE }}
+        run: |
+          git config --global url."https://${GO_RELEASE_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+
       - name: Build and Push
         uses: docker/build-push-action@v4
         with:
