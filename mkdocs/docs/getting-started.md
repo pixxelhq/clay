@@ -1,6 +1,6 @@
 # Getting started
 
-This section will guide you on how to use clay for project setup which will be used for model developement.
+This section will guide you on how to use clay for project setup which will be used for model development.
 
 ## Nomenclature
 1. `clay` **CLI**: A command line tool which helps in model development by providing project scaffolding, dockerfile and deployment pipeline out of the box.
@@ -14,7 +14,7 @@ This section will guide you on how to use clay for project setup which will be u
 
 ## Project Setup
 ### Install clay CLI
-`clay` is a private CLI for Pixxel hence we need to do authentication before installation. **You can just follow the commands blindly in choronological order.** 
+`clay` is a private CLI for Pixxel hence we need to do authentication before installation. **You can just follow the commands blindly in chronological order.** 
 
 1. Generate a Personal Access Token (PAT) (classic) on Github. You can follow Github's documentation [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic).
 
@@ -76,7 +76,7 @@ cd Democlay
 
 !!! warning
 
-    It is very important to create a fresh virtual env before staring with the project. If you have already active virtural env please deactivate that.
+    It is very important to create a fresh virtual env before staring with the project. If you have already active virtual env please deactivate that.
 
 Run the following command to create virtual env
 ```shell
@@ -90,7 +90,7 @@ source venv/bin/activate
 
 ### Setup project 
 
-Run the following command to setup your repository, this will initilize the `git` for you and install all the default dependencies like clay along with linters, formatters etc (mentioned in requirement-dev.txt).
+Run the following command to setup your repository, this will initialize the `git` for you and install all the default dependencies like clay along with linters, formatters etc (mentioned in requirement-dev.txt).
 
 1. Login to the aws using any profile. eg:
 ```shell
@@ -111,7 +111,7 @@ make setup
 
 
 !!! GPU
-    In case your model uses GPU plesae update  `gpu` field to `true` in `clay.yaml`.
+    In case your model uses GPU please update  `gpu` field to `true` in `clay.yaml`.
     Also for model using GPU, it's recommended to use `conda.yaml` for handling dependencies. Clay utilizes conda for models with GPU support and ensures NVIDIA drivers are installed to enable GPU execution.
 
 
