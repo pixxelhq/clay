@@ -40,15 +40,17 @@ brew tap example/tap
 
 5. Finally, install `Clay`.
 ```shell
-brew install clay
+brew install --formula example/tap/clay    
 ```
 
 6. Run `clay --version` to check and you should be good to go!
 
 7. Use the following command to upgrade already installed clay.
 ```shell
-brew upgrade clay
+brew upgrade --formula example/tap/clay
 ```
+
+8. Try running clay version; it should display the Clay CLI version. If you encounter the error command not found: clay, try running brew link clay and then check the Clay version again.
 
 ### Create Project
 Let's say our model name is `DemoClay`
@@ -88,59 +90,32 @@ source venv/bin/activate
 
 ### Setup project 
 
-Run the following command to setup your repository, this will initilize the `git` for you and install all the default dependencies like linters, formatters etc (mentioned in requirement-dev.txt).
+Run the following command to setup your repository, this will initilize the `git` for you and install all the default dependencies like clay along with linters, formatters etc (mentioned in requirement-dev.txt).
 
+1. Login to the aws using any profile. eg:
+```shell
+aws sso login --profile=d-platform-services
+```
+
+??? Note "Pitfall"
+
+        Depending on how your shell is configured, AWS might not be able detect the credentials. If even after successfully logging in, the AWS CLI is unable to find the creds, export this into your environment, `export AWS_PROFILE=<profile-name>` where <profile-name> is to be replaced with your AWS profile with which you logged in.
+
+2. Run the following command
 ```shell
 make setup
 ```
 
-### Install clay python SDK
-
-#### Prerequisites
-
-1. Install the AWS CLI onto your local machine. [[docs](https://aws.amazon.com/CLI/)]
-2. Configure your CLI to login into the `d-core-services` cluster.
-    * You can follow the [Cloud Team's documentation on this.](https://github.com/example/infra/blob/main/docs/aws/aws_CLI_guide.md)
-
-The Clay python package is hosted on [AWS CodeArtifact](https://docs.aws.amazon.com/codeartifact/latest/ug/welcome.html).
-
-The process is as follows,
-
-1. Login to the aws using any profile. eg:
-```shell
-aws sso login --profile=d-analytics-sandbox
-```
-
-2. Once logged in, run this command,
-```shell
-export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text`
-```
-
-    ??? Note "Pitfall"
-
-        Depending on how your shell is configured, AWS might not be able detect the credentials. If even after successfully logging in, the AWS CLI is unable to find the creds, export this into your environment, `export AWS_PROFILE=<profile-name>` where <profile-name> is to be replaced with your AWS profile with which you logged in.
-
-3. Run
-```shell
-pip install clay --extra-index-url=https://aws:$CODEARTIFACT_AUTH_TOKEN@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
-```
-
 ### Build and run
-1. Let's declare our dependency manager file. Go to `Democlay/Democlay/specifications/`, you will notice that there are three `yaml` file. Change the line no 49 in each file from `requirements: #requirements.txt or conda.yaml` to `requirements: requirement.txt`
+1. Update the `build.requirements` field in `clay.yaml` to specify your dependency manager file. By default, it is set to `requirements.txt`. If you use a different file like `conda.yaml`, update `build.requirements` accordingly.
+
 
 !!! GPU
+    In case your model uses GPU plesae update  `gpu` field to `true` in `clay.yaml`.
+    Also for model using GPU, it's recommended to use `conda.yaml` for handling dependencies. Clay utilizes conda for models with GPU support and ensures NVIDIA drivers are installed to enable GPU execution.
 
-    If you want your model to run on GPU, it's recommended to use `conda.yaml` for handling dependencies. Clay utilizes conda for models with GPU support and ensures NVIDIA drivers are installed to enable GPU execution.
 
-2. Create dockerfile
-```shell
-make dockerfile
-```
-
-3. Bulid docker [docker must be installed in your system]
-```shell
-make docker-image
-```
+2. Run `clay build`. It will create a Dockerfile if it does not exist and then build an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `demomodel` and the `version` is `0.0.1`, a Docker image named `demomodel:0.0.1` will be created.
 
 4. Run dockerfile locally
 ```shell
@@ -167,33 +142,3 @@ INFO - 2024-04-02 09:01:27,138 - job_runner.py:470 - job_model_runner - results:
 5. Time to do the initial commit. Run `git commit -m "feat: initial project setup"`
 
 6. Ta da 🎉🎉🎉, your project setup is done. 
-
-### Need GPUs
-
-If your model runs on GPU then you need to make two changes in the spec file.
-
-1. Update the `gpu` key. It will look something like
-```yaml
-  gpu:
-    max: 1
-```
-
-2. Update the builds.requirements section to use conda.yaml for handling dependencies. Clay automatically uses conda for GPU models and ensures NVIDIA drivers are installed for GPU execution:
-```yaml
-build:
-  python-version: "3.10"
-  conda: true
-  gdal: true
-  apt-get:
-  requirements: conda.yaml
-```
-
-
-
-
-
-
-
-
-
-
