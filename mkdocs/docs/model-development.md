@@ -99,7 +99,7 @@ def setup(self, bands: List[str]) -> None:  # type: ignore
 
 ### 3. Define `inference()` method.
 
-This method will take the return value of `preprocess` as input. In this method we will define the actual algorithm for model development and return the expected ouput, here will return the calculated ndvi and the meta value of raster.
+This method will take the return value of `preprocess` as input. In this method we will define the actual algorithm for model development and return the expected output, here will return the calculated ndvi and the meta value of raster.
 
 ```python
     async def inference(self, raster: cltypes.Raster) -> Dict[str, Any]:  # type: ignore
@@ -298,7 +298,7 @@ Once you are done with the model implementation using the above defined interfac
 
 Clay generates the sample input file for us, which we will need to update with the correct input format. The file exists in the directory `./{Modelname}/sample_model_inputs.json`
 
-Now we wil define the input for the above defined model and use this file for testing the model.
+Now we will define the input for the above defined model and use this file for testing the model.
 **You must ignore the first 4 values i.e. `workflow-id`, `job-id`, `task-id` and `local-working-dir`**
 
 ```json

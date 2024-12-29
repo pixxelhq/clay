@@ -3,8 +3,16 @@ init:
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
+generate-secrets:
+		aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > CODEARTIFACT_AUTH_TOKEN.txt
+
+clean-secrets:
+		rm CODEARTIFACT_AUTH_TOKEN.txt
+
 init-requirements:
-	pip install -r python/requirements/requirements-dev.txt
+ 	$(MAKE) generate-secrets
+    pip install -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat CODEARTIFACT_AUTH_TOKEN.txt)@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
+    $(MAKE) clean-secrets
 
 package:
 	make build/package
