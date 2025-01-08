@@ -52,7 +52,9 @@ jobs:
       - name: Upload model readme to s3
         id: upload_readme
         run: |
-            echo "DOC_URL=$(clay upload readme --env prod)" >> $GITHUB_OUTPUT
+            set -e
+            DOC_URL=$(clay upload readme --env prod)
+            echo "DOC_URL=$DOC_URL" >> $GITHUB_OUTPUT
             echo $DOC_URL
 
   publish-model:
