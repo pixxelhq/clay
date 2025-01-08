@@ -20,6 +20,7 @@ var (
 	buildNoCache   bool
 	buildSecrets   []string
 	buildArgs      []string
+	platform       []string
 )
 
 func buildDockerImageCmd() *cobra.Command {
@@ -36,6 +37,7 @@ func buildDockerImageCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&buildNoCache, "no-cache", false, "When set to true, caching will not be used when building the image. (Default: false)")
 	cmd.Flags().StringArrayVar(&buildSecrets, "secret", []string{}, `Secret to expose to the build (format:"id=mysecret[,src=/local/secret]")`)
 	cmd.Flags().StringArrayVar(&buildArgs, "build-arg", []string{}, `Set build-time variables`)
+	cmd.Flags().StringArrayVar(&platform, "platform", []string{}, "Set target platform for build")
 
 	return cmd
 }
@@ -80,7 +82,13 @@ func buildImage(projectDir string, cfg *config.Config) error {
 	//Set secret and build-arg for AWS secret
 	buildSecrets = append(buildSecrets, fmt.Sprintf("id=%s,src=%s", awsSecretID, secretFile.Name()))
 
-	err = docker.Build(buildTag, dockerfilePath, buildSecrets, buildArgs, buildNoCache)
+	bf := docker.BuildFlags{
+		Secrets:   buildSecrets,
+		BuildArgs: buildArgs,
+		NoCache:   buildNoCache,
+		Platforms: platform,
+	}
+	err = docker.Build(buildTag, dockerfilePath, bf)
 	if err != nil {
 		return err
 	}

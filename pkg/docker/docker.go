@@ -88,23 +88,31 @@ func GetDockerFile() (string, error) {
 	return dockerfilePath, nil
 }
 
-func Build(buildtag, dockerfilePath string, secrets, buildArgs []string, noCache bool) error {
+type BuildFlags struct {
+	Secrets, BuildArgs, Platforms []string
+	NoCache                       bool
+}
+
+func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
 	args := []string{}
 	args = append(args, "build", "-t", buildtag, "-f", dockerfilePath, ".")
 
-	if noCache {
+	if bf.NoCache {
 		args = append(args, "--no-cache")
 	}
 
-	for _, secret := range secrets {
+	for _, secret := range bf.Secrets {
 		args = append(args, "--secret", secret)
 	}
 
-	for _, buildArg := range buildArgs {
+	for _, buildArg := range bf.BuildArgs {
 		args = append(args, "--build-arg", buildArg)
 	}
 
-	// Set the DOCKER_BUILDKIT environment variable
+	for _, p := range bf.Platforms {
+		args = append(args, "--platform", p)
+	}
+
 	env := append(os.Environ(), "DOCKER_BUILDKIT=1")
 
 	buildCmd := exec.Command("sudo", append([]string{"-E", "docker"}, args...)...)
