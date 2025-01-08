@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	host    string
 	name    string
 	version string
 )
@@ -41,10 +40,8 @@ func ListBlockRegistryCmd() *cobra.Command {
 		RunE: listBlockRegistryCmd,
 	}
 
-	// cmd.Flags().StringVarP(&host, "model-registry-host", "crh", "http://clay-registry-staging.example.com", "model registry host")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of block")
-	cmd.Flags().StringVarP(&version, "version", "v", "", "Possible status of block: draft, released, disabled")
-	cmd.Flags().StringVarP(&host, "host", "", "https://clay-registry.example.com", "Possible status of block: draft, released, disabled")
+	cmd.Flags().StringVarP(&version, "version", "v", "", "Version of the block")
 	return cmd
 }
 
