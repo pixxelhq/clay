@@ -17,8 +17,9 @@ RUN --mount=type=secret,id=CODEARTIFACT_AUTH_TOKEN \
     pip3 install --no-cache-dir \
     pixxel-datatypes \
     --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
-    -r requirements-dev.txt \
-    make build-docs
+    -r requirements-dev.txt
+
+RUN make build-docs
 
 WORKDIR /site/mkdocs/site
 ENTRYPOINT ["python", "-m", "http.server", "8080"]

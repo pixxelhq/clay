@@ -35,6 +35,15 @@ spell-check-docs:
 build-docs:
 		cd mkdocs; mkdocs build
 
+build-docs-docker-image: generate-secrets
+		sudo DOCKER_BUILDKIT=1 docker build \
+		--secret id=CODEARTIFACT_AUTH_TOKEN,src=CODEARTIFACT_AUTH_TOKEN.txt \
+		--build-arg AWS_ENV_PROFILE=$(AWS_ENV_PROFILE) \
+		-t clay-docs \
+		-f clay-docs.Dockerfile \
+		.
+		$(MAKE) clean-secrets
+
 serve-docs:
 		cd mkdocs; mkdocs serve
 
