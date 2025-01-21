@@ -79,11 +79,12 @@ class DiscretizationItem(pydantic.BaseModel):
         dc = datatypes.DiscretizationClass()
         dc.color = self.Color or ""
         dc.name = self.Name or ""
-        dc.value = self.Value or ""
 
-        assert self.Range is not None
-        dc.range.min = self.Range[0]
-        dc.range.max = self.Range[1]
+        if self.Value:
+            dc.value = self.Value or ""
+        if self.Range:
+            dc.range.min = self.Range[0]
+            dc.range.max = self.Range[1]
         return dc
 
     @staticmethod
@@ -1159,7 +1160,7 @@ class LegacyTypeWrapper(datatypes.DataWrapperInterface):
     def get_is_artifact(self) -> bool:
         return self._legacy_type.IsArtifact  # type: ignore
 
-    def set_properties(self, value: Union[Properties, Dict[str, Any], None]) -> None: # type: ignore
+    def set_properties(self, value: Union[Properties, Dict[str, Any], None]) -> None:  # type: ignore
         f = self._alias_field_mapping["properties"]
 
         if value is None:
