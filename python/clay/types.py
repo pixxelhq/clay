@@ -238,14 +238,11 @@ class RasterVisualisation(pydantic.BaseModel):
         t = datatypes.VizTypes.Name(datatypes.VizTypes.Value(self.Type or ""))
         viz_v2 = datatypes.Visualization(type=t)
         if self.Continuous:
-            assert self.Continuous is not None
             viz_v2.continuous.CopyFrom(self.Continuous.to_types_v2())
         if self.Discrete:
-            assert self.Discrete is not None
             viz_v2.discrete.update(self.Discrete)
-        if self.Bucket:
+        if self.Bucket and len(self.Bucket) > 0:
             bandwise = []
-            assert self.Bucket is not None
             for band in self.Bucket:
                 items = []
                 for bucket in band:
@@ -256,20 +253,20 @@ class RasterVisualisation(pydantic.BaseModel):
 
     @staticmethod
     def from_types_v2(t: datatypes.Visualization):
-        rv = RasterVisualisation()
+        rv = RasterVisualisation(Continuous=None, Bucket=None, Discrete=None)
         rv.Type = datatypes.VizTypes.Name(t.type)
-        if t.continuous:
+        if t.continuous.IsInitialized():
             rv.Continuous = VizContinuous.from_types_v2(t.continuous)
         if t.discrete:
             rv.Discrete = dict(t.discrete) if t.discrete else None
-        if t.bucket:
+        if t.bucket.IsInitialized():
             bandwise = []
             for band in t.bucket.bandwise:
                 items = []
                 for bucket in band.items:
                     items.append(VizBucket.from_types_v2(bucket))
                 bandwise.append(items)
-            rv.Bucket = bandwise
+            rv.Bucket = bandwise if len(bandwise) > 0 else None
         return rv
 
 

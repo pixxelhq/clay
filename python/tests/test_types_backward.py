@@ -431,3 +431,16 @@ class Test_BackwardCompatibility_Number(unittest.TestCase):
         legacy_from_proto = types.Number.from_types_v2(generated_proto_class.DATA)  # type: ignore
         legacy_from_proto_dict = legacy_from_proto.model_dump(by_alias=True)
         assert legacy_from_proto_dict == legacy_dict
+
+
+def test_raster_viz_unset_fields_should_be_none_v2_to_v1():
+    d = datatypes.Raster(properties=datatypes.RasterProperties(visualisation=datatypes.Visualization(type="discrete")))
+
+    lt = types.Raster.from_types_v2(d)
+
+    assert lt.Properties is not None
+    assert lt.Properties.Visualisation is not None
+
+    assert lt.Properties.Visualisation.Bucket is None
+    assert lt.Properties.Visualisation.Discrete is None
+    assert lt.Properties.Visualisation.Continuous is None
