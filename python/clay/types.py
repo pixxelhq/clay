@@ -175,6 +175,13 @@ class VizContinuous(pydantic.BaseModel):
         vc.Range = bandwise_range
         return vc
 
+    def _is_zero_valued_go(self) -> bool:
+        """Why: Since Continuous field in the V1 raster (as defined in Orchestrator Go) is of concrete value,
+        and not pointer. As a result it will always send a zero-valued struct for this field which is incompatible
+        with v2 spec, since here it can be optional.
+        """
+        return self.ColorMapName == "" and self.Range is None
+
 
 class VizBucket(pydantic.BaseModel):
     """Supported visualisation for histograms.
@@ -237,7 +244,7 @@ class RasterVisualisation(pydantic.BaseModel):
     def to_types_v2(self):
         t = datatypes.VizTypes.Name(datatypes.VizTypes.Value(self.Type or ""))
         viz_v2 = datatypes.Visualization(type=t)
-        if self.Continuous:
+        if self.Continuous and self.Continuous._is_zero_valued_go():
             viz_v2.continuous.CopyFrom(self.Continuous.to_types_v2())
         if self.Discrete and len(self.Discrete) > 0:
             viz_v2.discrete.update(self.Discrete)
