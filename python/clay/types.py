@@ -244,7 +244,7 @@ class RasterVisualisation(pydantic.BaseModel):
     def to_types_v2(self):
         t = datatypes.VizTypes.Name(datatypes.VizTypes.Value(self.Type or ""))
         viz_v2 = datatypes.Visualization(type=t)
-        if self.Continuous and self.Continuous._is_zero_valued_go():
+        if self.Continuous and not self.Continuous._is_zero_valued_go():
             viz_v2.continuous.CopyFrom(self.Continuous.to_types_v2())
         if self.Discrete and len(self.Discrete) > 0:
             viz_v2.discrete.update(self.Discrete)
