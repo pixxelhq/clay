@@ -251,7 +251,9 @@ class JobRunnerV2(BaseRunner):
             input_parameters: Dict[str, Any],
             input_working_dir: str,
         ) -> Tuple[Dict[str, Any], datatypes.DataWrapperInterface]:
-            value = input_parameters.get(input_config["name"], {}).get("value", None) or input_config.get("value")
+            value = input_parameters.get(input_config["name"], {}).get("value", None)
+            if value is None:
+                value = input_config.get("value")
             value = self.extract_parameter_value(value)  # type: ignore
             value = cast_inputs(value, input_config["type"])
 
