@@ -165,3 +165,27 @@ func ImageExists(image string) error {
 
 	return nil
 }
+
+func Run(image string, args []string, cfg *config.Config) error {
+	fmt.Printf("🧐 Serching image %s \n", image)
+	err := ImageExists(image)
+	if err == ErrDoesNotExists {
+		return fmt.Errorf("oops image %s does not exists. First build the image using `clay build` command to build this image", image)
+	}
+
+	runArgs := buildDockerRunArgs(image, cfg)
+	runCmd := exec.Command("docker", append(runArgs, args...)...)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
+
+	return runCmd.Run()
+}
+
+func buildDockerRunArgs(image string, cfg *config.Config) []string {
+	args := []string{"run", "--rm"}
+	if cfg.Gpu {
+		args = append(args, "--runtime", "nvidia", "--gpus", "all")
+	}
+
+	return append(args, image)
+}
