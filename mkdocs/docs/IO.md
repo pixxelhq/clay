@@ -63,8 +63,8 @@ Below is the contract defined by clay for I/O types.
 Identifier / name for the data. This has to match with the expected parameter name in the model’s preprocess function in clay. This could also be mutated when trying to chain different models together.
 
 2. **Format:**
-This specifies the *type of entity* that the data represents. Is it a *raster*, *number*, *date*, *vector* or a *string*? 
-This is independent of the extension that the file is stored with. 
+This specifies the *type of entity* that the data represents. Is it a *raster*, *number*, *date*, *vector* or a *string*?
+This is independent of the extension that the file is stored with.
 For instance, an *image* can be stored as any one of *jpeg, png, or gif*, and a vector can be stored as *geojson, gpkg, or shp*.
 The storage schema does not change the fact that the data is to be interpreted as an *image* or a *vector* respectively.\
   Supported formats:
@@ -75,7 +75,7 @@ The storage schema does not change the fact that the data is to be interpreted a
     - string
     - tabular
 
-3. **Value:** Contains the actual data for primitive formats like number, string and date. For compound types like raster and vector, it may contain a URL to the file containing the data (i.e. the actual raster or vector). 
+3. **Value:** Contains the actual data for primitive formats like number, string and date. For compound types like raster and vector, it may contain a URL to the file containing the data (i.e. the actual raster or vector).
 
 4. **Type:** This represents the intended dtype of data contained in value. A combination of format and type will let the model know how to read the data. For instance, if the data has a format specified as raster and type specified as str, then it is assumed that its value contains a URL to the raster in question. This way the type is decoupled from the format.
 This is also important for clay to be able to cast the value properly before giving it to the model. \
@@ -95,8 +95,13 @@ Supported types are:
     Format is a high level entity that has some conceptual meaning, which may or may not have any meaning in programming languages. For example, raster / vectors etc.
 
     On the other hand, type is an actual data type (like string, number, float) that means something in general programming languages. type is technically the actual dtype of the value parameter.
-    
+
     It tells the consumer how to actually interact with the value attribute.
+
+
+!!! warning "Types in Clay is being deprecated"
+
+    We are in the process of deprecating existing *Types* implementation in Clay and move to newer external implementation. For more information please visit the [datatypes-schema docs](https://datatypes-schema.example.com/). The conceptual foundation is still the same, but the technical implementation and usage has changed slightly. You can read more about this in at [docs](https://datatypes-schema.example.com/). For tracking the model migration please check out this [linear ticket](https://linear.app/REDACTED/issue/REDACTED-TICKET/[tracker]-model-integration-with-datatypes-schema).
 
 
 ## Fundamental Types
