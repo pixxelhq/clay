@@ -20,6 +20,8 @@ VALUES
 SELECT distinct on (b.id)
     b.id,
     b.name,
+    b.type,
+    b.kind,
     bv.version,
     bv.specification,
     bv.documenatation_url,
@@ -35,6 +37,8 @@ ORDER BY b.id, bv.version desc;
 SELECT
     b.id,
     b.name,
+    b.type,
+    b.kind,
     bv.version,
     bv.specification,
     bv.documenatation_url,

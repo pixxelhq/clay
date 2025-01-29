@@ -291,7 +291,7 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 				data, err := io.ReadAll(recorder.Body)
 				assert.NoError(t, err)
 
-				resp := &RegistryResponse[*GetBlockVersion]{}
+				resp := &RegistryResponse[*GetBlockByNameAndVersion]{}
 				err = json.Unmarshal(data, &resp)
 				assert.NoError(t, err)
 				assert.Equal(t, "", resp.Error)

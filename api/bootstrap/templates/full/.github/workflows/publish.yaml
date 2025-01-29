@@ -4,7 +4,7 @@ on:
   workflow_dispatch
 
 env:
-  CLAY_REGISTRY_HOST: clay-registry-staging.example.com
+  CLAY_REGISTRY_HOST: http://clay-registry-staging.example.com
   CLAY_CLI_VERSION: v0.5.6-alpha
   AWS_DEFAULT_REGION: us-east-2
   ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
@@ -58,6 +58,7 @@ jobs:
             echo $DOC_URL
 
   publish-model:
+    needs: publish-model-doc
     runs-on: [ubuntu-latest]
     if: (github.event_name == 'workflow_dispatch')
     permissions:
@@ -100,6 +101,6 @@ jobs:
 
       - name: Publish model to clay registry
         run: |
-          DOC_URL=${{ needs.push-model-doc.outputs.doc-url }}
+          DOC_URL=${{ needs.publish-model-doc.outputs.doc-url }}
           echo "$DOC_URL"
           clay publish --model-registry-host=${{env.CLAY_REGISTRY_HOST}} --documentation-url=$DOC_URL

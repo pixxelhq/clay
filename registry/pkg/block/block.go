@@ -136,6 +136,8 @@ func (bs *block) GetBlocksWithLatestVersion(ctx context.Context) ([]*Block, erro
 		blocks = append(blocks, &Block{
 			ID:               b.ID.String(),
 			Name:             b.Name,
+			Type:             b.Type,
+			Kind:             b.Kind,
 			Version:          b.Version,
 			Specification:    spec,
 			DocumentationURL: b.DocumenatationUrl.String,
@@ -167,6 +169,8 @@ func (bs *block) GetBlockByName(ctx context.Context, name string) ([]*Block, err
 		blocks = append(blocks, &Block{
 			ID:               b.ID.String(),
 			Name:             b.Name,
+			Type:             b.Type,
+			Kind:             b.Kind,
 			Version:          b.Version,
 			Specification:    spec,
 			DocumentationURL: b.DocumenatationUrl.String,
