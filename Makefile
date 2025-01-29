@@ -27,6 +27,15 @@ test:
 	go test ./...
 	cd python; pytest -vv
 
+test-go:
+	go test $(shell go list ./... | grep -v 'registry')
+
+test-python:
+	cd python; pytest -vv
+	
+test-registry:
+	cd registry; go test ./...
+
 .PHONY: docs
 
 spell-check-docs:

@@ -1,4 +1,4 @@
-name: "Run tests and lint check"
+name: "Tests and lint"
 
 permissions:
   id-token: write
@@ -9,7 +9,32 @@ on:
     branches: ["main"]
 
 jobs:
-  ci-all-tests:
+  registry-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.22.2
+      - name: Test
+        run: make test-registry
+
+  ci-go-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.22.2
+      - name: Configure private token url
+        env:
+          GO_RELEASE_TOKEN: ${{ secrets.GO_RELEASE }}
+        run: |
+          git config --global url."https://${GO_RELEASE_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+      - name: Test
+        run: make test-go
+
+  ci-python-test:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
