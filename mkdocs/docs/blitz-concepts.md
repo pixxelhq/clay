@@ -6,6 +6,10 @@ Each section provides a (really) concise explanation on a strictly *do-i-really-
 
 ## Types
 
+!!! warning "Types in Clay are being deprecated"
+
+    We are in the process of deprecating existing *Types* implementation in Clay and move to newer external implementation. For more information please visit the [datatypes-schema docs](https://datatypes-schema.example.com/). The conceptual foundation is still the same, but the technical implementation and usage has changed slightly. You can read more about this in at [docs](https://datatypes-schema.example.com/). For tracking the model migration please check out this [linear ticket](https://linear.app/REDACTED/issue/REDACTED-TICKET/[tracker]-model-integration-with-datatypes-schema).
+
 All data flowing in and out of a model has a `type`. These types are high-level concepts that the broader system understands. Having all models adhere to a *type system* allows all models to talk to each other and allow us to *create long chains of models*.
 
 >Think of it this way - since all models in the system speak the same language of inputs and outputs, they can talk to each other and pass their results to one another for further processing.

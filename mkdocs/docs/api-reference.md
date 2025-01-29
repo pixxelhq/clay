@@ -1,5 +1,10 @@
 # API Reference
 
+
+!!! warning "Types in Clay is being deprecated"
+
+    We are in the process of deprecating existing *Types* implementation in Clay and move to newer external implementation. For more information please visit the [datatypes-schema docs](https://datatypes-schema.example.com/). The conceptual foundation is still the same, but the technical implementation and usage has changed slightly. You can read more about this in at [docs](https://datatypes-schema.example.com/). For tracking the model migration please check out this [linear ticket](https://linear.app/REDACTED/issue/REDACTED-TICKET/[tracker]-model-integration-with-datatypes-schema).
+
 ## Types
 
 ### Raster
