@@ -85,12 +85,15 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 	blocks := make([]*GetLatestBlock, 0, len(bwlv))
 	for _, b := range bwlv {
 		blocks = append(blocks, &GetLatestBlock{
-			ID:        b.ID,
-			Name:      b.Name,
-			Version:   b.Version,
-			CreatedAt: b.CreatedAt,
-			UpdatedAt: b.UpdatedAt,
-			Type:      b.Type,
+			ID:               b.ID,
+			Name:             b.Name,
+			Type:             b.Type,
+			Kind:             b.Kind,
+			Version:          b.Version,
+			CreatedAt:        b.CreatedAt,
+			DockerImage:      b.DockerImage,
+			DocumentationURL: b.DocumentationURL,
+			UpdatedAt:        b.UpdatedAt,
 		})
 	}
 
@@ -107,7 +110,7 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 //
 //	@Produce		json
 //	@Param			name		path	string		true	"Name of the model"
-//	@Success		200	{object}	RegistryResponse[GetBlockByNameResponse]
+//	@Success		200	{object}	RegistryResponse[GetBlocksByNameResponse]
 //	@Failure		400	{object}	RegistryResponse[any]
 //	@Failure		500	{object}	RegistryResponse[any]
 //	@Router			/v1/blocks/{name} [get]
@@ -126,20 +129,23 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 		return
 	}
 
-	blocks := make([]*GetBlockVersion, 0, len(blockVersions))
+	blocks := make([]*GetBlockByNameAndVersion, 0, len(blockVersions))
 	for _, b := range blockVersions {
-		blocks = append(blocks, &GetBlockVersion{
-			ID:            b.ID,
-			Name:          b.Name,
-			Version:       b.Version,
-			Specification: convertFromServiceSpecification(b.Specification),
-			CreatedAt:     b.CreatedAt,
-			UpdatedAt:     b.UpdatedAt,
-			Type:          b.Type,
+		blocks = append(blocks, &GetBlockByNameAndVersion{
+			ID:               b.ID,
+			Name:             b.Name,
+			Type:             b.Type,
+			Kind:             b.Kind,
+			Version:          b.Version,
+			DockerImage:      b.DockerImage,
+			DocumentationURL: b.DocumentationURL,
+			Specification:    convertFromServiceSpecification(b.Specification),
+			CreatedAt:        b.CreatedAt,
+			UpdatedAt:        b.UpdatedAt,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, &RegistryResponse[GetBlockByNameResponse]{
+	ctx.JSON(http.StatusOK, &RegistryResponse[GetBlocksByNameResponse]{
 		Data: blocks,
 	})
 
@@ -154,7 +160,7 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 //	@Param			name		path	string		true	"Name of the model"
 //	@Param			version		path	string		true	"Version of the model"
 //	@Produce		json
-//	@Success		200	{object}	RegistryResponse[GetBlockVersion]
+//	@Success		200	{object}	RegistryResponse[GetBlockByNameAndVersion]
 //	@Failure		400	{object}	RegistryResponse[any]
 //	@Failure		500	{object}	RegistryResponse[any]
 //	@Router			/v1/blocks/{name}/versions/{version} [get]
@@ -181,8 +187,8 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, &RegistryResponse[*GetBlockVersion]{
-		Data: &GetBlockVersion{
+	ctx.JSON(http.StatusOK, &RegistryResponse[*GetBlockByNameAndVersion]{
+		Data: &GetBlockByNameAndVersion{
 			ID:               b.ID,
 			Name:             b.Name,
 			Kind:             b.Kind,

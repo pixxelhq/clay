@@ -66,6 +66,8 @@ const getBlockAllVersionByName = `-- name: GetBlockAllVersionByName :many
 SELECT
     b.id,
     b.name,
+    b.type,
+    b.kind,
     bv.version,
     bv.specification,
     bv.documenatation_url,
@@ -82,6 +84,8 @@ ORDER BY b.id, bv.version desc
 type GetBlockAllVersionByNameRow struct {
 	ID                uuid.UUID
 	Name              string
+	Type              string
+	Kind              string
 	Version           string
 	Specification     json.RawMessage
 	DocumenatationUrl sql.NullString
@@ -102,6 +106,8 @@ func (q *Queries) GetBlockAllVersionByName(ctx context.Context, name string) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Type,
+			&i.Kind,
 			&i.Version,
 			&i.Specification,
 			&i.DocumenatationUrl,
@@ -180,6 +186,8 @@ const getBlocksWithLatestVersion = `-- name: GetBlocksWithLatestVersion :many
 SELECT distinct on (b.id)
     b.id,
     b.name,
+    b.type,
+    b.kind,
     bv.version,
     bv.specification,
     bv.documenatation_url,
@@ -195,6 +203,8 @@ ORDER BY b.id, bv.version desc
 type GetBlocksWithLatestVersionRow struct {
 	ID                uuid.UUID
 	Name              string
+	Type              string
+	Kind              string
 	Version           string
 	Specification     json.RawMessage
 	DocumenatationUrl sql.NullString
@@ -215,6 +225,8 @@ func (q *Queries) GetBlocksWithLatestVersion(ctx context.Context) ([]GetBlocksWi
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Type,
+			&i.Kind,
 			&i.Version,
 			&i.Specification,
 			&i.DocumenatationUrl,
