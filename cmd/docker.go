@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/example/clay/pkg/config"
 	"github.com/example/clay/pkg/docker"
 	"github.com/spf13/cobra"
@@ -23,6 +24,7 @@ var (
 	platform       []string
 )
 
+// TODO: Refactor these commands into separate files with docker directory.
 func buildDockerImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "build",
@@ -184,4 +186,34 @@ func generateAWSSecret() (*os.File, error) {
 	}
 
 	return outputFile, nil
+}
+
+func runDockerImageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "run [IMAGE NAME] [ARG...]",
+		Short: "Run the docker image",
+		Long: heredoc.Doc(
+			"Run the docker image. You need to provide the image name which you want to run.\n"),
+		Example: "clay run registry.io/testing-model:0.0.1",
+		RunE:    runImage,
+		Args:    cobra.MinimumNArgs(1),
+	}
+
+	return cmd
+}
+
+func runImage(cmd *cobra.Command, args []string) error {
+	// assuming arg[0] will be image name and arg[1:] will and args
+	image := args[0]
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	cfg, err := config.GetConfig(cwd)
+	if err != nil {
+		return err
+	}
+
+	return docker.Run(image, args[1:], cfg)
 }
