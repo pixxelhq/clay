@@ -19,16 +19,13 @@ const (
 	ErrAlreadyExists ErrorCode = "ALREADY EXISTS"
 )
 
-var PGCodeToRegistryCode = map[string]ErrorCode{
-	"23505": ErrAlreadyExists,
-}
-
 type ErrorCode string
 
 func (de *RegistryError) Error() string {
 	if de.Err != nil {
 		return fmt.Sprintf("code: %v, err: %v, %v", de.Code, de.Message, de.Err)
 	}
+
 	return fmt.Sprintf("code: %v, err: %v", de.Code, de.Message)
 }
 

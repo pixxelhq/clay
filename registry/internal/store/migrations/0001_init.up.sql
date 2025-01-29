@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS block_versions (
   version TEXT NOT NULL,
   block_id UUID NOT NULL REFERENCES blocks(id),
   specification JSONB NOT NULL,
-  documenatation_url TEXT,
+  documentation_url TEXT,
   docker_image TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),

@@ -85,20 +85,20 @@ func TestCreate(t *testing.T) {
 						})
 
 						bv := store.BlockVersion{
-							ID:                uuid.New(),
-							Version:           "1.0.0",
-							BlockID:           upsertedBlock.ID,
-							Specification:     specByte,
-							DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
-							DockerImage:       sql.NullString{String: "example/image:latest", Valid: true},
+							ID:               uuid.New(),
+							Version:          "1.0.0",
+							BlockID:          upsertedBlock.ID,
+							Specification:    specByte,
+							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}
 
 						q.EXPECT().CreateBlockVersion(gomock.Any(), store.CreateBlockVersionParams{
-							BlockID:           upsertedBlock.ID,
-							Version:           "1.0.0",
-							Specification:     specByte,
-							DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
-							DockerImage:       sql.NullString{String: "example/image:latest", Valid: true},
+							BlockID:          upsertedBlock.ID,
+							Version:          "1.0.0",
+							Specification:    specByte,
+							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}).Return(bv, nil)
 
 						return fn(q)
@@ -161,11 +161,11 @@ func TestCreate(t *testing.T) {
 						specByte, _ := json.Marshal(&Specification{})
 
 						q.EXPECT().CreateBlockVersion(gomock.Any(), store.CreateBlockVersionParams{
-							BlockID:           upsertedBlock.ID,
-							Version:           "1.0.0",
-							Specification:     specByte,
-							DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
-							DockerImage:       sql.NullString{String: "example/image:latest", Valid: true},
+							BlockID:          upsertedBlock.ID,
+							Version:          "1.0.0",
+							Specification:    specByte,
+							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}).Return(store.BlockVersion{}, errors.New("create block version error"))
 
 						return fn(q)
@@ -209,14 +209,14 @@ func TestGetBlocksWithLatestVersion(t *testing.T) {
 			mockSetup: func() {
 				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return([]store.GetBlocksWithLatestVersionRow{
 					{
-						ID:                sampleUUID,
-						Name:              "Block1",
-						Version:           "v1.0",
-						Specification:     json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
-						DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
-						DockerImage:       sql.NullString{String: "example/image", Valid: true},
-						CreatedAt:         sql.NullTime{Time: sampleTime},
-						UpdatedAt:         sql.NullTime{Time: sampleTime},
+						ID:               sampleUUID,
+						Name:             "Block1",
+						Version:          "v1.0",
+						Specification:    json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
+						DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+						DockerImage:      sql.NullString{String: "example/image", Valid: true},
+						CreatedAt:        sql.NullTime{Time: sampleTime},
+						UpdatedAt:        sql.NullTime{Time: sampleTime},
 					},
 				}, nil)
 			},
@@ -292,14 +292,14 @@ func TestGetBlockByName(t *testing.T) {
 			mockSetup: func() {
 				mockStore.EXPECT().GetBlockAllVersionByName(gomock.Any(), gomock.Any()).Return([]store.GetBlockAllVersionByNameRow{
 					{
-						ID:                sampleUUID,
-						Name:              "Test_Block",
-						Version:           "1.0.0",
-						Specification:     json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
-						DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
-						DockerImage:       sql.NullString{String: "example/image", Valid: true},
-						CreatedAt:         sql.NullTime{Time: sampleTime},
-						UpdatedAt:         sql.NullTime{Time: sampleTime},
+						ID:               sampleUUID,
+						Name:             "Test_Block",
+						Version:          "1.0.0",
+						Specification:    json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
+						DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+						DockerImage:      sql.NullString{String: "example/image", Valid: true},
+						CreatedAt:        sql.NullTime{Time: sampleTime},
+						UpdatedAt:        sql.NullTime{Time: sampleTime},
 					},
 				}, nil)
 			},
@@ -377,14 +377,14 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 			version:   "1.0.0",
 			mockSetup: func() {
 				mockStore.EXPECT().GetBlockByNameAndVersion(gomock.Any(), gomock.Any()).Times(1).Return(store.GetBlockByNameAndVersionRow{
-					ID:                sampleUUID,
-					Name:              "Test Block",
-					Version:           "1.0.0",
-					Specification:     json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
-					DocumenatationUrl: sql.NullString{String: "http://example.com", Valid: true},
-					DockerImage:       sql.NullString{String: "example/image", Valid: true},
-					CreatedAt:         sql.NullTime{Time: sampleTime},
-					UpdatedAt:         sql.NullTime{Time: sampleTime},
+					ID:               sampleUUID,
+					Name:             "Test Block",
+					Version:          "1.0.0",
+					Specification:    json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
+					DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+					DockerImage:      sql.NullString{String: "example/image", Valid: true},
+					CreatedAt:        sql.NullTime{Time: sampleTime},
+					UpdatedAt:        sql.NullTime{Time: sampleTime},
 				}, nil)
 			},
 			expectedBlock: &Block{

@@ -6,18 +6,19 @@ import (
 )
 
 type Config struct {
-	HttpPort int `mapstructure:"HTTP_SERVER_PORT" default:"8080"`
+	HTTPPort int `default:"8080" mapstructure:"HTTP_SERVER_PORT"`
 
-	DBPassword      string `mapstructure:"DB_PASSWORD" default:"postgres"`
-	DBUserName      string `mapstructure:"DB_USERNAME" default:"postgres"`
-	DBHost          string `mapstructure:"DB_HOST" default:"localhost"`
-	DBPort          int    `mapstructure:"DB_PORT" default:"5432"`
-	DBName          string `mapstructure:"DB_NAME" default:"clay_registry_dev"`
-	DBMigrationPath string `mapstructure:"DB_MIGRATION_PATH" default:"file://internal/store/migration"`
+	DBPassword      string `default:"postgres"                        mapstructure:"DB_PASSWORD"`
+	DBUserName      string `default:"postgres"                        mapstructure:"DB_USERNAME"`
+	DBHost          string `default:"localhost"                       mapstructure:"DB_HOST"`
+	DBPort          int    `default:"5432"                            mapstructure:"DB_PORT"`
+	DBName          string `default:"clay_registry_dev"               mapstructure:"DB_NAME"`
+	DBMigrationPath string `default:"file://internal/store/migration" mapstructure:"DB_MIGRATION_PATH"`
 
-	LogLevel string `mapstructure:"LOG_LEVEL" default:"info"`
+	LogLevel string `default:"info" mapstructure:"LOG_LEVEL"`
 }
 
+// nolint
 var App Config
 
 func Load() error {
@@ -29,12 +30,11 @@ func Load() error {
 
 	viper.AutomaticEnv()
 
-	err := viper.ReadInConfig()
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
 
 	defaults.SetDefaults(&App)
-	return viper.Unmarshal(&App)
 
+	return viper.Unmarshal(&App)
 }

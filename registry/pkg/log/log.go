@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// nolint
 var logger = zerolog.New(os.Stderr).With().Timestamp().Caller().Logger().Level(zerolog.ErrorLevel)
 
 func InitLogger(level string) error {
@@ -16,6 +17,7 @@ func InitLogger(level string) error {
 	}
 
 	logger = zerolog.New(os.Stderr).With().Timestamp().Caller().Logger().Level(l)
+
 	return nil
 }
 
