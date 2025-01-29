@@ -148,7 +148,6 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, &RegistryResponse[GetBlocksByNameResponse]{
 		Data: blocks,
 	})
-
 }
 
 // GetBlockByNameAndVersion	godoc
@@ -201,7 +200,6 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 			UpdatedAt:        b.UpdatedAt,
 		},
 	})
-
 }
 
 func convertFromServiceSpecification(bSpec *block.Specification) *Specification {

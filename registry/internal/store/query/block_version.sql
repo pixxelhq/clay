@@ -4,7 +4,7 @@ INSERT INTO
         block_id,
         version,
         specification,
-        documenatation_url,
+        documentation_url,
         docker_image
     )
 VALUES
@@ -24,7 +24,7 @@ SELECT distinct on (b.id)
     b.kind,
     bv.version,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -41,7 +41,7 @@ SELECT
     b.kind,
     bv.version,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -59,7 +59,7 @@ SELECT
     b.type,
     b.kind,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -76,7 +76,7 @@ SELECT
     b.type,
     b.kind,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at

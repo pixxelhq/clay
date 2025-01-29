@@ -1,0 +1,19 @@
+run:
+  tests: false
+  timeout: 2m
+linters:
+  enable-all: true
+  disable:
+    - gci
+    - depguard
+    - exhaustruct
+    - tagliatelle
+    - nlreturn
+    - lll
+    - wrapcheck
+    - funlen
+    - varnamelen
+    - nonamedreturns
+linters-settings:
+  goimports:
+    local-prefixes: github.com/pixxelhq

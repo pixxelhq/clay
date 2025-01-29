@@ -19,7 +19,7 @@ INSERT INTO
         block_id,
         version,
         specification,
-        documenatation_url,
+        documentation_url,
         docker_image
     )
 VALUES
@@ -29,15 +29,15 @@ VALUES
         $3,
         $4,
         $5
-    ) RETURNING id, version, block_id, specification, documenatation_url, docker_image, created_at, updated_at
+    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at
 `
 
 type CreateBlockVersionParams struct {
-	BlockID           uuid.UUID
-	Version           string
-	Specification     json.RawMessage
-	DocumenatationUrl sql.NullString
-	DockerImage       sql.NullString
+	BlockID          uuid.UUID
+	Version          string
+	Specification    json.RawMessage
+	DocumentationUrl sql.NullString
+	DockerImage      sql.NullString
 }
 
 func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersionParams) (BlockVersion, error) {
@@ -45,7 +45,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		arg.BlockID,
 		arg.Version,
 		arg.Specification,
-		arg.DocumenatationUrl,
+		arg.DocumentationUrl,
 		arg.DockerImage,
 	)
 	var i BlockVersion
@@ -54,7 +54,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		&i.Version,
 		&i.BlockID,
 		&i.Specification,
-		&i.DocumenatationUrl,
+		&i.DocumentationUrl,
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -70,7 +70,7 @@ SELECT
     b.kind,
     bv.version,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -82,16 +82,16 @@ ORDER BY b.id, bv.version desc
 `
 
 type GetBlockAllVersionByNameRow struct {
-	ID                uuid.UUID
-	Name              string
-	Type              string
-	Kind              string
-	Version           string
-	Specification     json.RawMessage
-	DocumenatationUrl sql.NullString
-	DockerImage       sql.NullString
-	CreatedAt         sql.NullTime
-	UpdatedAt         sql.NullTime
+	ID               uuid.UUID
+	Name             string
+	Type             string
+	Kind             string
+	Version          string
+	Specification    json.RawMessage
+	DocumentationUrl sql.NullString
+	DockerImage      sql.NullString
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }
 
 func (q *Queries) GetBlockAllVersionByName(ctx context.Context, name string) ([]GetBlockAllVersionByNameRow, error) {
@@ -110,7 +110,7 @@ func (q *Queries) GetBlockAllVersionByName(ctx context.Context, name string) ([]
 			&i.Kind,
 			&i.Version,
 			&i.Specification,
-			&i.DocumenatationUrl,
+			&i.DocumentationUrl,
 			&i.DockerImage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -136,7 +136,7 @@ SELECT
     b.type,
     b.kind,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -152,16 +152,16 @@ type GetBlockByNameAndVersionParams struct {
 }
 
 type GetBlockByNameAndVersionRow struct {
-	ID                uuid.UUID
-	Name              string
-	Version           string
-	Type              string
-	Kind              string
-	Specification     json.RawMessage
-	DocumenatationUrl sql.NullString
-	DockerImage       sql.NullString
-	CreatedAt         sql.NullTime
-	UpdatedAt         sql.NullTime
+	ID               uuid.UUID
+	Name             string
+	Version          string
+	Type             string
+	Kind             string
+	Specification    json.RawMessage
+	DocumentationUrl sql.NullString
+	DockerImage      sql.NullString
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }
 
 func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNameAndVersionParams) (GetBlockByNameAndVersionRow, error) {
@@ -174,7 +174,7 @@ func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNa
 		&i.Type,
 		&i.Kind,
 		&i.Specification,
-		&i.DocumenatationUrl,
+		&i.DocumentationUrl,
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -190,7 +190,7 @@ SELECT distinct on (b.id)
     b.kind,
     bv.version,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -201,16 +201,16 @@ ORDER BY b.id, bv.version desc
 `
 
 type GetBlocksWithLatestVersionRow struct {
-	ID                uuid.UUID
-	Name              string
-	Type              string
-	Kind              string
-	Version           string
-	Specification     json.RawMessage
-	DocumenatationUrl sql.NullString
-	DockerImage       sql.NullString
-	CreatedAt         sql.NullTime
-	UpdatedAt         sql.NullTime
+	ID               uuid.UUID
+	Name             string
+	Type             string
+	Kind             string
+	Version          string
+	Specification    json.RawMessage
+	DocumentationUrl sql.NullString
+	DockerImage      sql.NullString
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }
 
 func (q *Queries) GetBlocksWithLatestVersion(ctx context.Context) ([]GetBlocksWithLatestVersionRow, error) {
@@ -229,7 +229,7 @@ func (q *Queries) GetBlocksWithLatestVersion(ctx context.Context) ([]GetBlocksWi
 			&i.Kind,
 			&i.Version,
 			&i.Specification,
-			&i.DocumenatationUrl,
+			&i.DocumentationUrl,
 			&i.DockerImage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -255,7 +255,7 @@ SELECT
     b.type,
     b.kind,
     bv.specification,
-    bv.documenatation_url,
+    bv.documentation_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -268,16 +268,16 @@ LIMIT 1
 `
 
 type GetLatestBlockByNameRow struct {
-	ID                uuid.UUID
-	Name              string
-	Version           string
-	Type              string
-	Kind              string
-	Specification     json.RawMessage
-	DocumenatationUrl sql.NullString
-	DockerImage       sql.NullString
-	CreatedAt         sql.NullTime
-	UpdatedAt         sql.NullTime
+	ID               uuid.UUID
+	Name             string
+	Version          string
+	Type             string
+	Kind             string
+	Specification    json.RawMessage
+	DocumentationUrl sql.NullString
+	DockerImage      sql.NullString
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }
 
 func (q *Queries) GetLatestBlockByName(ctx context.Context, name string) (GetLatestBlockByNameRow, error) {
@@ -290,7 +290,7 @@ func (q *Queries) GetLatestBlockByName(ctx context.Context, name string) (GetLat
 		&i.Type,
 		&i.Kind,
 		&i.Specification,
-		&i.DocumenatationUrl,
+		&i.DocumentationUrl,
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,

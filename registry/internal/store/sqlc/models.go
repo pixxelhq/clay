@@ -21,12 +21,12 @@ type Block struct {
 }
 
 type BlockVersion struct {
-	ID                uuid.UUID
-	Version           string
-	BlockID           uuid.UUID
-	Specification     json.RawMessage
-	DocumenatationUrl sql.NullString
-	DockerImage       sql.NullString
-	CreatedAt         sql.NullTime
-	UpdatedAt         sql.NullTime
+	ID               uuid.UUID
+	Version          string
+	BlockID          uuid.UUID
+	Specification    json.RawMessage
+	DocumentationUrl sql.NullString
+	DockerImage      sql.NullString
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }

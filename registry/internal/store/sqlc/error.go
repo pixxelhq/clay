@@ -3,13 +3,12 @@ package store
 import (
 	"database/sql"
 
-	rerr "github.com/example/clay/registry/pkg/error"
-
 	"github.com/lib/pq"
+
+	rerr "github.com/example/clay/registry/pkg/error"
 )
 
 func PGErrorToRegistryError(err error) *rerr.RegistryError {
-	//This is added because database/sql does not return pq.Error type in case of no rows
 	if err == sql.ErrNoRows {
 		return &rerr.RegistryError{
 			Code: rerr.ErrDoesNotExists,

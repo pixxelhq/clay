@@ -6,11 +6,12 @@ import (
 	llog "log"
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/example/clay/registry/config"
 	store "github.com/example/clay/registry/internal/store/sqlc"
 	"github.com/example/clay/registry/pkg/block"
 	"github.com/example/clay/registry/pkg/log"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -136,5 +137,5 @@ func (svr *Server) Start() error {
 		ctx.JSON(http.StatusOK, `{pong}`)
 	})
 
-	return svr.Router.Run(fmt.Sprintf(":%d", svr.Cfg.HttpPort))
+	return svr.Router.Run(fmt.Sprintf(":%d", svr.Cfg.HTTPPort))
 }
