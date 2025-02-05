@@ -30,13 +30,20 @@ services:
   model:
     build:
       context: "../../"
+      secrets:
+        - CODEARTIFACT_AUTH_TOKEN
       dockerfile: examples/runner/Dockerfile
     container_name: model
     env_file:
       - .env
 
 networks:
-  app-network: 
+  app-network:
     driver: bridge
+
 volumes:
   minio_storage:
+
+secrets:
+  CODEARTIFACT_AUTH_TOKEN:
+    file: ../../

@@ -24,6 +24,7 @@ def test_clb_serialise_dict() -> None:
         "block_inf_end_time": None,
         "failure_type": "bad_request",
         "progress": None,
+        "disclaimer": None
     }
 
 

@@ -1,22 +1,16 @@
-[   
+[
     {
         "name": "some_raster",
         "type": "url",
         "format": "raster",
         "is_artifact": true,
-        "value": "testinputs/inputs/some_raster/some_raster.tif"
+        "value": "s3://testinputs/inputs/some_raster/some_raster.tif"
     },
     {
         "name": "some_vector",
         "type": "url",
         "format": "vector",
         "is_artifact": true,
-        "value": "testinputs/inputs/some_vector/some_vector.geojson"
-    },
-    {
-        "name": "some_string",
-        "type": "str",
-        "format": "string",
-        "value": "Hello world"
+        "value": "s3://testinputs/inputs/some_vector/some_vector.geojson"
     }
 ]

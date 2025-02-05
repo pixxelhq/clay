@@ -31,27 +31,17 @@ inputs:
     format: raster
     is_artifact: true
     type: url
-    properties:
+
   - name: some_vector
     format: vector
     is_artifact: true
     type: url
-    properties:
-  - name: some_string
-    format: string
-    type: str
-    properties:
 
 outputs:
   - name: vector
     format: vector
     is_artifact: true
     type: url
-    properties:
-  - name: another_string
-    format: string
-    type: str
-    properties:
 
 build:
   python-version: "3.10"

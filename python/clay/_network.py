@@ -57,7 +57,6 @@ def _fire_callback_to_dexter(
     session = requests.Session()
     retries = Retry(total=3, backoff_factor=0.2, status_forcelist=[500, 502, 503, 504])  # type: ignore
     session.mount("http://", HTTPAdapter(max_retries=retries))
-
     # check if `dexter_clb_url` is set
     if dexter_clb_url is None or dexter_clb_url == "":
         _logger.error(f"found `dexter_clb_url` as {dexter_clb_url}. " "Hence not firing callback")
@@ -72,6 +71,7 @@ def _fire_callback_to_dexter(
         resp = session.post(url=dexter_clb_url, json=data, headers=headers)
     else:
         # TODO: Refactor this to use clb.model_dump
+        # data = {"data": clb.model_dump(by_alias=True, exclude_none=True, serialize_as_any=True)} 
         data = {
             "status": clb.State.value,
             "output": clb.Result,
@@ -82,10 +82,10 @@ def _fire_callback_to_dexter(
             "block_inf_end_time": clb.BlockInfEndTime,
             "err_msg": clb.ErrMsg,
             "progress": clb.Progress,
+            "disclaimer": clb.disclaimer,
         }
         if enable_debug_logs:
             _logger.debug(f"Data for callback: {data}")
-
         resp = session.post(
             url=dexter_clb_url,
             json=data,

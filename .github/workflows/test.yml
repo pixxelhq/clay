@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload Pytest Results
         if: ${{ !failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}
           path: python/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
