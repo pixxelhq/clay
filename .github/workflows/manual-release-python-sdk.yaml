@@ -1,4 +1,4 @@
-name: "Release clay python sdk [manual]"
+name: "[Manual] Release clay python sdk"
 
 on: workflow_dispatch
 

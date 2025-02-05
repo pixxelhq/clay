@@ -119,7 +119,7 @@ make setup
 
 4. Run dockerfile locally
 ```shell
-make test-docker-image
+clay run demo-clay:v0.0.1 "$(cat demo_clay/sample_model_inputs.json)"
 ```
 the logs should look something like 
 ```

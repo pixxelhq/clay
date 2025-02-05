@@ -1,4 +1,4 @@
-name: "Deploy registry [manual]"
+name: "[Manual] Deploy registry"
 
 on: workflow_dispatch
 
