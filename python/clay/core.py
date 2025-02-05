@@ -113,7 +113,9 @@ class InferenceCtx:
         self._model_inf_end_time = get_current_utc_time_iso()
 
     def get_model_inf_times(self) -> types.ModelInfTimes:
-        return types.ModelInfTimes(InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time)
+        return types.ModelInfTimes(
+            InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time
+        )
 
 
 class RunType(Enum):
@@ -122,7 +124,9 @@ class RunType(Enum):
 
 
 def callback_wrapper(conn_params: Dict[Any, str]):
-    def _callback(logger: Logger, callback: types.Callback, enable_debug_logs: bool = False) -> None:
+    def _callback(
+        logger: Logger, callback: types.Callback, enable_debug_logs: bool = False
+    ) -> None:
         dexter_clb_url = conn_params.get(types._CommonEnvvars.ORCHESTRATOR_URL, None)
 
         task_id = conn_params.get(types._CommonEnvvars.TASK_ID, None)
@@ -133,7 +137,9 @@ def callback_wrapper(conn_params: Dict[Any, str]):
         if callback.Id is None or callback.Id == "":
             callback.Id = task_id
 
-        success = _network._fire_callback_to_dexter(callback, logger, dexter_clb_url, enable_debug_logs)
+        success = _network._fire_callback_to_dexter(
+            callback, logger, dexter_clb_url, enable_debug_logs
+        )
         if not success:
             logger.error("failed to fire callback")
 
@@ -177,7 +183,9 @@ class ModelWrapper:
             self.enable_debug_logs = enable_debug_logs
         if logger is None:
             log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
-            logger = ClayLogger(logger_name=self.__class__.__name__, propagate=True, level=log_level)
+            logger = ClayLogger(
+                logger_name=self.__class__.__name__, propagate=True, level=log_level
+            )
         self.logger: Logger = logger
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
 
@@ -198,7 +206,9 @@ class ModelWrapper:
         if parameters is not None:
             parameters = filter(lambda x: len(x) > 0, parameters)
             for param in parameters:
-                self.params[param["name"]] = cast_inputs(param["default"], param["type"].lower())
+                self.params[param["name"]] = cast_inputs(
+                    param["default"], param["type"].lower()
+                )
         self.setup(**self.params)
 
     @cached_property
@@ -268,7 +278,10 @@ class ModelWrapper:
         # never actuall run, but is kept for safety
         # Casting Inputs:
         for item in inputs:
-            if isinstance(item.get("value", None), str) and PRIMITIVE_TYPES[item["type"].lower()] is not str:
+            if (
+                isinstance(item.get("value", None), str)
+                and PRIMITIVE_TYPES[item["type"].lower()] is not str
+            ):
                 item["value"] = cast_inputs(item["value"], item["type"])
 
         # filling in default values for any missing inputs
@@ -276,7 +289,9 @@ class ModelWrapper:
         for param in self.config.inputs:
             if param["name"] not in provided_inputs:
                 _param = {**param}
-                _param["value"] = cast_inputs(_param.pop("default"), _param["type"].lower())
+                _param["value"] = cast_inputs(
+                    _param.pop("default"), _param["type"].lower()
+                )
                 inputs.append(_param)
 
         # Setting the key-value pairs as required
@@ -306,10 +321,14 @@ class ModelWrapper:
 
     def __check_progress_bounds(self, progress: float) -> bool:
         if progress < self._DEFAULT_MODEL_PROGRESS_MIN:
-            self.logger.warning("progress cannot be set to a value lower than min progress")
+            self.logger.warning(
+                "progress cannot be set to a value lower than min progress"
+            )
             return False
         if progress > self._DEFAULT_MODEL_PROGRESS_MAX:
-            self.logger.warning("progress cannot be set to a value higher than the max progress")
+            self.logger.warning(
+                "progress cannot be set to a value higher than the max progress"
+            )
             return False
         return True
 
@@ -335,10 +354,14 @@ class ModelWrapper:
             progress (float): The value to which current model progress is to be set
         """
         if not self.__check_progress_bounds(progress):
-            self.logger.warning("progress cannot be set to a value higher than the max progress")
+            self.logger.warning(
+                "progress cannot be set to a value higher than the max progress"
+            )
             return None
         if progress < self._progress_counter:
-            self.logger.warning("progress cannot be set to a value lower than the current progress")
+            self.logger.warning(
+                "progress cannot be set to a value lower than the current progress"
+            )
             return None
 
         self._progress_counter = progress
@@ -371,10 +394,14 @@ class ModelWrapper:
 
         """
         if progress_delta < self._DEFAULT_MODEL_USER_PROGRESS_MIN:
-            self.logger.warning("progress_delta cannot be set to a value lower than the min progress")
+            self.logger.warning(
+                "progress_delta cannot be set to a value lower than the min progress"
+            )
             return None
         if progress_delta > self._DEFAULT_MODEL_USER_PROGRESS_MAX:
-            self.logger.warning("progress_delta cannot be set to a value higher than the max progress")
+            self.logger.warning(
+                "progress_delta cannot be set to a value higher than the max progress"
+            )
             return None
         self._progress_counter += progress_delta
         self._set_progress(
@@ -385,7 +412,9 @@ class ModelWrapper:
             )
         )
 
-    def _set_progress(self, callback: types.Callback, enable_debug_logs: bool = False) -> None:
+    def _set_progress(
+        self, callback: types.Callback, enable_debug_logs: bool = False
+    ) -> None:
         if self._callback is None:
             self.logger.warning("cannot fire callback as `_callback` is set to `None`")
             return None
@@ -461,7 +490,9 @@ class ModelWrapper:
         """
         raise NotImplementedError
 
-    async def infer(self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]) -> InferenceCtx:
+    async def infer(
+        self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]
+    ) -> InferenceCtx:
         """Entrypoint to the model inference process. All runners would call the
         `infer` method defined on the model at a certain point to start the actual
         inference process.
@@ -489,7 +520,9 @@ class ModelWrapper:
             InferenceCtx: A context class scoped to the inference run.
         """
 
-        d: Dict[str, Union[datatypes.DataWrapperInterface, datatypes.Data, types.Data]] = inputs
+        d: Dict[
+            str, Union[datatypes.DataWrapperInterface, datatypes.Data, types.Data]
+        ] = inputs
         if not self.wrap_inputs:
             # lift the wrapped types
             for key, value in inputs.items():
@@ -511,7 +544,9 @@ class ModelWrapper:
         # latter has duplication: `name` is both present in key and the type which is the
         # value
         for _, v in _return_vals.items():
-            assert isinstance(v, types.OutputBufferItem), f"return value can only be of {types.OutputBufferItem}"
+            assert isinstance(
+                v, types.OutputBufferItem
+            ), f"return value can only be of {types.OutputBufferItem}"
             _inf_ctx.output(v)
 
         return _inf_ctx
@@ -545,7 +580,9 @@ class BaseRunner(object):
         self._model_args = model_args
         self._enable_uvloop = enable_uvloop
         self._dexter_clb_url = os.getenv(types._CommonEnvvars.ORCHESTRATOR_URL.value, "")
-        self._dexter_host = os.getenv(types._CommonEnvvars.DEXTER_HOST.value, "http://localhost")
+        self._dexter_host = os.getenv(
+            types._CommonEnvvars.DEXTER_HOST.value, "http://localhost"
+        )
         self._dexter_port = os.getenv(types._CommonEnvvars.DEXTER_PORT.value, "8080")
         self.config = yaml_to_namespace(cfg_path)
 
@@ -606,7 +643,9 @@ class BaseRunner(object):
                 try:
                     value = int(env_value)
                 except:  # noqa: E722
-                    self.logger.error(f"invalid feature flag value received for {flag.name}: {env_value}")
+                    self.logger.error(
+                        f"invalid feature flag value received for {flag.name}: {env_value}"
+                    )
                     continue
                 if value == 1 and flag.name not in self._feature_flags:
                     self.logger.info(f"enabling {flag.name} via env")
@@ -643,7 +682,12 @@ class BaseRunner(object):
     @abstractmethod
     def _collect_inputs(
         self, inputs: Optional[List[Dict[str, Any]]] = None
-    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, datatypes.DataWrapperInterface], Dict[str, Any]]]]:
+    ) -> Optional[
+        Union[
+            Dict[str, Any],
+            Tuple[Dict[str, datatypes.DataWrapperInterface], Dict[str, Any]],
+        ]
+    ]:
         pass
 
     @abstractmethod
@@ -684,9 +728,42 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapperInterface]) -> None:
+    def _flush_output_buffer(
+        self, output_buffer: List[datatypes.DataWrapperInterface]
+    ) -> None:
         pass
 
     @abstractmethod
     def start(self, **kwargs: Any) -> None:
         self.run_model_inference()
+
+class EnvVarConfigItem:
+    def __init__(self, name: str, required: bool = False, default: Any = None):
+        self.name = name
+        self.required = required
+        self.default = default
+
+    def get_value(self) -> Any:
+        value = os.getenv(self.name, self.default)
+        if self.required and value is None:
+            raise ValueError(f"Required environment variable {self.name} is not set.")
+        return value
+
+class BaseConfigEnvVar:
+    TaskId: EnvVarConfigItem = EnvVarConfigItem(name="TASK_ID", required=True, default=None)
+    ClbUrl: EnvVarConfigItem = EnvVarConfigItem(name="ORCHESTRATOR_URL", required=True, default=None)
+    
+    def load_from_env(self):
+        """Load environment variable values into instance attributes."""
+        self.TaskId = self.TaskId.get_value()
+        self.ClbUrl = self.ClbUrl.get_value()
+
+def set_disclaimer(disclaimerMsg: str) -> None:
+    config = BaseConfigEnvVar()
+    config.load_from_env()
+    logger = logging.getLogger(__name__)
+    disclaimer_info = {'message': disclaimerMsg, 'timestamp': get_current_utc_time_iso()}
+    callback = types.Callback(Id=str(config.TaskId), disclaimer=disclaimer_info)
+    success = _network._fire_callback_to_dexter(callback, logger, str(config.ClbUrl), True)
+    if not success:
+        logger.error("failed to fire callback")

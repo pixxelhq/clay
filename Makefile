@@ -101,18 +101,20 @@ go-binaries:
 		GOOS=linux GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-linux-$$ARCH; \
 	done
 
-test-with-runner:
+test-with-runner: generate-secrets
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
 	echo 'Waiting for Minio to be ready...'
 	sleep 10
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
-	sudo docker-compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='kube' model
-	cd examples/runner && sudo docker-compose run -e EXECUTOR='kube' model "$$(cat demo-test/sample_model_inputs.json)"
+	sudo docker compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='kube' model
+	cd examples/runner && sudo docker compose run -e EXECUTOR='kube' -e FEATURE_FORCE_INPUT_TYPES_TO_V2='1' -e FEATURE_FORCE_OUTPUT_TYPES_TO_V2='1' \
+	model "$$(cat demo-test/sample_model_inputs.json)"
 
-test-with-runnerv2:
+test-with-runnerv2: generate-secrets
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
-	sudo docker-compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='argo' model
-	cd examples/runner && sudo docker-compose run -e EXECUTOR='argo' model
+	sudo docker compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='argo' model
+	cd examples/runner && sudo docker compose run -e EXECUTOR='argo' model
+	$(MAKE) clean-secrets
 
 tear-down:
 	cd examples/runner && sudo docker-compose down --volumes --remove-orphans
