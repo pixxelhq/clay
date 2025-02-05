@@ -76,6 +76,7 @@ nav:
   - Indicating Model Progress: "progress.md"
   - Checklist: "checklist.md"
   - Do's and don'ts: "dos-dont.md"
+  - Registry: "registry.md"
   - FAQs: "faq.md"
   - API Reference: "api-reference.md"
   - CLI Reference: "cli-reference.md"
