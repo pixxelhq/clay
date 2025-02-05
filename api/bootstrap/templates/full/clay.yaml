@@ -2,7 +2,7 @@ apiVersion: 0.0.1
 kind: block
 type: processing
 name: {{ .Name | ToLower }}
-version: 0.0.1
+version: v0.0.1
 author: <please-fill-in-here>@pixxel.co.in
 tags:
   - imagery
