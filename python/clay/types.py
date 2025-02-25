@@ -527,6 +527,7 @@ class ModelInfTimes(pydantic.BaseModel):
     InfStartTime: str
     InfEndTime: str
 
+
 class Callback(pydantic.BaseModel):
     Id: Annotated[str, Field(serialization_alias="id")]
     State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
@@ -543,7 +544,8 @@ class Callback(pydantic.BaseModel):
     FailureType: Annotated[Optional[str], Field(serialization_alias="failure_type")] = None
     Progress: Annotated[Optional[float], Field(serialization_alias="progress", alias="progress")] = None
     model_config = ConfigDict(use_enum_values=False, populate_by_name=True)
-    disclaimer: Annotated[Optional[Dict[str, Any]], Field(serialization_alias="disclaimer")] =  None
+    disclaimer: Annotated[Optional[Dict[str, Any]], Field(serialization_alias="disclaimer")] = None
+
 
 class InferenceOpts(pydantic.BaseModel):
     """Stores data whose lifetimes are scoped to a particular
@@ -1107,7 +1109,10 @@ class Number(_DataMeta):
             assert self.Metadata is not None
             n.metadata.update(self.Metadata)
 
-        n.value = str(self.Value or "")
+        if isinstance(self.Value, Union[int, float, str, bool]):
+            n.value = str(self.Value)
+        else:
+            n.value = ""
 
         return datatypes.DataWrapper(n)
 
