@@ -39,7 +39,7 @@ class _InjectedEnvVars(Enum):
     TaskId = "TASK_ID"
     WorkflowId = "WORKFLOW_ID"
     JobId = "JOB_ID"
-    LocalWorkingDir = "LOCAL_WORKING_DIR" 
+    LocalWorkingDir = "LOCAL_WORKING_DIR"
 
 
 _InjectedEnvVarsDefaults = {
@@ -252,7 +252,7 @@ class JobRunner(BaseRunner):
         return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
-        if _ExpectedInfParameters.WorkflowId not in self._inf_opts: 
+        if _ExpectedInfParameters.WorkflowId not in self._inf_opts:
             wfid = os.getenv(_InjectedEnvVars.WorkflowId.value)
             if wfid is None:
                 raise ValueError(f"did not find `{_InjectedEnvVars.WorkflowId.value}`")
@@ -318,7 +318,6 @@ class JobRunner(BaseRunner):
         _processed_inputs = {}
         for k, v in dict_inputs.items():
             model: datatypes.DataWrapperInterface = type_utils.TypeFromDict(v, self.force_input_types_to_v2)
-
             # model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
             if model.get_value() == "":  # TODO: check this condition
                 model.set_value(input_config_dict[model.get_name()].get("default", None))
