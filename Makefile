@@ -112,8 +112,11 @@ test-with-runner: generate-secrets
 
 test-with-runnerv2: generate-secrets
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
+	echo 'Waiting for Minio to be ready...'
+	sleep 10
+	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
 	sudo docker compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='argo' model
-	cd examples/runner && sudo docker compose run -e EXECUTOR='argo' model
+	cd examples/runner && sudo docker compose run -e EXECUTOR='argo'-e FEATURE_FORCE_INPUT_TYPES_TO_V2='1' -e FEATURE_FORCE_OUTPUT_TYPES_TO_V2='1' model
 	$(MAKE) clean-secrets
 
 tear-down:

@@ -40,6 +40,21 @@ inputs:
 outputs:
   - name: vector
     format: vector
+    group: sample_group
+    is_artifact: true
+    type: url
+  - name: raster
+    format: raster
+    group: sample_group
+    is_artifact: true
+    type: url
+  - name: raster2
+    format: raster
+    group: sample_group_2
+    is_artifact: true
+    type: url
+  - name: raster3
+    format: raster
     is_artifact: true
     type: url
 

@@ -160,8 +160,8 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
         inputs_list = a.get_inputs_list()
         assert inputs_list[0] == self.raster
 
-        target_raster_asset_path = os.path.join(self.testing_working_dir, "outputs", "result", "clipped.tiff")
-        target_raster_spec_path = os.path.join(self.testing_working_dir, "outputs", "result", "spec.json")
+        target_raster_asset_path = os.path.join(self.testing_working_dir, "outputs", "raster_group", "result", "clipped.tiff")
+        target_raster_spec_path = os.path.join(self.testing_working_dir, "outputs", "raster_group", "result", "spec.json")
         target_string_spec_path = os.path.join(self.testing_working_dir, "outputs", "string", "spec.json")
         assert os.path.exists(target_raster_asset_path)
         assert os.path.exists(target_raster_spec_path)
@@ -522,6 +522,7 @@ class TestJobRunnerV2_WithTypesV2(unittest.IsolatedAsyncioTestCase):
         target_result_spec_path = os.path.join(
             self.testing_working_dir,
             "outputs",
+            "number_group",
             "z",
             "spec.json",
         )
@@ -575,6 +576,7 @@ class TestJobRunnerV2_WithTypesV2(unittest.IsolatedAsyncioTestCase):
         target_result_spec_path = os.path.join(
             self.testing_working_dir,
             "outputs",
+            "number_group",
             "z",
             "spec.json",
         )
