@@ -411,7 +411,8 @@ class JobRunner(BaseRunner):
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
 
         local_working_dir = self._inf_opts[_ExpectedInfParameters.LocalWorkingDir]
-        output_working_dir = pathlib.Path(os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs"))
+        output_working_dir = pathlib.Path(os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs", str(data.get_field("group"))))
+
         output_working_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.get_name()))
@@ -421,7 +422,7 @@ class JobRunner(BaseRunner):
         named_remote_working_dir = ""
         remote_prefix, found = self.get_injected_envvar_if_found(_InjectedEnvVars.RemotePrefix)
         if found:
-            remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "outputs")
+            remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "outputs", str(data.get_field("group")))
 
             named_remote_working_dir = os.path.join(remote_working_dir, data.get_name())
 

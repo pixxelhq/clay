@@ -429,7 +429,9 @@ class JobRunnerV2(BaseRunner):
             data.set_field("metadata", metadata)
 
         output_working_dir, found = self.get_injected_envvar_if_found(_InjectedEnvVars.OutputsWorkingDir)
+        output_working_dir = os.path.join(output_working_dir, str(data.get_field("group")))
         named_output_dir = pathlib.Path(os.path.join(output_working_dir, data.get_name()))
+        
         named_output_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
         assert os.path.exists(named_output_dir)
         self.logger.info(f"Asset info: {data}")

@@ -46,4 +46,7 @@ class DemoTest(ModelWrapper):
         #     geojson.dump(v, f)
         return {
             "vector": T.Vector(name="vector", value=v.value),
+            "raster": T.Raster(name="raster", value=v.value),
+            "raster2": T.Raster(name="raster2", value=v.value),
+            "raster3": T.Raster(name="raster3", value=v.value),
         }
