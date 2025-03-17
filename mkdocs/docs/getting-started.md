@@ -142,3 +142,148 @@ INFO - 2024-04-02 09:01:27,138 - job_runner.py:470 - job_model_runner - results:
 5. Time to do the initial commit. Run `git commit -m "feat: initial project setup"`
 
 6. Ta da 🎉🎉🎉, your project setup is done. 
+
+## Deployment
+This is the high level flow for model deployment.
+    ![model-onboarding](assets/model-onboarding.png)
+
+#### Deploying model to clay registry.
+Once you are done with model development please update the version in `clay.yaml` if there is any change in the code. Now it's time for model deployment.
+**NOTE:** Clay has a componenet called `registry` which is responsible for storing all the models along with different version.
+
+1. Go to github actions of your repository.
+
+     ![publish-model-action-button](assets/publish-model-action-button.png)
+
+
+2. Click on `Publish model to Clay registry`
+
+     ![publish-model-to-registry](assets/publish-model-to-registry.png)
+
+
+3. Run the workflow. It will push the model with the version specified in the `clay.yaml` to registry.
+
+    ![publish-model-run-workflow](assets/publish-model-run-workflow.png)
+
+    The the successfull workflow will look like 
+
+    ![publish-model-run-workflow](assets/publish-model-workflow-summary.png)
+
+
+4. After successful you can cross check your model on clay registry by following command.
+        
+    ```shell
+        clay block list 
+    ```
+    
+    It should list all the models with latest version, the list should have your model with the version mention in the model's clay.yaml. The same output will look like
+
+    ```json
+        (base) ➜  ~ clay block list
+        {
+          "id": "0b2af1d0-e779-41e7-9ed0-ff901dc6405d",
+          "name": "principalcomponentanalysis",
+          "kind": "block",
+          "type": "processing",
+          "version": "v1.3.1",
+          "docker_image": "REDACTED.dkr.ecr.us-east-2.amazonaws.com/principalcomponentanalysis:v1.3.1",
+          "documentation_url": "https://p-platform-clay-public-catalog-s3-01.s3.us-east-2.amazonaws.com/principalcomponentanalysis/v1.3.1/catalog_readme/parsed.md"
+        }
+        {
+          "id": "0fe70c7a-d41b-4a5e-8dcf-4d4399f1382b",
+          "name": "cropparameter",
+          "kind": "block",
+          "type": "processing",
+          "version": "v1.4.1",
+          "docker_image": "REDACTED.dkr.ecr.us-east-2.amazonaws.com/cropparameter:v1.4.1",
+          "documentation_url": "https://p-platform-clay-public-catalog-s3-01.s3.us-east-2.amazonaws.com/cropparameter/v1.4.1/catalog_readme/parsed.md"
+        }
+    ```
+
+5. You can futher check the specification of a particular version of your model by running the  following command.
+    ```shell
+        clay block describe imageclustering --version v1.4.0
+    ```
+    The sample output will look like:
+    ```json
+    {
+        "id": "50f763e1-a7e5-4a01-acab-f49c918ee287",
+        "name": "imageclustering",
+        "kind": "block",
+        "type": "processing",
+        "version": "v0.0.1",
+        "docker_image": "REDACTED.dkr.ecr.us-east-2.amazonaws.com/imageclustering:v1.4.0",
+        "documentation_url": "https://p-platform-clay-public-catalog-s3-01.s3.us-east-2.amazonaws.com/imageclustering/v1.4.0/catalog_readme/parsed.md",
+        "specification": {
+          "apiVersion": "0.0.1",
+          "title": "",
+          "author": "khushil@pixxel.co.in",
+          "tags": [
+            "imagery",
+            "processing"
+          ],
+          "parameters": null,
+          "inputs": [
+            {
+              "name": "raster",
+              "type": "url",
+              "format": "raster",
+              "properties": null,
+              "is_artifact": true
+            },
+            {
+              "name": "k",
+              "type": "int",
+              "format": "number",
+              "default": 8,
+              "properties": null,
+              "description": "For general land cover analysis, k values between 5 and 10 offer a good balance of detail and interpretability. Higher values (10-15) may be needed for detailed segmentation, but values above 20 risk over-segmentation and complexity.",
+              "display_name": "Number of clusters"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "type": "url",
+              "format": "raster",
+              "properties": null,
+              "is_artifact": true
+            }
+          ],
+          "build": {
+            "conda": false,
+            "apt-get": [
+              "wget"
+            ],
+            "requirements": "requirements.txt",
+            "python-version": "3.10"
+          },
+          "gpu": false
+        }
+    }   
+    ```
+
+
+#### Onboarding model to Platform platform
+Once the model is deployed to clay registry. Please follow the instruction below to onboard your model to Platform platform.
+1. Clone the repository [model-config](https://github.com/example/model-configs).
+
+2. Open the directory of your model. e.g. for imageclustering (directory name should same as model name mentioned in your clay.yaml file). The directory will have 3 files.
+    a. development.yaml (model config for aurora development)
+    b. staging.yaml (model config for aurora staging)
+    b. production.yaml (model config for aurora production)
+3. Edit or add new environment variable in the respective files/
+4. Commit and raise the PR for your changes. Tag @maintainers, @contributor, @contributor to review
+5. Once the PR is merged, go to actions.
+
+    ![github-action](assets/model-config-action-button.png)
+
+6. Open `Onboard model to Platform platform` action and click on the `Run workflow`.
+
+7. Run workflow.
+    a. Select your model from the model name
+    b. Mention the version you want to onboard to aurora platform. (Default: `latest` version)
+    c. Select the environment in which you want to onboard the model.
+    d. Run the workflow
+
+    ![model-config-run-workflow](assets/model-config-run-workflow.png)
