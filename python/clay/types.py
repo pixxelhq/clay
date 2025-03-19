@@ -592,6 +592,7 @@ class _DataMeta(pydantic.BaseModel):
 class Raster(_DataMeta):
     """Type representing `TIFFs` and `GeoTIFFs`"""
 
+    StacUrl: Annotated[Optional[str], Field(alias="stac_url", serialization_alias="stac_url")] = None
     Properties: Annotated[
         Optional[RasterProperties],
         Field(serialization_alias="properties", alias="properties"),
@@ -603,6 +604,7 @@ class Raster(_DataMeta):
         __pydantic_self__,
         name: str,
         value: Union[int, float, str, bool],
+        stac_url: str = "",
         default: Optional[Union[str, int, float, bool]] = None,
         is_artifact: Optional[bool] = True,
         metadata: Dict[str, str] = {},
@@ -615,6 +617,7 @@ class Raster(_DataMeta):
         """
         Args:
             name (str): Name of the data item
+            stac_url (str): The STAC URL of the raster
             value (Union[int, float, str, bool]): The value of the raster.Usually a url
             default (Optional[Union[str, int, float, bool]], optional]): Any default
                 value. Defaults to None.
@@ -646,6 +649,7 @@ class Raster(_DataMeta):
             Metadata=metadata,
             Group=group,
         )
+        __pydantic_self__.StacUrl = stac_url
         __pydantic_self__.Properties = properties
 
     def to_types_v2(self) -> datatypes.DataWrapper:
@@ -664,6 +668,7 @@ class Raster(_DataMeta):
             assert self.Metadata is not None
             r.metadata.update(self.Metadata)
 
+        r.stac_url = (self.StacUrl or "")
         r.value = str(self.Value or "")
 
         if self.Properties:
@@ -673,7 +678,7 @@ class Raster(_DataMeta):
 
     @staticmethod
     def from_types_v2(t: datatypes.Raster):
-        r = Raster(name=t.name, value=t.value)
+        r = Raster(name=t.name, stac_url= t.stac_url, value=t.value)
         r.DisplayName = t.display_name
         r.Description = t.description
         r.IsArtifact = t.is_artifact

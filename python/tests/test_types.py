@@ -34,6 +34,7 @@ def test_init_raster_model_from_dict_success() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {"bands": ["B01", "B02"]},
     }
 
@@ -48,6 +49,7 @@ def test_init_raster_model_from_dict_with_none_props_success() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": None,
     }
 
@@ -61,6 +63,7 @@ def test_init_raster_model_from_dict_with_sun_elevation() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "sun_elevation": 1.2,
         },
@@ -78,6 +81,7 @@ def test_init_raster_model_from_dict_with_date_in_props() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "date": "1/1/2022",
         },
@@ -95,6 +99,7 @@ def test_init_raster_model_from_dict_with_satellite_look_angle() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "satellite_look_angle": 3.4,
         },
@@ -137,6 +142,7 @@ def test_init_raster_model_from_dict_with_continuous_viz() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "visualisation": {"type": "continuous", "continuous": {"name": "rgb", "range": [[-1, -2]]}},
         },
@@ -159,6 +165,7 @@ def test_init_raster_model_from_dict_with_discrete_viz() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "visualisation": {
                 "type": "discrete",
@@ -187,6 +194,7 @@ def test_init_raster_model_from_dict_with_bucket_viz() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "visualisation": {
                 "type": "bucket",
@@ -224,6 +232,7 @@ def test_init_raster_model_from_dict_with_discretization_interval() -> None:
         "format": "raster",
         "type": "url",
         "name": "raster",
+        "stac_url":"stac",
         "value": "some.tiff",
         "properties": {
             "discretization": {
@@ -247,6 +256,7 @@ def test_init_raster_model_from_dict_with_discretization_interval() -> None:
         name="raster",
         type="url",
         value="some.tiff",
+        stac_url="stac",
         properties=types.RasterProperties(
             Discretization=types.RasterDiscretization(
                 Type="interval",
@@ -268,6 +278,7 @@ def test_init_raster_model_from_dict_with_discretization_index() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {
             "discretization": {
                 "type": "index",
@@ -282,6 +293,7 @@ def test_init_raster_model_from_dict_with_discretization_index() -> None:
         name="raster",
         type="url",
         value="some.tiff",
+        stac_url="stac",
         properties=types.RasterProperties(
             Discretization=types.RasterDiscretization(
                 Type="index",
@@ -303,12 +315,14 @@ def test_init_raster_model_from_dict_with_images_list() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "properties": {"images": ["url1", "url2"]},
     }
     target = types.Raster(
         name="raster",
         type="url",
         value="some.tiff",
+        stac_url="stac",
         properties=types.RasterProperties(
             Images=["url1", "url2"],
         ),
@@ -324,6 +338,7 @@ def test_init_raster_model_from_dict_with_group() -> None:
         "type": "url",
         "name": "raster",
         "value": "some.tiff",
+        "stac_url": "stac",
         "group": "some_group",
         "properties": {"images": ["url1", "url2"]},
     }
@@ -331,6 +346,7 @@ def test_init_raster_model_from_dict_with_group() -> None:
         name="raster",
         type="url",
         value="some.tiff",
+        stac_url="stac",
         group="some_group",
         properties=types.RasterProperties(
             Images=["url1", "url2"],
