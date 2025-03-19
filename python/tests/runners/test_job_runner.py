@@ -82,6 +82,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "raster",
+            "stac_url": "stac",
             "value": "s3://bucket/another-bucket/clipped.tiff",
         }
 
@@ -143,6 +144,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "raster",
+            "stac_url": "stac",
             "value": "s3://bucket/another-bucket/clipped.tiff",
         }
 
@@ -236,6 +238,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "raster",
+            "stac_url": "stac",
             "value": "s3://d-platform-orchestrator-lulc-artifacts-s3-01/test-raster.tiff",
         }
 
@@ -324,6 +327,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "raster",
+            "stac_url": "stac",
             "value": "s3://d-platform-orchestrator-lulc-artifacts-s3-01/test-raster.tiff",
         }
 
@@ -423,6 +427,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "raster",
+            "stac_url": "stac",
             "value": "s3://bucket/another-bucket/clipped.tiff",
         }
 

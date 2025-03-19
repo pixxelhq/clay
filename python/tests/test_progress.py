@@ -96,6 +96,7 @@ class TestJobRunner_ProgessUpdates(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "type": "url",
             "name": "raster",
+            "stac_url": "stac",
             "value": "s3://bucket/another-bucket/clipped.tiff",
         }
 

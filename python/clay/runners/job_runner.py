@@ -1,5 +1,6 @@
 import asyncio
 import json
+import requests
 import os
 import pathlib
 import shutil
@@ -220,35 +221,59 @@ class JobRunner(BaseRunner):
         data = self._upload_assets_to_s3(data, named_input_dir, named_remote_output_dir)
         return data
 
-    def _upload_assets_to_s3(
-        self,
-        data: datatypes.DataWrapperInterface,
-        named_input_dir,
-        named_remote_output_dir,
-    ) -> datatypes.DataWrapperInterface:
-        url_fragments = parse_url(data.get_value())
-        if url_fragments.scheme != "s3":
-            self.logger.warning(f"Unknown scheme while parsing {data.get_value()}: {url_fragments.scheme}")
+    def _download_stac_data(self, url, local_path):
+        """Downloads STAC data and saves it to the specified local path."""
+        stac_data = requests.get(url).json()
+        with open(local_path, "w+") as f:
+            json.dump(stac_data, f, indent=4)
+        self.logger.info(f"Downloaded STAC data to {local_path}")
+        
+
+    def _upload_to_s3(self, local_path, named_remote_output_dir):
+        """Uploads file to S3, with handling for existing files."""
+        if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
+            self.logger.info(f"Uploading {local_path} to {named_remote_output_dir}")
+            try:
+                self._s3fs.info(named_remote_output_dir)
+                self.logger.warning(f"File found at {named_remote_output_dir}. It will be overwritten.")
+            except FileNotFoundError:
+                pass
+            self._s3fs.put_file(str(local_path), named_remote_output_dir)
+            self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
+
+    def _get_local_path_from_url(self, url, named_input_dir):
+        """Helper function to determine the local path from a URL."""
+        url_fragments = parse_url(url)
         file_name = os.path.basename(url_fragments.path)  # type: ignore
-        local_path = pathlib.Path(named_input_dir, str(file_name))
-        self._s3fs.get_file(data.get_value(), str(local_path))
-        if not local_path.exists():
-            raise FileNotFoundError(f"failed to find file {data.get_value()}")
-        if named_remote_output_dir != "":
-            named_remote_output_dir = os.path.join(named_remote_output_dir, str(file_name))
-            if not self._injected_envvars[_InjectedEnvVars.DisableAutoUpload]:
-                self.logger.info(f"Uploading {str(local_path)} to {named_remote_output_dir}")
-                # TODO: here we risk overwriting the file if it exists. Ideally, if the
-                # file exists in the named-remote-output-dir path, then we shouldnt upload
-                try:
-                    self._s3fs.info(named_remote_output_dir)
-                    # the line below is run only if the file exists in the said path
-                    self.logger.warning(f"File found at {named_remote_output_dir}. will be overwritten")
-                except FileNotFoundError:
-                    pass
-                self._s3fs.put_file(str(local_path), named_remote_output_dir)
-                self.logger.info(f"Finished uploading {local_path} to {named_remote_output_dir}")
-        data.set_value(str(local_path))
+        return pathlib.Path(named_input_dir, file_name)
+
+    def _upload_assets_to_s3(self, data: datatypes.DataWrapperInterface, named_input_dir, named_remote_output_dir) -> datatypes.DataWrapperInterface:
+       
+        if data.get_format() == types.FormatTypes.RASTER.value and data.get_field("stac_url"):
+            url = data.get_field("stac_url")
+            local_path = self._get_local_path_from_url(url, named_input_dir)
+            self._download_stac_data(url, local_path)
+            if not local_path.exists():
+                raise FileNotFoundError(f"Failed to find file at {local_path}")
+            if named_remote_output_dir:
+                named_remote_output_dir_stac = os.path.join(named_remote_output_dir, str(local_path.name))
+                self._upload_to_s3(local_path, named_remote_output_dir_stac)
+            
+            data.set_field("stac_url", str(local_path))
+
+        if data.get_type() == ValueTypes.URL.value and data.get_value():
+            url = data.get_value()
+            local_path = self._get_local_path_from_url(url, named_input_dir)
+            self._s3fs.get_file(url, str(local_path))
+
+            if not local_path.exists():
+                raise FileNotFoundError(f"Failed to find file at {local_path}")
+            if named_remote_output_dir:
+                named_remote_output_dir = os.path.join(named_remote_output_dir, str(local_path.name))
+                self._upload_to_s3(local_path, named_remote_output_dir)
+            
+            data.set_value(str(local_path))
+
         return data
 
     def _backward_compatibility_missing_infparams(self) -> None:
@@ -319,8 +344,11 @@ class JobRunner(BaseRunner):
         for k, v in dict_inputs.items():
             model: datatypes.DataWrapperInterface = type_utils.TypeFromDict(v, self.force_input_types_to_v2)
             # model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
+            if (model.get_format() == types.FormatTypes.RASTER.value and not model.get_field("stac_url")):
+               model.set_field("stac_url", input_config_dict[model.get_name()].get("default", "")) 
             if model.get_value() == "":  # TODO: check this condition
                 model.set_value(input_config_dict[model.get_name()].get("default", None))
+           
             named_input_dir = pathlib.Path(input_working_dir, model.get_name())
             named_input_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 

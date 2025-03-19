@@ -35,6 +35,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "name": "raster",
             "type": "url",
+            "stac_url": "stac",
             "value": "s3://bucket/another-bucket/clipped.tiff",
             "properties": {
                 "bands": ["A", "B", "C"],
@@ -230,6 +231,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "name": "result",
             "display_name": "",
             "description": "",
+            "stac_url": "",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
             "is_artifact": True,
             "metadata": {},
@@ -272,6 +274,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
                         name="result",
                         value=raster,
                         is_artifact=True,
+                        stac_url="stac"
                     ),
                     "string": types.String(name="string", value="hello world", parameter=True),
                 }
@@ -306,6 +309,7 @@ class TestJobRunnerV2(unittest.IsolatedAsyncioTestCase):
             "name": "result",
             "display_name": "",
             "description": "",
+            "stac_url":"stac",
             "value": "s3://workflow-id/job-id/task-id/outputs/result/clipped.tiff",
             "is_artifact": True,
             "metadata": {"block-name": "test-artifact"},
@@ -387,6 +391,7 @@ class TestJobRunnerV2_WithTypesV2(unittest.IsolatedAsyncioTestCase):
             "format": "raster",
             "name": "raster",
             "type": "url",
+            "stac_url": "stac",
             "value": "s3://bucket/another-bucket/clipped.tiff",
             "properties": {
                 "bands": ["A", "B", "C"],
@@ -440,7 +445,7 @@ class TestJobRunnerV2_WithTypesV2(unittest.IsolatedAsyncioTestCase):
             async def preprocess(self, string, raster) -> Any:
                 assert isinstance(string, datatypes.String)
                 assert isinstance(raster, datatypes.Raster)
-                print(string, raster)
+                print(string, raster, raster.stac_url)
                 return {"raster": raster.value, "string": string.value}
 
             async def inference(self, raster, string) -> None:

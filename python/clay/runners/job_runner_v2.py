@@ -239,10 +239,18 @@ class JobRunnerV2(BaseRunner):
 
             # TODO: should we be casting the inputs given that value would always be str?
             value = cast_inputs(spec["value"], spec["type"])
-            if data.get_type() == ValueTypes.URL.value:
+
+            if data.get_format() == types.FormatTypes.RASTER.value and data.get_field("stac_url"):
+                filename = get_filename_from_remote(str(data.get_field("stac_url")))
+                url = os.path.join(path, filename)  # type: ignore
+                data.set_field("stac_url", url)
+
+            if data.get_type() == ValueTypes.URL.value and value:
                 filename = get_filename_from_remote(value)
                 value = os.path.join(path, filename)  # type: ignore
-            data.set_value(value)
+                data.set_value(value)
+            else:
+                data.set_value(value)
 
             return spec, data
 
