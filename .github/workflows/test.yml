@@ -63,8 +63,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ -r python/requirements/requirements-dev.txt
-          pip install --index-url https://${{ secrets.GITLAB_TOKEN_NAME }}:${{ secrets.GITLAB_TOKEN_PASS }}@gitlab.com/api/v4/projects/38508365/packages/pypi/simple matter
+          pip install pixxel-datatypes --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ -r python/requirements/requirements-dev.txt
           pip install coverage pre-commit
 
       - name: Run Pytest
