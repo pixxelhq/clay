@@ -21,6 +21,7 @@ type Specification struct {
 	Inputs      json.RawMessage `json:"inputs"`
 	Outputs     json.RawMessage `json:"outputs"`
 	Build       json.RawMessage `json:"build"`
+	ENV         json.RawMessage `json:"env"`
 	GPU         bool            `json:"gpu"`
 }
 
