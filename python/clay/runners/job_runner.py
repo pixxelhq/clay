@@ -1,6 +1,5 @@
 import asyncio
 import json
-import requests
 import os
 import pathlib
 import shutil
@@ -11,6 +10,7 @@ from logging import Logger
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 import datatypes
+import requests
 from s3fs import S3FileSystem
 from urllib3.util import parse_url
 
@@ -22,6 +22,7 @@ from clay.core import (
     FeatureFlags,
     ModelWrapper,
     ValueTypes,
+    add_asset_wrapper,
     callback_wrapper,
 )
 from clay.exceptions import FailedExecutionException, OutputOverwriteException
@@ -227,7 +228,6 @@ class JobRunner(BaseRunner):
         with open(local_path, "w+") as f:
             json.dump(stac_data, f, indent=4)
         self.logger.info(f"Downloaded STAC data to {local_path}")
-        
 
     def _upload_to_s3(self, local_path, named_remote_output_dir):
         """Uploads file to S3, with handling for existing files."""
@@ -247,8 +247,9 @@ class JobRunner(BaseRunner):
         file_name = os.path.basename(url_fragments.path)  # type: ignore
         return pathlib.Path(named_input_dir, file_name)
 
-    def _upload_assets_to_s3(self, data: datatypes.DataWrapperInterface, named_input_dir, named_remote_output_dir) -> datatypes.DataWrapperInterface:
-       
+    def _upload_assets_to_s3(
+        self, data: datatypes.DataWrapperInterface, named_input_dir, named_remote_output_dir
+    ) -> datatypes.DataWrapperInterface:
         if data.get_format() == types.FormatTypes.RASTER.value and data.get_field("stac_url"):
             url = data.get_field("stac_url")
             local_path = self._get_local_path_from_url(url, named_input_dir)
@@ -258,7 +259,7 @@ class JobRunner(BaseRunner):
             if named_remote_output_dir:
                 named_remote_output_dir_stac = os.path.join(named_remote_output_dir, str(local_path.name))
                 self._upload_to_s3(local_path, named_remote_output_dir_stac)
-            
+
             data.set_field("stac_url", str(local_path))
 
         if data.get_type() == ValueTypes.URL.value and data.get_value():
@@ -271,7 +272,7 @@ class JobRunner(BaseRunner):
             if named_remote_output_dir:
                 named_remote_output_dir = os.path.join(named_remote_output_dir, str(local_path.name))
                 self._upload_to_s3(local_path, named_remote_output_dir)
-            
+
             data.set_value(str(local_path))
 
         return data
@@ -344,11 +345,11 @@ class JobRunner(BaseRunner):
         for k, v in dict_inputs.items():
             model: datatypes.DataWrapperInterface = type_utils.TypeFromDict(v, self.force_input_types_to_v2)
             # model: types.Data = types._FormatModelMap[v["format"]].model_validate(v)
-            if (model.get_format() == types.FormatTypes.RASTER.value and not model.get_field("stac_url")):
-               model.set_field("stac_url", input_config_dict[model.get_name()].get("default", "")) 
+            if model.get_format() == types.FormatTypes.RASTER.value and not model.get_field("stac_url"):
+                model.set_field("stac_url", input_config_dict[model.get_name()].get("default", ""))
             if model.get_value() == "":  # TODO: check this condition
                 model.set_value(input_config_dict[model.get_name()].get("default", None))
-           
+
             named_input_dir = pathlib.Path(input_working_dir, model.get_name())
             named_input_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
@@ -439,7 +440,9 @@ class JobRunner(BaseRunner):
         task_id = self._inf_opts[_ExpectedInfParameters.TaskId]
 
         local_working_dir = self._inf_opts[_ExpectedInfParameters.LocalWorkingDir]
-        output_working_dir = pathlib.Path(os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs", str(data.get_field("group"))))
+        output_working_dir = pathlib.Path(
+            os.path.join(local_working_dir, workflow_id, job_id, task_id, "outputs", str(data.get_field("group")))
+        )
 
         output_working_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
@@ -450,7 +453,9 @@ class JobRunner(BaseRunner):
         named_remote_working_dir = ""
         remote_prefix, found = self.get_injected_envvar_if_found(_InjectedEnvVars.RemotePrefix)
         if found:
-            remote_working_dir = os.path.join(remote_prefix, workflow_id, job_id, task_id, "outputs", str(data.get_field("group")))
+            remote_working_dir = os.path.join(
+                remote_prefix, workflow_id, job_id, task_id, "outputs", str(data.get_field("group"))
+            )
 
             named_remote_working_dir = os.path.join(remote_working_dir, data.get_name())
 
@@ -634,6 +639,15 @@ class JobRunner(BaseRunner):
         }
         callback_fn = callback_wrapper(conn_params)
         self._model.set_callback_callable(callback_fn)
+
+        remote_path = os.path.join(
+            self.get_injected_envvar_if_found(_InjectedEnvVars.RemotePrefix)[0],
+            self._inf_opts[_ExpectedInfParameters.WorkflowId],
+            self._inf_opts[_ExpectedInfParameters.JobId],
+            self._inf_opts[_ExpectedInfParameters.TaskId],
+        )
+        add_asset_fn = add_asset_wrapper(remote_path, self)  # pyright: ignore
+        self._model.set_add_asset_callable(add_asset_fn)
 
         if self._model.receive_raw_inputs:
             _input_dict = rvals[1]

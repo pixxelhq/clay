@@ -116,7 +116,8 @@ test-with-runnerv2: generate-secrets
 	sleep 10
 	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
 	sudo docker compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='argo' model
-	cd examples/runner && sudo docker compose run -e EXECUTOR='argo'-e FEATURE_FORCE_INPUT_TYPES_TO_V2='1' -e FEATURE_FORCE_OUTPUT_TYPES_TO_V2='1' model
+	cd examples/runner && sudo docker compose run -e EXECUTOR='argo' -e FEATURE_FORCE_INPUT_TYPES_TO_V2='1' -e FEATURE_FORCE_OUTPUT_TYPES_TO_V2='1' \
+	-e ARGO_TEMPLATE='{"name":"cdy","inputs":[{"name":"some_raster","value":"s3://testinputs/inputs/some_raster/some_raster.tif","stac_url": "https://platform-gateway.example.com/atlas/stac/collections/62288e91-4372-4806-8b11-a2d9aee6e84f/items/2025_03_10_stac"}, {"name":"some_vector","value":"s3://testinputs/inputs/some_vector/some_vector.geojson"}]}' model
 	$(MAKE) clean-secrets
 
 tear-down:

@@ -27,7 +27,7 @@ class DemoTest(ModelWrapper):
         # `inference` as the name suggests is the point wherein the model executes its core logic.
         # Feel free to write logic in this method or call another method from here. Anything works.
         # val = geo.mosaic(r)
-
+        self.add_asset("raster.tif","some_raster" )
         # self.logger.info(f"value returned from `geo.mosaic`: {val}")
         set_disclaimer("This is a disclaimer")
         # with open(str(v.Value), "r") as f:

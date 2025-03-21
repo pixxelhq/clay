@@ -38,6 +38,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "working-dir": self.testing_working_dir,
             "inputs-working-dir": input_working_dir,
             "outputs-working-dir": output_working_dir,
+            "REMOTE_PREFIX":"insights",
             "outputs-remote-path": "s3://workflow-id/job-id/task-id/outputs/",
             "env": "local",
             "AWS_PROFILE": "d-platform-services",
@@ -120,6 +121,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
             async def preprocess(self, string, raster) -> Any:
                 print(string, raster)
+                filepath = pathlib.Path("../clipped.tiff")
+                self.add_asset(file_path=filepath, io_name=raster) 
                 return {"raster": raster, "string": string}
 
             async def inference(self, raster, string) -> None:
@@ -199,10 +202,15 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "string",
             "spec.json",
         )
+        target_added_asset_path = os.path.join("insights", "wfk123",
+            "job123",
+            "task123",
+            "outputs","result", "clipped.tiff" )
 
         assert os.path.exists(target_raster_asset_path)
         assert os.path.exists(target_raster_spec_path)
         assert os.path.exists(target_string_spec_path)
+        assert os.path.exists(target_added_asset_path)
 
     async def test_read_inputs_and_download_remote_asset(self) -> None:
         class M(ModelWrapper):
