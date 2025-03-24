@@ -10,7 +10,7 @@ clean-secrets:
 		rm CODEARTIFACT_AUTH_TOKEN.txt
 
 init-requirements:	generate-secrets
-			pip install -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat CODEARTIFACT_AUTH_TOKEN.txt)@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
+			pip install pixxel-datatypes==0.3.0 -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat CODEARTIFACT_AUTH_TOKEN.txt)@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
 			$(MAKE) clean-secrets
 
 package:

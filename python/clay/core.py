@@ -212,6 +212,14 @@ class ModelWrapper:
 
     def run_setup(self) -> None:
         """Runs setup"""
+        env_variables = getattr(self.config, "env", None)
+        if env_variables is not None:
+            env_dict = vars(env_variables)
+            for key, value in env_dict.items():
+                if key not in os.environ:
+                    self.logger.debug(f"Setting environment variable {key} from config")
+                    os.environ[key] = str(value)
+
         self.params = {}
         parameters = getattr(self.config, "parameters", None)
         if parameters is not None:

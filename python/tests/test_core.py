@@ -73,6 +73,13 @@ class TestBaseRunner(unittest.TestCase):
 
         time.sleep(1)
 
+    def test_setup(self):
+        os.environ["SAMPLE_ENV"] = "alreadyExists"
+        self.r = self._test_runnercls("job")
+        self.r._init_model()        
+        assert os.environ["SAMPLE_ENV"] == "alreadyExists"
+        assert os.environ["SAMPLE_ENV_1"] == "2"
+
     def test_invalid_runner_mode(self):
         with pytest.raises(ValueError):
             self._test_runnercls("test")
