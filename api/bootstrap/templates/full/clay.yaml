@@ -36,3 +36,6 @@ build:
   requirements: requirements.txt
 
 gpu: false
+
+env:
+  SAMPLE_ENV: "sample"

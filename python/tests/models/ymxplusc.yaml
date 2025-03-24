@@ -20,7 +20,11 @@ build:
   apt-get:
     - wget
   requirements: requirements.txt
+
 env:
+  SAMPLE_ENV: "value"
+  SAMPLE_ENV_1: "2"
+
 parameters:
   - name: slope
     type: float

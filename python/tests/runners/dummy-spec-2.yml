@@ -15,10 +15,8 @@ build:
   gdal: true
   requirements: requirements.txt
 env:
-  - name: MODEL_CONTAINER_TOKEN
-    type: string
-  - name: OUTPUT_CONTAINER_TOKEN
-    type: string
+  MODEL_CONTAINER_TOKEN: "string"
+  OUTPUT_CONTAINER_TOKEN: "string"
 
 inputs:
   - format: string

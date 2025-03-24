@@ -105,6 +105,7 @@ func buildPublishModelRequest(cfg *config.Config, documentationURL, dockerImage 
 			Inputs:     cfg.Inputs,
 			Outputs:    cfg.Outputs,
 			Build:      buildJSON,
+			ENV:        cfg.ENV,
 			Gpu:        cfg.Gpu,
 		},
 	}

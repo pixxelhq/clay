@@ -30,6 +30,7 @@ type Config struct {
 	Parameters json.RawMessage `yaml:"parameters" json:"parameters"`
 	Inputs     json.RawMessage `yaml:"inputs" json:"inputs"`
 	Outputs    json.RawMessage `yaml:"outputs" json:"outputs"`
+	ENV        json.RawMessage `yaml:"env" json:"env"`
 	Bulid      *Build          `yaml:"build" json:"build"`
 	Gpu        bool            `yaml:"gpu" json:"gpu"`
 }
