@@ -348,7 +348,7 @@ class JobRunner(BaseRunner):
             if model.get_format() == types.FormatTypes.RASTER.value and not model.get_field("stac_url"):
                 model.set_field("stac_url", input_config_dict[model.get_name()].get("default", ""))
             if model.get_value() == "":  # TODO: check this condition
-                model.set_value(input_config_dict[model.get_name()].get("default", None))
+                model.set_value(input_config_dict[model.get_name()].get("default", ""))
 
             named_input_dir = pathlib.Path(input_working_dir, model.get_name())
             named_input_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
