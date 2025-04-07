@@ -151,7 +151,7 @@ def add_asset_wrapper(remote_path: str, runner_self: Optional[Callable] = None):
             remote_input_path = os.path.join(remote_path, "outputs", io_name, filepath)
         logger.info(f"uploading file at {filepath} to {remote_input_path}")
         if runner_self:
-            runner_self.put_file(str(filepath), remote_input_path)  # pyright: ignore
+            runner_self._s3fs.put_file(str(filepath), remote_input_path)  # pyright: ignore
         else:
             S3FileSystem().put_file(str(filepath), remote_input_path)
 

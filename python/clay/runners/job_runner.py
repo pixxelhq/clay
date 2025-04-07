@@ -224,10 +224,15 @@ class JobRunner(BaseRunner):
 
     def _download_stac_data(self, url, local_path):
         """Downloads STAC data and saves it to the specified local path."""
-        stac_data = requests.get(url).json()
-        with open(local_path, "w+") as f:
-            json.dump(stac_data, f, indent=4)
-        self.logger.info(f"Downloaded STAC data to {local_path}")
+        url = url.replace("https://platform-gateway.example.com/atlas", "http://atlas.cluster.local") 
+        response = requests.get(url)
+        if response.status_code == 200: 
+            stac_data = response.json()
+            with open(local_path, "w+") as f:
+                json.dump(stac_data, f, indent=4)
+            self.logger.info(f"Downloaded STAC data to {local_path}")
+        else:
+            self.logger.error(f"Failed to download STAC data. Status code: {response.status_code}")
 
     def _upload_to_s3(self, local_path, named_remote_output_dir):
         """Uploads file to S3, with handling for existing files."""
