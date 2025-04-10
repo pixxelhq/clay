@@ -2,6 +2,7 @@
     "name": "some_raster",
     "type": "url",
     "format": "raster",
-    "value": "http://minio:9000/bucket/another-bucket/some_raster.tif",
+    "value": "",
+    "stac_url": "./stac.json",
     "is_artifact": true
 }

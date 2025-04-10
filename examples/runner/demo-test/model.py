@@ -27,6 +27,17 @@ class DemoTest(ModelWrapper):
         # `inference` as the name suggests is the point wherein the model executes its core logic.
         # Feel free to write logic in this method or call another method from here. Anything works.
         # val = geo.mosaic(r)
+        self.logger.info(f"raster: {r}")
+        if r.value:
+            aoi_path = r.value
+        else:
+            self.logger.info("stacking bands...")
+            tiff_filename = "rgb.tif"
+            # create_stack_tiff(stac_path=raster.stac_url, output_filename=tiff_filename, band_to_stack=["B08", "B04","SCL"],)
+            # self.add_asset(file_path=tiff_filename, io_name="raster")
+            print("stac_url", r.stac_url)
+            aoi_path = tiff_filename
+        self.logger.info(f"AOI path: {aoi_path}")
         self.add_asset("raster.tif","some_raster" )
         # self.logger.info(f"value returned from `geo.mosaic`: {val}")
         set_disclaimer("This is a disclaimer")
