@@ -17,6 +17,9 @@ var RootCmd = &cobra.Command{
 	1.Refactor their model in a pre-defined structure
 	2.Programmatically declare their inputs and outputs, environment and compute requirements
 	3.Provide tooling to easily and locally test their models that are deployed on our infra`),
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: true,
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -29,18 +32,13 @@ func Execute() {
 }
 
 func init() {
-
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.PersistentFlags().StringP("env", "e", "dev", "Environment to add new block to: dev, stg, prod")
 	RootCmd.AddCommand(create.CreateCmd)
 	RootCmd.AddCommand(VersionCmd())
-	RootCmd.AddCommand(GetCmd())
-	RootCmd.AddCommand(ListCmd())
-	RootCmd.AddCommand(AddNewCmd())
-	RootCmd.AddCommand(UpdateCmd())
-	RootCmd.AddCommand(UploadCmd())
 	RootCmd.AddCommand(buildDockerImageCmd())
 	RootCmd.AddCommand(pushToDockerRegistryCmd())
+	RootCmd.AddCommand(UploadCmd())
 	RootCmd.AddCommand(runDockerImageCmd())
 	RootCmd.AddCommand(publishModelToRegistryCmd())
 	RootCmd.AddCommand(BlockCmd())

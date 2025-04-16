@@ -5,7 +5,6 @@ import (
 	"regexp"
 
 	"github.com/example/clay/api/bootstrap"
-	"github.com/example/clay/api/dockerfile"
 	"github.com/example/clay/cmd"
 	"github.com/example/clay/pkg/docker"
 )
@@ -23,6 +22,5 @@ func getSetVersion() {
 	match := re.FindStringSubmatch(versionString)
 	Version := match[1]
 	bootstrap.Version = Version
-	dockerfile.Version = Version
 	docker.ClayVersion = Version
 }
