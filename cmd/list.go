@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/clay/cmd/block"
 	"github.com/example/clay/pkg/registry"
 	"github.com/spf13/cobra"
 )
@@ -15,16 +14,6 @@ var (
 	name    string
 	version string
 )
-
-func ListCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "list <command>",
-		Short: "List block, workflows",
-	}
-
-	cmd.AddCommand(block.ListBlockCmd())
-	return cmd
-}
 
 func ListBlockRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{

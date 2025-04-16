@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/example/clay/api/marketplace"
-	"github.com/example/clay/cmd/block"
 	"github.com/example/clay/cmd/common"
 	"github.com/example/clay/pkg"
 	"github.com/example/clay/pkg/config"
@@ -57,10 +56,6 @@ func UploadReadme() *cobra.Command {
 			}
 
 			env, err = cmd.Flags().GetString("env")
-			if err != nil {
-				return err
-			}
-			_, err = block.ParseEnvOptions(env)
 			if err != nil {
 				return err
 			}

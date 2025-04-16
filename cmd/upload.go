@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/example/clay/cmd/marketplace"
 	"github.com/spf13/cobra"
+	
+	"github.com/example/clay/cmd/marketplace"
 )
 
 func UploadCmd() *cobra.Command {
