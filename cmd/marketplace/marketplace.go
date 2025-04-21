@@ -15,7 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const localReadmeFolder = "catalog_readme/"
+const (
+	localReadmeFolder = "catalog_readme/"
+	s3Bucket = "p-platform-clay-public-catalog-s3-01" //TODO: this should be removed before making clay opensource
+)
 
 var s3CatalogUrl string
 
@@ -24,7 +27,6 @@ func UploadReadme() *cobra.Command {
 	var (
 		blockVersion string
 		blockName    string
-		env          string
 	)
 
 	cmd := &cobra.Command{
@@ -55,19 +57,13 @@ func UploadReadme() *cobra.Command {
 				blockName = cfg.Name
 			}
 
-			env, err = cmd.Flags().GetString("env")
-			if err != nil {
-				return err
-			}
-
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := common.Getlogger()
 			s3Namespace := filepath.Join(blockName, blockVersion, localReadmeFolder)
 			versionedModelName := filepath.Join(blockName, blockVersion)
-			bucket := common.GetS3Bucket(env)
-			s3BucketUrl := "https://" + bucket + ".s3.us-east-2.amazonaws.com/"
+			s3BucketUrl := "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/"
 			err := marketplace.ParseMarkdown(blockName, blockVersion, s3BucketUrl)
 			if err != nil {
 				logger.Error().Err(err).Stack().Msg(err.Error())
@@ -77,12 +73,12 @@ func UploadReadme() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = marketplace.UploadDirectory(awsSession, bucket, localReadmeFolder, s3Namespace)
+			err = marketplace.UploadDirectory(awsSession, s3Bucket, localReadmeFolder, s3Namespace)
 			if err != nil {
 				logger.Error().Err(err).Stack().Msg(err.Error())
 				return err
 			}
-			s3CatalogUrl = "https://" + bucket + ".s3.us-east-2.amazonaws.com/" + versionedModelName + "/catalog_readme/parsed.md"
+			s3CatalogUrl = "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/" + versionedModelName + "/catalog_readme/parsed.md"
 			fmt.Print(string(s3CatalogUrl))
 			return nil
 		},

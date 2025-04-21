@@ -33,7 +33,6 @@ func Execute() {
 
 func init() {
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	RootCmd.PersistentFlags().StringP("env", "e", "dev", "Environment to add new block to: dev, stg, prod")
 	RootCmd.AddCommand(create.CreateCmd)
 	RootCmd.AddCommand(VersionCmd())
 	RootCmd.AddCommand(buildDockerImageCmd())
