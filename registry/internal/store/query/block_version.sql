@@ -31,7 +31,7 @@ SELECT distinct on (b.id)
 FROM public.block_versions bv 
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
-ORDER BY b.id, bv.version desc;
+ORDER BY b.id, string_to_array(regexp_replace(bv.version, '^v', ''), '.')::int[] desc;
 
 -- name: GetBlockAllVersionByName :many
 SELECT
@@ -84,5 +84,5 @@ FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
 WHERE b.name = $1
-ORDER BY bv.version DESC
+ORDER BY string_to_array(regexp_replace(bv.version, '^v', ''), '.')::int[] DESC
 LIMIT 1;
