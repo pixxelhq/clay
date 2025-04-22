@@ -101,6 +101,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 		}
 		return &Block{
 			ID:               upsertedBlock.ID.String(),
+			Version:          bv.Version,
 			Name:             upsertedBlock.Name,
 			Kind:             upsertedBlock.Kind,
 			Type:             upsertedBlock.Type,
