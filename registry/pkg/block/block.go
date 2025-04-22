@@ -121,36 +121,34 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 }
 
 func (bs *block) GetBlocksWithLatestVersion(ctx context.Context) ([]*Block, error) {
-	bwlv, err := bs.store.GetBlocksWithLatestVersion(ctx)
-	if store.PGErrorToRegistryError(err).Code == rerr.ErrDoesNotExists {
-		return []*Block{}, nil
-	}
+	blocks, err := bs.store.GetAllBlocks(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if len(blocks) == 0 {
+		return []*Block{}, nil
+	}
 
-	blocks := make([]*Block, 0, len(bwlv))
-	for _, b := range bwlv {
-		spec := &Specification{}
-		err = json.Unmarshal(b.Specification, spec)
+	/*
+		This is inefficient, as it is making db call for each block.
+
+		Reason: Versions can include value like 1.2.3, 1.2.3-alpha, 1.2.3-alpha.1,
+		and versions sorting is not included in the query, becuase there is
+		no staright forward way to do the sorting of string versions correctly in sql.
+	*/
+
+	latestBlocks := make([]*Block, 0, len(blocks))
+	for _, block := range blocks {
+		blockVersion, err := bs.GetLatestBlock(ctx, block.Name)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &Block{
-			ID:               b.ID.String(),
-			Name:             b.Name,
-			Type:             b.Type,
-			Kind:             b.Kind,
-			Version:          b.Version,
-			Specification:    spec,
-			DocumentationURL: b.DocumentationUrl.String,
-			DockerImage:      b.DockerImage.String,
-			CreatedAt:        b.CreatedAt.Time,
-			UpdatedAt:        b.UpdatedAt.Time,
-		})
+		if blockVersion != nil {
+			latestBlocks = append(latestBlocks, blockVersion)
+		}
 	}
 
-	return blocks, nil
+	return latestBlocks, nil
 }
 
 func (bs *block) GetBlockByName(ctx context.Context, name string) ([]*Block, error) {

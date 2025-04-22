@@ -11,6 +11,48 @@ import (
 	"github.com/google/uuid"
 )
 
+const getAllBlocks = `-- name: GetAllBlocks :many
+SELECT
+    id,
+    name,
+    kind,
+    type,
+    created_at,
+    updated_at
+FROM
+    public.blocks
+`
+
+func (q *Queries) GetAllBlocks(ctx context.Context) ([]Block, error) {
+	rows, err := q.db.QueryContext(ctx, getAllBlocks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Block{}
+	for rows.Next() {
+		var i Block
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Kind,
+			&i.Type,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBlock = `-- name: GetBlock :one
 SELECT
     id,

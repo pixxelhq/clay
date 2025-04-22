@@ -28,3 +28,14 @@ FROM
     public.blocks
 WHERE 
     id = $1;
+
+-- name: GetAllBlocks :many
+SELECT
+    id,
+    name,
+    kind,
+    type,
+    created_at,
+    updated_at
+FROM
+    public.blocks;
