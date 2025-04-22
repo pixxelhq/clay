@@ -38,6 +38,7 @@ func (bh *blockHandler) Create(ctx *gin.Context) {
 		return
 	}
 
+	// Validate the request and update the version accrording to semver 2.0
 	if err := req.Validate(); err != nil {
 		ctx.JSON(http.StatusBadRequest, &RegistryResponse[any]{
 			Error: err.Error(),

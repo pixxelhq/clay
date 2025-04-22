@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/Masterminds/semver"
 	rerr "github.com/example/clay/registry/pkg/error"
 )
 
@@ -37,6 +38,15 @@ func (bcr *CreateBlockRequest) Validate() error {
 			Code:    rerr.ErrBadRequest,
 		}
 	}
+
+	v, err := semver.NewVersion(bcr.Version)
+	if err != nil {
+		return &rerr.RegistryError{
+			Message: fmt.Sprintf("invalid version: %s, %v", bcr.Version, err),
+			Code:    rerr.ErrBadRequest,
+		}
+	}
+	bcr.Version = v.String()
 
 	if !slices.Contains(SupportedKind, bcr.Kind) {
 		return &rerr.RegistryError{
