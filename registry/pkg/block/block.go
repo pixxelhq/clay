@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/Masterminds/semver"
 	store "github.com/example/clay/registry/internal/store/sqlc"
 	rerr "github.com/example/clay/registry/pkg/error"
 	"github.com/example/clay/registry/pkg/log"
@@ -221,30 +222,56 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 }
 
 func (bs *block) GetLatestBlock(ctx context.Context, name string) (*Block, error) {
-	b, err := bs.store.GetLatestBlockByName(ctx, name)
-	if err != nil {
-		pgErr := store.PGErrorToRegistryError(err)
-		if pgErr.Code == rerr.ErrDoesNotExists {
-			pgErr.Message = "block with the given name does not exists"
-		}
-		return nil, pgErr
+	blockVersions, err := bs.store.GetBlockAllVersionByName(ctx, name)
+	if store.PGErrorToRegistryError(err).Code == rerr.ErrDoesNotExists {
+		return nil, nil
 	}
-
-	spec := &Specification{}
-	err = json.Unmarshal(b.Specification, spec)
 	if err != nil {
 		return nil, err
 	}
+
+	if len(blockVersions) == 0 {
+		return nil, rerr.NewError(rerr.ErrDoesNotExists, "block with the given name does not exist")
+	}
+
+	var (
+		latestBlock   store.GetBlockAllVersionByNameRow
+		latestVersion *semver.Version
+	)
+
+	for i, block := range blockVersions {
+		v, err := semver.NewVersion(block.Version)
+		if err != nil {
+			log.Warnf("invalid semver format for block %s version %s: %v", name, block.Version, err)
+			continue
+		}
+
+		if i == 0 || latestVersion.Compare(v) < 0 {
+			latestVersion = v
+			latestBlock = block
+		}
+	}
+
+	if latestVersion == nil {
+		return nil, rerr.NewError(rerr.ErrBadRequest, "no valid semver versions found for block")
+	}
+
+	spec := &Specification{}
+	err = json.Unmarshal(latestBlock.Specification, spec)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Block{
-		ID:               b.ID.String(),
-		Name:             b.Name,
-		Version:          b.Version,
-		DockerImage:      b.DockerImage.String,
-		DocumentationURL: b.DocumentationUrl.String,
+		ID:               latestBlock.ID.String(),
+		Name:             latestBlock.Name,
+		Version:          latestBlock.Version,
+		DockerImage:      latestBlock.DockerImage.String,
+		DocumentationURL: latestBlock.DocumentationUrl.String,
 		Specification:    spec,
-		Kind:             b.Kind,
-		Type:             b.Type,
-		CreatedAt:        b.CreatedAt.Time,
-		UpdatedAt:        b.UpdatedAt.Time,
+		Kind:             latestBlock.Kind,
+		Type:             latestBlock.Type,
+		CreatedAt:        latestBlock.CreatedAt.Time,
+		UpdatedAt:        latestBlock.UpdatedAt.Time,
 	}, nil
 }

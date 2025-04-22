@@ -12,10 +12,10 @@ import (
 	mock_block "github.com/example/clay/registry/pkg/block/mock"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestCreate(t *testing.T) {
