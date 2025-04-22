@@ -16,23 +16,6 @@ VALUES
         $5
     ) RETURNING *;
 
--- name: GetBlocksWithLatestVersion :many
-SELECT distinct on (b.id)
-    b.id,
-    b.name,
-    b.type,
-    b.kind,
-    bv.version,
-    bv.specification,
-    bv.documentation_url,
-    bv.docker_image,
-    bv.created_at,
-    bv.updated_at
-FROM public.block_versions bv 
-    INNER JOIN public.blocks b
-    ON bv.block_id = b.id
-ORDER BY b.id, string_to_array(regexp_replace(bv.version, '^v', ''), '.')::int[] desc;
-
 -- name: GetBlockAllVersionByName :many
 SELECT
     b.id,

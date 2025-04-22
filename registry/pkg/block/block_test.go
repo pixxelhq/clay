@@ -207,7 +207,17 @@ func TestGetBlocksWithLatestVersion(t *testing.T) {
 		{
 			name: "should return the blocks with latest versions",
 			mockSetup: func() {
-				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return([]store.GetBlocksWithLatestVersionRow{
+				mockStore.EXPECT().GetAllBlocks(gomock.Any()).Return([]store.Block{
+					{
+						ID:        sampleUUID,
+						Name:      "Block1",
+						Kind:      "example",
+						Type:      "exampleType",
+						CreatedAt: sql.NullTime{Time: sampleTime},
+						UpdatedAt: sql.NullTime{Time: sampleTime},
+					},
+				}, nil)
+				mockStore.EXPECT().GetBlockAllVersionByName(gomock.Any(), gomock.Any()).Return([]store.GetBlockAllVersionByNameRow{
 					{
 						ID:               sampleUUID,
 						Name:             "Block1",
@@ -237,7 +247,7 @@ func TestGetBlocksWithLatestVersion(t *testing.T) {
 		{
 			name: "should return empty list if there is not block found",
 			mockSetup: func() {
-				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return([]store.GetBlocksWithLatestVersionRow{}, nil)
+				mockStore.EXPECT().GetAllBlocks(gomock.Any()).Return([]store.Block{}, nil)
 			},
 			expectedBlocks: []*Block{},
 			expectedError:  nil,
@@ -245,7 +255,7 @@ func TestGetBlocksWithLatestVersion(t *testing.T) {
 		{
 			name: "should return error when db call fails",
 			mockSetup: func() {
-				mockStore.EXPECT().GetBlocksWithLatestVersion(gomock.Any()).Return(nil, errors.New("some error"))
+				mockStore.EXPECT().GetAllBlocks(gomock.Any()).Return(nil, errors.New("some error"))
 			},
 			expectedBlocks: nil,
 			expectedError:  errors.New("some error"),
