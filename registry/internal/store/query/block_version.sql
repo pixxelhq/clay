@@ -67,28 +67,3 @@ FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
 WHERE b.name = $1 and bv.version = $2;
-
--- name: GetLatestBlockByName :one
-SELECT
-    b.id,
-    b.name,
-    bv.version,
-    b.type,
-    b.kind,
-    bv.specification,
-    bv.documentation_url,
-    bv.docker_image,
-    bv.created_at,
-    bv.updated_at
-FROM public.block_versions bv
-    INNER JOIN public.blocks b
-    ON bv.block_id = b.id
-WHERE b.name = $1
-ORDER BY 
--- extract this in to fucntion and also break the pre-release properly to 
--- sort that versioning in prerelease like alpha, alpha.1
-    (string_to_array(regexp_replace(bv.version, '^v', ''), '.'))[1]::int DESC,
-    (string_to_array(regexp_replace(bv.version, '^v', ''), '.'))[2]::int DESC,
-    (string_to_array((string_to_array(regexp_replace(bv.version, '^v', ''), '.'))[3], '-'))[1]::int DESC,
-    (string_to_array((string_to_array(regexp_replace(bv.version, '^v', ''), '.'))[3], '-'))[2] DESC
-LIMIT 1;

@@ -13,9 +13,9 @@ import (
 	store "github.com/example/clay/registry/internal/store/sqlc"
 	rerr "github.com/example/clay/registry/pkg/error"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 var reqBlock = &Block{

@@ -16,9 +16,6 @@ type Querier interface {
 	GetBlockAllVersionByName(ctx context.Context, name string) ([]GetBlockAllVersionByNameRow, error)
 	GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNameAndVersionParams) (GetBlockByNameAndVersionRow, error)
 	GetBlocksWithLatestVersion(ctx context.Context) ([]GetBlocksWithLatestVersionRow, error)
-	// extract this in to fucntion and also break the pre-release properly to
-	// sort that versioning in prerelease like alpha, alpha.1
-	GetLatestBlockByName(ctx context.Context, name string) (GetLatestBlockByNameRow, error)
 	UpsertBlock(ctx context.Context, arg UpsertBlockParams) (Block, error)
 }
 
