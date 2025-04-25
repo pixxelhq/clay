@@ -16,6 +16,7 @@ on:
         description: "Image tag which will be used for benchmarking"
         required: true
       input-file-directory-path:
+        description: "Path to the input files which will be used for benchmarking"
         required: false
         default: "./tests/benchmark/inputs"
 
@@ -39,7 +40,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: run mbench
-        uses: example/mbench@feat/testing-custom-github-actions
+        uses: example/mbench@main
         with:
           id: {{ "${{ github.event.inputs.benchmark-id }}" }}
           mem-limits: {{ "${{ github.event.inputs.mem-limits }}" }}
