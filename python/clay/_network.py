@@ -1,12 +1,13 @@
 import os
 from http import HTTPStatus
+from logging import Logger
 from typing import Any, Dict, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from clay import core, logger, types
+from clay import core, types
 
 
 class HeaderBuilder:
@@ -45,10 +46,10 @@ class HeaderBuilder:
 
 
 def _fire_callback_to_dexter(
-    clb: types.Callback,
-    _logger: logger.Logger,
-    dexter_clb_url: Optional[str] = None,
-    enable_debug_logs: bool = False,
+        clb: types.Callback,
+        _logger: Logger,
+        dexter_clb_url: Optional[str] = None,
+        enable_debug_logs: bool = False,
 ) -> bool:
     headers = HeaderBuilder.init_header()
 
@@ -71,7 +72,7 @@ def _fire_callback_to_dexter(
         resp = session.post(url=dexter_clb_url, json=data, headers=headers)
     else:
         # TODO: Refactor this to use clb.model_dump
-        # data = {"data": clb.model_dump(by_alias=True, exclude_none=True, serialize_as_any=True)} 
+        # data = {"data": clb.model_dump(by_alias=True, exclude_none=True, serialize_as_any=True)}
         data = {
             "status": clb.State.value,
             "output": clb.Result,
@@ -93,9 +94,9 @@ def _fire_callback_to_dexter(
         )
 
     if (
-        resp.status_code == HTTPStatus.ACCEPTED
-        or resp.status_code == HTTPStatus.NO_CONTENT
-        or resp.status_code == HTTPStatus.OK
+            resp.status_code == HTTPStatus.ACCEPTED
+            or resp.status_code == HTTPStatus.NO_CONTENT
+            or resp.status_code == HTTPStatus.OK
     ):
         if enable_debug_logs:
             _logger.info("successfully updated state")

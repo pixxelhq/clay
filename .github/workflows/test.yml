@@ -62,9 +62,9 @@ jobs:
           echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
 
       - name: Install Dependencies
+        working-directory: ./python
         run: |
-          pip install pixxel-datatypes --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ -r python/requirements/requirements-dev.txt
-          pip install coverage pre-commit
+          pip install --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ coverage pre-commit -r requirements/requirements-dev.txt .
 
       - name: Run Pytest
         working-directory: ./python
