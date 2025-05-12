@@ -81,3 +81,4 @@ nav:
   - API Reference: "api-reference.md"
   - CLI Reference: "cli-reference.md"
   - Benchmarking Models: "benchmarking.md"
+  - ChangeLog: "CHANGELOG.md"
