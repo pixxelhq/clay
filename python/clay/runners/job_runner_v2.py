@@ -442,7 +442,10 @@ class JobRunnerV2(BaseRunner):
         # here we check if the output item in question is an artifact or not. If it
         # is not, then we dont process any supporting artifact file.
         if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
-            value = self._handle_output_asset(data.get_name(), ValueTypes.URL, data.get_value(), str(named_output_dir))
+            # TODO: this code needs major refactoring,
+            # given new job runner is in progress using this quick fix for exiting bug for the grouped outputs
+            key = os.path.join(str(data.get_field("group")) , data.get_name())
+            value = self._handle_output_asset(key, ValueTypes.URL, data.get_value(), str(named_output_dir))
             data.set_value(value)
 
         # setting the type
