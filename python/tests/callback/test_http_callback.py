@@ -1,9 +1,8 @@
-import json
 import logging
 import unittest
 from http import HTTPStatus
 from unittest import TestCase
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 from clay.callback.callback import CallbackData, ErrorType
 from clay.callback.http_callback import HTTPCallback
