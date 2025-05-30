@@ -6,6 +6,7 @@ from typing import Type, Union
 from clay.core import ModelWrapper
 from clay.runners.job_runner import JobRunner
 from clay.runners.job_runner_v2 import JobRunnerV2
+from clay.runners.runner import JobRunner as ConsolidatedJobRunner
 from clay.types import EXECUTOR_ENVVAR
 
 _RunnerTypes = Union[JobRunner, JobRunnerV2]
@@ -75,21 +76,30 @@ def Run(model: Type[ModelWrapper], name: str, cfg_path: str) -> None:
     if not os.path.exists(cfg_path):
         raise FileNotFoundError(cfg_path)
 
-    executor = _get_executor_type()
-    v = _executor_runner_map[executor]
-    _runnercls: _RunnerTypes = v["runner"]  # type: ignore
-    requires_args: bool = v["requires_args"]  # type: ignore
-    _runnerobj: _RunnerTypes = _runnercls(
-        model_name=name,
-        modelcls=model,
-        model_args={"config": cfg_path},
-        cfg_path=cfg_path,
-    )  # type: ignore
+    if os.getenv("USE_SINGLE_RUNNER", "False") == "True":
+        runner = ConsolidatedJobRunner(
+            model_name=name,
+            model_class=model,
+            model_args={"config": cfg_path},
+            cfg_path=cfg_path,
+        )
+        return runner.start()
+    else:
+        executor = _get_executor_type()
+        v = _executor_runner_map[executor]
+        _runnercls: _RunnerTypes = v["runner"]  # type: ignore
+        requires_args: bool = v["requires_args"]  # type: ignore
+        _runnerobj: _RunnerTypes = _runnercls(
+            model_name=name,
+            modelcls=model,
+            model_args={"config": cfg_path},
+            cfg_path=cfg_path,
+        )  # type: ignore
 
-    if requires_args:
-        args = sys.argv[1]
-        if len(args) <= 1:
-            raise ValueError(f"executor type `{executor.value}` requires args")
-        return _runnerobj.start(args=args)
+        if requires_args:
+            args = sys.argv[1]
+            if len(args) <= 1:
+                raise ValueError(f"executor type `{executor.value}` requires args")
+            return _runnerobj.start(args=args)
 
-    return _runnerobj.start()
+        return _runnerobj.start()
