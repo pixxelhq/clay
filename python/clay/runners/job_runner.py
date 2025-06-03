@@ -463,15 +463,17 @@ class JobRunner(BaseRunner):
             )
 
             named_remote_working_dir = os.path.join(remote_working_dir, data.get_name())
-
+        value = ""
         if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
-            value = self._handle_output_asset(
-                data.get_name(),
-                ValueTypes.URL,
-                str(data.get_value()),
-                str(named_output_dir),
-                named_remote_working_dir,
-            )
+            if output_config["format"] == types.FormatTypes.RASTER.value and str(data.get_value()):
+                value = self._handle_output_asset(
+                    data.get_name(),
+                    ValueTypes.URL,
+                    str(data.get_value()),
+                    str(named_output_dir),
+                    named_remote_working_dir,
+                )
+                
             data.set_value(value)
 
         # setting the type

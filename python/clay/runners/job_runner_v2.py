@@ -441,11 +441,13 @@ class JobRunnerV2(BaseRunner):
 
         # here we check if the output item in question is an artifact or not. If it
         # is not, then we dont process any supporting artifact file.
+        value = ""
         if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
-            # TODO: this code needs major refactoring,
-            # given new job runner is in progress using this quick fix for exiting bug for the grouped outputs
-            key = os.path.join(str(data.get_field("group")) , data.get_name())
-            value = self._handle_output_asset(key, ValueTypes.URL, data.get_value(), str(named_output_dir))
+            if output_config["format"] == types.FormatTypes.RASTER.value and str(data.get_value()):
+                # TODO: this code needs major refactoring,
+                # given new job runner is in progress using this quick fix for exiting bug for the grouped outputs
+                key = os.path.join(str(data.get_field("group")) , data.get_name())
+                value = self._handle_output_asset(key, ValueTypes.URL, data.get_value(), str(named_output_dir))
             data.set_value(value)
 
         # setting the type
