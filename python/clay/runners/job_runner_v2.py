@@ -443,7 +443,7 @@ class JobRunnerV2(BaseRunner):
         # is not, then we dont process any supporting artifact file.
         value = ""
         if output_config["type"] == ValueTypes.URL.value or output_config.get(types._IS_ARTIFACT_ATTR_NAME, False):
-            if output_config["format"] == types.FormatTypes.RASTER.value and str(data.get_value()):
+            if str(data.get_value()):
                 # TODO: this code needs major refactoring,
                 # given new job runner is in progress using this quick fix for exiting bug for the grouped outputs
                 key = os.path.join(str(data.get_field("group")) , data.get_name())
