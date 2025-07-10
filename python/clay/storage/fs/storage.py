@@ -100,6 +100,7 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
 
             # Skip if the source path is empty
             if source_path:
+                print(f"Processing item: {item_name} with source path: {source_path}")
                 # Get filename from source path
                 filename = os.path.basename(source_path)
                 dest_path = os.path.join(item_dest_dir, filename)
@@ -122,7 +123,7 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
                 item.set_value(dest_path)
 
             # process stac_url download
-            if item.get_format() == "raster":
+            if item.get_format() == "raster" and item.get_field("stac_url"):
                 stac_dest_path = os.path.join(item_dest_dir, "stac.json")
                 response = requests.get(item.get_field("stac_url")) # type: ignore
                 if response.status_code == 200:

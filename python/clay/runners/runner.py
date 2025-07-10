@@ -177,7 +177,6 @@ class JobRunner(BaseRunner):
             typed_input: datatypes.DataWrapperInterface = type_utils.TypeFromDict(input_data, True)
             if typed_input.get_format() == types.FormatTypes.RASTER.value and not typed_input.get_field("stac_url"):
                 typed_input.set_field("stac_url", input_config_dict[typed_input.get_name()].get("default", ""))
-                typed_input.set_field("stac_url_type", "stac_url")
             if typed_input.get_value() == "":
                 typed_input.set_value(input_config_dict[typed_input.get_name()].get("default", ""))
             inputs[input_data["name"]] = typed_input
