@@ -4,12 +4,13 @@ Clay filesystem storage module for handling file operations across different sto
 
 from clay.storage.fs.interface import StorageProtocol
 from clay.storage.fs.s3 import S3Storage
-from clay.storage.fs.storage import create_provider, process_input_list, process_output_list
+from clay.storage.fs.storage import create_provider, process_input_list, process_output_list, process_spec_files
 
 __all__ = [
     'StorageProtocol',
     'S3Storage',
     'process_input_list',
     'process_output_list',
-    'create_provider'
+    'create_provider',
+    'process_spec_files'
 ]

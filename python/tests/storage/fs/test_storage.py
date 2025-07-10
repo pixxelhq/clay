@@ -30,6 +30,7 @@ def create_test_data_wrapper(value, is_artifact=True, format_type="raster"):
             "source": "test",
             "collection": "test-data"
         }
+        data_dict["stac_url"] = "https://example.com/stac.json"  # Test URL
     elif format_type == "vector":
         data_dict["properties"] = {
             "geometry": "polygon"
@@ -42,8 +43,15 @@ def create_test_data_wrapper(value, is_artifact=True, format_type="raster"):
 class TestStorageModule:
     """Tests for the storage module functions."""
 
-    def test_process_input_list_local_to_local(self):
+    @mock.patch('requests.get')
+    def test_process_input_list_local_to_local(self, mock_requests_get):
         """Test processing local files to local directory."""
+        # Mock the STAC URL request
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"test": "stac_data"}
+        mock_requests_get.return_value = mock_response
+        
         with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as dest_dir:
             # Create a test file
             test_file_path = os.path.join(source_dir, "test_file.tif")
@@ -56,7 +64,8 @@ class TestStorageModule:
             }
             
             # Process the input list
-            result = process_input_list(data_list, dest_dir)
+            with tempfile.TemporaryDirectory() as remote_dest_dir:
+                result = process_input_list(data_list, dest_dir, remote_dest_dir)
             
             # Check that the file was copied
             expected_dest_path = os.path.join(dest_dir, "test_item", "test_file.tif")
@@ -74,7 +83,8 @@ class TestStorageModule:
             }
             
             # Process the input list
-            result = process_input_list(data_list, dest_dir)
+            with tempfile.TemporaryDirectory() as remote_dest_dir:
+                result = process_input_list(data_list, dest_dir, remote_dest_dir)
             
             # Check that the value was not changed
             assert result["test_param"].get_value() == "42"
@@ -116,8 +126,15 @@ class TestStorageModule:
             # Check that the value was not changed
             assert result["test_param"].get_value() == "84"
     
-    def test_input_list_skips_missing_files(self):
+    @mock.patch('requests.get')
+    def test_input_list_skips_missing_files(self, mock_requests_get):
         """Test that missing files are skipped in input list."""
+        # Mock the STAC URL request
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"test": "stac_data"}
+        mock_requests_get.return_value = mock_response
+        
         with tempfile.TemporaryDirectory() as dest_dir:
             # Create data list with non-existent file
             data_list = {
@@ -125,8 +142,9 @@ class TestStorageModule:
             }
             
             # Process the input list - this should raise an error since the file doesn't exist
-            with pytest.raises(FileNotFoundError):
-                process_input_list(data_list, dest_dir)
+            with tempfile.TemporaryDirectory() as remote_dest_dir:
+                with pytest.raises(FileNotFoundError):
+                    process_input_list(data_list, dest_dir, remote_dest_dir)
     
     def test_output_list_skips_missing_files(self):
         """Test that missing files are skipped in output list."""
@@ -192,9 +210,16 @@ class TestS3Storage:
             # Verify S3 client was called correctly
             mock_s3.upload_file.assert_called_once_with(source_path, "test-bucket", "test-upload.tif")
     
+    @mock.patch('requests.get')
     @mock.patch('boto3.client')
-    def test_s3_integration_with_process_input_list(self, mock_boto_client):
+    def test_s3_integration_with_process_input_list(self, mock_boto_client, mock_requests_get):
         """Test S3 integration with process_input_list."""
+        # Mock the STAC URL request
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"test": "stac_data"}
+        mock_requests_get.return_value = mock_response
+        
         # Setup mock
         mock_s3 = mock.MagicMock()
         mock_boto_client.return_value = mock_s3
@@ -214,7 +239,8 @@ class TestS3Storage:
         
         # Process the input list
         with tempfile.TemporaryDirectory() as dest_dir:
-            result = process_input_list(data_list, dest_dir)
+            with tempfile.TemporaryDirectory() as remote_dest_dir:
+                result = process_input_list(data_list, dest_dir, remote_dest_dir)
             
             # Check that the mock was called correctly
             mock_s3.download_file.assert_called_once_with(
