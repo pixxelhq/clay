@@ -23,8 +23,8 @@ class TestCallbackBase(TestCase):
         
         # Verify attributes
         self.assertEqual(data.id, "test-123")
-        self.assertEqual(data.inputs, [])
-        self.assertEqual(data.outputs, [])
+        self.assertIsNone(data.inputs)
+        self.assertIsNone(data.outputs)
         self.assertEqual(data.metadata, {})
         self.assertIsNone(data.progress)
         self.assertIsNone(data.start_time)
@@ -35,9 +35,9 @@ class TestCallbackBase(TestCase):
         # Test model serialization
         data_dict = data.model_dump(exclude_none=True)
         self.assertEqual(data_dict["id"], "test-123")
-        self.assertEqual(data_dict["inputs"], [])
-        self.assertEqual(data_dict["outputs"], [])
         self.assertEqual(data_dict["metadata"], {})
+        self.assertNotIn("inputs", data_dict)
+        self.assertNotIn("outputs", data_dict)
         self.assertNotIn("progress", data_dict)
         self.assertNotIn("start_time", data_dict)
         self.assertNotIn("end_time", data_dict)
@@ -51,8 +51,8 @@ class TestCallbackBase(TestCase):
         test_inputs = [{"name": "input1", "value": "value1"}]
         test_outputs = [{"name": "output1", "value": "result1"}]
         test_progress = 75.5
-        test_start_time = 1000.0
-        test_end_time = 1010.0
+        test_start_time = "2024-01-01T10:00:00Z"
+        test_end_time = "2024-01-01T10:10:00Z"
         test_failure_type = ErrorType.BAD_REQUEST
         test_err_msg = "Invalid input"
         test_metadata = {"version": "1.0", "env": "test"}
@@ -109,8 +109,8 @@ class TestCallbackBase(TestCase):
         self.assertEqual(result["id"], "compat-test")
         self.assertEqual(result["progress"], 50.0)
         self.assertEqual(result["metadata"], {"test": "value"})
-        self.assertIn("inputs", result)
-        self.assertIn("outputs", result)
+        self.assertNotIn("inputs", result)  # excluded because None
+        self.assertNotIn("outputs", result)  # excluded because None
         
     def test_to_dict_method_backward_compatibility(self):
         """Test to_dict method for backward compatibility."""
@@ -128,8 +128,8 @@ class TestCallbackBase(TestCase):
         self.assertEqual(result["id"], "compat-test")
         self.assertEqual(result["progress"], 50.0)
         self.assertEqual(result["metadata"], {"test": "value"})
-        self.assertIn("inputs", result)
-        self.assertIn("outputs", result)
+        self.assertNotIn("inputs", result)  # excluded because None
+        self.assertNotIn("outputs", result)  # excluded because None
 
 
 if __name__ == "__main__":

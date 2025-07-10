@@ -16,7 +16,7 @@ class TestHTTPCallback(TestCase):
         self.callback_url = "https://api.example.com/model"
         self.test_headers = {"X-API-Key": "test-key"}
         self.callback = HTTPCallback(
-            callback_endpoint_prefix=self.callback_url,
+            callback_endpoint=self.callback_url,
             headers=self.test_headers,
             retry_total=2,
             retry_backoff_factor=0.1,
@@ -32,11 +32,11 @@ class TestHTTPCallback(TestCase):
     def test_init(self):
         """Test initialization of HTTP callback."""
         # Test URL handling
-        self.assertEqual(self.callback.callback_endpoint_prefix, self.callback_url)
+        self.assertEqual(self.callback.callback_endpoint, self.callback_url)
         
         # Test with trailing slash
-        callback2 = HTTPCallback(callback_endpoint_prefix=self.callback_url + "/")
-        self.assertEqual(callback2.callback_endpoint_prefix, self.callback_url)
+        callback2 = HTTPCallback(callback_endpoint=self.callback_url + "/")
+        self.assertEqual(callback2.callback_endpoint, self.callback_url + "/")
         
         # Test headers
         self.assertEqual(self.callback.headers["X-API-Key"], "test-key")
@@ -44,7 +44,7 @@ class TestHTTPCallback(TestCase):
         
         # Test without content-type header
         callback3 = HTTPCallback(
-            callback_endpoint_prefix=self.callback_url,
+            callback_endpoint=self.callback_url,
             headers={"Content-Type": "text/plain"}
         )
         self.assertEqual(callback3.headers["Content-Type"], "text/plain")
@@ -68,14 +68,14 @@ class TestHTTPCallback(TestCase):
         # Test with invalid level
         self.callback._log(self.logger, "invalid_level", "Should not raise error")
 
-    @patch('requests.Session.patch')
-    def test_send_callback_success(self, mock_patch):
+    @patch('requests.Session.post')
+    def test_send_callback_success(self, mock_post):
         """Test successful callback sending."""
         # Setup mock response
         mock_response = Mock()
         mock_response.status_code = HTTPStatus.OK
         mock_response.text = "Success"
-        mock_patch.return_value = mock_response
+        mock_post.return_value = mock_response
         
         # Create test data
         callback_data = CallbackData(
@@ -92,19 +92,19 @@ class TestHTTPCallback(TestCase):
         self.assertTrue(result)
         
         # Verify the request was made properly
-        mock_patch.assert_called_once()
-        call_args = mock_patch.call_args
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
         
         # Check URL
-        self.assertEqual(call_args[1]["url"], f"{self.callback_url}/callback")
+        self.assertEqual(call_args[1]["url"], self.callback_url)
         
         # Check headers
         self.assertEqual(call_args[1]["headers"], self.callback.headers)
         
         # Check payload
         payload = call_args[1]["json"]
-        self.assertEqual(payload["id"], "test-123")
-        self.assertEqual(payload["progress"], 50.0)
+        self.assertEqual(payload["data"]["id"], "test-123")
+        self.assertEqual(payload["data"]["progress"], 50.0)
 
     @patch('requests.Session.patch')
     def test_send_callback_failure(self, mock_patch):
@@ -158,8 +158,8 @@ class TestHTTPCallback(TestCase):
         test_progress = 25.0
         test_inputs = [{"name": "input1", "value": "test"}]
         test_outputs = [{"name": "output1", "value": "result"}]
-        test_start_time = 1000.0
-        test_end_time = 1010.0
+        test_start_time = "2024-01-01T10:00:00Z"
+        test_end_time = "2024-01-01T10:10:00Z"
         test_failure_type = ErrorType.RUNTIME_EXCEPTION
         test_err_msg = "Test error"
         test_metadata = {"version": "1.0"}
@@ -313,8 +313,8 @@ class TestHTTPCallback(TestCase):
         test_id = "success-test"
         test_inputs = [{"name": "input1", "value": "test"}]
         test_outputs = [{"name": "output1", "value": "result"}]
-        test_start_time = 1000.0
-        test_end_time = 1010.0
+        test_start_time = "2024-01-01T10:00:00Z"
+        test_end_time = "2024-01-01T10:10:00Z"
         test_metadata = {"version": "1.0"}
         
         # Call send_success
@@ -352,8 +352,8 @@ class TestHTTPCallback(TestCase):
         test_failure_type = ErrorType.RUNTIME_EXCEPTION
         test_err_msg = "Test error"
         test_inputs = [{"name": "input1", "value": "test"}]
-        test_start_time = 1000.0
-        test_end_time = 1010.0
+        test_start_time = "2024-01-01T10:00:00Z"
+        test_end_time = "2024-01-01T10:10:00Z"
         test_metadata = {"version": "1.0"}
         
         # Call send_error
