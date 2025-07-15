@@ -10,7 +10,7 @@ import (
 
 var (
 	SupportedKind = []string{"block"}
-	SupportedType = []string{"processing", "source"}
+	SupportedType = []string{"processing", "source", "visualization"}
 )
 
 func (s *Specification) Validate() error {
