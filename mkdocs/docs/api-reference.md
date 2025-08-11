@@ -44,9 +44,6 @@
 ### Run
 ::: clay.Run
 
-### Execution Modes
-::: clay.run.SupportedExecutors
-
 ### ModelWrapper
 ::: clay.core.ModelWrapper
     selection:
@@ -65,20 +62,9 @@
 ## Runners
 
 ### JobRunner
-::: clay.runners.job_runner.JobRunner
-
-### JobRunnerV2
-::: clay.runners.job_runner_v2.JobRunnerV2
+::: clay.runners.runner.JobRunner
 
 ## Exceptions
 
 ### FailedExecutionException
 ::: clay.exceptions.FailedExecutionException
-
-## Signals
-
-### success
-::: clay._signals.success
-
-### failure
-::: clay._signals.failure

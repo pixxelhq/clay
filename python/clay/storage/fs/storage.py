@@ -125,14 +125,24 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
             # process stac_url download
             if item.get_format() == "raster" and item.get_field("stac_url"):
                 stac_dest_path = os.path.join(item_dest_dir, "stac.json")
-                response = requests.get(item.get_field("stac_url")) # type: ignore
-                if response.status_code == 200:
-                    stac_data = response.json()
+                stac_url = str(item.get_field("stac_url"))
+                if os.path.isfile(stac_url):
+                    with open(stac_url, 'r') as f:
+                        stac_data = json.load(f)
+                    # Write to destination
                     with open(stac_dest_path, "w+") as f:
                         json.dump(stac_data, f, indent=4)
                     item.set_field("stac_url", stac_dest_path)
                 else:
-                    raise ValueError(f"Failed to download STAC file: {item.get_field('stac_url')}")
+                    # Download from URL
+                    response = requests.get(stac_url) # type: ignore
+                    if response.status_code == 200:
+                        stac_data = response.json()
+                        with open(stac_dest_path, "w+") as f:
+                            json.dump(stac_data, f, indent=4)
+                        item.set_field("stac_url", stac_dest_path)
+                    else:
+                        raise ValueError(f"Failed to download STAC file: {stac_url}")
 
         item_dest_dir = os.path.join(destination_path, item_name)
         Path(item_dest_dir).mkdir(parents=True, exist_ok=True)

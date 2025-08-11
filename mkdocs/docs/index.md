@@ -14,6 +14,4 @@ This documentation is intended for both technical and non-technical users and ot
 
 2. You want a quick rundown of important `Clay` concepts: [Five Minute Blitz](blitz-concepts.md).
 
-3. You want to look at detailed usage tutorials: [Usage](usage.md)
-
-4. You are here for the API Reference: [API Reference](api-reference.md)
+3. You are here for the API Reference: [API Reference](api-reference.md)

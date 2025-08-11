@@ -1,0 +1,41 @@
+[
+    {
+        "name": "raster",
+        "type": "url",
+        "format": "raster",
+        "value": "",
+        "is_artiface": "true",
+        "stac_url": "./tests/example_stac.json",
+        "properties": {
+            "bands": [
+                "B01",
+                "B02",
+                "B03",
+                "B04",
+                "B05",
+                "B06",
+                "B07",
+                "B08",
+                "B09",
+                "B11",
+                "B12",
+                "B8A",
+                "SCL"
+            ],
+            "collection": "sentinel-2-l2a"
+        }
+    },
+    {
+        "format": "string",
+        "name": "string",
+        "type": "str",
+        "value": "hello world"
+    },
+    {
+        "name": "vector",
+        "type": "url",
+        "format": "vector",
+        "is_artiface": "true",
+        "value": "./tests/vector.geojson"
+    }
+]

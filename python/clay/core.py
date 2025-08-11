@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 import threading
@@ -12,7 +11,6 @@ from functools import cached_property
 from logging import Logger
 from typing import (
     Any,
-    Callable,
     Dict,
     List,
     Optional,
@@ -24,9 +22,8 @@ from typing import (
 
 import datatypes
 import uvloop
-from s3fs import S3FileSystem
 
-from clay import _network, type_utils, types
+from clay import type_utils, types
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, get_streamvalues
 from clay.utils import (
@@ -36,51 +33,10 @@ from clay.utils import (
     yaml_to_namespace,
 )
 
-DATA_SPEC_FILENAME: str = "spec.json"
-CALLBACK_AUTH_METHOD_ENVVAR = "DEXTER_CALLBACK_AUTH"
-SUB_HEADER_KEY: str = "X-AuthService-Sub"
-ORGIDS_HEADER_KEY: str = "X-AuthService-Org_Ids"
-SUB_ENVVAR: str = "DEXTER_GATEWAY_SUB"
-ORGIDS_ENVVAR: str = "DEXTER_GATEWAY_ORGIDS"
-
-
-class ValueTypes(Enum):
-    STR = "str"
-    URL = "url"
-    INT = "int"
-    FLOAT = "float"
-
-
 class FeatureFlags(Enum):
     EnableTypesV2 = "FEATURE_ENABLE_TYPES_V2"
     ForceInputTypesToV2 = "FEATURE_FORCE_INPUT_TYPES_TO_V2"
     ForceOutputTypesToV2 = "FEATURE_FORCE_OUTPUT_TYPES_TO_V2"
-
-
-C = TypeVar("C", bound="CallbackAuthMethod")
-
-
-def running_locally() -> bool:
-    """
-    returns True if EXECUTOR_ENVVAR is not set, which means that we're running the model locally
-    """
-    return os.getenv(types.EXECUTOR_ENVVAR) is None
-
-
-class CallbackAuthMethod(Enum):
-    STATIC_TOKEN = 0
-    JWT_TOKEN = 1
-    GATEWAY_TOKEN = 2
-    NO_AUTH = 3
-
-    @classmethod
-    def get_method(cls: Type[C]) -> C:
-        val = os.getenv(CALLBACK_AUTH_METHOD_ENVVAR)
-        if val is None:
-            return cls(3)
-        val = json.loads(val)
-        return cls(val)
-
 
 class InferenceCtx:
     """
@@ -116,48 +72,6 @@ class InferenceCtx:
     def get_model_inf_times(self) -> types.ModelInfTimes:
         return types.ModelInfTimes(InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time)
 
-
-class RunType(Enum):
-    INFERENCE = "inference"
-    WORKFLOW = "workflow"
-
-
-def callback_wrapper(conn_params: Dict[Any, str]):
-    def _callback(logger: Logger, callback: types.Callback, enable_debug_logs: bool = False) -> None:
-        dexter_clb_url = conn_params.get(types._CommonEnvvars.ORCHESTRATOR_URL, None)
-
-        task_id = conn_params.get(types._CommonEnvvars.TASK_ID, None)
-        if not task_id:
-            logger.warning("`task_id` not found hence aborting `mark_progress`")
-            return None
-
-        if callback.Id is None or callback.Id == "":
-            callback.Id = task_id
-
-        success = _network._fire_callback_to_dexter(callback, logger, dexter_clb_url, enable_debug_logs)
-        if not success:
-            logger.error("failed to fire callback")
-
-    return _callback
-
-
-def add_asset_wrapper(remote_path: str, runner_self: Optional[Callable] = None):
-    def _add_asset(logger: Logger, filepath: str, io_name: str, is_input: bool):
-        if not remote_path:
-            logger.warning("cannot upload asset as no remote path was found")
-        if is_input:
-            remote_input_path = os.path.join(remote_path, "inputs", io_name, filepath)
-        else:
-            remote_input_path = os.path.join(remote_path, "outputs", io_name, filepath)
-        logger.info(f"uploading file at {filepath} to {remote_input_path}")
-        if runner_self:
-            runner_self._s3fs.put_file(str(filepath), remote_input_path)  # pyright: ignore
-        else:
-            S3FileSystem().put_file(str(filepath), remote_input_path)
-
-    return _add_asset
-
-
 class ModelWrapper:
     """The base class that wraps all user defined models. Every user defined model is expected
     to inherit this class. This enforces a defined structure on the user and ensures proper
@@ -166,15 +80,9 @@ class ModelWrapper:
 
     __OVERRIDABLE_FUNCS__: List[str] = ["preprocess", "inference", "postprocess"]
 
-    _DEFAULT_MODEL_PROGRESS_MIN: float = 0
-    _DEFAULT_MODEL_PROGRESS_MAX: float = 100
-    _DEFAULT_MODEL_USER_PROGRESS_MIN: float = 0
-    _DEFAULT_MODEL_USER_PROGRESS_MAX: float = 95
-
     def __init__(
         self,
         config: str,
-        protocol: str = "abfs",
         logger: Optional[Logger] = None,
         enable_debug_logs: Optional[bool] = None,
     ) -> None:
@@ -187,28 +95,16 @@ class ModelWrapper:
                 Custom logger. If not provided, _clay_ uses it's internal default logger.
                 Defaults to None.
         """
-        self.protocol = protocol
         self.config = yaml_to_namespace(config)
-        if enable_debug_logs is None:
-            self.enable_debug_logs = not self.is_running_locally
-        else:
-            self.enable_debug_logs = enable_debug_logs
+        self.enable_debug_logs = enable_debug_logs
         if logger is None:
             log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
             logger = ClayLogger(logger_name=self.__class__.__name__, propagate=True, level=log_level)
         self.logger: Logger = logger
         self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
-
         self._runner_properties: Dict[types._CommonEnvvars, Any] = defaultdict(None)
-        self._callback: Optional[Callable] = None
-        self._progress_counter: float = 0.0
-        self._add_asset: Optional[Callable] = None
 
         self.run_setup()
-
-    @property
-    def is_running_locally(self) -> bool:
-        return running_locally()
 
     def run_setup(self) -> None:
         """Runs setup"""
@@ -248,14 +144,6 @@ class ModelWrapper:
     @cached_property
     def wrap_inputs(self) -> bool:
         return False
-
-    def set_callback_callable(self, callback_fn: Callable) -> None:
-        assert isinstance(callback_fn, Callable)
-        self._callback = callback_fn
-
-    def set_add_asset_callable(self, add_asset_fn: Callable) -> None:
-        assert isinstance(add_asset_fn, Callable)
-        self._add_asset = add_asset_fn
 
     def _dep_format_output(self, outputs: tuple) -> Any:
         output_containers = deepcopy(self.config.outputs)
@@ -327,36 +215,16 @@ class ModelWrapper:
     async def cleanup_inference(self) -> None:
         pass
 
+    @abstractmethod
     def get_progress(self) -> float:
         """Returns the current progress of the model.
 
         Returns:
             float: Current model progress.
         """
-        return self._progress_counter
+        pass
 
-    def __check_progress_bounds(self, progress: float) -> bool:
-        if progress < self._DEFAULT_MODEL_PROGRESS_MIN:
-            self.logger.warning("progress cannot be set to a value lower than min progress")
-            return False
-        if progress > self._DEFAULT_MODEL_PROGRESS_MAX:
-            self.logger.warning("progress cannot be set to a value higher than the max progress")
-            return False
-        return True
-
-    def send_callback(self, callback: types.Callback) -> None:
-        if callback.Progress is not None:
-            if not self.__check_progress_bounds(callback.Progress):
-                callback.Progress = None
-            if callback.Progress and callback.Progress < self._progress_counter:
-                self.logger.warning(
-                    f"progress cannot be less than current progress, found: {callback.Progress}, current: {self._progress_counter}"
-                )
-                callback.Progress = None
-            if callback.Progress:
-                self._progress_counter = callback.Progress
-        self._set_progress(callback, enable_debug_logs=True)
-
+    @abstractmethod
     def set_progress(self, progress: float) -> None:
         """This method is an **absolute setter method**. Meaning, the current progress of the model would be set to
         _progress_ (assuming _progress_ is a valid value). The idea behind this method is to indicate *in absolute terms,
@@ -365,42 +233,9 @@ class ModelWrapper:
         Args:
             progress (float): The value to which current model progress is to be set
         """
-        if not self.__check_progress_bounds(progress):
-            self.logger.warning("progress cannot be set to a value higher than the max progress")
-            return None
-        if progress < self._progress_counter:
-            self.logger.warning("progress cannot be set to a value lower than the current progress")
-            return None
+        pass 
 
-        self._progress_counter = progress
-
-        if self._callback is None:
-            self.logger.warning("cannot fire callback as `_callback` is set to `None`")
-            return None
-
-        self._set_progress(
-            types.Callback(
-                Id="",
-                State=types.ModelStates.INPROGRESS,
-                Progress=self._progress_counter,
-            )
-        )
-        return None
-
-    def add_asset(self, file_path: str, io_name: str, is_input: bool = True):
-        """This method allows user to add an input or output `asset` explicitly
-
-        Args:
-            file_path (str): path of asset to be added
-            io_name(str): name of the input or output
-            is_input (bool): set to false if asset is an output
-
-        """
-        if self._add_asset is None:
-            self.logger.warning("cannot upload asset as `_upload` is set to `None`")
-            return None
-        self._add_asset(self.logger, file_path, io_name, is_input)
-
+    @abstractmethod
     def add_progress(self, progress_delta: float) -> None:
         """This method adds a progress `delta` to the progress calculated so far. The difference between
         `add_progress` and `set_progress` is that the `add_progress` is an **relative additive** method, while the
@@ -415,30 +250,23 @@ class ModelWrapper:
             progress_delta (float): Amount of change that is to be reflected in the model progress.
 
         """
-        if progress_delta < self._DEFAULT_MODEL_USER_PROGRESS_MIN:
-            self.logger.warning("progress_delta cannot be set to a value lower than the min progress")
-            return None
-        if progress_delta > self._DEFAULT_MODEL_USER_PROGRESS_MAX:
-            self.logger.warning("progress_delta cannot be set to a value higher than the max progress")
-            return None
-        self._progress_counter += progress_delta
-        self._set_progress(
-            types.Callback(
-                Id="",
-                State=types.ModelStates.INPROGRESS,
-                Progress=self._progress_counter,
-            )
-        )
+        pass
 
-    def _set_progress(self, callback: types.Callback, enable_debug_logs: bool = False) -> None:
-        if self._callback is None:
-            self.logger.warning("cannot fire callback as `_callback` is set to `None`")
-            return None
+    @abstractmethod
+    def add_asset(self, file_path: str, io_name: str, is_input: bool = True):
+        """This method allows user to add an input or output `asset` explicitly
 
-        if callback.Progress is None:
-            callback.Progress = self._progress_counter
+        Args:
+            file_path (str): path of asset to be added
+            io_name(str): name of the input or output
+            is_input (bool): set to false if asset is an output
 
-        self._callback(self.logger, callback, enable_debug_logs=enable_debug_logs)
+        """
+        pass 
+
+    @abstractmethod
+    def set_disclaimer(self, disclaimerMsg: str) -> None:
+        pass
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
         """The preprocess abstract method. This the first method that the model
@@ -572,37 +400,22 @@ ModelWrapperType = TypeVar("ModelWrapperType", bound=ModelWrapper)
 class BaseRunner(object):
     """The base class that wraps all runner implementations."""
 
-    _SUPPORTED_RUN_MODES: List[str] = ["argo", "http", "job"]
-    _DEFAULT_EVENT_LOOP_POLICY = uvloop.EventLoopPolicy()
-
     def __init__(
         self,
-        run_mode: str,
         modelcls: Type[ModelWrapper],
         model_args: Dict[str, Any],
         cfg_path: str,
         logger: Union[None, Logger],
-        enable_uvloop: bool = False,
         enable_debug_logs: Optional[bool] = None,
     ) -> None:
-        self.run_mode = run_mode
         self._modelcls = modelcls
         self._model_args = model_args
-        self._enable_uvloop = enable_uvloop
-        self._dexter_clb_url = os.getenv(types._CommonEnvvars.ORCHESTRATOR_URL.value, "")
-        self._dexter_host = os.getenv(types._CommonEnvvars.DEXTER_HOST.value, "http://localhost")
-        self._dexter_port = os.getenv(types._CommonEnvvars.DEXTER_PORT.value, "8080")
         self.config = yaml_to_namespace(cfg_path)
-
-        if enable_debug_logs is None:
-            self.enable_debug_logs = not self.is_running_locally
-        else:
-            self.enable_debug_logs = enable_debug_logs
-        # self._loop: Union[None, asyncio.AbstractEventLoop] = None
+        self.enable_debug_logs = enable_debug_logs
         if logger is None:
             log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
             logger = ClayLogger(
-                logger_name=f"{self._run_mode}_model_runner",
+                logger_name="model_runner",
                 propagate=True,
                 level=log_level,
             )
@@ -616,20 +429,6 @@ class BaseRunner(object):
         assert "output" in dir(cls)
         assert "_collect_inputs" in dir(cls)
         assert "failure" in dir(cls)
-
-    @property
-    def run_mode(self) -> str:
-        return self._run_mode
-
-    @run_mode.setter
-    def run_mode(self, value: str) -> None:
-        if value not in self._SUPPORTED_RUN_MODES:
-            raise ValueError(f"Invalid Run mode: {value}")
-        self._run_mode = value
-
-    @property
-    def is_running_locally(self) -> bool:
-        return running_locally()
 
     @property
     def logger(self) -> Logger:
@@ -664,26 +463,6 @@ class BaseRunner(object):
         self.logger.info("Initializing Model...")
         self._model: ModelWrapper = self._modelcls(**self._model_args)
         self.logger.info("Model initialization complete.")
-
-    def _run_event_loop(self, _loop: asyncio.AbstractEventLoop) -> None:
-        self.logger.debug("Start model inference event loop ...")
-        asyncio.set_event_loop(_loop)
-        _loop.run_forever()
-        self.logger.debug("Event loop stopped")
-
-    def _init_model_inference_event_loop(self) -> None:
-        self.logger.debug("Starting model inference thread ...")
-        asyncio.set_event_loop_policy(self._DEFAULT_EVENT_LOOP_POLICY)
-        self._loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
-        self._t = threading.Thread(
-            name="model_runner_event_thread",
-            target=self._run_event_loop,
-            args=(self._loop,),
-            daemon=True,
-        )
-        self._t.start()
-        time.sleep(1)
-        self.logger.debug("Started model inference thread.")
 
     @abstractmethod
     def _collect_inputs(
@@ -741,36 +520,3 @@ class BaseRunner(object):
     def start(self, **kwargs: Any) -> None:
         self.run_model_inference()
 
-
-class EnvVarConfigItem:
-    def __init__(self, name: str, required: bool = False, default: Any = None):
-        self.name = name
-        self.required = required
-        self.default = default
-
-    def get_value(self) -> Any:
-        value = os.getenv(self.name, self.default)
-        if self.required and value is None:
-            raise ValueError(f"Required environment variable {self.name} is not set.")
-        return value
-
-
-class BaseConfigEnvVar:
-    TaskId: EnvVarConfigItem = EnvVarConfigItem(name="TASK_ID", required=True, default=None)
-    ClbUrl: EnvVarConfigItem = EnvVarConfigItem(name="ORCHESTRATOR_URL", required=True, default=None)
-
-    def load_from_env(self):
-        """Load environment variable values into instance attributes."""
-        self.TaskId = self.TaskId.get_value()
-        self.ClbUrl = self.ClbUrl.get_value()
-
-
-def set_disclaimer(disclaimerMsg: str) -> None:
-    config = BaseConfigEnvVar()
-    config.load_from_env()
-    logger = logging.getLogger(__name__)
-    disclaimer_info = {"message": disclaimerMsg, "timestamp": get_current_utc_time_iso()}
-    callback = types.Callback(Id=str(config.TaskId), disclaimer=disclaimer_info)
-    success = _network._fire_callback_to_dexter(callback, logger, str(config.ClbUrl), True)
-    if not success:
-        logger.error("failed to fire callback")

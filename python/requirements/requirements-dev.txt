@@ -25,3 +25,5 @@ shortuuid
 pydantic>=2.4.0
 s3fs
 codespell
+nest_asyncio
+moto

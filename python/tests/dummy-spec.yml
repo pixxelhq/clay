@@ -15,25 +15,32 @@ build:
   gdal: true
   requirements: requirements.txt
 env:
-  - name: MODEL_CONTAINER_TOKEN
-    type: string
-  - name: OUTPUT_CONTAINER_TOKEN
-    type: string
-
+  MODEL_CONTAINER_TOKEN: ""
+  OUTPUT_CONTAINER_TOKEN: ""
 inputs:
   - format: raster
     type: url
     name: raster
+    is_artiface: true
   - format: string
     type: str
     name: string
+  - format: vector
+    type: url
+    name: vector
+    is_artiface: true
 outputs:
   - format: raster
     type: url
     name: result
+    is_artiface: true
   - format: string
     type: str
     name: string
+  - format: vector
+    type: url
+    name: vector
+    is_artiface: true
 
 runtime_opts:
   image: some-image:latest

@@ -40,6 +40,7 @@ class CallbackData(BaseModel):
     end_time: Optional[str] = None
     failure_type: Optional[ErrorType] = None
     err_msg: Optional[str] = None
+    disclaimer: Optional[Dict[str, str]] = None
     metadata: Dict[str, str] = Field(default_factory=dict)
     status: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
 
@@ -69,6 +70,7 @@ class CallbackInterface(ABC):
             start_time: Optional[str] = None,
             end_time: Optional[str] = None,
             failure_type: Optional[ErrorType] = None,
+            disclaimer: Optional[Dict[str, str]] = None,
             err_msg: Optional[str] = None
     ) -> bool:
         """

@@ -1,14 +1,11 @@
-import json
 import os
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import yaml
-from urllib3.util import parse_url
-
 
 def dict_to_namespace(d: dict) -> SimpleNamespace:
     """
@@ -88,54 +85,10 @@ class Converters:
     def type_envvar(value: str) -> Optional[str]:
         return os.getenv(value)
 
-
-def read_yaml(fp: str) -> dict:
-    if not os.path.exists(fp):
-        raise FileNotFoundError(f"{fp} not found")
-    if not os.path.isfile(fp):
-        raise IsADirectoryError(f"{fp} is a directory and not a file.")
-    with open(fp, "r") as f:
-        config = yaml.safe_load(f)
-    return config
-
-
 def get_value(d: dict) -> dict:
     tmp = {}
     tmp[d["name"]] = getattr(Converters, f"type_{d['type']}")(d["value"])
     return tmp
-
-
-def to_tuple_if_required(x: Any) -> Any:
-    if x is None:
-        return x
-    if not isinstance(x, tuple):
-        return (x,)
-    return x
-
-
-def get_io_name_to_dir_map(io: List[Any], workingDir: str) -> Dict[str, str]:
-    paths = {}
-    for i in io:
-        expected_path = os.path.join(workingDir, i["name"])
-        if os.path.exists(expected_path):
-            paths[i["name"]] = expected_path
-    return paths
-
-
-def get_filename_from_remote(url: str) -> str:
-    fragments = parse_url(url)
-    if fragments.path is None:
-        return ""
-    return os.path.basename(fragments.path)
-
-
-def pop_dict_with_err(d: Dict[Any, Any], key: Any) -> Tuple[Any, Optional[KeyError]]:
-    val = None
-    try:
-        val = d.pop(key)
-    except KeyError as exc:
-        return val, exc
-    return val, None
 
 
 def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str, Any]:  # noqa: E741
@@ -147,12 +100,3 @@ def convert_list_to_dict(l: List[Dict[str, Any]], primary_key: str) -> Dict[str,
 
 def get_current_utc_time_iso() -> str:
     return str(datetime.now(timezone.utc).isoformat())
-
-
-def try_json_loads(d: str) -> Optional[str]:
-    try:
-        v = json.loads(d)
-        return v.get("value", None)
-    except Exception:
-        pass
-    return None

@@ -49,13 +49,13 @@ class Demo(ModelWrapper):
         return {"value": types.String(name="value", value:"value")}
 ```
 
-## Runners
+## Runner
 
 The *model* defined with `ModelWrapper` on it's own cannot be run on the infrastructure. Why? Because the infrastructure has very specific *needs* and in some cases, really complicated *wants*. On top of this, the infrastructure evolves with time and product diktats, and as a result, it's needs and wants also evolve.
 
 Now, it is nearly impossible for every model author to stay abreast of every development activity happening (every bug fix, new feature and API change) around them and ensuring *every single model* under  their care remains compatible.
 
-Hence, *Runners*. Very simple, *Runners* are abstractions that based on some conditions, make the best possible choice on *how to run* a model. If the model is running on the cluster, a different runner is used versus when the model is running locally on your computer.
+Hence, *Runner*. Very simple, a *Runner* is an abstraction that based on some conditions, make the best possible choice on *how to run* a model.
 
 As a model author, you should not care about this. All the model author has to do is, run the following function from the entrypoint,
 
