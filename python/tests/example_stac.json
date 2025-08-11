@@ -1,0 +1,258 @@
+{
+  "bbox": [
+    83.47119553566955,
+    26.74000517350288,
+    83.54568364652965,
+    26.808607318776055
+  ],
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          83.54568364652965,
+          26.808607318776055
+        ],
+        [
+          83.47119553566955,
+          26.808607318776055
+        ],
+        [
+          83.47119553566955,
+          26.74000517350288
+        ],
+        [
+          83.54568364652965,
+          26.74000517350288
+        ],
+        [
+          83.54568364652965,
+          26.808607318776055
+        ]
+      ]
+    ]
+  },
+  "properties": {
+    "datetime": "2024-02-19T00:00:00Z",
+    "platform": "Sentinel-2",
+    "proj:code": "EPSG:4326",
+    "images:metadata": [
+      {
+        "url": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20240219T045839_R119_T44RQQ_20240219T094350",
+        "overlap_geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                83.54568364652965,
+                26.808607318776055
+              ],
+              [
+                83.54568364652965,
+                26.74000517350288
+              ],
+              [
+                83.47119553566955,
+                26.74000517350288
+              ],
+              [
+                83.47119553566955,
+                26.808607318776055
+              ],
+              [
+                83.54568364652965,
+                26.808607318776055
+              ]
+            ]
+          ]
+        },
+        "overlap_percentage": 100.0
+      }
+    ]
+  },
+  "id": "2024-02-19",
+  "stac_version": "1.0.0",
+  "assets": {
+    "B01": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B01.tif",
+      "title": "B01",
+      "eo:bands": {
+        "name": "B01",
+        "center_wavelength": 0.443
+      },
+      "statistics": {
+        "maximum": 1300.0,
+        "minimum": 143.0
+      }
+    },
+    "B02": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B02.tif",
+      "title": "B02",
+      "eo:bands": {
+        "name": "B02",
+        "center_wavelength": 0.49
+      },
+      "statistics": {
+        "maximum": 3175.0,
+        "minimum": 187.0
+      }
+    },
+    "B03": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B03.tif",
+      "title": "B03",
+      "eo:bands": {
+        "name": "B03",
+        "center_wavelength": 0.56
+      },
+      "statistics": {
+        "maximum": 3705.0,
+        "minimum": 302.0
+      }
+    },
+    "B04": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B04.tif",
+      "title": "B04",
+      "eo:bands": {
+        "name": "B04",
+        "center_wavelength": 0.665
+      },
+      "statistics": {
+        "maximum": 3932.0,
+        "minimum": 107.0
+      }
+    },
+    "B05": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B05.tif",
+      "title": "B05",
+      "eo:bands": {
+        "name": "B05",
+        "center_wavelength": 0.704
+      },
+      "statistics": {
+        "maximum": 3796.0,
+        "minimum": 493.0
+      }
+    },
+    "B06": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B06.tif",
+      "title": "B06",
+      "eo:bands": {
+        "name": "B06",
+        "center_wavelength": 0.74
+      },
+      "statistics": {
+        "maximum": 4534.0,
+        "minimum": 511.0
+      }
+    },
+    "B07": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B07.tif",
+      "title": "B07",
+      "eo:bands": {
+        "name": "B07",
+        "center_wavelength": 0.783
+      },
+      "statistics": {
+        "maximum": 5577.0,
+        "minimum": 475.0
+      }
+    },
+    "B08": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B08.tif",
+      "title": "B08",
+      "eo:bands": {
+        "name": "B08",
+        "center_wavelength": 0.842
+      },
+      "statistics": {
+        "maximum": 7322.0,
+        "minimum": 518.0
+      }
+    },
+    "B09": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B09.tif",
+      "title": "B09",
+      "eo:bands": {
+        "name": "B09",
+        "center_wavelength": 0.975
+      },
+      "statistics": {
+        "maximum": 5139.0,
+        "minimum": 692.0
+      }
+    },
+    "B11": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B11.tif",
+      "title": "B11",
+      "eo:bands": {
+        "name": "B11",
+        "center_wavelength": 1.61
+      },
+      "statistics": {
+        "maximum": 4725.0,
+        "minimum": 203.0
+      }
+    },
+    "B12": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B12.tif",
+      "title": "B12",
+      "eo:bands": {
+        "name": "B12",
+        "center_wavelength": 2.19
+      },
+      "statistics": {
+        "maximum": 4561.0,
+        "minimum": 117.0
+      }
+    },
+    "B8A": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/B8A.tif",
+      "title": "B8A",
+      "eo:bands": {
+        "name": "B8A",
+        "center_wavelength": 0.865
+      },
+      "statistics": {
+        "maximum": 5587.0,
+        "minimum": 337.0
+      }
+    },
+    "SCL": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/SCL.tif",
+      "title": "SCL",
+      "eo:bands": {
+        "name": "SCL",
+        "center_wavelength": -0.001
+      },
+      "statistics": {
+        "maximum": 8.0,
+        "minimum": 2.0
+      }
+    },
+    "visual": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/TCI.tif",
+      "title": "visual",
+      "statistics": {
+        "maximum": 255.0,
+        "minimum": 11.0
+      }
+    },
+    "metadata": {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac/metadata.xml",
+      "type": "application/xml",
+      "title": "Metadata File (xml)"
+    }
+  },
+  "links": [
+    {
+      "href": "s3://d-platform-atlas-s3-01/projects/10c56bf4-4228-4635-9f4d-55977c0c7360/aois/2087e6df-4d95-4b73-9088-1246e4934bf2/2024_02_19_stac",
+      "rel": "self",
+      "type": "application/json"
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+  ]
+}

@@ -15,7 +15,7 @@ from clay.callback import CallbackInterface, ErrorType, HTTPCallback
 from clay.core import BaseRunner, ModelWrapper
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger
-from clay.storage.fs import process_input_list, process_output_list, process_spec_files
+from clay.storage.fs import process_input_list, process_output_list, process_spec_files, create_provider
 from clay.types import ModelStates
 from clay.utils import yaml_to_namespace, get_current_utc_time_iso, get_value, Converters, cast_inputs
 from clay import __version__ as clay_version
@@ -66,7 +66,7 @@ class RunnerConfig:
         self._callback_endpoint = os.getenv(self._callback_endpoint_env_key, "http://localhost:3000/callback")
         self._callback_headers = json.loads(os.getenv(self._callback_headers_env_key, "{}"))
         self._remote_output_path = os.getenv(self._remote_output_path_env_key, "/tmp/clay/outputs")
-        self._remote_input_path = os.getenv(self._remote_input_path_env_key, "/tmp/clay/outputs")
+        self._remote_input_path = os.getenv(self._remote_input_path_env_key, "/tmp/clay/inputs")
         self._outputs_json_path = os.getenv(self._output_json_path_env_key, self._outputs_json_path)
         self._outputs_json_base_file_name = os.getenv(self._output_json_base_file_name_env_key,
                                                       self._outputs_json_base_file_name)
@@ -169,6 +169,7 @@ class JobRunner(BaseRunner):
         self._model.set_progress = self.set_progress
         self._model.get_progress = self.get_progress
         self._model.add_progress = self.add_progress
+        self._model.add_asset = self.add_asset
 
     def _input_json_to_data_types(self, input_json: List[Dict[str, Any]]) -> None:
         inputs: Dict[str, datatypes.DataWrapperInterface] = {}
@@ -291,6 +292,13 @@ class JobRunner(BaseRunner):
         self.set_progress(self._current_progress)
 
     def set_progress(self, progress: float) -> None:
+        if not (0 <= progress <= 100):
+            self._logger.error("Progress must be between 0 and 100.")
+            return None
+        if progress < self._current_progress:
+            self.logger.warning("progress cannot be set to a value lower than the current progress")
+            return None
+        
         self._current_progress = progress
         self._callback_handler.send(
             id=self._params.get_execution_id(),
@@ -298,6 +306,27 @@ class JobRunner(BaseRunner):
             logger=self._logger,
             progress=progress,
             start_time=self._start_time,
+        )
+
+    def add_asset(self, file_path: str, io_name: str, is_input: bool = True):
+        remote_path = self._params.get_remote_input_path()
+        if not remote_path:
+            self.logger.warning("cannot upload asset as no remote path was found")
+        if is_input:
+            remote_input_path = os.path.join(remote_path, "inputs", io_name, file_path)
+        else:
+            remote_input_path = os.path.join(remote_path, "outputs", io_name, file_path)
+        self.logger.info(f"uploading file at {file_path} to {remote_input_path}")
+        dest_provider = create_provider(remote_path)
+        dest_provider.upload(file_path, remote_input_path)
+    
+    def set_disclaimer(self, disclaimerMsg: str) -> None:
+        disclaimer = {"message": disclaimerMsg, "timestamp": get_current_utc_time_iso()}
+        self._callback_handler.send(
+            id=self._params.get_execution_id(),
+            metadata={},
+            disclaimer = disclaimer,
+            logger=self._logger,
         )
 
     def start(self, **kwargs: Any) -> None:

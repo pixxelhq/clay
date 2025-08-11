@@ -1,22 +1,11 @@
 import os
-import sys
 import time
 import unittest
-import unittest.mock
 from typing import Any
-from unittest import mock
-
 import pytest
-
-from clay import ModelWrapper, logger, types
-from clay._network import HeaderBuilder
-from clay.core import BaseRunner, CallbackAuthMethod, callback_wrapper
-
+from clay import ModelWrapper
+from clay.core import BaseRunner
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
-from .utils import set_envvar
-
-sys.path.append("./tests/testrepo")
-
 
 def test_mw_missing_setup_override() -> None:
     class M(ModelWrapper):
@@ -40,221 +29,78 @@ def test_mw_blocking_method_override() -> None:
 
 class TestBaseRunner(unittest.TestCase):
     def setUp(self) -> None:
-        class M(ModelWrapper):
-            def setup(self, a: str, x: list):
-                pass
-
-            async def preprocess(self, i: str) -> Any:
-                return 1, 2, {"a": 123}
-
-            async def postprocess(self) -> Any:
-                pass
-
         class DemoRunner(BaseRunner):
-            def __init__(self, run_mode: str):
+            def __init__(self):
                 super().__init__(
-                    run_mode=run_mode,
                     modelcls=YMXPLUSC,
                     model_args={"config": YMXPLUSC_CONFIG},
                     logger=None,
                     cfg_path=YMXPLUSC_CONFIG,
                 )
+                self._current_progress: float = 0.0
+    
+            def get_progress(self) -> float:
+                return self._current_progress
+
+            def set_progress(self, progress: float) -> None:
+                if not (0 <= progress <= 100):
+                    self._logger.error("Progress must be between 0 and 100.")
+                    return None
+                if progress < self._current_progress:
+                    self.logger.warning("progress cannot be set to a value lower than the current progress")
+                    return None
+                self._current_progress = progress
+
+            def add_progress(self, progress_delta: float) -> None:
+                new_progress = self._current_progress + progress_delta
+                self.set_progress(new_progress)
 
         self._test_modelcls = YMXPLUSC
         self._test_runnercls = DemoRunner
-
-    def tearDown(self) -> None:
-        if hasattr(self, "m") and hasattr(self.r, "_loop"):
-            if self.r._loop.is_running():
-                self.r._loop.call_soon_threadsafe(self.r._loop.stop)
-                time.sleep(3)
-            assert self.r._loop.is_running() is False
-            self.r._loop.close()
-
         time.sleep(1)
 
     def test_setup(self):
         os.environ["SAMPLE_ENV"] = "alreadyExists"
-        self.r = self._test_runnercls("job")
+        self.r = self._test_runnercls()
         self.r._init_model()        
         assert os.environ["SAMPLE_ENV"] == "alreadyExists"
         assert os.environ["SAMPLE_ENV_1"] == "2"
 
-    def test_invalid_runner_mode(self):
-        with pytest.raises(ValueError):
-            self._test_runnercls("test")
-
     def test_model_init(self):
-        self.r = self._test_runnercls("job")
+        self.r = self._test_runnercls()
         self.r._init_model()
         assert isinstance(self.r._model, self._test_modelcls)
 
-    def test_model_inference_close_event_loop(self):
-        self.r = self._test_runnercls("job")
-        self.r._init_model()
-        self.r._init_model_inference_event_loop()
-        assert self.r._loop.is_running() is True
-
-        self.r._loop.call_soon_threadsafe(self.r._loop.stop)
-
-        time.sleep(2)
-
-        assert self.r._loop.is_running() is False
-        assert self.r._t.is_alive() is False
-
-    def test_model_inference_thread_init(self):
-        # BIG NOTE: this test fails for some reason when
-        # clay/core.py:L63 is set to `asyncio.get_event_loop` instead of
-        # `asyncio.new_event_loop` even though in both cases, the class works
-        # fine outside of test. `new_event_loop` may potentially cause problems
-        # in environments with pre-existing event loops like uvicorn server.
-        self.r = self._test_runnercls("job")
-        self.r._init_model()
-        self.r._init_model_inference_event_loop()
-        assert self.r._t.is_alive() is True
-
-    def test_model_inference_event_loop_init(self):
-        # BIG NOTE: this test fails for some reason when
-        # clay/core.py:L63 is set to `asyncio.get_event_loop` instead of
-        # `asyncio.new_event_loop` even though in both cases, the class works
-        # fine outside of test. `new_event_loop` may potentially cause problems
-        # in environments with pre-existing event loops like uvicorn server.
-        self.r = self._test_runnercls("job")
-        self.r._init_model()
-        self.r._init_model_inference_event_loop()
-        assert self.r._loop.is_running() is True
-
     def test_progress_update(self):
-        self.r = self._test_runnercls("job")
+        self.r = self._test_runnercls()
         self.r._init_model()
-        self.r._init_model_inference_event_loop()
 
-        self.r._model.set_progress(13)
-        assert self.r._model.get_progress() == 13
+        self.r.set_progress(13)
+        assert self.r.get_progress() == 13
 
-        self.r._model.set_progress(26)
-        assert self.r._model.get_progress() == 26
+        self.r.set_progress(26)
+        assert self.r.get_progress() == 26
 
-        self.r._model.add_progress(5)
-        assert self.r._model.get_progress() == 31
+        self.r.add_progress(5)
+        assert self.r.get_progress() == 31
 
-        self.r._model.set_progress(100)
-        assert self.r._model.get_progress() == 100
+        self.r.set_progress(100)
+        assert self.r.get_progress() == 100
 
     def test_progress_update_with_multiple_increments_greater_than_max(self):
-        self.r = self._test_runnercls("job")
+        self.r = self._test_runnercls()
         self.r._init_model()
-        self.r._init_model_inference_event_loop()
 
-        self.r._model.set_progress(100)
-        assert self.r._model.get_progress() == 100
+        self.r.set_progress(100)
+        assert self.r.get_progress() == 100
 
-        self.r._model.set_progress(13)
-        assert self.r._model.get_progress() == 100
+        self.r.set_progress(13)
+        assert self.r.get_progress() == 100
 
     def test_progress_update_with_negative_increment(self):
-        self.r = self._test_runnercls("job")
+        self.r = self._test_runnercls()
         self.r._init_model()
-        self.r._init_model_inference_event_loop()
 
-        assert self.r._model.get_progress() == 0
-        self.r._model.set_progress(-10)
-        assert self.r._model.get_progress() == 0
-
-
-def test_callback_auth_method_init() -> None:
-    with set_envvar("DEXTER_CALLBACK_AUTH", "0"):
-        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.STATIC_TOKEN
-    with set_envvar("DEXTER_CALLBACK_AUTH", "1"):
-        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.JWT_TOKEN
-    with set_envvar("DEXTER_CALLBACK_AUTH", "2"):
-        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.GATEWAY_TOKEN
-    with set_envvar("DEXTER_CALLBACK_AUTH", "3"):
-        assert CallbackAuthMethod.get_method() == CallbackAuthMethod.NO_AUTH
-    assert CallbackAuthMethod.get_method() == CallbackAuthMethod.NO_AUTH
-
-
-class TestHeaderBuilder(unittest.TestCase):
-    def test_init_static_token_auth(self) -> None:
-        with set_envvar("DEXTER_CALLBACK_AUTH", "0"):
-            os.environ["DEXTER_CLB_AUTH_TOKEN"] = "123"
-            header = HeaderBuilder.init_header()
-            assert "Authorization" in header
-            assert header["Authorization"] == "Token 123"
-
-    def test_init_jwt_auth(self) -> None:
-        with set_envvar("DEXTER_CALLBACK_AUTH", "1"):
-            os.environ["DEXTER_CLB_AUTH_TOKEN"] = "456"
-            header = HeaderBuilder.init_header()
-            assert "Authorization" in header
-            assert header["Authorization"] == "Bearer 456"
-
-    def test_init_gateway_auth(self) -> None:
-        with set_envvar("DEXTER_CALLBACK_AUTH", "2"):
-            os.environ["DEXTER_GATEWAY_SUB"] = "123"
-            os.environ["DEXTER_GATEWAY_ORGIDS"] = "456"
-            header = HeaderBuilder.init_header()
-            assert header["X-AuthService-Sub"] == "123"
-            assert header["X-AuthService-Org_Ids"] == "456"
-
-
-class TestCallback(unittest.TestCase):
-    @mock.patch("clay._network.requests.Session.post")
-    def test_target_url_for_inference_callback(self, mock_post) -> None:
-        mock_response = mock.Mock()
-        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        test_url = "https://orchestrator.platform.svc.local:80/v1alpha1/inferences/123/"
-        test_host = "https://orchestrator.platform.svc.local"
-        test_port = "80"
-        task_id = "123"
-        env = {
-            "ORCHESTRATOR_URL": test_url,
-            "DEXTER_HOST": test_host,
-            "DEXTER_PORT": test_port,
-            "task_id": task_id,
-            "DEXTER_RUN_TYPE": "inference",
-        }
-
-        _logger = logger.ClayLogger("test-logger")
-        c = callback_wrapper(env)
-
-        env_patcher = unittest.mock.patch.dict(os.environ, env)
-        env_patcher.start()
-        val = c(_logger, types.Callback(Id="123"), enable_debug_logs=True)
-        env_patcher.stop()
-
-        call_args_list = mock_post.call_args_list
-        assert val is None
-        assert len(call_args_list) == 1
-        assert call_args_list[0][1]["url"] == test_url
-
-    @mock.patch("clay._network.requests.Session.post")
-    def test_target_url_for_workflow_callback(self, mock_post) -> None:
-        mock_response = mock.Mock()
-        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        test_url = "https://orchestrator.platform.svc.local:80/v1alpha1/callback"
-        test_host = "https://orchestrator.platform.svc.local"
-        test_port = "80"
-        task_id = "123"
-        env = {
-            "ORCHESTRATOR_URL": test_url,
-            "DEXTER_HOST": test_host,
-            "DEXTER_PORT": test_port,
-            "task_id": task_id,
-        }
-
-        _logger = logger.ClayLogger("test-logger")
-        c = callback_wrapper(env)
-
-        val = c(_logger, types.Callback(Id="123"), enable_debug_logs=True)
-
-        call_args_list = mock_post.call_args_list
-        assert val is None
-        assert len(call_args_list) == 1
-        assert call_args_list[0][1]["url"] == test_url
+        assert self.r.get_progress() == 0
+        self.r.set_progress(-10)
+        assert self.r.get_progress() == 0

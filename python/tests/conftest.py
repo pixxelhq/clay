@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
-
+import nest_asyncio
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
 
 sys.path.append(str((Path(__file__).parent) / "testrepo"))
@@ -24,3 +24,6 @@ def session_setup(request):
 @pytest.fixture(scope="function")
 def toy_model() -> YMXPLUSC:
     return YMXPLUSC(config=YMXPLUSC_CONFIG)
+
+def pytest_configure():
+    nest_asyncio.apply()

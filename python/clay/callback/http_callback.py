@@ -135,7 +135,8 @@ class HTTPCallback(CallbackInterface):
             start_time: Optional[str] = None,
             end_time: Optional[str] = None,
             failure_type: Optional[ErrorType] = None,
-            err_msg: Optional[str] = None
+            err_msg: Optional[str] = None,
+            disclaimer: Optional[Dict[str, str]] = None
     ) -> bool:
         """
         Send a unified callback that can represent progress, success, or error states.
@@ -185,5 +186,8 @@ class HTTPCallback(CallbackInterface):
 
         if inputs is not None:
             callback_data.inputs = inputs
+        
+        if disclaimer is not None:
+            callback_data.disclaimer = disclaimer
 
         return self._send_callback(callback_data, logger)

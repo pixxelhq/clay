@@ -15,6 +15,7 @@ class YMXPLUSC(ModelWrapper):
 
     async def preprocess(self, x: float, info: str) -> Tuple[float, str]:
         self.logger.info("Input recieved")
+        self.set_progress(7)
         return x, info
 
     async def inference(self, x: float, info: str) -> Tuple[float, str]:

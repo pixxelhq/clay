@@ -527,26 +527,6 @@ class ModelInfTimes(pydantic.BaseModel):
     InfStartTime: str
     InfEndTime: str
 
-
-class Callback(pydantic.BaseModel):
-    Id: Annotated[str, Field(serialization_alias="id")]
-    State: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
-    Inputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="inputs")] = None
-    Outputs: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="outputs")] = None
-    Result: Annotated[Optional[List[Dict[str, Any]]], Field(serialization_alias="result")] = None
-    Logs: Annotated[Optional[str], Field(serialization_alias="logs")] = ""
-    UserLogs: Annotated[Optional[str], Field(serialization_alias="user_logs")] = ""
-    ErrMsg: Annotated[Optional[str], Field(serialization_alias="err_msg")] = ""
-    StartTime: Annotated[Optional[str], Field(serialization_alias="start_time")] = None
-    EndTime: Annotated[Optional[str], Field(serialization_alias="end_time")] = None
-    BlockInfStartTime: Annotated[Optional[str], Field(serialization_alias="block_inf_start_time")] = None
-    BlockInfEndTime: Annotated[Optional[str], Field(serialization_alias="block_inf_end_time")] = None
-    FailureType: Annotated[Optional[str], Field(serialization_alias="failure_type")] = None
-    Progress: Annotated[Optional[float], Field(serialization_alias="progress", alias="progress")] = None
-    model_config = ConfigDict(use_enum_values=False, populate_by_name=True)
-    disclaimer: Annotated[Optional[Dict[str, Any]], Field(serialization_alias="disclaimer")] = None
-
-
 class InferenceOpts(pydantic.BaseModel):
     """Stores data whose lifetimes are scoped to a particular
     inference run.

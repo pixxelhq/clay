@@ -14,3 +14,5 @@ fsspec>=2022.5.0
 pixxel-datatypes
 setuptools
 jq
+nest_asyncio
+moto
