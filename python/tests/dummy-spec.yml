@@ -29,18 +29,29 @@ inputs:
     type: url
     name: vector
     is_artiface: true
+
 outputs:
   - format: raster
     type: url
     name: result
-    is_artiface: true
+    is_artiface: True
+    properties:
+      visualisation:
+        type: continuous
+        continuous:
+          color_map_name: jet
+          bandwise_range:
+            - min: 0
+              max: 1000
   - format: string
     type: str
     name: string
   - format: vector
     type: url
     name: vector
-    is_artiface: true
+    is_artiface: True
+    properties:
+      geometry: "config_geom"
 
 runtime_opts:
   image: some-image:latest

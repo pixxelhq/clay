@@ -70,6 +70,7 @@ class RunnerConfig:
         self._outputs_json_path = os.getenv(self._output_json_path_env_key, self._outputs_json_path)
         self._outputs_json_base_file_name = os.getenv(self._output_json_base_file_name_env_key,
                                                       self._outputs_json_base_file_name)
+        self.expected_outputs = dict((oi["name"], oi) for oi in self._model_config.outputs)
 
     def _process_input_json(self) -> None:
         if self._input_json is None:
@@ -257,6 +258,12 @@ class JobRunner(BaseRunner):
 
         output_dict: List[Dict[str, Any]] = []
         for output in self._inference_output:
+            out_dict = output.serialize_to_dict()
+            output_properties = out_dict.get("properties")
+            config_properties = (self._params.expected_outputs[output.get_name()]).get("properties")
+            merged_properties = deep_merge(output_properties, config_properties)  
+            if output.get_format() != "string":
+                output.set_properties(merged_properties)
             output_dict.append(output.serialize_to_dict())
         self._output_dict = output_dict
         return output_dict
@@ -374,3 +381,18 @@ class JobRunner(BaseRunner):
                 self.failure(exc=exc)
 
             raise exc
+
+def deep_merge(output_properties, config_properties):
+    """Recursively merges dict1 into dict2"""
+    if output_properties is None:
+        output_properties = {}
+    if config_properties is None:
+        config_properties = {}
+    for key, value in output_properties.items():
+        if key in config_properties and isinstance(config_properties[key], dict) and isinstance(value, dict):
+            deep_merge(value, config_properties[key],)
+        else:
+            if key in config_properties:
+                print(f"Key '{key}' exists in both output and model config. Using value from output: {value}")
+            config_properties[key] = value
+    return config_properties
