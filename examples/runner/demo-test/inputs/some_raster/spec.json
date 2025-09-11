@@ -1,8 +1,0 @@
-{
-    "name": "some_raster",
-    "type": "url",
-    "format": "raster",
-    "value": "",
-    "stac_url": "./stac.json",
-    "is_artifact": true
-}

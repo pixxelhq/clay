@@ -1,0 +1,70 @@
+apiVersion: 0.0.1
+kind: block
+type: processing
+name: rastervectorclipper
+version: v0.0.1
+title: Raster Vector Clipper - API Test Model
+status: released
+description: Stable model for clipping raster data using vector geometries. Used for end-to-end API testing with MinIO storage.
+author: <please-fill-in-here>@pixxel.co.in
+tags:
+  - imagery
+  - processing
+  - testing
+  - clipping
+
+resources:
+  cpu:
+    min: 1000m
+    max: 2000m
+  mem:
+    min: 1000Mi
+    max: 2000Mi
+  gpu:
+    min: 0
+    max: 0
+
+parameters: # model initialization params
+  - name: buffer_distance
+    type: float
+    default: 0.0
+    description: Optional buffer distance to apply to vector geometry before clipping
+
+inputs:
+  - name: input_raster
+    format: raster
+    is_artifact: true
+    type: url
+    description: Input raster file (GeoTIFF) to be clipped
+
+  - name: input_vector
+    format: vector
+    is_artifact: true
+    type: url
+    description: Input vector file (GeoJSON) defining clipping geometry
+
+outputs:
+  - name: clipped_raster
+    format: raster
+    is_artifact: true
+    type: url
+    description: Clipped raster output
+    
+  - name: output_vector
+    format: vector
+    is_artifact: true
+    type: url
+    description: Original vector geometry used for clipping
+
+build:
+  python-version: "3.10"
+  conda: false
+  gdal: true
+  apt-get:
+    - wget
+  requirements: requirements.txt
+
+gpu: false
+
+env:
+  SAMPLE_ENV: "sample"

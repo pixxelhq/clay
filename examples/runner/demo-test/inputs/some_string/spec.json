@@ -1,7 +1,0 @@
-{
-    "name": "some_string",
-    "type": "str",
-    "format": "raster",
-    "value": "http://minio:9000/bucket/another-bucket/spec.json",
-    "is_artifact": false
-}

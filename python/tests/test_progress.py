@@ -11,7 +11,7 @@
 # import shortuuid
 
 # from clay import ModelWrapper, types
-# from clay.core import FeatureFlags
+# Legacy FeatureFlags import removed - proto types are now the default
 # from clay.logger import Logger
 # from clay.runners.job_runner import JobRunner
 # from clay.runners.job_runner_v2 import JobRunnerV2, _ArgoConfEnvVars, _InjectedEnvVars
@@ -40,8 +40,7 @@
 #             "env": "local",
 #             "AWS_PROFILE": "d-platform-services",
 #             "ORCHESTRATOR_URL": "localhost",
-#             FeatureFlags.ForceInputTypesToV2.value: "1",
-#             FeatureFlags.ForceOutputTypesToV2.value: "1",
+# Legacy FeatureFlags removed - proto types are now the default
 #         }
 
 #     def tearDown(self) -> None:
@@ -148,8 +147,7 @@
 #             _ArgoConfEnvVars.ArgoTemplate.value: '{"inputs": {"parameters":[{"name": "string", "value":"hello world"}]}}',  # noqa
 #             _InjectedEnvVars.Env.value: "local",
 #             "ORCHESTRATOR_URL": "123",
-#             FeatureFlags.ForceInputTypesToV2.value: "1",
-#             FeatureFlags.ForceOutputTypesToV2.value: "1",
+# Legacy FeatureFlags removed - proto types are now the default
 #         }
 
 #     def tearDown(self) -> None:
