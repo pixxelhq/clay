@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
+from clay.runners.runner import JobRunner
 
-from clay.runners.job_runner import JobRunner
 from model import {{.ModelName}}
 
 def set_required_env_vars() -> None:
@@ -23,16 +23,16 @@ def main() -> None:
     print(f"Using configuration located at: {specification_path}")
     with (Path(__file__).parent / "sample_model_inputs.json").open() as f:
         request = f.read()
-    set_required_env_vars()
+        os.environ["INPUT_JSON"] = request
     
     j = JobRunner(
         model_name="{{.ModelName}}",
-        modelcls={{.ModelName}},
+        model_class={{.ModelName}},
         model_args={"config": specification_path},
         cfg_path=specification_path,
     )
 
-    j.start(args=request)
+    j.start()
 
 
 if __name__ == "__main__":

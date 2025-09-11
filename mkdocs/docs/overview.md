@@ -41,7 +41,24 @@ Before we march on, let us settle on a common vocabulary.
 * Orchestrator then makes this model available for broader consumption by users.
 * A user selects the model on Platform, runs it for some input and gets the outputs.
 
+## Which Environment Variables Are Required?
+
+Clay relies on several key environment variables during model execution.  
+On our platform, these variables are automatically injected by Orchestrator when a model is launched.
+
+Below is a closer look at each required environment variable and its role within Clay:
+
+- **How they're set:**  
+  These variables are managed by our orchestration system (Orchestrator) and provided to Clay to ensure seamless integration and execution.
+
+- **Why you're using them:**  
+  They are essential for configuring the runtime environment, handling input/output data, tracking execution, and enabling communication between components.
+
+For detailed descriptions of each variable and guidance on their usage, refer to:  
+[Environment Variables Reference](env_requirement.md)
+
 Done. That's it.
+
 
 ## Things I *skipped* over
 
