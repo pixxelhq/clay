@@ -33,7 +33,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "LOCAL_ARTIFACT_DOWNLOAD_PATH": "./workingdir/inputs",
             "REMOTE_OUTPUT_PATH": "s3://workingdir/clay/outputs",
             "REMOTE_INPUT_PATH": "s3://workingdir/clay/",
-            "FORCE_INPUT_TYPES_TO_V2": "1",
+# Legacy FORCE_INPUT_TYPES_TO_V2 environment variable removed
             "CALLBACK_ENDPOINT": "http://localhost:3000/callback",
             "CALLBACK_HEADERS": "{}",
             "OUTPUT_JSON_PATH": "./workingdir/clay/outputs/",

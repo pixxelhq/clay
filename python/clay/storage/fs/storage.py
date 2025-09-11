@@ -2,14 +2,13 @@
 Main storage module that provides utility functions for processing data lists.
 """
 import copy
+import json
 import os
 import shutil
 from pathlib import Path
 from typing import Dict
-import json
 
 import datatypes
-
 import requests
 
 from clay.storage.fs.interface import StorageProtocol
@@ -37,24 +36,24 @@ def create_provider(path: str) -> StorageProtocol:
         raise ValueError(f"No storage provider available for protocol: {protocol}")
 
 
-def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], destination_path: str, remote_destination_path: str) -> Dict[
-    str, datatypes.DataWrapperInterface]:
+def process_input_list(data_list: Dict[str, datatypes.DataWrapper], destination_path: str, remote_destination_path: str) -> Dict[
+    str, datatypes.DataWrapper]:
     """
     Process input data list by downloading files from storage providers to local file system.
-    
+
     For each artifact in the data list, this function:
     1. Downloads the file from its source (storage provider)
     2. Stores it in a namespace directory (destination_path/item_name/)
     3. Updates the item's value to point to the local file path
     4. Uploads all contents to remote_destination_path
-    
+
     Args:
-        data_list: Dictionary mapping names to DataWrapperInterface objects
+        data_list: Dictionary mapping names to DataWrapper objects
         destination_path: Local directory path where files will be downloaded
         remote_destination_path: Remote path (local or S3) where files will be uploaded after download
-        
+
     Returns:
-        Dict[str, datatypes.DataWrapperInterface]: Updated data dictionary with local file paths
+        Dict[str, datatypes.DataWrapper]: Updated data dictionary with local file paths
     """
     # Create a deep copy of the input data to avoid modifying the original
     updated_data = copy.deepcopy(data_list)
@@ -79,7 +78,7 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
                     # Value is a GeoJSON string, create .geojson file
                     geojson_filename = f"{item_name}.geojson"
                     geojson_dest_path = os.path.join(item_dest_dir, geojson_filename)
-                    
+
                     # Write GeoJSON content to file
                     if isinstance(source_path, str):
                         try:
@@ -90,10 +89,10 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
                             geojson_data = {"data": source_path}
                     else:
                         geojson_data = source_path
-                    
+
                     with open(geojson_dest_path, "w") as f:
                         json.dump(geojson_data, f, indent=2)
-                    
+
                     # Update the item's value to point to the GeoJSON file
                     item.set_value(geojson_dest_path)
                     continue  # Skip to next item since we've handled this one
@@ -152,13 +151,13 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
 
     # Upload all contents of destination_path to remote_destination_path
     remote_protocol = StorageProtocol.get_protocol_from_path(remote_destination_path)
-    
+
     for root, dirs, files in os.walk(destination_path):
         for file in files:
             local_file_path = os.path.join(root, file)
             # Get relative path from destination_path
             relative_path = os.path.relpath(local_file_path, destination_path)
-            
+
             if remote_protocol == 'file':
                 # For local destination, create directory and copy file
                 remote_file_path = os.path.join(remote_destination_path, relative_path)
@@ -175,22 +174,22 @@ def process_input_list(data_list: Dict[str, datatypes.DataWrapperInterface], des
     return updated_data
 
 
-def process_output_list(data_list: Dict[str, datatypes.DataWrapperInterface], destination_path: str) -> Dict[
-    str, datatypes.DataWrapperInterface]:
+def process_output_list(data_list: Dict[str, datatypes.DataWrapper], destination_path: str) -> Dict[
+    str, datatypes.DataWrapper]:
     """
     Process output data list by uploading files from local file system to storage providers.
-    
+
     For each artifact in the data list, this function:
     1. Uploads the file from its local path
     2. Stores it in a namespace directory (destination_path/item_name/)
     3. Updates the item's value to point to the remote file path
-    
+
     Args:
-        data_list: Dictionary mapping names to DataWrapperInterface objects
+        data_list: Dictionary mapping names to DataWrapper objects
         destination_path: Remote directory path where files will be uploaded
-        
+
     Returns:
-        Dict[str, datatypes.DataWrapperInterface]: Updated data dictionary with remote file paths
+        Dict[str, datatypes.DataWrapper]: Updated data dictionary with remote file paths
     """
     # Create a deep copy of the input data to avoid modifying the original
     updated_data = copy.deepcopy(data_list)
@@ -237,11 +236,11 @@ def process_output_list(data_list: Dict[str, datatypes.DataWrapperInterface], de
 def process_spec_files(spec_files: str, destination_path: str, output_name: str):
     """
     Process specification files by copying them to a destination directory.
-    
+
     Args:
         spec_files: str to file paths
         destination_path: remote path where files will be copied
-        
+
     """
     if not os.path.exists(spec_files):
         raise FileNotFoundError(f"Source file does not exist: {spec_files}")

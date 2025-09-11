@@ -33,10 +33,8 @@ from clay.utils import (
     yaml_to_namespace,
 )
 
-class FeatureFlags(Enum):
-    EnableTypesV2 = "FEATURE_ENABLE_TYPES_V2"
-    ForceInputTypesToV2 = "FEATURE_FORCE_INPUT_TYPES_TO_V2"
-    ForceOutputTypesToV2 = "FEATURE_FORCE_OUTPUT_TYPES_TO_V2"
+
+# Legacy FeatureFlags class removed - proto types are now the default
 
 class InferenceCtx:
     """
@@ -52,15 +50,15 @@ class InferenceCtx:
             opts (Optional[types.InferenceOpts], optional):
                 Data being passed into the model. Defaults to None.
         """
-        self._outputs_buffer: types.OutputsBuffer = []
+        self._outputs_buffer: List[datatypes.Data] = []
         self._opts = opts
         self._model_inf_start_time: str = ""
         self._model_inf_end_time: str = ""
 
-    def output(self, val: types.Data) -> None:
+    def output(self, val: datatypes.Data) -> None:
         self._outputs_buffer.append(val)
 
-    def get_output_buffer(self) -> types.OutputsBuffer:
+    def get_output_buffer(self) -> List[datatypes.Data]:
         return self._outputs_buffer
 
     def set_model_inf_start_time(self) -> None:
@@ -233,7 +231,7 @@ class ModelWrapper:
         Args:
             progress (float): The value to which current model progress is to be set
         """
-        pass 
+        pass
 
     @abstractmethod
     def add_progress(self, progress_delta: float) -> None:
@@ -262,7 +260,7 @@ class ModelWrapper:
             is_input (bool): set to false if asset is an output
 
         """
-        pass 
+        pass
 
     @abstractmethod
     def set_disclaimer(self, disclaimerMsg: str) -> None:
@@ -316,7 +314,7 @@ class ModelWrapper:
         """
         raise NotImplementedError
 
-    async def postprocess(self, *args: Any, **kwargs: Any) -> Dict[str, types.Data]:
+    async def postprocess(self, *args: Any, **kwargs: Any) -> Dict[str, datatypes.Data]:
         """The postprocess abstract method. This is the third method that the user is **compulsorily**
         required to defined.
 
@@ -330,7 +328,7 @@ class ModelWrapper:
             NotImplementedError: Raised during runtime if the method is not defined.
 
         Returns:
-            Dict[str, types.Data]: Returns a dict of values.
+            Dict[str, datatypes.Data]: Returns a dict of values.
         """
         raise NotImplementedError
 
@@ -362,7 +360,7 @@ class ModelWrapper:
             InferenceCtx: A context class scoped to the inference run.
         """
 
-        d: Dict[str, Union[datatypes.DataWrapperInterface, datatypes.Data, types.Data]] = inputs
+        d: Dict[str, Union[datatypes.DataWrapper, datatypes.Data]] = inputs
         if not self.wrap_inputs:
             # lift the wrapped types
             for key, value in inputs.items():
@@ -384,7 +382,7 @@ class ModelWrapper:
         # latter has duplication: `name` is both present in key and the type which is the
         # value
         for _, v in _return_vals.items():
-            assert isinstance(v, types.OutputBufferItem), f"return value can only be of {types.OutputBufferItem}"
+            assert isinstance(v, datatypes.Data), f"return value can only be of {datatypes.Data}"
             _inf_ctx.output(v)
 
         return _inf_ctx
@@ -422,42 +420,21 @@ class BaseRunner(object):
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
 
-        self._feature_flags = set()
-        self.__set_feature_flags__()
+        # Legacy feature flags removed - proto types are now the default
 
     def __init_subclass__(cls) -> None:
-        assert "output" in dir(cls)
         assert "_collect_inputs" in dir(cls)
-        assert "failure" in dir(cls)
+        assert "failure" in dir(cls) 
 
     @property
     def logger(self) -> Logger:
         return self._logger
 
-    def set_feature_flag_on(self, *args: FeatureFlags) -> None:
-        for ai in args:
-            self._feature_flags.add(ai)
+    # Legacy set_feature_flag_on method removed - proto types are now the default
 
-    def is_feature_flag_on(self, flag: FeatureFlags) -> bool:
-        return flag.name in self._feature_flags
+    # Legacy is_feature_flag_on method removed - proto types are now the default
 
-    def __set_feature_flags__(self):
-        # env feature flags can only be set if the value of the env is 1
-        # set is 1 and unset is 0
-        for flag in FeatureFlags:
-            env_value = os.getenv(flag.value)
-            if env_value:
-                try:
-                    value = int(env_value)
-                except:  # noqa: E722
-                    self.logger.error(f"invalid feature flag value received for {flag.name}: {env_value}")
-                    continue
-                if value == 1 and flag.name not in self._feature_flags:
-                    self.logger.info(f"enabling {flag.name} via env")
-                    self._feature_flags.add(flag.name)
-                elif value == 0 and flag.name in self._feature_flags:
-                    self.logger.info(f"disabling {flag.name} via env")
-                    self._feature_flags.remove(flag.name)
+    # Legacy __set_feature_flags__ method removed - proto types are now the default
 
     def _init_model(self) -> None:
         self.logger.info("Initializing Model...")
@@ -470,30 +447,9 @@ class BaseRunner(object):
     ) -> Optional[
         Union[
             Dict[str, Any],
-            Tuple[Dict[str, datatypes.DataWrapperInterface], Dict[str, Any]],
+            Tuple[Dict[str, datatypes.DataWrapper], Dict[str, Any]],
         ]
     ]:
-        pass
-
-    @abstractmethod
-    def output(
-        self,
-        key: str,
-        value: Union[str, int, float],
-        properties: Optional[
-            Union[
-                types.RasterProperties,
-                types.VectorProperties,
-                types.DateProperties,
-                types.TabularProperties,
-                Dict[str, Any],
-            ]
-        ] = None,
-    ) -> None:
-        pass
-
-    @abstractmethod
-    def run_model_inference(self, *args: Any, **kwargs: Any) -> Any:
         pass
 
     @abstractmethod
@@ -513,10 +469,9 @@ class BaseRunner(object):
         pass
 
     @abstractmethod
-    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapperInterface]) -> None:
+    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapper]) -> None:
         pass
 
     @abstractmethod
     def start(self, **kwargs: Any) -> None:
-        self.run_model_inference()
-
+        pass

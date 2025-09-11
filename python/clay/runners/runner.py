@@ -2,23 +2,22 @@ import asyncio
 import json
 import logging
 import os
-import time
 from logging import Logger
 from types import SimpleNamespace
 from typing import Any, Dict, Final, List, Optional, Type, Union
-import jq
 
 import datatypes
+import jq
 
+from clay import __version__ as clay_version
 from clay import type_utils, types, utils
 from clay.callback import CallbackInterface, ErrorType, HTTPCallback
 from clay.core import BaseRunner, ModelWrapper
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger
-from clay.storage.fs import process_input_list, process_output_list, process_spec_files, create_provider
+from clay.storage.fs import create_provider, process_input_list, process_output_list, process_spec_files
 from clay.types import ModelStates
-from clay.utils import yaml_to_namespace, get_current_utc_time_iso, get_value, Converters, cast_inputs
-from clay import __version__ as clay_version
+from clay.utils import cast_inputs, get_current_utc_time_iso, yaml_to_namespace
 
 
 class RunnerConfig:
@@ -29,7 +28,8 @@ class RunnerConfig:
     _get_local_artifact_download_path_env_key: Final[str] = "LOCAL_ARTIFACT_DOWNLOAD_PATH"
     _remote_output_path_env_key: Final[str] = "REMOTE_OUTPUT_PATH"
     _remote_input_path_env_key: Final[str] = "REMOTE_INPUT_PATH"
-    _force_input_types_to_v2_env_key: Final[str] = "FORCE_INPUT_TYPES_TO_V2"
+    # Legacy environment variable - no longer needed
+    # _force_input_types_to_v2_env_key: Final[str] = "FORCE_INPUT_TYPES_TO_V2"
     _callback_endpoint_env_key: Final[str] = "CALLBACK_ENDPOINT"
     _callback_headers_env_key: Final[str] = "CALLBACK_HEADERS"
     _output_json_path_env_key: Final[str] = "OUTPUT_JSON_PATH"
@@ -42,7 +42,8 @@ class RunnerConfig:
     _get_local_artifact_download_path: str = "/tmp/inputs"
     _remote_output_path: str = "/tmp/clay/outputs"
     _remote_input_path: str = "/tmp/clay/inputs"
-    _force_input_types_to_v2: bool = False
+    # Legacy flag - no longer needed
+    # _force_input_types_to_v2: bool = False
     _config: Optional[Dict[str, Any]]
     _model_config: SimpleNamespace = {}  # type: ignore
     _callback_endpoint: str
@@ -61,7 +62,7 @@ class RunnerConfig:
         self._input_json_jq_filter = os.getenv(self._input_json_jq_filter_env_key, None)
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
                                                            "/tmp/inputs")
-        self._force_input_types_to_v2 = os.getenv("FORCE_INPUT_TYPES_TO_V2", "false").lower() == "true"
+        # Legacy flag removed - always use proto types
         self._model_config = yaml_to_namespace(config_path)
         self._callback_endpoint = os.getenv(self._callback_endpoint_env_key, "http://localhost:3000/callback")
         self._callback_headers = json.loads(os.getenv(self._callback_headers_env_key, "{}"))
@@ -83,7 +84,7 @@ class RunnerConfig:
             else:
                 self._input_json = json.loads(self._input_json_string)
 
-        # this is a hack to ensure that the input JSON always has the correct types, as argo might send
+        # FIXME: this is a hack to ensure that the input JSON always has the correct types, as argo might send
         # float as string
         for inp in self._input_json:
             inp["value"] = cast_inputs(inp["value"], inp["type"])
@@ -92,8 +93,7 @@ class RunnerConfig:
         self._process_input_json()
         return self._input_json
 
-    def should_use_v2_input_types(self) -> bool:
-        return self._force_input_types_to_v2
+# Legacy should_use_v2_input_types method removed - proto types are now the default
 
     def get_local_artifact_download_path(self) -> str:
         return self._get_local_artifact_download_path
@@ -135,7 +135,7 @@ class JobRunner(BaseRunner):
     ) -> None:
         self._params = RunnerConfig(config_path=cfg_path)
         self._model_name: str = model_name
-        self._inputs: Dict[str, datatypes.DataWrapperInterface] = {}
+        self._inputs: Dict[str, datatypes.DataWrapper] = {}
         self._model_class: Type[ModelWrapper] = model_class
         self._running_locally: bool = running_locally
         self._model_args: Dict[str, Any] = model_args
@@ -148,7 +148,7 @@ class JobRunner(BaseRunner):
             retry_status_forcelist=[500, 502, 503, 504],
         )
         self._start_time: str
-        self._inference_output: List[datatypes.DataWrapperInterface] = []
+        self._inference_output: List[datatypes.DataWrapper] = []
         self._current_progress: float = 0.0
         self._output_dict: List[Dict[str, Any]] = None  # type: ignore
         self._input_dict: List[Dict[str, Any]] = []  # type: ignore
@@ -173,10 +173,10 @@ class JobRunner(BaseRunner):
         self._model.add_asset = self.add_asset
 
     def _input_json_to_data_types(self, input_json: List[Dict[str, Any]]) -> None:
-        inputs: Dict[str, datatypes.DataWrapperInterface] = {}
+        inputs: Dict[str, datatypes.DataWrapper] = {}
         input_config_dict = utils.convert_list_to_dict(self._params.get_model_config().inputs, "name")
         for input_data in input_json:
-            typed_input: datatypes.DataWrapperInterface = type_utils.TypeFromDict(input_data, True)
+            typed_input: datatypes.DataWrapper = type_utils.TypeFromDict(input_data)
             if typed_input.get_format() == types.FormatTypes.RASTER.value and not typed_input.get_field("stac_url"):
                 typed_input.set_field("stac_url", input_config_dict[typed_input.get_name()].get("default", ""))
             if typed_input.get_value() == "":
@@ -192,10 +192,10 @@ class JobRunner(BaseRunner):
         for input_obj in self._inputs.values():
             self._input_dict.append(input_obj.serialize_to_dict())
 
-        self.logger.info("processing input artifacts")
+        self.logger.info("processing input artifacts...")
         self._inputs = process_input_list(self._inputs, self._params.get_local_artifact_download_path(),
                                           self._params.get_remote_input_path())
-        self.logger.info("processing input artifacts completed")
+        self.logger.info("✅ processing input artifacts completed")
 
     def output(self, key: str, value: Union[str, int, float], properties: Optional[
         Union[
@@ -206,9 +206,6 @@ class JobRunner(BaseRunner):
             Dict[str, Any],
         ]
     ] = None) -> None:
-        pass
-
-    def run_model_inference(self, *args: Any, **kwargs: Any) -> Any:
         pass
 
     def success(self) -> Any:
@@ -249,7 +246,7 @@ class JobRunner(BaseRunner):
             status=ModelStates.FAILED
         )
 
-    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapperInterface]) -> None:
+    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapper]) -> None:
         pass
 
     def _get_output_list(self) -> List[Dict[str, Any]]:
@@ -305,7 +302,7 @@ class JobRunner(BaseRunner):
         if progress < self._current_progress:
             self.logger.warning("progress cannot be set to a value lower than the current progress")
             return None
-        
+
         self._current_progress = progress
         self._callback_handler.send(
             id=self._params.get_execution_id(),
@@ -326,7 +323,7 @@ class JobRunner(BaseRunner):
         self.logger.info(f"uploading file at {file_path} to {remote_input_path}")
         dest_provider = create_provider(remote_path)
         dest_provider.upload(file_path, remote_input_path)
-    
+
     def set_disclaimer(self, disclaimerMsg: str) -> None:
         disclaimer = {"message": disclaimerMsg, "timestamp": get_current_utc_time_iso()}
         self._callback_handler.send(
@@ -337,7 +334,7 @@ class JobRunner(BaseRunner):
         )
 
     def start(self, **kwargs: Any) -> None:
-        self._logger.info("Starting Clay job runner version: %s", clay_version.__VERSION__)
+        self._logger.info("🎬 starting clay job runner version: %s", clay_version.__VERSION__)
         self._start_time = get_current_utc_time_iso()
 
         self._init_model()
@@ -354,12 +351,12 @@ class JobRunner(BaseRunner):
 
         try:
             result = asyncio.get_event_loop().run_until_complete(self._model.infer(inputs=self._inputs, opts=None))
-            wrapped_result = type_utils.WrapTypes(result._outputs_buffer, True)
-            output_dict: Dict[str, datatypes.DataWrapperInterface] = {}
+            wrapped_result = type_utils.WrapTypes(result._outputs_buffer)
+            output_dict: Dict[str, datatypes.DataWrapper] = {}
             self._inference_output = wrapped_result  # type: ignore
             for output in self._inference_output:
-                if not isinstance(output, datatypes.DataWrapperInterface):
-                    raise TypeError(f"Expected DataWrapperInterface, got {type(output)}")
+                if not isinstance(output, datatypes.DataWrapper):
+                    raise TypeError(f"Expected DataWrapper, got {type(output)}")
 
                 metadata = output.get_field("metadata")
                 if isinstance(metadata, dict):

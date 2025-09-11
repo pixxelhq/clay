@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   minio:
@@ -13,17 +13,17 @@ services:
       - .env
     restart: always
 
-  createbucket:
+  minio-setup:
     image: minio/mc
     depends_on:
       - minio
     volumes:
-      - ./demo-test/inputs:/tmp/inputs
+      - ./assets:/tmp/inputs
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add s3minio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb s3minio/direct-insights s3minio/testinputs;
-      /usr/bin/mc cp --recursive /tmp/inputs s3minio/testinputs ;
+      /usr/bin/mc alias set s3minio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb s3minio/clayrunner;
+      /usr/bin/mc cp --recursive /tmp/inputs s3minio/clayrunner;
       exit 0;
       "
 
@@ -32,8 +32,9 @@ services:
       context: "../../"
       secrets:
         - CODEARTIFACT_AUTH_TOKEN
-      dockerfile: examples/runner/Dockerfile
-    container_name: model
+      dockerfile: api-test/raster_vector_clipper/Dockerfile
+    image: raster-vector-clipper:latest
+    container_name: raster-vector-clipper
     env_file:
       - .env
 
