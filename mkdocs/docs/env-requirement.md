@@ -16,7 +16,7 @@ This document details the environment variables used to configure and run a mode
 
 ## 2. `INPUT_JSON_ENV_KEY`
 
-**Purpose:**  
+**Purpose:**
 Provides flexibility for different execution environments by specifying which environment variable contains the model's input data. This design allows Clay to work seamlessly with various orchestrators and execution contexts.
 
 **How it works:**
@@ -44,7 +44,7 @@ export INPUT_JSON='[{"name": "data", "type": "url", "value": "s3://bucket/file.t
 ## 3. `INPUT_JSON_JQ_FILTER`
 
 - **Purpose**: Defines a [jq](https://stedolan.github.io/jq/) filter for parsing input JSON, especially within workflows.
-- **Default Value**:  
+- **Default Value**:
   ```jq
   [.inputs.parameters[] | (.value | fromjson) + {name: .name}]
   ```
@@ -80,7 +80,7 @@ export INPUT_JSON_JQ_FILTER='[.data[] | {name: .id, type: .dataType, value: .pat
 - **Format**: JSON string (typically a list of dictionaries, specifying `name`, `type`, `format`, and `value`).
 - **Usage**: This is the fallback input source. When `INPUT_JSON_ENV_KEY` is not specified, Clay reads input data directly from this variable. For local runs, users can set it manually or use the test_model.py script which sets it automatically.
 - **Relationship to INPUT_JSON_ENV_KEY**: If `INPUT_JSON_ENV_KEY` is set to a value like "CUSTOM_INPUT", Clay will read from the `CUSTOM_INPUT` environment variable instead of `INPUT_JSON`.
-- **Example**:  
+- **Example**:
   <details>
   <summary>Show example JSON input</summary>
 ```json
