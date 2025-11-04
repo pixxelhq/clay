@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import yaml
 
+
 def dict_to_namespace(d: dict) -> SimpleNamespace:
     """
     Convert a dictionary into a namespace object recursively.

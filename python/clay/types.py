@@ -4,10 +4,11 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-import datatypes
 import pydantic
 from pydantic import ConfigDict, Field
 from typing_extensions import Annotated
+
+import datatypes
 
 PARAMETER_ATTR_NAME = "parameter"
 PERSISTENT_ATTR_NAME = "persistent"

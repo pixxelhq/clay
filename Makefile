@@ -10,8 +10,7 @@ clean-secrets:
 		rm 
 
 init-requirements:	generate-secrets
-			pip install pixxel-datatypes==0.3.0 -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat )@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
-			$(MAKE) clean-secrets
+			pip install pixxel-datatypes -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat )@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
 
 package:
 	make build/package

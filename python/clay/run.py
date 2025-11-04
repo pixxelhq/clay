@@ -4,6 +4,7 @@ from typing import Type
 from clay.core import ModelWrapper
 from clay.runners.runner import JobRunner
 
+
 def Run(model: Type[ModelWrapper], name: str, cfg_path: str) -> None:
     """The general method to execute a model. In most cases, users and programs alike
     should be using this method to run the model. The function looks at a bunch of internal

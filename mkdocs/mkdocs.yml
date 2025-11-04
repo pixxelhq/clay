@@ -71,6 +71,7 @@ nav:
   - Five Minute Blitz: "blitz-concepts.md"
   - Getting Started: "getting-started.md"
   - Input/Output: "IO.md"
+  - Datatypes: "datatypes.md"
   - Block Specification: "spec.md"
   - Environment Variables: "env-requirements.md"
   - Tutorial: "model-development.md"

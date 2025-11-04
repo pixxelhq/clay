@@ -1,7 +1,7 @@
 from typing import Any
 
-from clay import types
 from clay.exceptions import FailedExecutionException
+
 
 def failure(
     message: Any = None,

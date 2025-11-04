@@ -6,7 +6,7 @@ import clay
 
 if __name__ == "__main__":
     cwd = Path(__file__).parent.absolute()
-    specification_path = (cwd / f"../clay.yaml").resolve()
+    specification_path = (cwd / "../clay.yaml").resolve()
     if not specification_path.exists():
         raise FileNotFoundError(f"Configuration file not found at: {specification_path}")
     

@@ -5,9 +5,8 @@ from typing import Any, Dict
 import geopandas as gpd
 import rasterio
 import rasterio.mask
-from rasterio.crs import CRS
-from shapely.geometry import box
 from shapely.errors import ShapelyError
+from shapely.geometry import box
 
 import datatypes as T
 from clay.core import ModelWrapper

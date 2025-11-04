@@ -1,43 +1,99 @@
 # API Reference
 
 
-!!! warning "Types in Clay is being deprecated"
+!!! warning "Types in Clay is deprecated"
 
-    We are in the process of deprecating existing *Types* implementation in Clay and move to newer external implementation. For more information please visit the [datatypes-schema docs](https://datatypes-schema.example.com/). The conceptual foundation is still the same, but the technical implementation and usage has changed slightly. You can read more about this in at [docs](https://datatypes-schema.example.com/). For tracking the model migration please check out this [linear ticket](https://linear.app/REDACTED/issue/REDACTED-TICKET/[tracker]-model-integration-with-datatypes-schema).
+## Datatypes
 
-## Types
+The datatypes package provides strongly-typed interfaces for working with various data formats. See the [Datatypes Guide](datatypes.md) for detailed usage instructions.
 
-### Raster
-::: clay.types.Raster
+### DataWrapper
 
-### Vector
-::: clay.types.Vector
+::: datatypes.data.DataWrapper
+    options:
+      show_root_heading: true
+      heading_level: 4
+      members_order: source
+      show_source: true
 
-### Tabular
-::: clay.types.TabularProperties
+### DataWrapper Interface
 
-### Date
-::: clay.types.Date
+::: datatypes.data.DataWrapperInterface
+    options:
+      show_root_heading: true
+      heading_level: 4
+      members_order: source
+      show_source: true
 
-### String
-::: clay.types.String
+### Helper Functions
 
-### Number
-::: clay.types.Number
+#### RasterFromDict
+::: datatypes.data.RasterFromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
 
-## Type Properties
+#### VectorFromDict
+::: datatypes.data.VectorFromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
 
-### RasterProperties
-::: clay.types.RasterProperties
+#### TabularFromDict
+::: datatypes.data.TabularFromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
 
-### VectorProperties
-::: clay.types.VectorProperties
+#### DateFromDict
+::: datatypes.data.DateFromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
 
-### TabularProperties
-::: clay.types.TabularProperties
+#### StringFromDict
+::: datatypes.data.StringFromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
 
-### DateProperties
-::: clay.types.DateProperties
+#### NumberFromDict
+::: datatypes.data.NumberFromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
+
+#### FromDict
+::: datatypes.data.FromDict
+    options:
+      show_root_heading: true
+      heading_level: 5
+
+### Exceptions
+
+#### DataWrapperError
+::: datatypes.data.DataWrapperError
+    options:
+      show_root_heading: true
+      heading_level: 5
+
+#### FieldNotFoundError
+::: datatypes.data.FieldNotFoundError
+    options:
+      show_root_heading: true
+      heading_level: 5
+
+#### InvalidFieldTypeError
+::: datatypes.data.InvalidFieldTypeError
+    options:
+      show_root_heading: true
+      heading_level: 5
+
+#### UnsupportedFieldTypeError
+::: datatypes.data.UnsupportedFieldTypeError
+    options:
+      show_root_heading: true
+      heading_level: 5
 
 ## Core
 

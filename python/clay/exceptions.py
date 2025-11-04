@@ -1,4 +1,6 @@
 from typing import Any
+
+
 class FailedExecutionException(Exception):
     """To be only used to communicate failure codes/msgs
     by models to runner methods.
