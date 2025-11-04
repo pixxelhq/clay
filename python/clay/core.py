@@ -1,12 +1,9 @@
 import asyncio
 import logging
 import os
-import threading
-import time
 from abc import abstractmethod
 from collections import defaultdict
 from copy import deepcopy
-from enum import Enum
 from functools import cached_property
 from logging import Logger
 from typing import (
@@ -21,8 +18,6 @@ from typing import (
 )
 
 import datatypes
-import uvloop
-
 from clay import type_utils, types
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger, get_streamvalues
@@ -32,7 +27,6 @@ from clay.utils import (
     get_current_utc_time_iso,
     yaml_to_namespace,
 )
-
 
 # Legacy FeatureFlags class removed - proto types are now the default
 

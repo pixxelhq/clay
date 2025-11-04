@@ -6,9 +6,9 @@ from logging import Logger
 from types import SimpleNamespace
 from typing import Any, Dict, Final, List, Optional, Type, Union
 
-import datatypes
 import jq
 
+import datatypes
 from clay import __version__ as clay_version
 from clay import type_utils, types, utils
 from clay.callback import CallbackInterface, ErrorType, HTTPCallback

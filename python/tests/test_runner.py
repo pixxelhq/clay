@@ -1,19 +1,21 @@
 # type: ignore
 import json
 import os
-from moto import mock_aws
-import boto3
-from unittest import mock
-import unittest
-from typing import Any
-from unittest.mock import patch  # noqa
 import pathlib
+import unittest
 from pathlib import Path
+from typing import Any
+from unittest import mock
+from unittest.mock import patch  # noqa
+
+import boto3
+from moto import mock_aws
+
+import datatypes
 from clay.core import ModelWrapper
 from clay.logger import Logger
-from clay.runners.runner import JobRunner
-import datatypes
-from clay.runners.runner import deep_merge
+from clay.runners.runner import JobRunner, deep_merge
+
 
 class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
@@ -60,10 +62,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
                 return {"raster": raster, "string": string, "vector": vector}
 
             async def inference(self, raster, string, vector) -> None:
-                dummy_raster = pathlib.Path("./clipped.tiff")
-                dummy_raster.touch()
                 return {
-                    "raster": str(dummy_raster),
+                    "raster": "./clipped.tiff",
                     "string": "this is hello",
                     "vector": vector,
                 }
@@ -88,7 +88,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
                         format=datatypes.Format.vector,
                         type="url",
                         is_artifact=True,
-                        name="result",
+                        name="vector",
                         value=vector.value,
                     ),
                 }

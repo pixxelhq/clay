@@ -1,0 +1,551 @@
+syntax = "proto2";
+
+option go_package = "github.com/example/clay/pkg/datatypes/generated";
+
+// Version enum represents schema versions
+enum Version {
+  v2 = 0;
+}
+
+// Format represents the data type format
+enum Format {
+  raster = 0;  // For TIFF and GeoTIFF files
+  vector = 1;  // For GeoJSON files 
+  tabular = 2; // For table-based data like CSV
+  string = 3;  // For string values
+  number = 4;  // For numeric values
+  date = 5;    // For date values
+}
+
+// VizTypes represents the types of visualizations supported
+enum VizTypes {
+  continuous = 0; // For continuous color gradient visualization
+  bucket = 1;     // For histogram-based visualization
+  discrete = 2;   // For discrete class-based visualization
+}
+
+// ListOfFloats represents a list of float values
+message ListOfFloats {
+  repeated float values = 1;
+}
+
+// Range represents a min-max numerical range
+message Range {
+  required float min = 1;
+  required float max = 2;
+}
+
+// ContinuousViz defines continuous visualization properties
+message ContinuousViz {
+  // Name of the colormap to use from supported colormaps
+  required string color_map_name = 1;
+  // Range of values per band in a list format, where each item is the range for that band index
+  repeated Range bandwise_range = 2;
+}
+
+// Bucket defines a single histogram bucket with color and range
+message Bucket {
+  // Color code in hex format for this bucket
+  required string color_code = 1;
+  // Minimum value for this bucket
+  required float min = 2;
+  // Maximum value for this bucket
+  required float max = 3;
+}
+
+// ListOfBuckets represents a list of histogram buckets
+message ListOfBuckets {
+  repeated Bucket items = 1;
+}
+
+// BucketViz defines bucket-based visualization properties
+message BucketViz {
+  // List of bucket definitions per band
+  repeated ListOfBuckets bandwise = 1;
+}
+
+// Visualization defines the visualization properties for a raster
+message Visualization {
+  // Type of visualization (continuous, bucket or discrete)
+  optional VizTypes type = 1;
+  // Properties for continuous visualization
+  optional ContinuousViz continuous = 2;
+  // Properties for histogram based bucket visualization
+  optional BucketViz bucket = 3;
+  // Mapping of pixel values to colors for discrete visualization
+  map<string, string> discrete = 4;
+}
+
+// DiscretizationClass represents a single class in discretized distribution
+message DiscretizationClass {
+  // Color code in hex format
+  optional string color = 1;
+  // Name of the class
+  optional string name = 2;
+  // Value representing the class for index-based discretization
+  optional string value = 3;
+  // Range representing the class for interval-based discretization
+  optional Range range = 4;
+}
+
+// Discretization defines how continuous data is discretized
+message Discretization {
+  // Type of discretization - "interval" or "index"
+  optional string type = 1;
+  // List of class definitions
+  repeated DiscretizationClass classes = 2;
+}
+
+// RasterProperties defines properties specific to raster data
+message RasterProperties {
+  // List of band names in order
+  repeated string bands = 1;
+  // Original provider of the tiles (e.g. "planetary", "pixxel")
+  optional string source = 2;
+  // Satellite collection name
+  optional string collection = 3;
+  // Data type of pixel values
+  optional string dtype = 4;
+  // Satellite look angle in degrees
+  optional double satellite_look_angle = 5;
+  // Sun elevation angle in degrees
+  optional double sun_elevation = 6;
+  // Visualization properties
+  optional Visualization visualisation = 7;
+  // Date of the raster
+  optional string date = 8;
+  // Discretization properties
+  optional Discretization discretization = 9;
+  // STAC URLs of source images
+  repeated string images = 10;
+}
+
+// AssetSource defines the source information for an asset
+message AssetSource {
+  // Unique identifier for the asset source
+  optional string id = 1;
+  // Type of the asset source (e.g. "internal", "external")
+  optional string type = 2;
+  // Human readable identifier
+  optional string layer_name = 3;
+}
+
+// Raster represents a TIFF/GeoTIFF data type
+message Raster {
+  // Must be Format.raster
+  optional Format format = 1 [default = raster];
+  // Type of the raster data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the raster
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = true];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Default value if any
+  optional string default = 9;
+  // Actual raster data/URL
+  optional string value = 10 [default = ""]; 
+  // Area covered by the raster in sq meters
+  optional double area = 11;
+  // Source information
+  optional AssetSource asset_source = 12;
+  // Raster-specific properties
+  optional RasterProperties properties = 13;
+  // Schema version
+  optional Version version = 14 [default = v2];
+  // STAC item URL
+  optional string stac_url = 15;
+}
+
+// VectorProperties defines properties specific to vector data
+message VectorProperties {
+  // Geometry type of the vector (e.g. "Point", "Polygon")
+  optional string geometry = 1;
+}
+
+// Vector represents a GeoJSON data type
+message Vector {
+  // Must be Format.vector
+  optional Format format = 1 [default = vector];
+  // Type of the vector data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the vector
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = true];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Default value if any
+  optional string default = 9;
+  // Actual vector data/URL
+  optional string value = 10 [default = ""];
+  // Area covered by the vector in sq meters
+  optional double area = 11;
+  // Source information
+  optional AssetSource asset_source = 12;
+  // Vector-specific properties
+  optional VectorProperties properties = 13;
+  // Schema version
+  optional Version version = 14 [default = v2];
+}
+
+// TabularFileSchema defines the schema for tabular data
+message TabularFileSchema {
+  // Ordered list of column headers
+  repeated string headers = 1;
+}
+
+// TabularProperties defines properties specific to tabular data
+message TabularProperties {
+  // File type (e.g. "csv")
+  optional string file_type = 1;
+  // Schema definition for the table
+  optional TabularFileSchema file_schema = 2;
+}
+
+// Tabular represents table-based data like CSV
+message Tabular {
+  // Must be Format.tabular
+  optional Format format = 1 [default = tabular];
+  // Type of the tabular data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the tabular data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = true];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Default value if any
+  optional string default = 9;
+  // Actual tabular data/URL
+  optional string value = 10 [default = ""];
+  // Area covered by the tabular data in sq meters
+  optional double area = 11;
+  // Source information
+  optional AssetSource asset_source = 12;
+  // Tabular-specific properties
+  optional TabularProperties properties = 13;
+  // Schema version
+  optional Version version = 14 [default = v2];
+}
+
+// DateProperties defines properties specific to date data
+message DateProperties {
+  // Whether to derive date from AOI
+  optional bool from_aoi = 1;
+}
+
+// Date represents date/time data
+message Date {
+  // Must be Format.date
+  optional Format format = 1 [default = date];
+  // Type of the date data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the date data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = false];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Default value if any
+  optional string default = 9;
+  // Actual date data/URL
+  optional string value = 10 [default = ""];
+  // Area covered by the date data in sq meters
+  optional double area = 11;
+  // Source information
+  optional AssetSource asset_source = 12;
+  // Date-specific properties
+  optional DateProperties properties = 13;
+  // Schema version
+  optional Version version = 14 [default = v2];
+}
+
+// String represents string data types
+message String {
+  // Must be Format.string
+  optional Format format = 1 [default = string];
+  // Type of the string data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the string data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = false];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Default value if any
+  optional string default = 9;
+  // Actual string data/URL
+  optional string value = 10 [default = ""];
+  // Area covered by the string data in sq meters
+  optional double area = 11;
+  // Source information
+  optional AssetSource asset_source = 12;
+  // Schema version
+  optional Version version = 13 [default = v2];
+}
+
+// Number represents numeric data types
+message Number {
+  // Must be Format.number
+  optional Format format = 1 [default = number];
+  // Type of the number data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the number data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = false];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Default value if any
+  optional string default = 9;
+  // Actual number data/URL
+  optional string value = 10 [default = ""]; 
+  // Area covered by the number data in sq meters
+  optional double area = 11;
+  // Source information
+  optional AssetSource asset_source = 12;
+  // Schema version
+  optional Version version = 13 [default = v2];
+}
+
+// RasterSpec defines validation rules for Raster type
+message RasterSpec {
+  // Must be Format.raster
+  optional Format format = 1 [default = raster];
+  // Type of the raster data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the raster
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = true];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Source information
+  optional AssetSource asset_source = 9;
+  // Raster-specific properties
+  optional RasterProperties properties = 10;
+  // Validation rules
+  optional RasterValidation validation = 11;
+  // Schema version
+  optional Version version = 12 [default = v2];
+}
+
+// VectorSpec defines validation rules for Vector type
+message VectorSpec {
+  // Must be Format.vector
+  optional Format format = 1 [default = vector];
+  // Type of the vector data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the vector
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = true];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Source information
+  optional AssetSource asset_source = 10;
+  // Vector-specific properties
+  optional VectorProperties properties = 11;
+  // Validation rules
+  optional VectorValidation validation = 12;
+  // Schema version
+  optional Version version = 13 [default = v2];
+}
+
+// TabularSpec defines validation rules for Tabular type
+message TabularSpec {
+  // Must be Format.tabular
+  optional Format format = 1 [default = tabular];
+  // Type of the tabular data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the tabular data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = true];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Source information
+  optional AssetSource asset_source = 10;
+  // Tabular-specific properties
+  optional TabularProperties properties = 11;
+  // Validation rules
+  optional TabularValidation validation = 12;
+  // Schema version
+  optional Version version = 13 [default = v2];
+}
+
+// DateSpec defines validation rules for Date type
+message DateSpec {
+  // Must be Format.date
+  optional Format format = 1 [default = date];
+  // Type of the date data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the date data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = false];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Source information
+  optional AssetSource asset_source = 10;
+  // Date-specific properties
+  optional DateProperties properties = 11;
+  // Validation rules
+  optional DateValidation validation = 12;
+  // Schema version
+  optional Version version = 13 [default = v2];
+}
+
+// StringSpec defines validation rules for String type
+message StringSpec {
+  // Must be Format.string
+  optional Format format = 1 [default = string];
+  // Type of the string data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the string data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = false];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Source information
+  optional AssetSource asset_source = 10;
+  // Validation rules
+  optional StringValidation validation = 11;
+  // Schema version
+  optional Version version = 12 [default = v2];
+}
+
+// NumberSpec defines validation rules for Number type
+message NumberSpec {
+  // Must be Format.number
+  optional Format format = 1 [default = number];
+  // Type of the number data (e.g. "url")
+  optional string type = 2;
+  // Unique identifier for the number data
+  optional string name = 3 [default = ''];
+  // Human readable description
+  optional string description = 4;
+  // Name to display in UIs
+  optional string display_name = 5;
+  // Whether this is a generated artifact
+  optional bool is_artifact = 6 [default = false];
+  // Grouping identifier
+  optional string group = 7;
+  // Additional metadata key-value pairs
+  map<string, string> metadata = 8;
+  // Source information
+  optional AssetSource asset_source = 10;
+  // Validation rules
+  optional NumberValidation validation = 11;
+  // Schema version
+  optional Version version = 12 [default = v2];
+}
+
+// RasterValidation defines area validation rules for rasters
+message RasterValidation {
+  // Minimum allowed area in square meters
+  optional double min_area = 1;
+  // Maximum allowed area in square meters
+  optional double max_area = 2;
+}
+
+// VectorValidation defines area validation rules for vectors
+message VectorValidation {
+  // Minimum allowed area in square meters
+  optional double min_area = 1;
+  // Maximum allowed area in square meters
+  optional double max_area = 2;
+}
+
+// TabularValidation defines validation rules for tabular data
+message TabularValidation {
+  // Currently no validation fields
+}
+
+// DateValidation defines validation rules for dates
+message DateValidation {
+  // Currently no validation fields
+}
+
+// StringValidation defines validation rules for strings
+message StringValidation {
+  // Regular expression pattern to validate string values
+  optional string regex_match = 1;
+}
+
+// NumberValidation defines validation rules for numbers
+message NumberValidation {
+  // Minimum allowed value
+  optional double min_value = 1;
+  // Maximum allowed value
+  optional double max_value = 2;
+}

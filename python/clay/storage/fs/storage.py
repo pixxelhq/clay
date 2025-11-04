@@ -8,9 +8,9 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
-import datatypes
 import requests
 
+import datatypes
 from clay.storage.fs.interface import StorageProtocol
 
 

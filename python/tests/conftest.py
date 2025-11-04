@@ -4,8 +4,9 @@ import shutil
 import sys
 from pathlib import Path
 
-import pytest
 import nest_asyncio
+import pytest
+
 from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
 
 sys.path.append(str((Path(__file__).parent) / "testrepo"))
