@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-option go_package = "github.com/example/clay/pkg/datatypes/generated";
+option go_package = "github.com/example/clay/proto/go/generated";
 
 // Version enum represents schema versions
 enum Version {
