@@ -15,6 +15,7 @@ func BlockCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&host, "host", "", "https://clay-registry.example.com", "Host of the clay registry where you models are published")
 	cmd.AddCommand(ListBlockRegistryCmd())
 	cmd.AddCommand(DescribeBlockCmd())
+	cmd.AddCommand(BlockAssetsCmd())
 
 	return cmd
 }

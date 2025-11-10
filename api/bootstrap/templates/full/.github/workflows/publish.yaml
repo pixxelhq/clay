@@ -1,7 +1,6 @@
 name: Publish model to Clay registry
 
-on:
-  workflow_dispatch
+on: workflow_dispatch
 
 env:
   CLAY_REGISTRY_HOST: http://clay-registry-staging.example.com
@@ -10,14 +9,15 @@ env:
   ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
 
 permissions:
-    id-token: write
-    contents: write
+  id-token: write
+  contents: write
 
 jobs:
   publish-model-doc:
     runs-on: [ubuntu-latest]
     outputs:
-      doc-url: ${{ steps.upload_readme.outputs.DOC_URL }}
+      doc-url: ${{ `{{steps.upload_assets.outputs.DOC_URL}}` }}
+      thumbnail-url: ${{ `{{steps.upload_assets.outputs.THUMBNAIL_URL}}` }}
     if: (github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
@@ -35,27 +35,37 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
           audience: https://github.com/pixxelhq
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          aws-region: ${{`{{ env.AWS_DEFAULT_REGION }}`}}
 
       - name: Download Clay Binaries
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
-            repo: example/clay
-            tag: ${{ env.CLAY_CLI_VERSION }}
-            token: ${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN }}
-            extension-matching: disable
-            platform: linux
-            arch: amd64
-            rename-to: clay
-            chmod: 0755
+          repo: example/clay
+          tag: ${{`{{ env.CLAY_CLI_VERSION }}`}}
+          token: ${{`{{ secrets.CLAY_BIN_DOWNLOAD_TOKEN }}`}}
+          extension-matching: disable
+          platform: linux
+          arch: amd64
+          rename-to: clay
+          chmod: 0755
 
-      - name: Upload model readme to s3
-        id: upload_readme
+      - name: Upload model assets to s3
+        id: upload_assets
         run: |
-            set -e
-            DOC_URL=$(clay upload readme --env prod)
-            echo "DOC_URL=$DOC_URL" >> $GITHUB_OUTPUT
-            echo $DOC_URL
+          set -e
+          # Upload catalog (readme and thumbnail)
+          # Version is automatically read from clay.yaml config when --readme flag is set
+          BASE_URL=$(clay block assets upload catalog --name {{ .ModelName }} --bucket clay-model-registry --region us-east-2 --readme)
+
+          # Construct full URLs with specific file paths
+          DOC_URL="${BASE_URL}/parsed.md"
+          THUMBNAIL_URL="${BASE_URL}/thumbnail.png"
+
+          echo "DOC_URL=$DOC_URL" >> $GITHUB_OUTPUT
+          echo "THUMBNAIL_URL=$THUMBNAIL_URL" >> $GITHUB_OUTPUT
+
+          echo "Documentation URL: $DOC_URL"
+          echo "Thumbnail URL: $THUMBNAIL_URL"
 
   publish-model:
     needs: publish-model-doc
@@ -76,31 +86,33 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
           audience: sigstore
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          aws-region: ${{`{{ env.AWS_DEFAULT_REGION }}`}}
 
       - name: Login to AWS Container Registry
         id: login-ecr
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.ECR_REGISTRY }}
-      
+          registry: ${{`{{ env.ECR_REGISTRY }}`}}
+
       - name: Download clay binaries
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
-            repo: example/clay
-            tag: ${{ env.CLAY_CLI_VERSION }}
-            token: ${{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}
-            extension-matching: disable
-            platform: linux
-            arch: amd64
-            rename-to: clay
-            chmod: 0755 
+          repo: example/clay
+          tag: ${{`{{ env.CLAY_CLI_VERSION }}`}}
+          token: ${{`{{ secrets.CLAY_BIN_DOWNLOAD_TOKEN}}`}}
+          extension-matching: disable
+          platform: linux
+          arch: amd64
+          rename-to: clay
+          chmod: 0755
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Publish model to clay registry
         run: |
-          DOC_URL=${{ needs.publish-model-doc.outputs.doc-url }}
-          echo "$DOC_URL"
-          clay publish --model-registry-host=${{env.CLAY_REGISTRY_HOST}} --documentation-url=$DOC_URL
+          DOC_URL=${{`{{ needs.publish-model-doc.outputs.doc-url }}`}}
+          THUMBNAIL_URL=${{`{{ needs.publish-model-doc.outputs.thumbnail-url }}`}}
+          echo "Documentation URL: $DOC_URL"
+          echo "Thumbnail URL: $THUMBNAIL_URL"
+          clay publish --model-registry-host=${{`{{env.CLAY_REGISTRY_HOST}}`}} --documentation-url=$DOC_URL --thumbnail-url=$THUMBNAIL_URL

@@ -1,10 +1,11 @@
 -- name: CreateBlockVersion :one
-INSERT INTO 
+INSERT INTO
     public.block_versions (
         block_id,
         version,
         specification,
         documentation_url,
+        thumbnail_url,
         docker_image
     )
 VALUES
@@ -13,7 +14,8 @@ VALUES
         $2,
         $3,
         $4,
-        $5
+        $5,
+        $6
     ) RETURNING *;
 
 -- name: GetBlockAllVersionByName :many
@@ -25,6 +27,7 @@ SELECT
     bv.version,
     bv.specification,
     bv.documentation_url,
+    bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -43,6 +46,7 @@ SELECT
     b.kind,
     bv.specification,
     bv.documentation_url,
+    bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at

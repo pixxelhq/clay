@@ -118,23 +118,17 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 
 func getTemplateData(titlemodelName string, specmodelName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"model.py":                      Model{ModelName: titlemodelName},
-		"entry.py":                      Entry{ModelName: titlemodelName},
-		"README.md":                     Readme{Name: titlemodelName},
-		"model_specification_dev.yaml":  ModelSpecification{Name: titlemodelName},
-		"model_specification_prod.yaml": ModelSpecification{Name: titlemodelName},
-		"model_specification_stg.yaml":  ModelSpecification{Name: titlemodelName},
-		"test_model.py":                 TestModel{ModelName: titlemodelName},
-		"Makefile":                      Makefile{ModelName: titlemodelName},
-		"test_main.py":                  TestModel{ModelName: titlemodelName},
-		"pyproject.toml":                PyProject{ModelName: titlemodelName},
-		"add-block-dev-stg.yaml":        GithubWorkflow{ModelName: specmodelName, Version: Version},
-		"build.yaml":                    GithubWorkflow{ModelName: specmodelName},
-		"update-latest-block.yaml":      GithubWorkflow{ModelName: specmodelName},
-		"add-block-prod.yaml":           GithubWorkflow{ModelName: specmodelName, Version: Version},
-		"add-model-readme.yaml":         GithubWorkflow{ModelName: specmodelName},
-		"benchmark.yaml":                GithubWorkflow{ModelName: specmodelName},
-		"clay.yaml":                     Config{Name: titlemodelName},
+		"model.py":       Model{ModelName: titlemodelName},
+		"entry.py":       Entry{ModelName: titlemodelName},
+		"README.md":      Readme{Name: titlemodelName},
+		"test_model.py":  TestModel{ModelName: titlemodelName},
+		"Makefile":       Makefile{ModelName: titlemodelName},
+		"test_main.py":   TestModel{ModelName: titlemodelName},
+		"pyproject.toml": PyProject{ModelName: titlemodelName},
+		"benchmark.yaml": GithubWorkflow{ModelName: specmodelName},
+		"build.yaml":     GithubWorkflow{ModelName: specmodelName},
+		"publish.yaml":   GithubWorkflow{ModelName: specmodelName},
+		"clay.yaml":      Config{Name: titlemodelName},
 	}
 	return data
 }

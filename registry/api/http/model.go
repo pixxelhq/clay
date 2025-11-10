@@ -41,6 +41,7 @@ type CreateBlockRequest struct {
 	Type             string         `json:"type"`
 	DockerImage      string         `json:"docker_image"`
 	DocumentationURL string         `json:"documentation_url"`
+	ThumbnailURL     string         `json:"thumbnail_url"`
 	Specification    *Specification `json:"specification"`
 }
 
@@ -51,6 +52,7 @@ type CreateBlockResponse struct {
 	Type             string         `json:"type"`
 	DockerImage      string         `json:"docker_image"`
 	DocumentationURL string         `json:"documentation_url"`
+	ThumbnailURL     string         `json:"thumbnail_url"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	Specification    *Specification `json:"specification"`
@@ -66,6 +68,7 @@ type (
 		Kind             string         `json:"kind"`
 		DockerImage      string         `json:"docker_image"`
 		DocumentationURL string         `json:"documentation_url"`
+		ThumbnailURL     string         `json:"thumbnail_url"`
 		CreatedAt        time.Time      `json:"created_at"`
 		UpdatedAt        time.Time      `json:"updated_at"`
 		Specification    *Specification `json:"specification,omitempty"`
@@ -82,6 +85,7 @@ type GetBlockByNameAndVersion struct {
 	Type             string         `json:"type"`
 	DockerImage      string         `json:"docker_image"`
 	DocumentationURL string         `json:"documentation_url"`
+	ThumbnailURL     string         `json:"thumbnail_url"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	Specification    *Specification `json:"specification"`
