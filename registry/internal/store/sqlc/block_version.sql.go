@@ -14,12 +14,13 @@ import (
 )
 
 const createBlockVersion = `-- name: CreateBlockVersion :one
-INSERT INTO 
+INSERT INTO
     public.block_versions (
         block_id,
         version,
         specification,
         documentation_url,
+        thumbnail_url,
         docker_image
     )
 VALUES
@@ -28,8 +29,9 @@ VALUES
         $2,
         $3,
         $4,
-        $5
-    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at
+        $5,
+        $6
+    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at, thumbnail_url
 `
 
 type CreateBlockVersionParams struct {
@@ -37,6 +39,7 @@ type CreateBlockVersionParams struct {
 	Version          string
 	Specification    json.RawMessage
 	DocumentationUrl sql.NullString
+	ThumbnailUrl     sql.NullString
 	DockerImage      sql.NullString
 }
 
@@ -46,6 +49,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		arg.Version,
 		arg.Specification,
 		arg.DocumentationUrl,
+		arg.ThumbnailUrl,
 		arg.DockerImage,
 	)
 	var i BlockVersion
@@ -58,6 +62,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ThumbnailUrl,
 	)
 	return i, err
 }
@@ -71,6 +76,7 @@ SELECT
     bv.version,
     bv.specification,
     bv.documentation_url,
+    bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -89,6 +95,7 @@ type GetBlockAllVersionByNameRow struct {
 	Version          string
 	Specification    json.RawMessage
 	DocumentationUrl sql.NullString
+	ThumbnailUrl     sql.NullString
 	DockerImage      sql.NullString
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
@@ -111,6 +118,7 @@ func (q *Queries) GetBlockAllVersionByName(ctx context.Context, name string) ([]
 			&i.Version,
 			&i.Specification,
 			&i.DocumentationUrl,
+			&i.ThumbnailUrl,
 			&i.DockerImage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -137,6 +145,7 @@ SELECT
     b.kind,
     bv.specification,
     bv.documentation_url,
+    bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
     bv.updated_at
@@ -159,6 +168,7 @@ type GetBlockByNameAndVersionRow struct {
 	Kind             string
 	Specification    json.RawMessage
 	DocumentationUrl sql.NullString
+	ThumbnailUrl     sql.NullString
 	DockerImage      sql.NullString
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
@@ -175,6 +185,7 @@ func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNa
 		&i.Kind,
 		&i.Specification,
 		&i.DocumentationUrl,
+		&i.ThumbnailUrl,
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,

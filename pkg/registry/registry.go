@@ -49,6 +49,7 @@ type PublishModelRequest struct {
 	Version          string         `json:"version"`
 	DockerImage      string         `json:"docker_image"`
 	DocumentationURL string         `json:"documentation_url"`
+	ThumbnailURL     string         `json:"thumbnail_url"`
 	Specification    *Specification `json:"specification"`
 }
 
@@ -71,6 +72,7 @@ type Model struct {
 	Version          string         `json:"version"`
 	DockerImage      string         `json:"docker_image"`
 	DocumentationURL string         `json:"documentation_url"`
+	ThumbnailURL     string         `json:"thumbnail_url"`
 	Specification    *Specification `json:"specification,omitempty"`
 }
 

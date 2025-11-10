@@ -104,6 +104,57 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
    in the output of this command
    Please update the `catalog_content_url` in the spec file with the link
 
+8. `clay block assets upload <path> [flags]`
+
+   Upload assets (files or directories) to cloud storage for a block
+   
+   -n, --name string      Name of the block (required)
+   -v, --version string   Version of the block (optional)
+   --bucket string        Storage bucket name (required)
+   --provider string      Storage provider: s3, gcs, azure (default "s3")
+   --region string        Storage region (required for S3)
+   --readme               Process markdown templates before upload (for catalog/README files)
+   
+   Examples:
+   ```bash
+   # Upload to name-level (shared across versions)
+   clay block assets upload ./models --name my-block --bucket my-bucket --region us-east-1
+   
+   # Upload to version-specific
+   clay block assets upload ./models --name my-block --version v1.0.0 --bucket my-bucket
+   
+   # Upload with README template processing
+   clay block assets upload ./catalog_readme --name my-block --version v1.0.0 \
+     --bucket my-bucket --region us-east-1 --readme
+   ```
+
+9. `clay block assets list [flags]`
+
+   List assets stored for a block
+   
+   -n, --name string      Name of the block (required)
+   -v, --version string   Version of the block (optional)
+   --bucket string        Storage bucket name (required)
+   --provider string      Storage provider: s3, gcs, azure (default "s3")
+   --region string        Storage region (required for S3)
+
+10. `clay block assets download <asset-path> [flags]`
+
+    Download a specific asset from block storage
+    
+    -n, --name string      Name of the block (required)
+    -v, --version string   Version of the block (optional)
+    -o, --output string    Local path to save the downloaded asset (default ".")
+    --bucket string        Storage bucket name (required)
+    --provider string      Storage provider: s3, gcs, azure (default "s3")
+    --region string        Storage region (required for S3)
+    
+    Example:
+    ```bash
+    clay block assets download models/classifier.pkl --name my-block --version v1.0.0 \
+      --bucket my-bucket --output ./downloaded-model.pkl
+    ```
+
 
 </details>
 

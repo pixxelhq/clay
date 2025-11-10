@@ -34,6 +34,7 @@ type Block struct {
 	Version          string
 	Specification    *Specification
 	DocumentationURL string
+	ThumbnailURL     string
 	DockerImage      string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
@@ -80,7 +81,11 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			Specification: specByte,
 			DocumentationUrl: sql.NullString{
 				String: b.DocumentationURL,
-				Valid:  true,
+				Valid:  b.DocumentationURL != "",
+			},
+			ThumbnailUrl: sql.NullString{
+				String: b.ThumbnailURL,
+				Valid:  b.ThumbnailURL != "",
 			},
 			DockerImage: sql.NullString{
 				String: b.DockerImage,
@@ -107,6 +112,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			Kind:             upsertedBlock.Kind,
 			Type:             upsertedBlock.Type,
 			DocumentationURL: bv.DocumentationUrl.String,
+			ThumbnailURL:     bv.ThumbnailUrl.String,
 			DockerImage:      bv.DockerImage.String,
 			Specification:    spec,
 			CreatedAt:        bv.CreatedAt.Time,
@@ -175,6 +181,7 @@ func (bs *block) GetBlockByName(ctx context.Context, name string) ([]*Block, err
 			Version:          b.Version,
 			Specification:    spec,
 			DocumentationURL: b.DocumentationUrl.String,
+			ThumbnailURL:     b.ThumbnailUrl.String,
 			DockerImage:      b.DockerImage.String,
 			CreatedAt:        b.CreatedAt.Time,
 			UpdatedAt:        b.UpdatedAt.Time,
@@ -211,6 +218,7 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 		Version:          blockWithNameAndVersion.Version,
 		DockerImage:      blockWithNameAndVersion.DockerImage.String,
 		DocumentationURL: blockWithNameAndVersion.DocumentationUrl.String,
+		ThumbnailURL:     blockWithNameAndVersion.ThumbnailUrl.String,
 		Specification:    spec,
 		Kind:             blockWithNameAndVersion.Kind,
 		Type:             blockWithNameAndVersion.Type,
@@ -266,6 +274,7 @@ func (bs *block) GetLatestBlock(ctx context.Context, name string) (*Block, error
 		Version:          latestBlock.Version,
 		DockerImage:      latestBlock.DockerImage.String,
 		DocumentationURL: latestBlock.DocumentationUrl.String,
+		ThumbnailURL:     latestBlock.ThumbnailUrl.String,
 		Specification:    spec,
 		Kind:             latestBlock.Kind,
 		Type:             latestBlock.Type,

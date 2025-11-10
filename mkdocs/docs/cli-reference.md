@@ -109,3 +109,52 @@ available flags:
     -v, --version string   Version of block
     -e, --env string       Environment to upload readme to: dev, stg, prod (default "dev")
 ```
+<br>
+
+>**Upload assets to cloud storage for a block**<br>
+>Upload files or directories to cloud storage (S3, GCS, Azure) for a specific block.<br>
+>Assets can be stored at the block name level (shared across versions) or version-specific.
+
+```
+clay block assets upload <path> <flags>
+
+available flags:
+    -n, --name string      Name of the block (required)
+    -v, --version string   Version of the block (optional)
+    --bucket string        Storage bucket name (required)
+    --provider string      Storage provider: s3, gcs, azure (default "s3")
+    --region string        Storage region (required for S3)
+    --readme               Process markdown templates before upload
+```
+<br>
+
+>**List assets stored for a block**<br>
+>List all assets stored in cloud storage for a specific block and optionally version.
+
+```
+clay block assets list <flags>
+
+available flags:
+    -n, --name string      Name of the block (required)
+    -v, --version string   Version of the block (optional)
+    --bucket string        Storage bucket name (required)
+    --provider string      Storage provider: s3, gcs, azure (default "s3")
+    --region string        Storage region (required for S3)
+```
+<br>
+
+>**Download a specific asset from block storage**<br>
+>Download an asset file from cloud storage to your local filesystem.<br>
+>If a version is specified, it will check version-specific assets first, then fall back to name-level assets.
+
+```
+clay block assets download <asset-path> <flags>
+
+available flags:
+    -n, --name string      Name of the block (required)
+    -v, --version string   Version of the block (optional)
+    -o, --output string    Local path to save the downloaded asset (default ".")
+    --bucket string        Storage bucket name (required)
+    --provider string      Storage provider: s3, gcs, azure (default "s3")
+    --region string        Storage region (required for S3)
+```

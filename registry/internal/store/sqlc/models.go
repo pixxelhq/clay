@@ -29,4 +29,5 @@ type BlockVersion struct {
 	DockerImage      sql.NullString
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
+	ThumbnailUrl     sql.NullString
 }
