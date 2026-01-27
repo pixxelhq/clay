@@ -22,6 +22,7 @@ var (
 	buildSecrets   []string
 	buildArgs      []string
 	platform       []string
+	envVars        []string
 )
 
 // TODO: Refactor these commands into separate files with docker directory.
@@ -194,10 +195,12 @@ func runDockerImageCmd() *cobra.Command {
 		Short: "Run the docker image",
 		Long: heredoc.Doc(
 			"Run the docker image. You need to provide the image name which you want to run.\n"),
-		Example: "clay run registry.io/testing-model:0.0.1",
+		Example: "clay run <image_name> -e INPUT_JSON=\"$(cat <input_file.json>)\"",
 		RunE:    runImage,
 		Args:    cobra.MinimumNArgs(1),
 	}
+
+	cmd.Flags().StringArrayVarP(&envVars, "env", "e", []string{}, "Set environment variables (format: KEY=VALUE)")
 
 	return cmd
 }
@@ -215,5 +218,5 @@ func runImage(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return docker.Run(image, args[1:], cfg)
+	return docker.Run(image, args[1:], envVars, cfg)
 }
