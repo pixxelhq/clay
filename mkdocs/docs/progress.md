@@ -10,7 +10,7 @@ Indicating the progress of a process, model or not, is _generally a tricky proce
 * How does all this work in concurrent environments?
 * etc etc.
 
-Well, we have outlines our approach with usage examples below.
+Well, we have outlined our approach with usage examples below.
 
 ## Our Approach
 

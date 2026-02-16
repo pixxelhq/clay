@@ -4,16 +4,6 @@ from clay.runners.runner import JobRunner
 
 from model import {{.ModelName}}
 
-def set_required_env_vars() -> None:
-    env_vars = {
-        "TASK_ID": "task123", 
-        "WORKFLOW_ID": "wf123",  
-        "JOB_ID": "job123", 
-        "LOCAL_WORKING_DIR": "/runs"
-    }
-    for var, value in env_vars.items():
-        os.environ.setdefault(var, value)
-
 def main() -> None:
     specification_path = Path(__file__).parent / "../clay.yaml"
     specification_path = specification_path.resolve()
@@ -21,19 +11,18 @@ def main() -> None:
         raise FileNotFoundError(f"Configuration file not found at: {specification_path}")
         
     print(f"Using configuration located at: {specification_path}")
+    server = JobRunner(
+        "{{.ModelName}}",
+        {{.ModelName}},
+        model_args={"config": specification_path},
+        cfg_path=str(specification_path),
+    )
+
     with (Path(__file__).parent / "sample_model_inputs.json").open() as f:
         request = f.read()
         os.environ["INPUT_JSON"] = request
     
-    j = JobRunner(
-        model_name="{{.ModelName}}",
-        model_class={{.ModelName}},
-        model_args={"config": specification_path},
-        cfg_path=specification_path,
-    )
-
-    j.start()
-
+    server.start()
 
 if __name__ == "__main__":
     main()

@@ -1,51 +1,193 @@
+site_name: Clay Documentation
+site_description: Open-source framework for packaging and deploying ML models
+site_url: https://github.com/example/clay
+repo_name: example/clay
+repo_url: https://github.com/example/clay
+edit_uri: edit/main/mkdocs/docs/
+
 theme:
   name: material
-  icon:
-    admonition:
-      note: fontawesome/solid/note-sticky
-    pymdownx.details:
-      tip: fontawesome/solid/bullhorn
+  # logo: img/favicon.png
+  # favicon: img/favicon.png
+
+  # Color palette
   palette:
-    # Palette toggle for light mode
+    # Light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: indigo
+      accent: deep purple
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
 
-    # Palette toggle for dark mode
+    # Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: indigo
+      accent: deep purple
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
 
-  # logo: img/favicon.png
-site_name: Clay Documentation
-repo_name: Clay
-repo_url: https://github.com/example/clay
+  # Font configuration
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  # Features for better navigation and UX
+  features:
+    # Navigation
+    - navigation.instant        # Instant loading (SPA-like)
+    - navigation.tracking       # URL updates with scroll
+    - navigation.tabs           # Top-level sections as tabs
+    - navigation.tabs.sticky    # Tabs stay visible when scrolling
+    # - navigation.sections       # Render top-level sections as group
+    - navigation.path           # Show path breadcrumbs
+    - navigation.indexes        # Allow section index pages
+    - navigation.top            # Back to top button
+    - navigation.footer         # Footer with prev/next links
+
+    # Search
+    - search.suggest            # Search suggestions
+    - search.highlight          # Highlight search terms
+    - search.share              # Share search results
+
+    # Table of contents
+    - toc.follow                # TOC follows scrolling
+    - toc.integrate             # Integrate TOC into navigation
+
+    # Code blocks
+    - content.code.copy         # Copy button for code blocks
+    - content.code.annotate     # Allow annotations in code blocks
+
+    # Content
+    - content.tabs.link         # Link content tabs across pages
+    - content.tooltips          # Improved tooltips
+
+  # Icon configuration
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    admonition:
+      note: fontawesome/solid/note-sticky
+      abstract: fontawesome/solid/book
+      info: fontawesome/solid/circle-info
+      tip: fontawesome/solid/bullhorn
+      success: fontawesome/solid/check
+      question: fontawesome/solid/circle-question
+      warning: fontawesome/solid/triangle-exclamation
+      failure: fontawesome/solid/bomb
+      danger: fontawesome/solid/skull
+      bug: fontawesome/solid/robot
+      example: fontawesome/solid/flask
+      quote: fontawesome/solid/quote-left
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - attr_list
-  - md_in_html
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
-  - pymdownx.details
-  - admonition
+  # Python Markdown extensions
+  - abbr                        # Abbreviations with tooltips
+  - admonition                  # Callout blocks
+  - attr_list                   # Add HTML attributes to elements
+  - def_list                    # Definition lists
+  - footnotes                   # Footnote support
+  - md_in_html                  # Markdown inside HTML
+  - tables                      # Table support
   - toc:
-      permalink: "#"
+      permalink: true           # Add permalink to headings
+      permalink_title: Link to this section
+      toc_depth: 3              # Show up to h3 in TOC
+
+  # PyMdown Extensions
+  - pymdownx.arithmatex:        # LaTeX math support
+      generic: true
+  - pymdownx.betterem:          # Better emphasis handling
+      smart_enable: all
+  - pymdownx.caret              # Superscript with ^^
+  - pymdownx.mark               # Highlighting with ==
+  - pymdownx.tilde              # Subscript with ~~
+  - pymdownx.critic             # Track changes
+  - pymdownx.details            # Collapsible blocks
+  - pymdownx.emoji:             # Emoji support
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:         # Syntax highlighting
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      auto_title: true
+      linenums: true
+  - pymdownx.inlinehilite       # Inline code highlighting
+  - pymdownx.keys               # Keyboard keys
+  - pymdownx.magiclink:         # Auto-link URLs
+      repo_url_shorthand: true
+      user: pixxelhq
+      repo: clay
+  - pymdownx.smartsymbols       # Smart symbols
+  - pymdownx.snippets:          # Include snippets
+      check_paths: true
+  - pymdownx.superfences:       # Enhanced code blocks
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:            # Content tabs
+      alternate_style: true
+  - pymdownx.tasklist:          # Task lists
+      custom_checkbox: true
+      clickable_checkbox: false
 
 extra:
   version:
     provider: mike
+
+  # Social links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/example/clay
+      name: Clay on GitHub
+
+  # Analytics (optional - add your Google Analytics ID)
+  # analytics:
+  #   provider: google
+  #   property: G-XXXXXXXXXX
+
+  # Custom styling
+  generator: false  # Hide "Made with Material for MkDocs"
+
+  # Consent (for GDPR compliance if using analytics)
+  # consent:
+  #   title: Cookie consent
+  #   description: >-
+  #     We use cookies to recognize your repeated visits and preferences, as well
+  #     as to measure the effectiveness of our documentation and whether users
+  #     find what they're searching for. With your consent, you're helping us to
+  #     make our documentation better.
+
+# Custom CSS for enhanced styling
+extra_css:
+  - stylesheets/extra.css
+
+# Custom JavaScript (optional)
+# extra_javascript:
+#   - javascripts/extra.js
+
 plugins:
-  - search
+  # Enhanced search with better algorithms
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      lang:
+        - en
+
+  # Auto-reference linking
   - autorefs
-  - schema_reader:
-      include:
-        - ./docs/block-spec-schema.json
+
+  # Git revision date for last updated timestamps (optional)
+  # Uncomment if you want to show last updated dates
+  # - git-revision-date-localized:
+  #     enable_creation_date: true
+  #     type: timeago
+
+  # API documentation generation
   - mkdocstrings:
       enable_inventory: true
       handlers:
@@ -58,6 +200,11 @@ plugins:
             show_source: true
             show_bases: false
             show_object_full_path: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            separate_signature: true
           import:
             - url: https://docs.python-requests.org/en/master/objects.inv
             - url: https://docs.python.org/3.9/objects.inv
@@ -67,21 +214,22 @@ plugins:
 
 nav:
   - Home: "index.md"
-  - 10000 Feet View: "overview.md"
-  - Five Minute Blitz: "blitz-concepts.md"
   - Getting Started: "getting-started.md"
-  - Input/Output: "IO.md"
-  - Datatypes: "datatypes.md"
-  - Block Specification: "spec.md"
-  - Environment Variables: "env-requirements.md"
-  - Tutorial: "model-development.md"
-  - Indicating Model Progress: "progress.md"
-  - Checklist: "checklist.md"
-  - Do's and don'ts: "dos-dont.md"
-  - Registry: "registry.md"
-  - Block Assets: "block-assets.md"
+  - Core Concepts:
+    - Overview: "overview.md"
+    - Input/Output & Datatypes: "IO.md"
+    - Block Specification: "spec.md"
+    - Environment Variables: "env-requirements.md"
+    - Clay Registry: "registry.md"
+    - Block Assets: "block-assets.md"
+  - Tutorial:
+    - Model Development Tutorial: "model-development.md"
+    - Indicating Progress: "progress.md"
+  - Reference:
+    - CLI Reference: "cli-reference.md"
+    - Logging: "logging.md"
+    - Benchmarking Models: "benchmarking.md"
+  - Pixxel Platform Integration:
+    - Integration Guide: "pixxel-integration.md"
   - FAQs: "faq.md"
-  - API Reference: "api-reference.md"
-  - CLI Reference: "cli-reference.md"
-  - Benchmarking Models: "benchmarking.md"
   - ChangeLog: "CHANGELOG.md"

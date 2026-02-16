@@ -1,68 +1,25 @@
-generate-secrets:
-		aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > 
-
-clean-secrets:
-		rm 
-
-setup:	generate-secrets
-		if ! git rev-parse --git-dir > /dev/null 2>&1; then \
+setup:	if ! git rev-parse --git-dir > /dev/null 2>&1; then \
 			echo "Initializing Git repository..."; \
 			git init; \
 		fi
 
 		if command -v pip &> /dev/null; then \
-			pip install -r requirements-dev.txt -r requirements.txt --extra-index-url https://aws:$$(cat )@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
+			pip install -r requirements.txt \
  \
 ; \
 		elif command -v pip3 &> /dev/null; then \
-			pip3 install -r requirements-dev.txt -r requirements.txt --extra-index-url https://aws:$$(cat )@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
+			pip3 install -r requirements.txt \
  \
 ; \
 		else \
 			echo "Error: pip and pip3 are not installed"; \
 		fi
-
+		
 		pre-commit install
 		pre-commit install --hook-type commit-msg
-		$(MAKE) clean-secrets
-
-validate:
-		pytest -v
-		pre-commit run --all-files
 
 format:
 		pre-commit run --all-files
 
-test:
-		pytest -v
-
 clean:
 		rm -rf *.egg-info
-		rm -rf **/__pycache__
-		rm -rf .pytest_cache
-
-dockerfile:
-		clay create dockerfile {{.ModelName | ToSnake }}/specifications/model_specification_dev.yaml {{.ModelName | ToSnake}}
-
-docker-image: generate-secrets
-		sudo DOCKER_BUILDKIT=1 docker build \
-		--secret id=CODEARTIFACT_AUTH_TOKEN,src= \
-		--build-arg AWS_ENV_PROFILE=$(AWS_ENV_PROFILE) \
-		-t {{.ModelName | ToSnake}} \
-		-f Dockerfile \
-		.
-		$(MAKE) clean-secrets
-
-test-docker-image:
-		docker run {{.ModelName | ToSnake}} "$$(cat {{.ModelName | ToSnake}}/sample_model_inputs.json)"
-
-test-docker-image-gpu:
-		docker run --rm --runtime nvidia --gpus all {{.ModelName | ToSnake}} "$$(cat {{.ModelName | ToSnake}}/sample_model_inputs.json)"
-
-package-and-test-model:
-		@echo "Creating Dockerfile..."
-		make dockerfile
-		@echo "Building Docker Container / Image..."
-		make docker-image
-		@echo "Testing image with {{.ModelName | ToSnake}}/sample_model_inputs.json"
-		make test-docker-image

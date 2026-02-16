@@ -1,19 +1,20 @@
-## Description
----
+# CLI Reference
 
-The clay CLI tool for block/model related operations
+The Clay CLI provides commands for creating, building, publishing, and managing ML model blocks.
 
----
+## General Commands
 
-### Clay Commands:
+### Version
 
->  Get version of clay-cli
+Display the current version of the Clay CLI.
 
 ```shell
 clay version
 ```
 
->   Get help with any command
+### Help
+
+Get help for any command.
 
 ```shell
 clay <command> --help
@@ -21,140 +22,188 @@ clay <command> --help
 
 ---
 
-### Model-related Available Command:
+## Model Commands
 
-```shell
-clay create <command>
-```
+Commands for creating, building, and running models.
 
-#### Sub-commands
+### Create Project
 
-> Generate starter files for your model
+Generate starter files for a new model project.
 
 ```shell
 clay create project <outputDir> <modelName>
 ```
 
-> Creates a dockerfile to package and serve your model
+| Argument | Description |
+|----------|-------------|
+| `outputDir` | Directory where project files will be created |
+| `modelName` | Name of the model |
+
+### Build
+
+Build a Docker image from `clay.yaml`.
 
 ```shell
-clay create dockerfile <modelSpecificationPath> <sourceCodeFolder>
+clay build [flags]
 ```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-t, --tag` | Build tag (format: `repository:tag`) | — |
+| `-f, --file` | Dockerfile path | — |
+| `--no-cache` | Disable Docker layer caching | `false` |
+| `--secret` | Secret to expose to build | — |
+| `--build-arg` | Build-time variables | — |
+| `--platform` | Target platform for build | — |
+
+### Push
+
+Push a Docker image to the registry.
+
+```shell
+clay push [IMAGE]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `IMAGE` | Docker image to push |
+
+### Run
+
+Run the Docker image locally.
+
+```shell
+clay run [IMAGE NAME] [ARG...] [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-e, --env` | Set environment variables (`KEY=VALUE` format) | — |
+| `-f, --file` | Path to file containing input data | — |
+
+### Publish
+
+Build, push image, and publish to Clay registry in one command.
+
+```shell
+clay publish [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--docker-registry-host` | Docker registry URL | `REDACTED.dkr.ecr.us-east-2.amazonaws.com` |
+| `--model-registry-host` | Clay registry host | `http://localhost:8080` |
+| `--documentation-url` | Model documentation URL | — |
+| `--thumbnail-url` | Model thumbnail URL | — |
 
 ---
 
-### Block-realated Available Command
+## Block Commands
 
-> **Add a new block to orchestrator database**
+Commands for managing blocks in the registry.
 
+### List Blocks
+
+List available blocks in the registry.
+
+```shell
+clay block list [flags]
 ```
-clay add block <specFilePath> <flags>
 
-available flags:
-    -e, --env string   Environment to add new block to: dev, stg, prod (default "dev")
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-n, --name` | Filter by block name | — |
+| `-v, --version` | Specific version to list | — |
+| `--host` | Clay registry host | `https://clay-registry.example.com` |
+
+### Describe Block
+
+List all versions of a block or get details for a specific version.
+
+```shell
+clay block describe <name> [flags]
 ```
-<br>
 
-> **Get spec file for a particular block version**<br>
->   By Default only "released" block spec is provided
->   Set "status" flag to fetch "draft" and "disabled" block spec
+| Argument | Description |
+|----------|-------------|
+| `name` | Name of the block |
 
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-v, --version` | Specific version to describe | — |
+| `--host` | Clay registry host | `https://clay-registry.example.com` |
+
+---
+
+## Block Assets Commands
+
+Commands for managing block assets in cloud storage.
+
+### Upload Assets
+
+Upload files or directories to cloud storage for a block. Assets can be stored at the block name level (shared across versions) or version-specific.
+
+```shell
+clay block assets upload <path> [flags]
 ```
-clay get block <flags>
 
-available flags:
-    -n, --name string      Name of block
-    -s, --status string    Status of block: draft, released, disabled (default "released")
-    -v, --version string   Version of block
-    -e, --env string       Environment to get block spec from: dev, stg, prod (default "dev")
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-n, --name` | Name of the block (required) | — |
+| `-v, --version` | Version of the block (optional) | — |
+| `--bucket` | Storage bucket name (required) | — |
+| `--provider` | Storage provider: `s3`, `gcs`, `azure` | `s3` |
+| `--region` | Storage region (required for S3) | — |
+| `--readme` | Process markdown templates before upload | `false` |
+
+### List Assets
+
+List all assets stored in cloud storage for a block.
+
+```shell
+clay block assets list [flags]
 ```
-<br>
 
->**List the blocks available in orchestrator database**<br>
->If blockname is provided, all available "released" blocks will be listed
->Use flags to list versions available for a block
->Set "status" flag to fetch "draft" and "disabled" block spec
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-n, --name` | Name of the block (required) | — |
+| `-v, --version` | Version of the block (optional) | — |
+| `--bucket` | Storage bucket name (required) | — |
+| `--provider` | Storage provider: `s3`, `gcs`, `azure` | `s3` |
+| `--region` | Storage region (required for S3) | — |
 
+### Download Assets
+
+Download an asset file from cloud storage. If a version is specified, it checks version-specific assets first, then falls back to name-level assets.
+
+```shell
+clay block assets download <asset-path> [flags]
 ```
-clay list block <flags>
 
-available flags:
-    -n, --name string     Name of block
-    -s, --status string   Possible status of block: draft, released, disabled (default "released")
-    -e, --env string      Environment to list block in: dev, stg, prod (default "dev")
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-n, --name` | Name of the block (required) | — |
+| `-v, --version` | Version of the block (optional) | — |
+| `-o, --output` | Local path to save the downloaded asset | `.` |
+| `--bucket` | Storage bucket name (required) | — |
+| `--provider` | Storage provider: `s3`, `gcs`, `azure` | `s3` |
+| `--region` | Storage region (required for S3) | — |
+
+---
+
+## Upload Commands
+
+Commands for uploading model assets.
+
+### Upload Readme
+
+Upload the README documentation for a block to cloud storage for the marketplace catalog.
+
+```shell
+clay upload readme [flags]
 ```
-<br>
 
->**Update an existing block**<br>
->Specify the blockname, version and updated specfile path to update the block.<br>
->Use flag 'env' to specify the environment in which the block is to be updated.
-
-```
-clay update block <specFilePath> <flags>
-
-available flags:
-    -n, --name string      Name of block
-    -s, --status string    Status of block: draft, released, disabled (default "released")
-    -v, --version string   Version of block
-    -e, --env string       Env in which block needs to be updated: dev, stg, prod (default "dev")
-```
-<br>
-
->**Upload the readme for the model to cloud**
-```
-clay upload readme <flags>
-
-available flags:
-    -n, --name string      Name of block as specified in spec file
-    -v, --version string   Version of block
-    -e, --env string       Environment to upload readme to: dev, stg, prod (default "dev")
-```
-<br>
-
->**Upload assets to cloud storage for a block**<br>
->Upload files or directories to cloud storage (S3, GCS, Azure) for a specific block.<br>
->Assets can be stored at the block name level (shared across versions) or version-specific.
-
-```
-clay block assets upload <path> <flags>
-
-available flags:
-    -n, --name string      Name of the block (required)
-    -v, --version string   Version of the block (optional)
-    --bucket string        Storage bucket name (required)
-    --provider string      Storage provider: s3, gcs, azure (default "s3")
-    --region string        Storage region (required for S3)
-    --readme               Process markdown templates before upload
-```
-<br>
-
->**List assets stored for a block**<br>
->List all assets stored in cloud storage for a specific block and optionally version.
-
-```
-clay block assets list <flags>
-
-available flags:
-    -n, --name string      Name of the block (required)
-    -v, --version string   Version of the block (optional)
-    --bucket string        Storage bucket name (required)
-    --provider string      Storage provider: s3, gcs, azure (default "s3")
-    --region string        Storage region (required for S3)
-```
-<br>
-
->**Download a specific asset from block storage**<br>
->Download an asset file from cloud storage to your local filesystem.<br>
->If a version is specified, it will check version-specific assets first, then fall back to name-level assets.
-
-```
-clay block assets download <asset-path> <flags>
-
-available flags:
-    -n, --name string      Name of the block (required)
-    -v, --version string   Version of the block (optional)
-    -o, --output string    Local path to save the downloaded asset (default ".")
-    --bucket string        Storage bucket name (required)
-    --provider string      Storage provider: s3, gcs, azure (default "s3")
-    --region string        Storage region (required for S3)
-```
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-n, --name` | Name of the block | — |
+| `-v, --version` | Version of the block | — |

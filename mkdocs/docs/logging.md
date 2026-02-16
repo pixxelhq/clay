@@ -1,27 +1,29 @@
-### Tip: logging helpful information
+# Logging
 
-Clay provides logging functionality in `ModelWrapper` through it's `self.logger` attribute. You can and should use it to
-print out useful information at various stages of the model pipeline.
+Clay provides structured JSON logging through the `ModelWrapper`'s `self.logger` attribute. Use it to print useful information at various stages of the model pipeline.
 
-We prefer using the `logger` instead of `print` statements because it provides a lot of extra information for free which
-can be helpful during debugging.
+## Why Use Clay's Logger?
 
-Using the logger is very simple:
+We prefer using the `logger` instead of `print` statements because it provides additional context for free, which is helpful during debugging and monitoring.
+
+### Without Clay Logger
 
 ```python
-# instead of this:
 print("preprocessing complete")
 ```
 
+Output:
 ```text
 preprocessing complete
 ```
 
+### With Clay Logger
+
 ```python
-# we do this:
 self.logger.info("preprocessing complete")
 ```
 
+Output:
 ```json
 {
   "level": "INFO",
@@ -30,32 +32,88 @@ self.logger.info("preprocessing complete")
   "loc": "model.py:preprocess:67",
   "message": "preprocessing complete"
 }
-/* This has been formatted in multiple lines for the purposes of this doc.*/
-/* The actual output is on a single line*/
 ```
 
-As you can see, right off the bat we get some extra information with zero effort from our side:
+!!! note
+    The JSON output is shown formatted here for readability. The actual output is on a single line.
 
-- Level: the severity of the message.
-    - This can be one of: `DEBUG`, `INFO`, `WARNING`, or `ERROR`, with severity increasing in that order
-- Timestamp: the exact time at which this message was logged
-- Logger: the name of the logger object used for this message. You will see other loggers from Clay printing other
-  useful pieces of information as well.
-- Loc[ation]: the exact file, function and line number of the location where the log was triggered
-- Message: your actual log message
+## Log Fields
 
-You can manually create loggers using clay very simply like so:
+Clay's logger automatically includes:
+
+| Field | Description |
+|-------|-------------|
+| `level` | Severity of the message: `DEBUG`, `INFO`, `WARNING`, or `ERROR` |
+| `timestamp` | Exact time the message was logged (ISO 8601 format) |
+| `logger` | Name of the logger object (typically your model class name) |
+| `loc` | File, function, and line number where the log was triggered |
+| `message` | Your actual log message |
+
+## Log Levels
+
+Use the appropriate log level based on the message importance:
+
+| Level | When to Use |
+|-------|-------------|
+| `DEBUG` | Detailed information for diagnosing problems |
+| `INFO` | Confirmation that things are working as expected |
+| `WARNING` | Something unexpected happened, but execution continues |
+| `ERROR` | A serious problem that prevented an operation |
+
+## Using the Logger in Models
+
+The logger is available as `self.logger` in any `ModelWrapper` method:
+
+```python
+from clay.core import ModelWrapper
+import datatypes
+
+class MyModel(ModelWrapper):
+    def setup(self, **parameters):
+        self.logger.info("Model initialized")
+
+    async def preprocess(self, input_raster: datatypes.Raster):
+        self.logger.info(f"Processing raster: {input_raster.value}")
+        return {"raster": input_raster}
+
+    async def inference(self, raster):
+        self.logger.debug("Starting inference")
+        # ... inference logic ...
+        self.logger.info("Inference complete")
+        return {"result": result}
+
+    async def postprocess(self, result):
+        if result is None:
+            self.logger.warning("Result is None, returning empty output")
+        return {"output": result}
+```
+
+## Creating Custom Loggers
+
+You can create additional loggers using `ClayLogger`:
 
 ```python
 import logging
 from clay.logger import ClayLogger
 
-logger = ClayLogger(logger_name='my-logger', level=logging.INFO)
+# Create a custom logger
+logger = ClayLogger(logger_name='my-custom-logger', level=logging.INFO)
 
-logger.debug("This message will not be shown if level is set to INFO")
-logger.info("This message and all messages at WARNING and ERROR level will be shown")
-logger.warning("Warnings in scenarios such as when results can be computed but not necessarily with high quality")
-logger.error("Reserved for situations where execution can generally not move forward", exc_info=exception_object)
+# Use it anywhere in your code
+logger.debug("This won't be shown if level is INFO")
+logger.info("This will be shown")
+logger.warning("Warnings for unexpected but non-fatal issues")
+logger.error("Errors when execution cannot proceed", exc_info=exception_object)
 ```
 
-You can learn more about [logging in python here](https://realpython.com/python-logging/)
+## Best Practices
+
+- **Use `self.logger`** instead of `print()` statements
+- **Choose appropriate log levels** - don't use `ERROR` for non-errors
+- **Include context** - log variable values, file paths, and identifiers
+- **Be concise** - log messages should be informative but not verbose
+- **Log at boundaries** - log when entering/exiting major processing stages
+
+## Further Reading
+
+- [Python Logging Documentation](https://docs.python.org/3/library/logging.html)
