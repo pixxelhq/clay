@@ -1,0 +1,287 @@
+/* Clay Documentation Custom Styles */
+
+/* Improve readability with better spacing */
+.md-typeset {
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* Better heading spacing */
+.md-typeset h1 {
+  font-weight: 600;
+  margin: 1.5em 0 0.8em;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  margin: 1.5em 0 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  margin: 1.2em 0 0.6em;
+}
+
+/* Code block improvements */
+.md-typeset code {
+  background-color: var(--md-code-bg-color);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.md-typeset pre > code {
+  padding: 1em;
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+
+/* Table improvements */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+  overflow: hidden;
+  display: table;
+  font-size: 0.85em;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-default-fg-color--lightest);
+  font-weight: 600;
+  padding: 0.8em 1em;
+}
+
+.md-typeset table:not([class]) td {
+  padding: 0.7em 1em;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* Admonition improvements */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 6px;
+  border-left: 4px solid;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 1.5em 0;
+}
+
+.md-typeset .admonition-title,
+.md-typeset summary {
+  font-weight: 600;
+  padding-left: 2.5rem;
+}
+
+/* Info callout specific styling */
+.md-typeset .admonition.info {
+  border-left-color: #00b8d4;
+}
+
+/* Warning callout specific styling */
+.md-typeset .admonition.warning {
+  border-left-color: #ff9100;
+}
+
+/* Tip callout specific styling */
+.md-typeset .admonition.tip {
+  border-left-color: #00c853;
+}
+
+/* Link improvements */
+.md-typeset a {
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.md-typeset a:hover {
+  text-decoration: underline;
+}
+
+/* List improvements */
+.md-typeset ul,
+.md-typeset ol {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+
+.md-typeset li {
+  margin: 0.5em 0;
+}
+
+/* Inline code in lists */
+.md-typeset li > code {
+  background-color: var(--md-code-bg-color);
+}
+
+/* Navigation improvements */
+.md-nav__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.md-nav__item--active > .md-nav__link {
+  font-weight: 600;
+}
+
+/* Footer improvements */
+.md-footer-meta {
+  background-color: var(--md-default-bg-color);
+}
+
+/* Improve blockquote styling */
+.md-typeset blockquote {
+  border-left: 4px solid var(--md-default-fg-color--light);
+  padding-left: 1em;
+  color: var(--md-default-fg-color--light);
+  font-style: italic;
+  margin: 1.5em 0;
+}
+
+/* Code block title */
+.md-typeset .highlight .filename {
+  background-color: var(--md-code-bg-color);
+  padding: 0.5em 1em;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  font-size: 0.8em;
+}
+
+/* Content tabs */
+.md-typeset .tabbed-set > label {
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+/* Search improvements */
+.md-search__form {
+  border-radius: 6px;
+}
+
+/* Back to top button */
+.md-top {
+  background-color: var(--md-primary-fg-color);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Keyboard keys */
+.md-typeset .keys kbd {
+  border-radius: 4px;
+  padding: 0.15em 0.5em;
+  font-size: 0.85em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Task list checkboxes */
+.md-typeset .task-list-indicator::before {
+  border-radius: 3px;
+}
+
+/* Better spacing for nested lists */
+.md-typeset ul ul,
+.md-typeset ol ul,
+.md-typeset ul ol,
+.md-typeset ol ol {
+  margin: 0.5em 0;
+}
+
+/* Command examples styling */
+.md-typeset pre.language-bash::before,
+.md-typeset pre.language-shell::before {
+  content: "Terminal";
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.5em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Python code examples */
+.md-typeset pre.language-python::before {
+  content: "Python";
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.5em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* YAML examples */
+.md-typeset pre.language-yaml::before {
+  content: "YAML";
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.5em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* JSON examples */
+.md-typeset pre.language-json::before {
+  content: "JSON";
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.5em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive improvements for mobile */
+@media screen and (max-width: 76.1875em) {
+  .md-typeset {
+    font-size: 0.85rem;
+  }
+
+  .md-typeset h1 {
+    font-size: 1.8em;
+  }
+
+  .md-typeset h2 {
+    font-size: 1.4em;
+  }
+}
+
+/* Print styles */
+@media print {
+  .md-typeset {
+    font-size: 11pt;
+  }
+
+  .md-typeset a {
+    text-decoration: underline;
+  }
+
+  .md-typeset pre,
+  .md-typeset code {
+    border: 1px solid #ddd;
+  }
+}
+
+/* Improve horizontal rule visibility */
+.md-typeset hr {
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  margin: 2em 0;
+}
+
+/* Better definition list styling */
+.md-typeset dt {
+  font-weight: 600;
+  margin-top: 1em;
+}
+
+.md-typeset dd {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}

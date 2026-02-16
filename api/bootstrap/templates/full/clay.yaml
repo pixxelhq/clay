@@ -3,7 +3,7 @@ kind: block
 type: processing
 name: {{ .Name | ToLower }}
 version: v0.0.1
-author: <please-fill-in-here>@pixxel.co.in
+author: <please-fill-in-here>
 tags:
   - imagery
   - processing

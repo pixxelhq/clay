@@ -93,8 +93,6 @@ The object essentially communicates _three_ things,
 
     When our discretization type is `interval` we specify the `range` attribute. When our discretization type is `index`, we specify the `value` attribute.
 
-For API Reference, check [types.md](types.md#raster-discretization).
-
 **Example for `index`-based discretization**
 
 ```python

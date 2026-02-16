@@ -1,71 +1,189 @@
-# 10000 Feet View: How does ML @ Pixxel Work?
+# Clay Architecture Overview
 
-This document is intended for someone satisfying one (or more) of the following criteria,
-
-* You are on the Analytics / R&D team but haven't deployed a model yet and this is your first rodeo.
-* You just joined the Platform / Analytics / R&D Team and trying to wrap your head around.
-* You are one of the friendly folks on the product team wanting to understand how it all works.
-* Anyone else whose job doesn't involve writing code.
-
-If you don't satisfy any of these criteria, you probably already know all of these. In spite of this, you are more than welcome to carry-on!
+This document provides a high-level overview of Clay's architecture, components, and how they work together to enable standardized model deployment.
 
 ## Glossary
 
-Before we march on, let us settle on a common vocabulary.
+* **Model**: A function that takes inputs, performs computations, and returns outputs. It can be anything from simple arithmetic to complex deep learning models.
 
-* **Model**: Any *F(x)* that does some math. As in, takes an input, does some *math*, and returns an output. *X + Y = Z* yes that's a model. A cutting edge deep-learning model, yes that too, is a model.
+* **Block**: Clay's terminology for a packaged model with its specification, container, and metadata.
 
-* **Infrastructure**: Engineer-speak for hotch-potch of servers, networks, gateways and some other buzzwords. All our software runs on these things (At least most of it). Oh and they are very expensive.
+* **ModelWrapper**: The Python interface that all Clay models implement, defining setup, preprocess, inference, and postprocess methods.
 
-* **Kubernetes**: A magical software over infrastructure that manages and runs all our software.
+* **Orchestrator**: The system responsible for running models (e.g., Kubernetes, Docker, cloud services). Pixxel has its own orchestrator called ORCHESTRATOR, which we use to deploy our model on our platform [Platform](https://aurora.pixxel.space/){:target="_blank"}.
 
-* **Cluster**: Referred also as "*an environment*" internally, a (mostly) isolated version of *kubernetes* that runs different versions of our software. There are essentially *three clusters* - **dev**, **staging** and **production**.
+* **Runner**: Clay's execution engine that handles model lifecycle, input/output processing, and communication with the orchestrator.
 
-    1. *Dev Cluster*: Well, it's for devs. Any software written first gets deployed here. Usually this doesn't work most of the times.
+* **Registry**: Centralized service storing model metadata, versions, and specifications.
 
-    2. *Staging Cluster*: Post a lot of fixing, software deployed earlier in dev, gets promoted to staging. This is the last step before code is pushed to `production` for customers to use. Hence, software deployed here needs to be *stable*.
+* **Block Assets**: Files stored in cloud storage (S3) associated with a block, such as pre-trained model weights, configuration files, or reference data. Assets can be shared across all versions or version-specific.
 
-    3. *Production Cluster*: Well, this is the final stage and ideally everything *must* work.
+* **Type System**: Clay's standardized data types (Raster, Vector, Number, etc.) that enable models to communicate.
 
-* **Orchestrator**: A service that manages and runs all ML related features on Platform.
+## High-Level Workflow
 
-* **Clay**: A tool that *wraps* any *model* and ensures that they work on our *infrastructure*.
+```
+┌─────────────────┐
+│ Model Developer │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│   Model Development (Clay)      │
+│   • Write ModelWrapper code     │
+│   • Define specification        │
+│   • Test locally                │
+└────────┬────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│   Build & Package (Clay CLI)    │
+│   • Generate Dockerfile         │
+│   • Build container             │
+│   • Publish to registry         │
+└────────┬────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│   Orchestrator (Your Choice)    │
+│   • Pull container              │
+│   • Provide environment         │
+│   • Execute model               │
+└────────┬────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│   Clay Runtime (Runner)         │
+│   • Validate inputs             │
+│   • Execute ModelWrapper        │
+│   • Handle outputs              │
+└─────────────────────────────────┘
+```
 
-## How it works
+## Key Components
 
-![orchestrator-high-level](assets/orchestrator-high-level.png)
+### 1. Clay CLI
 
-* The model author does a lot of research and creates a model.
-* After the model is determined fit for release, the author *wraps* the model with *clay*.
-* The author then adds the model to Orchestrator.
-* Orchestrator then makes this model available for broader consumption by users.
-* A user selects the model on Platform, runs it for some input and gets the outputs.
+Command-line tool for model development:
 
-## Which Environment Variables Are Required?
+* Create project scaffolding
+* Generate Dockerfiles
+* Build containers
+* Test locally
+* Publish to registry
 
-Clay relies on several key environment variables during model execution.  
-On our platform, these variables are automatically injected by Orchestrator when a model is launched.
+```bash
+clay create project ./mymodel MyModel
+clay build
+clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" mymodel:0.0.1
+```
+For complete reference, see [Command Reference](cli-reference.md)
 
-Below is a closer look at each required environment variable and its role within Clay:
+### 2. Clay Python SDK
 
-- **How they're set:**  
-  These variables are managed by our orchestration system (Orchestrator) and provided to Clay to ensure seamless integration and execution.
+Runtime library providing:
 
-- **Why you're using them:**  
-  They are essential for configuring the runtime environment, handling input/output data, tracking execution, and enabling communication between components.
+* **ModelWrapper**: Base class for all models
+* **Type System**: Raster, Vector, Number, String, Date, Tabular
+* **Runners**: Clay's execution engine that handles model lifecycle, input/output processing, and  communication with the orchestrator.
+* **Storage**: Abstraction over s3(currently supported), local filesystem
+* **Logging**: [Structured JSON logging](logging.md)
+* **Progress Tracking**: [Built-in progress reporting](progress.md)
 
-For detailed descriptions of each variable and guidance on their usage, refer to:  
-[Environment Variables Reference](env_requirement.md)
+### 3. Block Specification
 
-Done. That's it.
+YAML configuration declaring:
+
+* Model metadata (name, version, author)
+* Inputs and outputs with types
+* Build instructions (dependencies, Python version)
+
+For complete reference, see [Block Specifications](spec.md).
+
+### 4. Clay Registry
+
+Centralized model management:
+
+* REST API for registry operations
+* PostgreSQL backend for metadata
+* Version tracking and history
+* Model discovery and querying
+
+For complete reference, see [Clay Registry](registry.md).
+
+### 5. Block Assets
+
+Cloud storage for model-related files:
+
+* Upload, download, and list assets via CLI
+* Name-level assets shared across all versions
+* Version-specific assets for particular releases
+* Support for S3 (GCS and Azure coming soon)
+
+For complete reference, see [Block Assets Management](block-assets.md).
+
+### 6. Type System
+
+Standardized data types enabling model interoperability:
+
+| Type | Purpose |
+|------|---------|
+| **Raster** | GeoTIFF, satellite imagery |
+| **Vector** | GeoJSON, polygons |
+| **Number** | Integers, floats |
+| **String** | Text data |
+| **Date** | Temporal data |
+| **Tabular** | CSV, structured data |
+
+Types provide validation, metadata, and consistent serialization.
+
+For complete reference, see [Input/Output & Datatypes](IO.md).
+## How Models Work
+
+### The ModelWrapper Interface
+
+Every Clay model implements four methods:
+
+```python
+from clay import ModelWrapper
+
+class MyModel(ModelWrapper):
+    def setup(self, **parameters):
+        """Initialize model once at startup"""
+        # Load weights, initialize resources
+        pass
+
+    async def preprocess(self, **inputs):
+        """Prepare inputs for inference"""
+        # Validate, transform, prepare data
+        return processed_data
+
+    async def inference(self, **processed_data):
+        """Run model predictions"""
+        # Execute model logic
+        return predictions
+
+    async def postprocess(self, **predictions):
+        """Format outputs"""
+        # Convert to output types
+        return formatted_outputs
+```
+
+### Execution Flow
+
+1. **Startup**: Runner calls `setup()` with parameters from specification
+2. **Input Processing**: Runner validates inputs against specification, downloads files if needed
+3. **Preprocessing**: Runner calls `preprocess()` with validated inputs
+4. **Inference**: Runner calls `inference()` with preprocessed data
+5. **Postprocessing**: Runner calls `postprocess()` with inference results
+6. **Output Handling**: Runner validates outputs, uploads files to storage
+7. **Completion**: Runner reports success/failure to orchestrator
+
+For tutorial on how to build a model, see [Tutorial](model-development.md)
+## Environment Variables
+
+Clay uses environment variables for runtime configuration:
+
+For complete reference, see [Environment Variables](env-requirements.md).
 
 
-## Things I *skipped* over
-
-* The web of dependencies between different services (eg: Atlas <> Orchestrator) and teams (analyics <> MLOps, Studio <> MLOps etc).
-
-* *Data types* i.e. data that the models are allowed to accept and produce.
-
-* Intricacies of workflow and direct insight execution. (*They are different*)
-
-* The *actual* APIs that people will be using.

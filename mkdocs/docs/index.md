@@ -2,16 +2,37 @@
 
 [Visit the project on Github](https://github.com/example/clay)
 
-Clay is the in-house framework used to deploy models onto Pixxel's infrastructure.
+Clay is an open-source framework that helps you package your models in a standardized format, enabling seamless deployment across any infrastructure.
 
-Clay lets Data and Research Scientists focus on building better models by abstracting away the *details related to deployment, infrastructure etc*.
+## Why Use Clay?
+Clay lets you focus on defining your model while abstracting away all the engineering complexity
 
-This page serves as a guide to reading this documentation.
+* **Any ML Model**: Package models built with PyTorch, TensorFlow, scikit-learn, or any framework
+* **Geospatial Support**: Built-in handling for raster and vector data types used in satellite imagery
+* **Zero Boilerplate**: Auto-generates Dockerfiles, APIs, and container configurations
+* **Deploy Anywhere**: Run on Kubernetes, cloud services, or on-premise infrastructure
+* **Model Registry**: Version, discover, and manage models across your organization
+* **Storage Abstraction**: Seamlessly handle S3(currently supported), GCS, Azure, or local file systems
 
-This documentation is intended for both technical and non-technical users and others alike. Hence, below is a *ordered* list of recommended reads,
+## Who is Clay For?
 
-1. You have no idea how anything ML @ Pixxel work: [10000 Feet View](overview.md).
+* **Data Scientists**: Focus on model development without worrying about deployment complexities
+* **ML Engineers**: Standardize model deployment across different environments
+* **Platform Teams**: Integrate ML models into existing infrastructure
+* **Organizations**: Enable model discovery, versioning, and orchestration at scale
 
-2. You want a quick rundown of important `Clay` concepts: [Five Minute Blitz](blitz-concepts.md).
+## How Clay Works
 
-3. You are here for the API Reference: [API Reference](api-reference.md)
+* **Write your model** using any ML framework (PyTorch, TensorFlow, scikit-learn, etc.)
+* **Define a specification** in `clay.yaml` with inputs, outputs, and runtime requirements
+* **Generate a Dockerfile** using `clay create dockerfile`
+* **Build and publish** the container to your registry with `clay publish`
+* **Deploy anywhere** — Clay handles the runtime execution and storage abstraction
+
+## Next Steps
+
+Ready to get started? Head to the [Getting Started](getting-started.md) guide to install Clay and create your first model.
+
+### For Pixxel Users
+
+If you're using Clay within the Pixxel platform, see the **[Pixxel Platform Integration](pixxel-integration.md)** guide for organization-specific deployment workflows.

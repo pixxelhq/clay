@@ -81,8 +81,6 @@ class ModelWrapper:
         """
         Args:
             config (str): Path to model specification file.
-            protocol (str, optional):
-                Storage protocol to be used internally. Defaults to "abfs".
             logger (Optional[Logger], optional):
                 Custom logger. If not provided, _clay_ uses it's internal default logger.
                 Defaults to None.
@@ -250,7 +248,7 @@ class ModelWrapper:
 
         Args:
             file_path (str): path of asset to be added
-            io_name(str): name of the input or output
+            io_name (str): name of the input or output
             is_input (bool): set to false if asset is an output
 
         """
