@@ -1,13 +1,8 @@
-from typing import ClassVar as _ClassVar
-from typing import Iterable as _Iterable
-from typing import Mapping as _Mapping
-from typing import Optional as _Optional
-from typing import Union as _Union
-
-from google.protobuf import descriptor as _descriptor
-from google.protobuf import message as _message
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -646,15 +641,19 @@ class DateValidation(_message.Message):
     def __init__(self) -> None: ...
 
 class StringValidation(_message.Message):
-    __slots__ = ("regex_match",)
+    __slots__ = ("regex_match", "allowed_values")
     REGEX_MATCH_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_VALUES_FIELD_NUMBER: _ClassVar[int]
     regex_match: str
-    def __init__(self, regex_match: _Optional[str] = ...) -> None: ...
+    allowed_values: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, regex_match: _Optional[str] = ..., allowed_values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class NumberValidation(_message.Message):
-    __slots__ = ("min_value", "max_value")
+    __slots__ = ("min_value", "max_value", "allowed_values")
     MIN_VALUE_FIELD_NUMBER: _ClassVar[int]
     MAX_VALUE_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_VALUES_FIELD_NUMBER: _ClassVar[int]
     min_value: float
     max_value: float
-    def __init__(self, min_value: _Optional[float] = ..., max_value: _Optional[float] = ...) -> None: ...
+    allowed_values: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, min_value: _Optional[float] = ..., max_value: _Optional[float] = ..., allowed_values: _Optional[_Iterable[float]] = ...) -> None: ...

@@ -540,6 +540,8 @@ message DateValidation {
 message StringValidation {
   // Regular expression pattern to validate string values
   optional string regex_match = 1;
+  // List of allowed values (enum constraint)
+  repeated string allowed_values = 2;
 }
 
 // NumberValidation defines validation rules for numbers
@@ -548,4 +550,6 @@ message NumberValidation {
   optional double min_value = 1;
   // Maximum allowed value
   optional double max_value = 2;
+  // List of allowed values (enum constraint)
+  repeated double allowed_values = 3;
 }
