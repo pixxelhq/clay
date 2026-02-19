@@ -1,13 +1,14 @@
 import abc
+import re
 import typing
 from typing import Any, Dict
 
 from google.protobuf.json_format import MessageToDict, MessageToJson, ParseDict
 from typing_extensions import Optional, Union
 
-import datatypes.data_pb2 as gen_types
-from datatypes import data_pb2
-from datatypes.data_pb2 import *
+from . import data_pb2
+from . import data_pb2 as gen_types
+from .data_pb2 import *
 
 T = typing.TypeVar("T")
 
@@ -30,10 +31,7 @@ Data = Union[
 ]
 
 Properties = Union[
-    gen_types.RasterProperties,
-    gen_types.VectorProperties,
-    gen_types.TabularProperties,
-    gen_types.DateProperties
+    gen_types.RasterProperties, gen_types.VectorProperties, gen_types.TabularProperties, gen_types.DateProperties
 ]
 
 
@@ -58,9 +56,7 @@ class InvalidFieldTypeError(DataWrapperError):
         self.field = field
         self.expected_type = expected_type
         self.received_type = received_type
-        super().__init__(
-            f"Invalid type for field '{field}'. Expected {expected_type}, got {received_type}"
-        )
+        super().__init__(f"Invalid type for field '{field}'. Expected {expected_type}, got {received_type}")
 
 
 class UnsupportedFieldTypeError(DataWrapperError):
@@ -68,9 +64,7 @@ class UnsupportedFieldTypeError(DataWrapperError):
 
     def __init__(self, field: str):
         self.field = field
-        super().__init__(
-            f"Field '{field}' is unsupported for set_field operation"
-        )
+        super().__init__(f"Field '{field}' is unsupported for set_field operation")
 
 
 class DataWrapperInterface(abc.ABC):
@@ -124,9 +118,7 @@ class DataWrapper(DataWrapperInterface):
         return self._proto_cls_initialised.name
 
     def get_format(self) -> str:
-        return gen_types.Format.DESCRIPTOR.values_by_number[
-            self._proto_cls_initialised.format
-        ].name
+        return gen_types.Format.DESCRIPTOR.values_by_number[self._proto_cls_initialised.format].name
 
     def get_type(self) -> str:
         return self._proto_cls_initialised.type
@@ -136,7 +128,7 @@ class DataWrapper(DataWrapperInterface):
 
     def set_value(self, value) -> None:
         self._proto_cls_initialised.value = value
-    
+
     def get_default(self) -> str:
         return self._proto_cls_initialised.default
 
@@ -156,9 +148,9 @@ class DataWrapper(DataWrapperInterface):
 
     def serialize_to_json(self) -> str:
         return MessageToJson(
-            self._proto_cls_initialised, 
-            preserving_proto_field_name=True,     
-            use_integers_for_enums=False, 
+            self._proto_cls_initialised,
+            preserving_proto_field_name=True,
+            use_integers_for_enums=False,
             always_print_fields_with_no_presence=True,
         )
 
@@ -177,7 +169,7 @@ class DataWrapper(DataWrapperInterface):
 
         if value is None:
             self._proto_cls_initialised.ClearField("properties")
-            return 
+            return
 
         if isinstance(value, dict):
             proto_msg = message_type()
@@ -185,11 +177,7 @@ class DataWrapper(DataWrapperInterface):
             value = proto_msg
         else:
             if not isinstance(value, fd.message_type._concrete_class):
-                raise InvalidFieldTypeError(
-                    "properties",
-                    message_type.__name__,
-                    value.DESCRIPTOR.full_name
-                )
+                raise InvalidFieldTypeError("properties", message_type.__name__, value.DESCRIPTOR.full_name)
         fv = getattr(self._proto_cls_initialised, fd.name, None)
         if fv is None:
             fv = message_type()
@@ -206,9 +194,9 @@ class DataWrapper(DataWrapperInterface):
             # Note: Message.HasField cannot tell you whether a repeated field is set or not.
             # for that you have to check the length
             if (
-                    field_descriptor.message_type
-                    and field_descriptor.message_type.has_options
-                    and field_descriptor.message_type.GetOptions().map_entry
+                field_descriptor.message_type
+                and field_descriptor.message_type.has_options
+                and field_descriptor.message_type.GetOptions().map_entry
             ):
                 map_field = getattr(self._proto_cls_initialised, field)
                 if not isinstance(value, dict):
@@ -238,9 +226,7 @@ class DataWrapper(DataWrapperInterface):
         return None
 
 
-def RasterFromDict(
-        d: Dict[str, Any], wrap: bool = False
-) -> Union[gen_types.Raster, DataWrapper]:
+def RasterFromDict(d: Dict[str, Any], wrap: bool = False) -> Union[gen_types.Raster, DataWrapper]:
     r = gen_types.Raster()
     ParseDict(d, r, ignore_unknown_fields=True)
     if not wrap:
@@ -249,9 +235,7 @@ def RasterFromDict(
     return dw
 
 
-def VectorFromDict(
-        d: Dict[str, Any], wrap: bool = False
-) -> Union[gen_types.Vector, DataWrapper]:
+def VectorFromDict(d: Dict[str, Any], wrap: bool = False) -> Union[gen_types.Vector, DataWrapper]:
     v = gen_types.Vector()
     ParseDict(d, v, ignore_unknown_fields=True)
     if not wrap:
@@ -260,9 +244,7 @@ def VectorFromDict(
     return dw
 
 
-def TabularFromDict(
-        d: Dict[str, Any], wrap: bool = False
-) -> Union[gen_types.Tabular, DataWrapper]:
+def TabularFromDict(d: Dict[str, Any], wrap: bool = False) -> Union[gen_types.Tabular, DataWrapper]:
     t = gen_types.Tabular()
     ParseDict(d, t, ignore_unknown_fields=True)
     if not wrap:
@@ -271,9 +253,7 @@ def TabularFromDict(
     return dw
 
 
-def DateFromDict(
-        d: Dict[str, Any], wrap: bool = False
-) -> Union[gen_types.Date, DataWrapper]:
+def DateFromDict(d: Dict[str, Any], wrap: bool = False) -> Union[gen_types.Date, DataWrapper]:
     t = gen_types.Date()
     ParseDict(d, t, ignore_unknown_fields=True)
     if not wrap:
@@ -282,9 +262,7 @@ def DateFromDict(
     return dw
 
 
-def StringFromDict(
-        d: Dict[str, Any], wrap: bool = False
-) -> Union[gen_types.String, DataWrapper]:
+def StringFromDict(d: Dict[str, Any], wrap: bool = False) -> Union[gen_types.String, DataWrapper]:
     s = gen_types.String()
     ParseDict(d, s, ignore_unknown_fields=True)
     if not wrap:
@@ -293,9 +271,7 @@ def StringFromDict(
     return dw
 
 
-def NumberFromDict(
-        d: Dict[str, Any], wrap: bool = False
-) -> Union[gen_types.Number, DataWrapper]:
+def NumberFromDict(d: Dict[str, Any], wrap: bool = False) -> Union[gen_types.Number, DataWrapper]:
     n = gen_types.Number()
     ParseDict(d, n, ignore_unknown_fields=True)
     if not wrap:
@@ -321,6 +297,7 @@ def FromDict(d: Dict[str, Any], wrap: bool = False) -> Union[Data, DataWrapper]:
     else:
         return NumberFromDict(d, wrap)
 
+
 def _convert_legacy_value_primitives_to_string_(v: Union[int, float, str, bool]):
     if isinstance(v, bool):
         return str(v).lower()
@@ -328,3 +305,103 @@ def _convert_legacy_value_primitives_to_string_(v: Union[int, float, str, bool])
         return str(v)
     return v
 
+
+class ValidationError(DataWrapperError):
+    """Raised when input validation fails"""
+
+    def __init__(self, field: str, message: str):
+        self.field = field
+        super().__init__(f"Validation failed for '{field}': {message}")
+
+
+def validate_string(name: str, value: str, validation: gen_types.StringValidation) -> None:
+    """Validate a string value against StringValidation rules.
+
+    When both allowed_values and regex_match are specified, both constraints must be satisfied.
+    allowed_values is checked first (fail-fast).
+
+    Args:
+        name: The input field name
+        value: The string value to validate
+        validation: The StringValidation proto message
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    # Check allowed_values constraint (checked first for fail-fast)
+    if len(validation.allowed_values) > 0 and value not in validation.allowed_values:
+        raise ValidationError(name, f"value '{value}' is not in allowed values {list(validation.allowed_values)}")
+
+    # Check regex pattern
+    if validation.HasField("regex_match"):
+        pattern = validation.regex_match
+        if not re.match(pattern, value):
+            raise ValidationError(name, f"value does not match regex pattern '{pattern}'")
+
+
+def validate_number(name: str, value: str, validation: gen_types.NumberValidation) -> None:
+    """Validate a number value against NumberValidation rules.
+
+    When both allowed_values and min/max constraints are specified, both must be satisfied.
+    allowed_values is checked first (fail-fast). Each min/max bound is checked independently.
+
+    Args:
+        name: The input field name
+        value: The number value as string
+        validation: The NumberValidation proto message
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    # Parse the value
+    try:
+        num_value = float(value)
+    except ValueError:
+        raise ValidationError(name, f"value '{value}' is not a valid number")
+
+    # Check allowed_values constraint (checked first for fail-fast)
+    if len(validation.allowed_values) > 0 and num_value not in validation.allowed_values:
+        raise ValidationError(name, f"value {num_value} is not in allowed values {list(validation.allowed_values)}")
+
+    # Check min/max range (each bound is checked independently)
+    if validation.HasField("min_value") and num_value < validation.min_value:
+        raise ValidationError(name, f"value {num_value} is less than minimum {validation.min_value}")
+    if validation.HasField("max_value") and num_value > validation.max_value:
+        raise ValidationError(name, f"value {num_value} is greater than maximum {validation.max_value}")
+
+
+def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
+    """Validate input data against specification.
+
+    Args:
+        input_data: The DataWrapper containing input data
+        spec: The input specification dict from clay.yaml
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    validation = spec.get("validation")
+    if validation is None:
+        return
+
+    name = input_data.get_name()
+    value = input_data.get_value()
+    fmt = input_data.get_format()
+
+    if fmt == "string":
+        string_validation = gen_types.StringValidation()
+        if "regex_match" in validation:
+            string_validation.regex_match = validation["regex_match"]
+        if "allowed_values" in validation:
+            string_validation.allowed_values.extend(validation["allowed_values"])
+        validate_string(name, value, string_validation)
+
+    elif fmt == "number":
+        number_validation = gen_types.NumberValidation()
+        if "min_value" in validation:
+            number_validation.min_value = validation["min_value"]
+        if "max_value" in validation:
+            number_validation.max_value = validation["max_value"]
+        if "allowed_values" in validation:
+            number_validation.allowed_values.extend(validation["allowed_values"])
+        validate_number(name, value, number_validation)

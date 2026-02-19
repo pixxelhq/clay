@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
+	"slices"
 	"strconv"
 
 	generated "github.com/example/clay/proto/go/generated"
@@ -15,6 +17,8 @@ import (
 
 const (
 	protoMessageMaxRecursionLimit = 32
+	// epsilon for floating point comparison
+	floatEpsilon = 1e-9
 )
 
 var (
@@ -463,11 +467,21 @@ func ValidateDate(_ DataWrapperInterface, _ *generated.DateValidation) error {
 }
 
 func ValidateString(input DataWrapperInterface, validator *generated.StringValidation) error {
-	name, _ := input.GetName()
+	name, err := input.GetName()
+	if err != nil {
+		return err
+	}
 	v, err := input.GetValue()
 	if err != nil {
 		return err
 	}
+
+	// Check allowed_values constraint
+	if len(validator.AllowedValues) > 0 && !slices.Contains(validator.AllowedValues, v) {
+		return fmt.Errorf("input '%s' value '%s' is not in allowed values %v", name, v, validator.AllowedValues)
+	}
+
+	// Check regex pattern
 	if validator.RegexMatch != nil {
 		regex, err := regexp.Compile(*validator.RegexMatch)
 		if err != nil {
@@ -481,8 +495,9 @@ func ValidateString(input DataWrapperInterface, validator *generated.StringValid
 }
 
 func ValidateNumber(input DataWrapperInterface, validator *generated.NumberValidation) error {
-	if validator.MinValue == nil || validator.MaxValue == nil {
-		return nil
+	name, err := input.GetName()
+	if err != nil {
+		return err
 	}
 	v, err := input.GetValue()
 	if err != nil {
@@ -494,10 +509,29 @@ func ValidateNumber(input DataWrapperInterface, validator *generated.NumberValid
 		return err
 	}
 
-	if value > *validator.MaxValue || value < *validator.MinValue {
-		return fmt.Errorf("value %s is not in range", v)
+	// Check allowed_values constraint (using epsilon comparison for floats)
+	if len(validator.AllowedValues) > 0 && !containsFloat(validator.AllowedValues, value) {
+		return fmt.Errorf("input '%s' value %v is not in allowed values %v", name, value, validator.AllowedValues)
+	}
+
+	// Check min/max range (each bound is checked independently)
+	if validator.MinValue != nil && value < *validator.MinValue {
+		return fmt.Errorf("input '%s' value %v is less than minimum %v", name, value, *validator.MinValue)
+	}
+	if validator.MaxValue != nil && value > *validator.MaxValue {
+		return fmt.Errorf("input '%s' value %v is greater than maximum %v", name, value, *validator.MaxValue)
 	}
 	return nil
+}
+
+// containsFloat checks if a float64 value is in a slice using epsilon comparison
+func containsFloat(slice []float64, val float64) bool {
+	for _, v := range slice {
+		if math.Abs(v-val) < floatEpsilon {
+			return true
+		}
+	}
+	return false
 }
 
 func parseNumber(value string) (float64, error) {
