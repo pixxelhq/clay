@@ -392,6 +392,21 @@ inputs:
       max_value: 1.0
 ```
 
+### Number Allowed Values
+
+```yaml
+inputs:
+  - name: zoom_level
+    format: number
+    type: int
+    validation:
+      allowed_values:
+        - 10
+        - 12
+        - 14
+        - 16
+```
+
 ### String Validation
 
 ```yaml
@@ -401,6 +416,21 @@ inputs:
     type: str
     validation:
       regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-...'
+```
+
+### String Allowed Values
+
+```yaml
+inputs:
+  - name: classification_type
+    format: string
+    type: str
+    validation:
+      allowed_values:
+        - "urban"
+        - "forest"
+        - "water"
+        - "agriculture"
 ```
 
 ### Area Validation (Raster/Vector)

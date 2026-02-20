@@ -324,6 +324,25 @@ class ModelWrapper:
         """
         raise NotImplementedError
 
+    def _validate_inputs(self, inputs: Dict[str, Any]) -> None:
+        """Validate inputs against their specifications.
+
+        Args:
+            inputs: Dictionary of input name to DataWrapper
+
+        Raises:
+            datatypes.ValidationError: If validation fails
+        """
+        # Build a map of input specs by name
+        input_specs = {spec["name"]: spec for spec in self.config.inputs}
+
+        for name, value in inputs.items():
+            if name not in input_specs:
+                continue
+            spec = input_specs[name]
+            if isinstance(value, datatypes.DataWrapper):
+                datatypes.validate_input(value, spec)
+
     async def infer(self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]) -> InferenceCtx:
         """Entrypoint to the model inference process. All runners would call the
         `infer` method defined on the model at a certain point to start the actual
@@ -351,6 +370,8 @@ class ModelWrapper:
         Returns:
             InferenceCtx: A context class scoped to the inference run.
         """
+        # Validate inputs before processing
+        self._validate_inputs(inputs)
 
         d: Dict[str, Union[datatypes.DataWrapper, datatypes.Data]] = inputs
         if not self.wrap_inputs:

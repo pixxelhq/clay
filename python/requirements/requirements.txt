@@ -15,4 +15,4 @@ setuptools
 jq
 nest_asyncio
 moto
-pixxel-datatypes
+pixxel-datatypes>=1.1.0
