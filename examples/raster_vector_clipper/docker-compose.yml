@@ -27,7 +27,7 @@ services:
       exit 0;
       "
 
-  model:
+  block:
     build:
       context: "../../"
       secrets:

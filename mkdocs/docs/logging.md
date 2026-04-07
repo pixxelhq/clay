@@ -1,6 +1,6 @@
 # Logging
 
-Clay provides structured JSON logging through the `ModelWrapper`'s `self.logger` attribute. Use it to print useful information at various stages of the model pipeline.
+Clay provides structured JSON logging through the `BlockWrapper`'s `self.logger` attribute. Use it to print useful information at various stages of the block pipeline.
 
 ## Why Use Clay's Logger?
 
@@ -29,7 +29,7 @@ Output:
   "level": "INFO",
   "timestamp": "2024-03-21T05:28:27.435454Z",
   "logger": "DemoClay",
-  "loc": "model.py:preprocess:67",
+  "loc": "block.py:preprocess:67",
   "message": "preprocessing complete"
 }
 ```
@@ -45,7 +45,7 @@ Clay's logger automatically includes:
 |-------|-------------|
 | `level` | Severity of the message: `DEBUG`, `INFO`, `WARNING`, or `ERROR` |
 | `timestamp` | Exact time the message was logged (ISO 8601 format) |
-| `logger` | Name of the logger object (typically your model class name) |
+| `logger` | Name of the logger object (typically your block class name) |
 | `loc` | File, function, and line number where the log was triggered |
 | `message` | Your actual log message |
 
@@ -60,17 +60,17 @@ Use the appropriate log level based on the message importance:
 | `WARNING` | Something unexpected happened, but execution continues |
 | `ERROR` | A serious problem that prevented an operation |
 
-## Using the Logger in Models
+## Using the Logger in Blocks
 
-The logger is available as `self.logger` in any `ModelWrapper` method:
+The logger is available as `self.logger` in any `BlockWrapper` method:
 
 ```python
-from clay.core import ModelWrapper
+from clay.core import BlockWrapper
 import datatypes
 
-class MyModel(ModelWrapper):
+class MyBlock(BlockWrapper):
     def setup(self, **parameters):
-        self.logger.info("Model initialized")
+        self.logger.info("Block initialized")
 
     async def preprocess(self, input_raster: datatypes.Raster):
         self.logger.info(f"Processing raster: {input_raster.value}")

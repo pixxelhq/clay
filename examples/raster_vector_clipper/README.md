@@ -1,10 +1,10 @@
-# RasterVectorClipper - API Test Model
+# RasterVectorClipper - API Test Block
 
-A stable Clay model for clipping raster data using vector geometries. Designed for end-to-end API testing with MinIO storage.
+A stable Clay block for clipping raster data using vector geometries. Designed for end-to-end API testing with MinIO storage.
 
 ## Overview
 
-This model takes a raster (GeoTIFF) and a vector (GeoJSON) as inputs and performs spatial clipping operations. It's specifically designed to be stable and robust for automated testing scenarios.
+This block takes a raster (GeoTIFF) and a vector (GeoJSON) as inputs and performs spatial clipping operations. It's specifically designed to be stable and robust for automated testing scenarios.
 
 ## Features
 
@@ -17,7 +17,7 @@ This model takes a raster (GeoTIFF) and a vector (GeoJSON) as inputs and perform
 
 ## Architecture
 
-The model follows Clay's standard architecture with clear separation of responsibilities:
+The block follows Clay's standard architecture with clear separation of responsibilities:
 
 - **Preprocess**: Download inputs from MinIO, validate files, check CRS compatibility and spatial intersection
 - **Inference**: Perform actual raster clipping using rasterio.mask
@@ -63,16 +63,16 @@ The model follows Clay's standard architecture with clear separation of responsi
    - `2024_02_24_mosaic.tif` (raster)
    - `Clay_Demo-05-03-2024.geojson` (vector)
 
-### Running the Model
+### Running the Block
 
 ```bash
 # Install dependencies
 make setup
 
 # Run tests
-python raster_vector_clipper/test_model.py
+python raster_vector_clipper/test_block.py
 
-# Package model (if needed)
+# Package block (if needed)
 make package
 ```
 
@@ -88,7 +88,7 @@ docker-compose up
 
 ## Error Handling
 
-The model includes comprehensive error handling for:
+The block includes comprehensive error handling for:
 
 - **File Validation**: Missing or corrupted files
 - **CRS Issues**: Incompatible or missing coordinate reference systems
@@ -99,7 +99,7 @@ The model includes comprehensive error handling for:
 
 ## Example Usage
 
-The model can be tested with the provided sample data or integrated into larger Clay workflows for automated testing scenarios.
+The block can be tested with the provided sample data or integrated into larger Clay workflows for automated testing scenarios.
 
 ## Development Notes
 

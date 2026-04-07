@@ -12,7 +12,7 @@ func TestListBlocks(t *testing.T) {
 		name           string
 		serverResponse string
 		serverStatus   int
-		expectedBlocks Models
+		expectedBlocks Blocks
 		expectedError  string
 	}{
 		{
@@ -33,8 +33,8 @@ func TestListBlocks(t *testing.T) {
                 "error": ""
             }`,
 			serverStatus: http.StatusOK,
-			expectedBlocks: Models{
-				&Model{
+			expectedBlocks: Blocks{
+				&Block{
 					ID:               "1",
 					Name:             "block1",
 					Kind:             "kind1",
@@ -72,11 +72,11 @@ func TestListBlocks(t *testing.T) {
 			}))
 			defer server.Close()
 
-			// Create a modelRegistry instance with the test server URL
-			mr := NewModelRegistry(server.URL, 2*time.Second)
+			// Create a blockRegistry instance with the test server URL
+			br := NewBlockRegistry(server.URL, 2*time.Second)
 
 			// Call the ListBlocks method
-			blocks, err := mr.ListBlocks()
+			blocks, err := br.ListBlocks()
 
 			// Check the expected error
 			if tt.expectedError != "" && err.Error() != tt.expectedError {
@@ -92,7 +92,7 @@ func TestListBlocks(t *testing.T) {
 }
 
 // Helper function to compare two blocks slices
-func compareBlocks(a, b Models) bool {
+func compareBlocks(a, b Blocks) bool {
 	if len(a) != len(b) {
 		return false
 	}

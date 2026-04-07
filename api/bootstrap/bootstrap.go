@@ -18,17 +18,17 @@ var fullTemplate embed.FS
 
 const fullTemplateRoot = "templates/full"
 
-// Bootstraps a project in `outputDir` with `modelName` as a filler
+// Bootstraps a project in `outputDir` with `blockName` as a filler
 // in appropriate locations in code and configuration
-func CreateProject(outputDir, modelName string) error {
-	err := verifyModelName(modelName)
+func CreateProject(outputDir, blockName string) error {
+	err := verifyBlockName(blockName)
 	if err != nil {
 		return err
 	}
-	titlemodelName := strcase.ToCamel(modelName)
-	specmodelName := strcase.ToSnake(modelName)
-	data := getTemplateData(titlemodelName, specmodelName)
-	outputDir = filepath.Join(outputDir, specmodelName)
+	titleblockName := strcase.ToCamel(blockName)
+	specblockName := strcase.ToSnake(blockName)
+	data := getTemplateData(titleblockName, specblockName)
+	outputDir = filepath.Join(outputDir, specblockName)
 	fmt.Printf("Cleaning up %s ...\n-----------------\n", outputDir)
 	deleteDir(outputDir)
 	// Create the output directory if it doesn't exist
@@ -43,7 +43,7 @@ func CreateProject(outputDir, modelName string) error {
 		}
 		relPath, _ := filepath.Rel(fullTemplateRoot, path)
 		outPath := filepath.Join(outputDir, relPath)
-		outPath = strings.Replace(outPath, "src", specmodelName, 1)
+		outPath = strings.Replace(outPath, "src", specblockName, 1)
 		if d.IsDir() {
 			if err := os.Mkdir(outPath, 0755); err != nil {
 				fmt.Println(outPath, err)

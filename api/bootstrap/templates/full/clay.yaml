@@ -8,7 +8,7 @@ tags:
   - imagery
   - processing
 
-parameters: # model initialization params
+parameters: # block initialization params
   - name: weight
     type: int
     default: 5

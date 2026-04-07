@@ -1,4 +1,4 @@
-name: "Build model"
+name: "Build block"
 
 on:
   workflow_dispatch
@@ -33,4 +33,4 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build the Docker image
         run: |
-          docker build --secret id=CODEARTIFACT_AUTH_TOKEN,env={{ "${{ secrets.CODEARTIFACT_AUTH_TOKEN }}" }} --tag modeltest .
+          docker build --secret id=CODEARTIFACT_AUTH_TOKEN,env={{ "${{ secrets.CODEARTIFACT_AUTH_TOKEN }}" }} --tag blocktest .

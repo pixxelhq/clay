@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from clay import ModelWrapper
+from clay import BlockWrapper
 
 YMXPLUSC_CONFIG = str((Path(__file__).parent / "ymxplusc.yaml").absolute())
 
 
-class YMXPLUSC(ModelWrapper):
+class YMXPLUSC(BlockWrapper):
     def setup(self, slope: float, intercept: float):
         self.slope = slope
         self.intercept = intercept

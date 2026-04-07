@@ -10,17 +10,17 @@ import (
 
 // createCmd represents the create command
 var projectCmd = &cobra.Command{
-	Use:   "project [outputDir] [modelName]",
-	Short: "Generate starter files for your model",
-	Long:  heredoc.Doc(`Generate starter files for your model`),
+	Use:   "project [outputDir] [blockName]",
+	Short: "Generate starter files for your block",
+	Long:  heredoc.Doc(`Generate starter files for your block`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 2 {
 			return fmt.Errorf("invalid argument to the command please check `clay create project --help`")
 		}
 		outputDir := args[0]
-		modelName := args[1]
-		err := bootstrap.CreateProject(outputDir, modelName)
+		blockName := args[1]
+		err := bootstrap.CreateProject(outputDir, blockName)
 		if err != nil {
 			fmt.Println(err)
 		}

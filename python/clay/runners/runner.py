@@ -12,11 +12,11 @@ import datatypes
 from clay import __version__ as clay_version
 from clay import type_utils, types, utils
 from clay.callback import CallbackInterface, ErrorType, HTTPCallback
-from clay.core import BaseRunner, ModelWrapper
+from clay.core import BaseRunner, BlockWrapper
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger
 from clay.storage.fs import create_provider, process_input_list, process_output_list, process_spec_files
-from clay.types import ModelStates
+from clay.types import BlockStates
 from clay.utils import cast_inputs, get_current_utc_time_iso, yaml_to_namespace
 
 
@@ -45,7 +45,7 @@ class RunnerConfig:
     # Legacy flag - no longer needed
     # _force_input_types_to_v2: bool = False
     _config: Optional[Dict[str, Any]]
-    _model_config: SimpleNamespace = {}  # type: ignore
+    _block_config: SimpleNamespace = {}  # type: ignore
     _callback_endpoint: str
     _callback_headers: Dict[str, str] = {}
     _callback_handler: CallbackInterface
@@ -63,7 +63,7 @@ class RunnerConfig:
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
                                                            "/tmp/inputs")
         # Legacy flag removed - always use proto types
-        self._model_config = yaml_to_namespace(config_path)
+        self._block_config = yaml_to_namespace(config_path)
         self._callback_endpoint = os.getenv(self._callback_endpoint_env_key, "http://localhost:3000/callback")
         self._callback_headers = json.loads(os.getenv(self._callback_headers_env_key, "{}"))
         self._remote_output_path = os.getenv(self._remote_output_path_env_key, "/tmp/clay/outputs")
@@ -71,7 +71,7 @@ class RunnerConfig:
         self._outputs_json_path = os.getenv(self._output_json_path_env_key, self._outputs_json_path)
         self._outputs_json_base_file_name = os.getenv(self._output_json_base_file_name_env_key,
                                                       self._outputs_json_base_file_name)
-        self.expected_outputs = dict((oi["name"], oi) for oi in self._model_config.outputs)
+        self.expected_outputs = dict((oi["name"], oi) for oi in self._block_config.outputs)
 
     def _process_input_json(self) -> None:
         if self._input_json is None:
@@ -98,8 +98,8 @@ class RunnerConfig:
     def get_local_artifact_download_path(self) -> str:
         return self._get_local_artifact_download_path
 
-    def get_model_config(self) -> SimpleNamespace:
-        return self._model_config
+    def get_block_config(self) -> SimpleNamespace:
+        return self._block_config
 
     def get_callback_endpoint(self) -> str:
         return self._callback_endpoint
@@ -126,20 +126,20 @@ class RunnerConfig:
 class JobRunner(BaseRunner):
     def __init__(
             self,
-            model_name: str,
-            model_class: Type[ModelWrapper],
-            model_args: Dict[str, Any],
+            block_name: str,
+            block_class: Type[BlockWrapper],
+            block_args: Dict[str, Any],
             cfg_path: str,
             logger: Optional[Logger] = None,
             running_locally: bool = True,
     ) -> None:
         self._params = RunnerConfig(config_path=cfg_path)
-        self._model_name: str = model_name
+        self._block_name: str = block_name
         self._inputs: Dict[str, datatypes.DataWrapper] = {}
-        self._model_class: Type[ModelWrapper] = model_class
+        self._block_class: Type[BlockWrapper] = block_class
         self._running_locally: bool = running_locally
-        self._model_args: Dict[str, Any] = model_args
-        self._model: ModelWrapper
+        self._block_args: Dict[str, Any] = block_args
+        self._block: BlockWrapper
         self._callback_handler: CallbackInterface = HTTPCallback(
             callback_endpoint=self._params.get_callback_endpoint(),
             headers=self._params.get_callback_headers(),
@@ -156,25 +156,25 @@ class JobRunner(BaseRunner):
         if logger is None:
             log_level = logging.DEBUG if self._running_locally else logging.INFO
             logger = ClayLogger(
-                logger_name=self._model_name,
+                logger_name=self._block_name,
                 propagate=True,
                 level=log_level,
             )
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
 
-    def _init_model(self) -> None:
-        self.logger.info("initializing model constructor")
-        self._model: ModelWrapper = self._model_class(**self._model_args)
-        self.logger.info("initializing model constructor completed")
-        self._model.set_progress = self.set_progress
-        self._model.get_progress = self.get_progress
-        self._model.add_progress = self.add_progress
-        self._model.add_asset = self.add_asset
+    def _init_block(self) -> None:
+        self.logger.info("initializing block constructor")
+        self._block: BlockWrapper = self._block_class(**self._block_args)
+        self.logger.info("initializing block constructor completed")
+        self._block.set_progress = self.set_progress
+        self._block.get_progress = self.get_progress
+        self._block.add_progress = self.add_progress
+        self._block.add_asset = self.add_asset
 
     def _input_json_to_data_types(self, input_json: List[Dict[str, Any]]) -> None:
         inputs: Dict[str, datatypes.DataWrapper] = {}
-        input_config_dict = utils.convert_list_to_dict(self._params.get_model_config().inputs, "name")
+        input_config_dict = utils.convert_list_to_dict(self._params.get_block_config().inputs, "name")
         for input_data in input_json:
             typed_input: datatypes.DataWrapper = type_utils.TypeFromDict(input_data)
             if typed_input.get_format() == types.FormatTypes.RASTER.value and not typed_input.get_field("stac_url"):
@@ -218,7 +218,7 @@ class JobRunner(BaseRunner):
             progress=100,
             start_time=self._start_time,
             end_time=get_current_utc_time_iso(),
-            status=ModelStates.COMPLETED
+            status=BlockStates.COMPLETED
         )
 
     def failure(
@@ -243,7 +243,7 @@ class JobRunner(BaseRunner):
             end_time=get_current_utc_time_iso(),
             failure_type=failure_type,
             err_msg=err_msg,
-            status=ModelStates.FAILED
+            status=BlockStates.FAILED
         )
 
     def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapper]) -> None:
@@ -258,7 +258,7 @@ class JobRunner(BaseRunner):
             out_dict = output.serialize_to_dict()
             output_properties = out_dict.get("properties")
             config_properties = (self._params.expected_outputs[output.get_name()]).get("properties")
-            merged_properties = deep_merge(output_properties, config_properties)  
+            merged_properties = deep_merge(output_properties, config_properties)
             if output.get_format() != "string":
                 output.set_properties(merged_properties)
             output_dict.append(output.serialize_to_dict())
@@ -337,7 +337,7 @@ class JobRunner(BaseRunner):
         self._logger.info("🎬 starting clay job runner version: %s", clay_version.__VERSION__)
         self._start_time = get_current_utc_time_iso()
 
-        self._init_model()
+        self._init_block()
         self._collect_inputs()
 
         self._callback_handler.send(
@@ -350,7 +350,7 @@ class JobRunner(BaseRunner):
         )
 
         try:
-            result = asyncio.get_event_loop().run_until_complete(self._model.infer(inputs=self._inputs, opts=None))
+            result = asyncio.get_event_loop().run_until_complete(self._block.infer(inputs=self._inputs, opts=None))
             wrapped_result = type_utils.WrapTypes(result._outputs_buffer)
             output_dict: Dict[str, datatypes.DataWrapper] = {}
             self._inference_output = wrapped_result  # type: ignore
@@ -360,9 +360,9 @@ class JobRunner(BaseRunner):
 
                 metadata = output.get_field("metadata")
                 if isinstance(metadata, dict):
-                    metadata["block-name"] = self._model_name
+                    metadata["block-name"] = self._block_name
                 else:
-                    metadata = {"block-name": self._model_name}
+                    metadata = {"block-name": self._block_name}
                 output.set_field("metadata", metadata)
 
                 output_dict[output.get_name()] = output  # type: ignore
@@ -390,6 +390,6 @@ def deep_merge(output_properties, config_properties):
             deep_merge(value, config_properties[key],)
         else:
             if key in config_properties:
-                print(f"Key '{key}' exists in both output and model config. Using value from output: {value}")
+                print(f"Key '{key}' exists in both output and block config. Using value from output: {value}")
             config_properties[key] = value
     return config_properties

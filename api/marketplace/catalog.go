@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-const catalogPath = "catalog_readme/model-README.md"
+const catalogPath = "catalog_readme/block-README.md"
 
 func UrlFuncMap(targetUrl string) map[string]interface{} {
 	return map[string]interface{}{
@@ -33,7 +33,7 @@ func ParseMarkdown(blockName string, blockVersion string, s3BucketUrl string) er
 	}
 	targetUrl.Path = path.Join(targetUrl.Path, blockName, blockVersion)
 
-	temp := template.Must(template.New("model-README.md").Funcs(UrlFuncMap(targetUrl.String())).ParseFiles(catalogPath))
+	temp := template.Must(template.New("block-README.md").Funcs(UrlFuncMap(targetUrl.String())).ParseFiles(catalogPath))
 	fo, err := os.Create("catalog_readme/parsed.md")
 	if err != nil {
 		return err

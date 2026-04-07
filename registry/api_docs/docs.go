@@ -20,14 +20,14 @@ const docTemplate = `{
     "paths": {
         "/v1/blocks": {
             "get": {
-                "description": "Return all the model with latest version.",
+                "description": "Return all the blocks with latest version.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Block"
                 ],
-                "summary": "Get the latest models from the registry",
+                "summary": "Get the latest blocks from the registry",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -50,14 +50,14 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "publish the specific version of the model.",
+                "description": "publish the specific version of the block.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Block"
                 ],
-                "summary": "Publish the model to clay registry",
+                "summary": "Publish the block to clay registry",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -82,18 +82,18 @@ const docTemplate = `{
         },
         "/v1/blocks/{name}": {
             "get": {
-                "description": "Returns all the versions of the model name.",
+                "description": "Returns all the versions of the block name.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Block"
                 ],
-                "summary": "Get model by name.",
+                "summary": "Get block by name.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Name of the model",
+                        "description": "Name of the block",
                         "name": "name",
                         "in": "path",
                         "required": true
@@ -123,25 +123,25 @@ const docTemplate = `{
         },
         "/v1/blocks/{name}/versions/{version}": {
             "get": {
-                "description": "Returns the model for the given version and name.",
+                "description": "Returns the block for the given version and name.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Block"
                 ],
-                "summary": "Get model by name and version.",
+                "summary": "Get block by name and version.",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Name of the model",
+                        "description": "Name of the block",
                         "name": "name",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Version of the model",
+                        "description": "Version of the block",
                         "name": "version",
                         "in": "path",
                         "required": true

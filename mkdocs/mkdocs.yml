@@ -223,12 +223,12 @@ nav:
     - Clay Registry: "registry.md"
     - Block Assets: "block-assets.md"
   - Tutorial:
-    - Model Development Tutorial: "model-development.md"
+    - Block Development Tutorial: "block-development.md"
     - Indicating Progress: "progress.md"
   - Reference:
     - CLI Reference: "cli-reference.md"
     - Logging: "logging.md"
-    - Benchmarking Models: "benchmarking.md"
+    - Benchmarking Blocks: "benchmarking.md"
   - Pixxel Platform Integration:
     - Integration Guide: "pixxel-integration.md"
   - FAQs: "faq.md"

@@ -45,6 +45,6 @@ jobs:
           id: {{ "${{ github.event.inputs.benchmark-id }}" }}
           mem-limits: {{ "${{ github.event.inputs.mem-limits }}" }}
           cpu-limits: {{ "${{ github.event.inputs.cpu-limits }}" }}
-          docker-block-image-url: "REDACTED.dkr.ecr.us-east-2.amazonaws.com/{{ .ModelName }}:{{ "${{ github.event.inputs.docker-block-image-tag }}" }}"
-          block-name: "{{ .ModelName }}"
+          docker-block-image-url: "REDACTED.dkr.ecr.us-east-2.amazonaws.com/{{ .BlockName }}:{{ "${{ github.event.inputs.docker-block-image-tag }}" }}"
+          block-name: "{{ .BlockName }}"
           input-file-directory-path: {{ "${{ github.event.inputs.input-file-directory-path }}" }}

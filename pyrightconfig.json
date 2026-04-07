@@ -3,6 +3,7 @@
     "python/clay"
   ],
   "exclude": [
+    "**/.*",
     "*env",
     "**/node_modules",
     "**/__pycache__",

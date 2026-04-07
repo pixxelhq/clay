@@ -20,8 +20,8 @@ func NewBlock(s block.Service) *blockHandler {
 
 // Publish Block	godoc
 //
-//	@Summary		Publish the model to clay registry
-//	@Description	publish the specific version of the model.
+//	@Summary		Publish the block to clay registry
+//	@Description	publish the specific version of the block.
 //	@Tags			Block
 //
 //	@Produce		json
@@ -70,8 +70,8 @@ func (bh *blockHandler) Create(ctx *gin.Context) {
 
 // GetBlocksWithLatestVersion	godoc
 //
-//	@Summary		Get the latest models from the registry
-//	@Description	Return all the model with latest version.
+//	@Summary		Get the latest blocks from the registry
+//	@Description	Return all the blocks with latest version.
 //	@Tags			Block
 //
 //	@Produce		json
@@ -109,12 +109,12 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 
 // GetBlockByName	godoc
 //
-//	@Summary		Get model by name.
-//	@Description	Returns all the versions of the model name.
+//	@Summary		Get block by name.
+//	@Description	Returns all the versions of the block name.
 //	@Tags			Block
 //
 //	@Produce		json
-//	@Param			name		path	string		true	"Name of the model"
+//	@Param			name		path	string		true	"Name of the block"
 //	@Success		200	{object}	RegistryResponse[GetBlocksByNameResponse]
 //	@Failure		400	{object}	RegistryResponse[any]
 //	@Failure		500	{object}	RegistryResponse[any]
@@ -158,12 +158,12 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 
 // GetBlockByNameAndVersion	godoc
 //
-//	@Summary		Get model by name and version.
-//	@Description	Returns the model for the given version and name.
+//	@Summary		Get block by name and version.
+//	@Description	Returns the block for the given version and name.
 //	@Tags			Block
 //
-//	@Param			name		path	string		true	"Name of the model"
-//	@Param			version		path	string		true	"Version of the model"
+//	@Param			name		path	string		true	"Name of the block"
+//	@Param			version		path	string		true	"Version of the block"
 //	@Produce		json
 //	@Success		200	{object}	RegistryResponse[GetBlockByNameAndVersion]
 //	@Failure		400	{object}	RegistryResponse[any]

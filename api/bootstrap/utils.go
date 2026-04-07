@@ -24,20 +24,20 @@ type Readme struct {
 	Name string
 }
 
-type ModelSpecification Readme
+type BlockSpecification Readme
 
 type Entry struct {
-	ModelName string
+	BlockName string
 }
 
-type Model Entry
+type Block Entry
 
-type TestModel Entry
+type TestBlock Entry
 
 type Makefile Entry
 
 type GithubWorkflow struct {
-	ModelName string
+	BlockName string
 	Version   string
 }
 
@@ -52,9 +52,9 @@ func isAlpha(s string) bool {
 	return true
 }
 
-func verifyModelName(modelName string) error {
-	if !isAlpha(modelName) {
-		err := errors.New("Model name can only contain alphabets")
+func verifyBlockName(blockName string) error {
+	if !isAlpha(blockName) {
+		err := errors.New("Block name can only contain alphabets")
 		return err
 	}
 	return nil
@@ -116,19 +116,19 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 	return nil
 }
 
-func getTemplateData(titlemodelName string, specmodelName string) map[string]TemplateData {
+func getTemplateData(titleBlockName string, specBlockName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"model.py":       Model{ModelName: titlemodelName},
-		"entry.py":       Entry{ModelName: titlemodelName},
-		"README.md":      Readme{Name: titlemodelName},
-		"test_model.py":  TestModel{ModelName: titlemodelName},
-		"Makefile":       Makefile{ModelName: titlemodelName},
-		"test_main.py":   TestModel{ModelName: titlemodelName},
-		"pyproject.toml": PyProject{ModelName: titlemodelName},
-		"benchmark.yaml": GithubWorkflow{ModelName: specmodelName},
-		"build.yaml":     GithubWorkflow{ModelName: specmodelName},
-		"publish.yaml":   GithubWorkflow{ModelName: specmodelName},
-		"clay.yaml":      Config{Name: titlemodelName},
+		"block.py":       Block{BlockName: titleBlockName},
+		"entry.py":       Entry{BlockName: titleBlockName},
+		"README.md":      Readme{Name: titleBlockName},
+		"test_block.py":  TestBlock{BlockName: titleBlockName},
+		"Makefile":       Makefile{BlockName: titleBlockName},
+		"test_main.py":   TestBlock{BlockName: titleBlockName},
+		"pyproject.toml": PyProject{BlockName: titleBlockName},
+		"benchmark.yaml": GithubWorkflow{BlockName: specBlockName},
+		"build.yaml":     GithubWorkflow{BlockName: specBlockName},
+		"publish.yaml":   GithubWorkflow{BlockName: specBlockName},
+		"clay.yaml":      Config{Name: titleBlockName},
 	}
 	return data
 }

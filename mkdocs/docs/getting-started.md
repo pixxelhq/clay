@@ -1,11 +1,11 @@
 # Getting Started
 
-This guide walks you through installing Clay and creating your first model project.
+This guide walks you through installing Clay and creating your first block project.
 
 !!! info "What You'll Learn"
     * Installing the Clay CLI
     * Creating a Clay project
-    * Building and testing your model locally
+    * Building and testing your block locally
     * Publishing to a Registry
 
 ## Prerequisite
@@ -46,44 +46,44 @@ This guide walks you through installing Clay and creating your first model proje
 !!! tip "Troubleshooting"
     If you encounter `command not found: clay`, try running `brew link clay` and then check the Clay version again.
 
-## Create Your First Model
+## Create Your First Block
 
 ### Create Project Structure
 
-Let's create a project for a model named `MyModel`. The following command creates the project in the current directory by default. You can specify a different directory path instead of `.`
+Let's create a project for a block named `MyBlock`. The following command creates the project in the current directory by default. You can specify a different directory path instead of `.`
 
 ```shell
-clay create project . MyModel
+clay create project . MyBlock
 ```
 
 Navigate into the project directory:
 ```shell
-cd MyModel
+cd MyBlock
 ```
 
 ### Understanding the Generated Project Structure
 
-Clay generates a complete project scaffolding with everything you need to develop, test, and deploy your model. Here's what each file and directory does:
+Clay generates a complete project scaffolding with everything you need to develop, test, and deploy your block. Here's what each file and directory does:
 
 ```
-MyModel/
+MyBlock/
 ├── .github/                      # GitHub Actions workflows
 │   └── workflows/
 │       ├── build.yaml           # Build and test workflow
 │       ├── publish.yaml         # Publish to registry workflow
 │       └── benchmark.yaml       # Performance benchmarking
 ├── src/                         # Main source code directory
-│   ├── model.py                 # Your model implementation (ModelWrapper)
-│   ├── entry.py                 # Model entry point (don't modify)
+│   ├── block.py                 # Your block implementation (BlockWrapper)
+│   ├── entry.py                 # Block entry point (don't modify)
 │   ├── __version__.py           # Version tracking
-├── tests/                      
-│   ├── test_model.py           # Local testing script
-│   └── sample_model_inputs.json # Example inputs for testing
-├── catalog_readme/             
-│   └── model-README.md          # Model documentation
+├── tests/
+│   ├── test_block.py           # Local testing script
+│   └── sample_block_inputs.json # Example inputs for testing
+├── catalog_readme/
+│   └── block-README.md          # Block documentation
 ├── clay.yaml                    # Clay configuration
 ├── requirements.txt             # Python dependencies
-├── conda.yaml                   # Conda environment (for GPU models)
+├── conda.yaml                   # Conda environment (for GPU blocks)
 ├── Makefile                     # Common commands
 ├── pyproject.toml              # Python project configuration
 ├── .pre-commit-config.yaml     # Pre-commit hooks
@@ -94,17 +94,17 @@ MyModel/
 
 #### Key Files Explained
 
-=== "model.py"
+=== "block.py"
 
-    **Your model implementation** - This is where you write your actual model logic:
+    **Your block implementation** - This is where you write your actual block logic:
 
     ```python
-    from clay.core import ModelWrapper
+    from clay.core import BlockWrapper
     import datatypes
 
-    class MyModel(ModelWrapper):
+    class MyBlock(BlockWrapper):
         def setup(self, **parameters):
-            # Initialize model (load weights, configure, etc.)
+            # Initialize block (load weights, configure, etc.)
             pass
 
         async def preprocess(self, **inputs):
@@ -112,7 +112,7 @@ MyModel/
             return processed_data
 
         async def inference(self, **processed_data):
-            # Run model predictions
+            # Run block predictions
             return predictions
 
         async def postprocess(self, **predictions):
@@ -122,10 +122,10 @@ MyModel/
 
 === "clay.yaml"
 
-    **Main configuration file** - Defines your model's metadata and requirements:
+    **Main configuration file** - Defines your block's metadata and requirements:
 
     ```yaml
-    name: mymodel
+    name: myblock
     version: v0.0.1
 
     parameters:  # Setup parameters
@@ -133,12 +133,12 @@ MyModel/
         type: int
         default: 5
 
-    inputs:      # Model inputs
+    inputs:      # Block inputs
       - name: input1
         format: string
         type: str
 
-    outputs:     # Model outputs
+    outputs:     # Block outputs
       - name: output1
         format: number
         type: int
@@ -147,7 +147,7 @@ MyModel/
       python-version: "3.10"
       requirements: requirements.txt
 
-    gpu: false   # Set to true for GPU models
+    gpu: false   # Set to true for GPU blocks
     ```
 
 === "Makefile"
@@ -161,23 +161,23 @@ MyModel/
 
 === "README.md"
 
-    **Model documentation** - User-facing documentation for your model:
+    **Block documentation** - User-facing documentation for your block:
 
-    Provide a complete overview of the model, like:
+    Provide a complete overview of the block, like:
 
-    - What does the model do?
+    - What does the block do?
     - What are the satellite images used as input?
     - What is the resolution of the output images?
     - Are there any specific parameters or configurations that end-users would find useful?
 
 <!-- !!! tip "Where to Start"
-    1. **Edit `src/model.py`**: Implement your model logic
+    1. **Edit `src/block.py`**: Implement your block logic
     2. **Update `clay.yaml`**: Define inputs, outputs, and requirements
-    3. **Modify `sample_model_inputs.json`**: Add realistic test data
-    4. **Update `catalog_readme/model-README.md`**: Document your model
+    3. **Modify `sample_block_inputs.json`**: Add realistic test data
+    4. **Update `catalog_readme/block-README.md`**: Document your block
 
 !!! info "Files You Won't need to Modify"
-    * `src/entry.py` - Clay's model entry point
+    * `src/entry.py` - Clay's block entry point
     * `.github/workflows/` - Unless customizing CI/CD
     * `src/specifications/` - Generated from clay.yaml -->
 
@@ -200,11 +200,11 @@ MyModel/
 === "conda"
 
     ```shell
-    conda create -n mymodel python=3.10
-    conda activate mymodel
+    conda create -n myblock python=3.10
+    conda activate myblock
     ``` -->
     
-## Build and Test Your Model
+## Build and Test Your Block
 
 Now that your project is set up, let's build and test it locally.
 
@@ -212,54 +212,54 @@ Now that your project is set up, let's build and test it locally.
 
     Update the `build.requirements` field in `clay.yaml` to specify your dependency manager file. By default, it is set to `requirements.txt`. If you use a different file like `conda.yaml`, update `build.requirements` accordingly.
 
-    !!! tip "GPU Models"
-        If your model uses GPU, update the `gpu` field to `true` in `clay.yaml`. For GPU models, it's recommended to use `conda.yaml` for handling dependencies. Clay utilizes conda for models with GPU support and ensures NVIDIA drivers are installed to enable GPU execution.
+    !!! tip "GPU Blocks"
+        If your block uses GPU, update the `gpu` field to `true` in `clay.yaml`. For GPU blocks, it's recommended to use `conda.yaml` for handling dependencies. Clay utilizes conda for blocks with GPU support and ensures NVIDIA drivers are installed to enable GPU execution.
 
 * **Build the Docker Image**
 
     ```shell
     clay build
     ```
-    This will create a Dockerfile if it does not exist and then build an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `mymodel` and the `version` is `0.0.1`, a docker image named `mymodel:0.0.1` will be created.
+    This will create a Dockerfile if it does not exist and then build an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `myblock` and the `version` is `0.0.1`, a docker image named `myblock:0.0.1` will be created.
 
      **Available Flags:**
 
     - `--tag`: Provide the build tag in the format 'repository:tag'. (Default: name:tag, `name` and `tag` mentioned in the clay.yaml config)
     - `--file`: Provide the Dockerfile path. If not provided, Clay will create one using the configuration from clay.yaml.
 
-   
+
 
 * **Run Locally**
 
     ```shell
-    clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" mymodel:0.0.1
+    clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" myblock:0.0.1
     ```
 
     Expected output:
     ```
-    Using configuration located at: /app/specifications/model_specification_dev.yaml
-    WARNING - 2024-04-02 09:01:26,122 - job_runner.py:195 - job_model_runner - 'remote-prefix'
-    INFO - 2024-04-02 09:01:26,123 - core.py:346 - job_model_runner - Initializing model...
-    INFO - 2024-04-02 09:01:26,125 - core.py:348 - job_model_runner - Model initialization complete.
-    WARNING - 2024-04-02 09:01:27,130 - core.py:372 - job_model_runner - `CALLBACK_URL` not set
-    WARNING - 2024-04-02 09:01:27,133 - model.py:22 - TestModel - In pre-process
-    INFO - 2024-04-02 09:01:27,133 - model.py:25 - TestModel - Input1 is starting-point
-    INFO - 2024-04-02 09:01:27,133 - model.py:31 - TestModel - In inference
-    INFO - 2024-04-02 09:01:27,133 - model.py:36 - TestModel - In postprocessing
-    INFO - 2024-04-02 09:01:27,138 - job_runner.py:470 - job_model_runner - results: [Number(...)]
+    Using configuration located at: /app/specifications/block_specification_dev.yaml
+    WARNING - 2024-04-02 09:01:26,122 - job_runner.py:195 - job_block_runner - 'remote-prefix'
+    INFO - 2024-04-02 09:01:26,123 - core.py:346 - job_block_runner - Initializing block...
+    INFO - 2024-04-02 09:01:26,125 - core.py:348 - job_block_runner - Block initialization complete.
+    WARNING - 2024-04-02 09:01:27,130 - core.py:372 - job_block_runner - `CALLBACK_URL` not set
+    WARNING - 2024-04-02 09:01:27,133 - block.py:22 - TestBlock - In pre-process
+    INFO - 2024-04-02 09:01:27,133 - block.py:25 - TestBlock - Input1 is starting-point
+    INFO - 2024-04-02 09:01:27,133 - block.py:31 - TestBlock - In inference
+    INFO - 2024-04-02 09:01:27,133 - block.py:36 - TestBlock - In postprocessing
+    INFO - 2024-04-02 09:01:27,138 - job_runner.py:470 - job_block_runner - results: [Number(...)]
     ```
 
     !!! note
-        Warnings about `CALLBACK_URL` are expected when running locally. This is only used when models are deployed on an orchestrator.
+        Warnings about `CALLBACK_URL` are expected when running locally. This is only used when blocks are deployed on an orchestrator.
 
 
 ✅ **Setup Complete!** Your project is ready for development. 
 
 ## Publishing to Registry
 
-Once you've developed and tested your model locally, you can publish different versions of your model 
-to a registry. With our initiative at Pixxel, we maintain a [clay registry](registry.md) which is a component responsible for storing all models along with their different versions. It provides version management, model discovery, and deployment tracking.
-Irrespectively, a user is welcome to maintain their own registry for model management using Clay CLI. 
+Once you've developed and tested your block locally, you can publish different versions of your block
+to a registry. With our initiative at Pixxel, we maintain a [clay registry](registry.md) which is a component responsible for storing all blocks along with their different versions. It provides version management, block discovery, and deployment tracking.
+Irrespectively, a user is welcome to maintain their own registry for block management using Clay CLI.
 
 ### Using Clay CLI
 
@@ -279,17 +279,17 @@ Irrespectively, a user is welcome to maintain their own registry for model manag
     **Available Flags:**
 
     - `--docker-registry-host` - Docker registry to push the image to
-    - `--model-registry-host` - Clay model registry host URL (default: "http://localhost:8080")
-    - `--documentation-url` - URL for model documentation
-    - `--thumbnail-url` - URL for model thumbnail image
+    - `--block-registry-host` - Clay block registry host URL (default: "http://localhost:8080")
+    - `--documentation-url` - URL for block documentation
+    - `--thumbnail-url` - URL for block thumbnail image
 
     **Example with custom registry:**
 
     ```shell
-    clay publish --model-registry-host https://your-registry.example.com --docker-registry-host your-docker-registry.example.com
+    clay publish --block-registry-host https://your-registry.example.com --docker-registry-host your-docker-registry.example.com
     ```
 
-* **List Available Models**
+* **List Available Blocks**
 
     ```shell
     clay block list
@@ -299,24 +299,24 @@ Irrespectively, a user is welcome to maintain their own registry for model manag
     ```json
     {
       "id": "uuid-here",
-      "name": "my-model",
+      "name": "my-block",
       "kind": "block",
       "type": "processing",
       "version": "v1.0.0",
-      "docker_image": "registry-url/my-model:v1.0.0",
+      "docker_image": "registry-url/my-block:v1.0.0",
       "documentation_url": "https://..."
     }
     ```
 
-* **Describe Model Version**
+* **Describe Block Version**
 
     ```shell
-    clay block describe my-model --version v1.0.0
+    clay block describe my-block --version v1.0.0
     ```
 
 ### Deployment to Your Platform
 
-Once published to the registry, you can deploy your model to your orchestration platform:
+Once published to the registry, you can deploy your block to your orchestration platform:
 
 * **Kubernetes**: Deploy as Jobs, Deployments, or CronJobs
 * **Cloud Services**: AWS ECS, Google Cloud Run, Azure Container Instances
@@ -328,6 +328,6 @@ Once published to the registry, you can deploy your model to your orchestration 
 Now that you have Clay set up, continue with:
 
 * **[Clay Architecture Overview](overview.md)**: Understand clay architecture
-* **[Block Specification](spec.md)**: Understand how to configure your model
+* **[Block Specification](spec.md)**: Understand how to configure your block
 * **[Input/Output & Datatypes](IO.md)**: Learn about Clay's type system
-* **[Model Development Tutorial](model-development.md)**: Learn how to build your first model
+* **[Block Development Tutorial](block-development.md)**: Learn how to build your first block

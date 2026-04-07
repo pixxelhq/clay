@@ -3,7 +3,7 @@ kind: block
 type: processing
 tags:
   - mathematics
-name: Empty Model
+name: Empty Block
 description: Returns the input float number as is
 author: akash@pixxel.co.in
 resources:

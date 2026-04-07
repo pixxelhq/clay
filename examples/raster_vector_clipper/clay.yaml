@@ -3,9 +3,9 @@ kind: block
 type: processing
 name: rastervectorclipper
 version: v0.0.1
-title: Raster Vector Clipper - API Test Model
+title: Raster Vector Clipper - API Test Block
 status: released
-description: Stable model for clipping raster data using vector geometries. Used for end-to-end API testing with MinIO storage.
+description: Stable block for clipping raster data using vector geometries. Used for end-to-end API testing with MinIO storage.
 author: <please-fill-in-here>@pixxel.co.in
 tags:
   - imagery
@@ -24,7 +24,7 @@ resources:
     min: 0
     max: 0
 
-parameters: # model initialization params
+parameters: # block initialization params
   - name: buffer_distance
     type: float
     default: 0.0

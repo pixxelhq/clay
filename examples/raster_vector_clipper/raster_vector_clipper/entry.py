@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from model import RasterVectorClipper
+from block import RasterVectorClipper
 
 import clay
 
@@ -11,4 +11,4 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Configuration file not found at: {specification_path}")
     
     print(f"Using configuration located at: {specification_path}")
-    clay.Run(model=RasterVectorClipper, name="RasterVectorClipper", cfg_path=str(specification_path))
+    clay.Run(block=RasterVectorClipper, name="RasterVectorClipper", cfg_path=str(specification_path))

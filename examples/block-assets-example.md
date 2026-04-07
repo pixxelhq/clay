@@ -14,12 +14,12 @@ This example demonstrates how to use Clay's block asset management feature to up
 
 Upload a single file to a block (name-level, shared across versions):
 ```bash
-clay block assets upload ./model.pkl --name image-classifier --bucket my-clay-assets --region us-east-1
+clay block assets upload ./block.pkl --name image-classifier --bucket my-clay-assets --region us-east-1
 ```
 
 Upload a directory to a specific version:
 ```bash
-clay block assets upload ./models --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
+clay block assets upload ./blocks --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
 ```
 
 ### 2. List Assets
@@ -38,7 +38,7 @@ clay block assets list --name image-classifier --version v1.0.0 --bucket my-clay
 
 Download a specific asset:
 ```bash
-clay block assets download model.pkl --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
+clay block assets download block.pkl --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
 ```
 
 Download to a specific location:
@@ -57,10 +57,10 @@ bucket/
     └── <block-name>/
         ├── assets/              # Name-level assets (shared)
         │   ├── common-config.yaml
-        │   └── shared-models/
+        │   └── shared-blocks/
         └── <version>/
             └── assets/          # Version-specific assets
-                ├── model.pkl
+                ├── block.pkl
                 └── configs/
 ```
 
@@ -85,7 +85,7 @@ aws configure
 
 ## Best Practices
 
-1. **Use version-specific assets** for models and configs that change between versions
+1. **Use version-specific assets** for blocks and configs that change between versions
 2. **Use name-level assets** for shared resources like common configurations or data
 3. **Always specify region** for S3 to avoid defaulting to us-east-1
 4. **Version fallback**: When downloading with a version specified, the system will check version-specific assets first, then fall back to name-level assets if not found

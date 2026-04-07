@@ -14,29 +14,29 @@ import (
 )
 
 var (
-	modelRegistryHost string
+	blockRegistryHost string
 	dockerRegistry    string
 	documentationURL  string
 	thumbnailURL      string
 )
 
-func publishModelToRegistryCmd() *cobra.Command {
+func publishBlockToRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "publish",
-		Short: "Publish the model to the Clay registry",
-		Long:  "Build a Docker image, push it to the configured Docker registry, and then publish the model to the Clay registry.",
-		RunE:  publishModelCmd,
+		Short: "Publish the block to the Clay registry",
+		Long:  "Build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
+		RunE:  publishBlockCmd,
 	}
 
-	cmd.Flags().StringVar(&dockerRegistry, "docker-registry-host", "REDACTED.dkr.ecr.us-east-2.amazonaws.com", "If specified, the model's Docker image will be pushed to that registry. Otherwise, the default registry will be used")
-	cmd.Flags().StringVar(&modelRegistryHost, "model-registry-host", "http://localhost:8080", "If specified, the model will be published to that registry. Otherwise, the default registry will be used.")
-	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "If specified this can be used for model documentation")
-	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "If specified this can be used for model thumbnail")
+	cmd.Flags().StringVar(&dockerRegistry, "docker-registry-host", "REDACTED.dkr.ecr.us-east-2.amazonaws.com", "If specified, the block's Docker image will be pushed to that registry. Otherwise, the default registry will be used")
+	cmd.Flags().StringVar(&blockRegistryHost, "block-registry-host", "http://localhost:8080", "If specified, the block will be published to that registry. Otherwise, the default registry will be used.")
+	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "If specified this can be used for block documentation")
+	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "If specified this can be used for block thumbnail")
 
 	return cmd
 }
 
-func publishModelCmd(cmd *cobra.Command, args []string) error {
+func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -65,15 +65,15 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	mr := registry.NewModelRegistry(modelRegistryHost, 5*time.Second)
+	br := registry.NewBlockRegistry(blockRegistryHost, 5*time.Second)
 
-	req, err := buildPublishModelRequest(cfg, documentationURL, thumbnailURL, image)
+	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, image)
 	if err != nil {
 		return err
 	}
 
-	//publish model to clay registry
-	err = mr.Publish(req)
+	//publish block to clay registry
+	err = br.Publish(req)
 	if err == registry.ErrAlreadyExists {
 		return fmt.Errorf("block %s with version %s already exists, skipping the publish", req.Name, req.Version)
 	}
@@ -81,17 +81,17 @@ func publishModelCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("🎉 model %s with version %s published successfully to clay registry\n", req.Name, req.Version)
+	fmt.Printf("🎉 block %s with version %s published successfully to clay registry\n", req.Name, req.Version)
 	return nil
 }
 
-func buildPublishModelRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string) (*registry.PublishModelRequest, error) {
+func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string) (*registry.PublishBlockRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
 		return nil, fmt.Errorf("error while marshalling build json: %w", err)
 	}
 
-	req := &registry.PublishModelRequest{
+	req := &registry.PublishBlockRequest{
 		Name:             cfg.Name,
 		Kind:             cfg.Kind,
 		Type:             cfg.Type,

@@ -12,7 +12,7 @@ import boto3
 from moto import mock_aws
 
 import datatypes
-from clay.core import ModelWrapper
+from clay.core import BlockWrapper
 from clay.logger import Logger
 from clay.runners.runner import JobRunner, deep_merge
 
@@ -51,7 +51,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
-        class M(ModelWrapper):
+        class M(BlockWrapper):
             def __init__(self, config: str, logger: Logger = None) -> None:
                 super().__init__(config, logger)
 
@@ -140,7 +140,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
-        class M(ModelWrapper):
+        class M(BlockWrapper):
             def __init__(self, config: str, logger: Logger = None) -> None:
                 super().__init__(config, logger)
 
@@ -220,7 +220,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
-        class M(ModelWrapper):
+        class M(BlockWrapper):
             def __init__(self, config: str, logger: Logger = None) -> None:
                 super().__init__(config, logger)
 
@@ -298,7 +298,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
-        class M(ModelWrapper):
+        class M(BlockWrapper):
             def __init__(self, config: str, logger: Logger = None) -> None:
                 super().__init__(config, logger)
 

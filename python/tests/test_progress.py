@@ -10,7 +10,7 @@
 # import datatypes
 # import shortuuid
 
-# from clay import ModelWrapper, types
+# from clay import BlockWrapper, types
 # Legacy FeatureFlags import removed - proto types are now the default
 # from clay.logger import Logger
 # from clay.runners.job_runner import JobRunner
@@ -53,7 +53,7 @@
 #         mock_response.status_code = 200
 #         mock_post.return_value = mock_response
 
-#         class M(ModelWrapper):
+#         class M(BlockWrapper):
 #             def __init__(
 #                 _self,
 #                 config: str,
@@ -160,7 +160,7 @@
 #         mock_response.status_code = 200
 #         mock_post.return_value = mock_response
 
-#         class M(ModelWrapper):
+#         class M(BlockWrapper):
 #             def __init__(
 #                 _self,
 #                 config: str,

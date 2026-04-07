@@ -29,7 +29,7 @@ class FailureTypes(str, Enum):
     BADREQUEST = "bad_request"
 
 
-class ModelStates(str, Enum):
+class BlockStates(str, Enum):
     STARTED = "created"
     INPROGRESS = "inprogress"
     COMPLETED = "completed"
@@ -318,11 +318,11 @@ def _PropertiesFromConfig(output_cfg: Dict[str, Any]) -> Optional[Properties]:
     if props is None:
         return None
 
-    properties: Properties = FormatPropertyMap[format].model_validate(props)
+    properties: Properties = FormatPropertyMap[format].block_validate(props)
     return properties
 
 
-class ModelInfTimes(pydantic.BaseModel):
+class BlockInfTimes(pydantic.BaseModel):
     InfStartTime: str
     InfEndTime: str
 
@@ -335,7 +335,7 @@ class InferenceOpts(pydantic.BaseModel):
     Attributes:
         Id (str): A uuidv4 string uniquely identifying this inference run.
         InputList (List[Dict[str, Any]]):
-            List of inputs provided to the model. This data is used by the runner during callbacks.
+            List of inputs provided to the block. This data is used by the runner during callbacks.
         InputPropMap (Dict[str, Any]):
             A dictionary mapping the input names with their values.
     """
@@ -711,7 +711,7 @@ class Number(_DataMeta):
 # Legacy pydantic types - to be removed
 # Data = Union[Raster, Vector, Date, Tabular, String, Number]
 
-# Legacy format model map removed - use proto types directly
+# Legacy format block map removed - use proto types directly
 
 
 def _serialize_output_buffer(
