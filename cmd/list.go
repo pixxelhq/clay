@@ -35,20 +35,20 @@ func ListBlockRegistryCmd() *cobra.Command {
 }
 
 func listBlockRegistryCmd(cmd *cobra.Command, args []string) error {
-	mr := registry.NewModelRegistry(host, 5*time.Second)
+	br := registry.NewBlockRegistry(host, 5*time.Second)
 	var (
-		models registry.Models
+		blocks registry.Blocks
 		err    error
-		model  *registry.Model
+		block  *registry.Block
 	)
 
 	if name != "" && version != "" {
-		model, err = mr.GetBlockByNameAndVersion(name, version)
+		block, err = br.GetBlockByNameAndVersion(name, version)
 		if err != nil {
 			return err
 		}
 
-		prettyJSON, err := json.MarshalIndent(model, "", "  ")
+		prettyJSON, err := json.MarshalIndent(block, "", "  ")
 		if err != nil {
 			fmt.Printf("Failed to generate pretty JSON: %s\n", err)
 		}
@@ -58,21 +58,21 @@ func listBlockRegistryCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if name != "" {
-		models, err = mr.GetBlockByName(name)
+		blocks, err = br.GetBlockByName(name)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		models, err = mr.ListBlocks()
+		blocks, err = br.ListBlocks()
 		if err != nil {
 			return err
 		}
 
 	}
 
-	for _, model := range models {
-		prettyJSON, err := json.MarshalIndent(model, "", "  ")
+	for _, block := range blocks {
+		prettyJSON, err := json.MarshalIndent(block, "", "  ")
 		if err != nil {
 			fmt.Printf("Failed to generate pretty JSON: %s\n", err)
 			continue

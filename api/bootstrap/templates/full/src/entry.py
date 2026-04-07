@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from model import {{.ModelName}}
+from block import {{.BlockName}}
 
 import clay
 
@@ -9,6 +9,6 @@ if __name__ == "__main__":
     specification_path = (cwd / f"../clay.yaml").resolve()
     if not specification_path.exists():
         raise FileNotFoundError(f"Configuration file not found at: {specification_path}")
-    
+
     print(f"Using configuration located at: {specification_path}")
-    clay.Run(model={{.ModelName}}, name="{{.ModelName}}", cfg_path=str(specification_path))
+    clay.Run(block={{.BlockName}}, name="{{.BlockName}}", cfg_path=str(specification_path))

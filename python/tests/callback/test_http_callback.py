@@ -13,7 +13,7 @@ class TestHTTPCallback(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.callback_url = "https://api.example.com/model"
+        self.callback_url = "https://api.example.com/block"
         self.test_headers = {"X-API-Key": "test-key"}
         self.callback = HTTPCallback(
             callback_endpoint=self.callback_url,

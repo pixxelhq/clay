@@ -8,7 +8,7 @@ def failure(
     http_status_code: int = 500,
 ) -> None:
     """calling clay.failure() returns execution from
-    model to runner context. This behaviour might
+    block to runner context. This behaviour might
     change in the future.
     """
     if message is None:

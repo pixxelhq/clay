@@ -3,7 +3,7 @@ from typing import Any
 
 class FailedExecutionException(Exception):
     """To be only used to communicate failure codes/msgs
-    by models to runner methods.
+    by blocks to runner methods.
     """
 
     def __init__(
@@ -16,7 +16,7 @@ class FailedExecutionException(Exception):
         self.http_status_code = http_status_code
 
 class OutputOverwriteException(Exception):
-    """To be raised when a model is trying to overwrite an output
+    """To be raised when a block is trying to overwrite an output
 
     Args:
         Exception (_type_): _description_

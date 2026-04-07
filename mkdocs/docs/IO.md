@@ -1,16 +1,16 @@
 # Input/Output & Datatypes
 
-An ML model can be considered as a black box function that takes something as input and returns something which is treated as output. Clay enforces the model to have input and output of certain `types`. We call these types `datatypes`.
+An ML block can be considered as a black box function that takes something as input and returns something which is treated as output. Clay enforces the block to have input and output of certain `types`. We call these types `datatypes`.
 
 ## Why do we need Types?
 
 You might be wondering, *why do we even need types? What is this additional layer of complexity? Why should I learn one more thing?* The answer boils down to this:
 
-> For models to work together and with each other, they need to speak the same language.
+> For blocks to work together and with each other, they need to speak the same language.
 
-Since models are developed in silos and as independent entities, *but* are expected to work with each other in connected chains, they need to have a common *dialect* that they and the broader system understands. Using this *dialect*, the models specify their *inputs* and their *outputs*. Since all models and the system speak the same language, they can determine whether the output of one model can be compatible with the input of another model.
+Since blocks are developed in silos and as independent entities, *but* are expected to work with each other in connected chains, they need to have a common *dialect* that they and the broader system understands. Using this *dialect*, the blocks specify their *inputs* and their *outputs*. Since all blocks and the system speak the same language, they can determine whether the output of one block can be compatible with the input of another block.
 
-For example, if `ModelA` outputs a `GeoTiff` file and `ModelB` accepts a `GeoJSON` as input, the output of `ModelA` cannot be provided as input to `ModelB`, because they are of different `Types`.
+For example, if `BlockA` outputs a `GeoTiff` file and `BlockB` accepts a `GeoJSON` as input, the output of `BlockA` cannot be provided as input to `BlockB`, because they are of different `Types`.
 
 ![types-1](assets/types-1.png)
 
@@ -26,7 +26,7 @@ But this works:
 | **Vector** | GeoJSON data | Boundaries, points of interest |
 | **Tabular** | CSV/table data | Statistics, reports |
 | **Number** | Numeric values | Thresholds, parameters |
-| **String** | Text values | Model names, identifiers |
+| **String** | Text values | Block names, identifiers |
 | **Date** | Date/time values | Acquisition dates, timestamps |
 
 All types are available through the `datatypes` module:
@@ -45,7 +45,7 @@ All datatypes share these common attributes:
 |-----------|----------|-------------|
 | `format` | Yes | The data format (raster, vector, tabular, string, number, date) |
 | `type` | Yes | The data type of the value (url, string, int, float, bool, list, dict) |
-| `name` | Yes | Unique identifier that matches the parameter name in your model |
+| `name` | Yes | Unique identifier that matches the parameter name in your block |
 | `value` | Yes | The actual data or URL to the data |
 | `description` | No | Human readable description |
 | `display_name` | No | Name to display in UIs |
@@ -206,8 +206,8 @@ String represents text data.
 ```python
 import datatypes
 
-model_name = datatypes.String(
-    name="model_version",
+block_name = datatypes.String(
+    name="block_version",
     value="v1.2.0"
 )
 ```
@@ -447,15 +447,15 @@ properties = datatypes.RasterProperties(
 
 ---
 
-## Usage in Models
+## Usage in Blocks
 
-Here's how to use datatypes in your Clay model:
+Here's how to use datatypes in your Clay block:
 
 ```python
-from clay.core import ModelWrapper
+from clay.core import BlockWrapper
 import datatypes
 
-class MyModel(ModelWrapper):
+class MyBlock(BlockWrapper):
     async def preprocess(self, input_raster: datatypes.Raster, threshold: datatypes.Number):
         # Access values using .value attribute
         self.logger.info(f"Processing raster: {input_raster.value}")

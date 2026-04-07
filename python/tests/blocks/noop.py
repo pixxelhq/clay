@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from clay import ModelWrapper
+from clay import BlockWrapper
 
 NOOP_CONFIG = str((Path(__file__).parent / "noop.yaml").absolute())
 
 
-class NOOP(ModelWrapper):
+class NOOP(BlockWrapper):
     def setup(self):
         self.logger.info("Setup complete")
 

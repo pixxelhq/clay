@@ -1,10 +1,10 @@
 # Pixxel Platform Integration
 
-This guide walks you through the complete workflow for developing and deploying ML models at Pixxel using Clay.
+This guide walks you through the complete workflow for developing and deploying ML blocks at Pixxel using Clay.
 
 !!! tip "Quick Navigation"
     - **First time?** Start with [One-Time Setup](#one-time-setup)
-    - **Starting a new model?** Jump to [Create Your Model Project](#step-1-create-your-model-project)
+    - **Starting a new block?** Jump to [Create Your Block Project](#step-1-create-your-block-project)
     - **Ready to deploy?** Go to [Deploy to Orchestrator](#step-5-deploy-to-orchestrator)
 
 ---
@@ -13,7 +13,7 @@ This guide walks you through the complete workflow for developing and deploying 
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Create Model   │────▶│  Build & Test   │────▶│ Push to Registry│────▶│ Deploy to Orchestrator│
+│  Create Block   │────▶│  Build & Test   │────▶│ Push to Registry│────▶│ Deploy to Orchestrator│
 │  (clay create)  │     │  (clay build)   │     │ (GitHub Actions)│     │    (Platform)     │
 └─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
@@ -22,10 +22,10 @@ This guide walks you through the complete workflow for developing and deploying 
 
 | Component | What it does |
 |-----------|--------------|
-| **Clay** | Framework for packaging your model |
-| **Orchestrator** | Orchestrates model execution on Kubernetes |
-| **Platform** | Platform where users discover and run models |
-| **Clay Registry** | Stores model metadata and specifications |
+| **Clay** | Framework for packaging your block |
+| **Orchestrator** | Orchestrates block execution on Kubernetes |
+| **Platform** | Platform where users discover and run blocks |
+| **Clay Registry** | Stores block metadata and specifications |
 
 **Environments:**
 
@@ -88,22 +88,22 @@ export AWS_PROFILE=d-platform-services
 ```
 
 !!! success "Setup Complete!"
-    You're now ready to create model projects.
+    You're now ready to create block projects.
 
 ---
 
-## Creating and Deploying a Model
+## Creating and Deploying a Block
 
-Follow these steps to create a new model and deploy it to Orchestrator.
+Follow these steps to create a new block and deploy it to Orchestrator.
 
-### Step 1: Create Your Model Project
+### Step 1: Create Your Block Project
 
 ```bash
 # Create a new project
-clay create project ./MyModel MyModel
+clay create project ./MyBlock MyBlock
 
 # Navigate to the project
-cd MyModel
+cd MyBlock
 
 # Initialize git repository
 git init
@@ -115,30 +115,30 @@ make setup
 This creates the following structure:
 
 ```
-MyModel/
+MyBlock/
 ├── src/
-│   ├── model.py          # Your model code goes here
+│   ├── block.py          # Your block code goes here
 │   ├── entry.py          # Entry point (don't modify)
-│   ├── test_model.py     # Local testing script
-│   └── sample_model_inputs.json
-├── clay.yaml             # Model specification
+│   ├── test_block.py     # Local testing script
+│   └── sample_block_inputs.json
+├── clay.yaml             # Block specification
 ├── requirements.txt      # Python dependencies
 ├── Makefile             # Build commands
 └── .github/workflows/   # CI/CD pipelines
 ```
 
-### Step 2: Implement Your Model
+### Step 2: Implement Your Block
 
-Edit `src/model.py` to implement your model logic:
+Edit `src/block.py` to implement your block logic:
 
 ```python
-from clay.core import ModelWrapper
+from clay.core import BlockWrapper
 import datatypes
 
-class MyModel(ModelWrapper):
+class MyBlock(BlockWrapper):
     def setup(self, **parameters):
-        """Initialize your model (load weights, etc.)"""
-        self.logger.info("Model initialized")
+        """Initialize your block (load weights, etc.)"""
+        self.logger.info("Block initialized")
 
     async def preprocess(self, input_raster: datatypes.Raster):
         """Validate and prepare inputs"""
@@ -146,7 +146,7 @@ class MyModel(ModelWrapper):
         return {"raster": input_raster}
 
     async def inference(self, raster):
-        """Run your model logic"""
+        """Run your block logic"""
         # Your inference code here
         return {"result": processed_data}
 
@@ -161,7 +161,7 @@ class MyModel(ModelWrapper):
         }
 ```
 
-### Step 3: Configure Your Model Specification
+### Step 3: Configure Your Block Specification
 
 Edit `clay.yaml`:
 
@@ -169,7 +169,7 @@ Edit `clay.yaml`:
 apiVersion: 0.0.1
 kind: block
 type: processing
-name: mymodel              # Must be lowercase, unique
+name: myblock              # Must be lowercase, unique
 version: v0.0.1            # Semantic versioning
 author: your-name
 
@@ -209,20 +209,20 @@ gpu: false
 clay build
 
 # Test locally with sample inputs
- clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" mymodel:0.0.1
+ clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" myblock:0.0.1
 ```
 
 !!! note "Expected Output"
-    You'll see logs for model initialization, preprocessing, inference, and postprocessing. A warning about missing `ORCHESTRATOR_URL` is normal for local runs.
+    You'll see logs for block initialization, preprocessing, inference, and postprocessing. A warning about missing `ORCHESTRATOR_URL` is normal for local runs.
 
-!!! tip "Benchmark Your Model"
-    Before deploying to production, benchmark your model to determine optimal CPU and memory limits for Kubernetes. This helps with accurate pricing and resource allocation. See [Benchmarking](benchmarking.md) for details on using mbench with GitHub Actions.
+!!! tip "Benchmark Your Block"
+    Before deploying to production, benchmark your block to determine optimal CPU and memory limits for Kubernetes. This helps with accurate pricing and resource allocation. See [Benchmarking](benchmarking.md) for details on using mbench with GitHub Actions.
 
 ### Step 5: Deploy to Orchestrator
 
 #### 5a. Set Up GitHub Repository (First time only)
 
-1. **Create GitHub repo** at `github.com/example/<your-model-name>`
+1. **Create GitHub repo** at `github.com/example/<your-block-name>`
 
 2. **Add repository secrets** at `Settings > Secrets and variables > Actions`:
 
@@ -236,8 +236,8 @@ clay build
 
     Edit `infra/aws/core/production/infrastructure/container_registry/variables.tf`:
     ```hcl
-    "your-model-name" = {
-      github = "https://github.com/example/your-model-name"
+    "your-block-name" = {
+      github = "https://github.com/example/your-block-name"
     }
     ```
 
@@ -245,15 +245,15 @@ clay build
 
 ```bash
 git add .
-git commit -m "Initial model implementation"
-git remote add origin git@github.com:example/<your-model-name>.git
+git commit -m "Initial block implementation"
+git remote add origin git@github.com:example/<your-block-name>.git
 git push -u origin main
 ```
 
 #### 5c. Publish to Clay Registry
 
 1. Go to your repo's **Actions** tab
-2. Select **"Publish model to Clay registry"** workflow
+2. Select **"Publish block to Clay registry"** workflow
 3. Click **Run workflow**:
     - Branch: `main`
     - Version: `v0.0.1` (must match clay.yaml)
@@ -262,21 +262,21 @@ git push -u origin main
 4. Verify publication:
     ```bash
     clay block list --env dev
-    clay block describe mymodel --version v0.0.1 --env dev
+    clay block describe myblock --version v0.0.1 --env dev
     ```
 
 #### 5d. Deploy to Platform
 
-1. Clone [model-configs](https://github.com/example/model-configs)
-2. Create/edit your model's config files:
-    - `<model-name>/development.yaml`
-    - `<model-name>/staging.yaml`
-    - `<model-name>/production.yaml`
+1. Clone [block-configs](https://github.com/example/block-configs)
+2. Create/edit your block's config files:
+    - `<block-name>/development.yaml`
+    - `<block-name>/staging.yaml`
+    - `<block-name>/production.yaml`
 3. Create PR and tag reviewers: `@maintainers`, `@contributor`, `@contributor`
-4. After merge, run **"Onboard model to Platform platform"** workflow
+4. After merge, run **"Onboard block to Platform platform"** workflow
 
 !!! success "Deployment Complete!"
-    Your model is now available on the Platform platform.
+    Your block is now available on the Platform platform.
 
 ---
 
@@ -286,13 +286,13 @@ git push -u origin main
 
 ```bash
 # Create new project
-clay create project ./ModelName ModelName
+clay create project ./BlockName BlockName
 
 # Build Docker image
 clay build
 
 # Run locally
-clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" <model>:<version>
+clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" <block>:<version>
 # List blocks in registry
 clay block list --env dev|stg|prod
 
@@ -302,8 +302,8 @@ clay block describe <name> --version <version> --env dev
 # Add block to Orchestrator (production)
 clay add block clay.yaml --env prod
 
-# Upload model README
-clay upload readme --name <model-name> --version <version>
+# Upload block README
+clay upload readme --name <block-name> --version <version>
 ```
 
 ### Environment-Specific Deployment
@@ -314,13 +314,13 @@ clay upload readme --name <model-name> --version <version>
 | **stg** | GitHub Actions | Version creates git tag + docker tag |
 | **prod** | CLI or GitHub Actions | Requires approval |
 
-### Model Documentation
+### Block Documentation
 
-Update `catalog_readme/model-README.md`:
+Update `catalog_readme/block-README.md`:
 
 ```markdown
 ---
-name: Your Model Name
+name: Your Block Name
 author: your-name
 input-img: ![]({{ addUrl "sample_input.png" }})
 output-img: ![]({{ addUrl "sample_output.png" }})
@@ -329,7 +329,7 @@ outputs: {output1: "description"}
 ---
 
 ## Description
-What your model does...
+What your block does...
 
 ## Usage
 How to use it...
@@ -337,7 +337,7 @@ How to use it...
 
 Upload with:
 ```bash
-clay upload readme --name <model-name> --version <version>
+clay upload readme --name <block-name> --version <version>
 ```
 
 ---
@@ -376,8 +376,8 @@ export AWS_PROFILE=d-platform-services
 | Issue | Solution |
 |-------|----------|
 | `ORCHESTRATOR_URL` warning | Normal for local runs, ignore it |
-| Input file not found | Check path in sample_model_inputs.json |
-| Model crashes | Check logs, add more `self.logger.info()` statements |
+| Input file not found | Check path in sample_block_inputs.json |
+| Block crashes | Check logs, add more `self.logger.info()` statements |
 
 ---
 
@@ -387,11 +387,11 @@ export AWS_PROFILE=d-platform-services
 |-------|---------|
 | Infrastructure, CI/CD | **MLOps Team** |
 | Platform integration | **Platform Team** |
-| Model development | **Analytics Team** |
+| Block development | **Analytics Team** |
 
 ### Internal Resources
 
-- [Model Configs Repository](https://github.com/example/model-configs)
+- [Block Configs Repository](https://github.com/example/block-configs)
 - [infra Infrastructure](https://github.com/example/infra)
 - [Benchmarking Guide](benchmarking.md) - Measure CPU, RAM, and runtime for pricing and resource limits
 - Monitoring Dashboards - Ask MLOps team for access

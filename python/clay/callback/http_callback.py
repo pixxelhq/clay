@@ -8,7 +8,7 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 from clay.callback.callback import CallbackData, CallbackInterface, ErrorType
-from clay.types import ModelStates
+from clay.types import BlockStates
 
 
 class HTTPCallback(CallbackInterface):
@@ -87,9 +87,9 @@ class HTTPCallback(CallbackInterface):
         # Prepare the callback URL
 
         # Convert callback data to JSON
-        model_payload = callback_data.model_dump(exclude_none=True)
+        block_payload = callback_data.model_dump(exclude_none=True)
         callback_payload = {
-            "data": model_payload
+            "data": block_payload
         }
         # Log the callback details if a logger is provided
         self._log(logger, "debug", f"Sending callback to {self.callback_endpoint}")
@@ -128,7 +128,7 @@ class HTTPCallback(CallbackInterface):
             metadata: Dict[str, str],
             inputs: Optional[List[Dict[str, Any]]] = None,
             logger: Optional[Union[logging.Logger, Any]] = None,
-            status: ModelStates = ModelStates.INPROGRESS,
+            status: BlockStates = BlockStates.INPROGRESS,
             *,
             progress: Optional[float] = None,
             outputs: Optional[List[Dict[str, Any]]] = None,
@@ -146,7 +146,7 @@ class HTTPCallback(CallbackInterface):
             inputs: List of input data objects
             metadata: Additional metadata
             logger: Optional logger for debug information
-            status: Current state of the model execution (using ModelStates enum)
+            status: Current state of the block execution (using BlockStates enum)
             progress: Optional progress percentage (0-100)
             outputs: Optional list of output data objects
             start_time: Optional start timestamp in seconds

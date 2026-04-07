@@ -33,21 +33,21 @@ from clay.utils import (
 class InferenceCtx:
     """
     Utility object whose lifetime is scoped to a single inference run. This object is essentially used
-    to move data in and out of a model wthin a runner. It also stores simple metrics recorded by the
-    _ModelWrapper_ like inference start and end times among other things that are to be shipped
-    back to orchestrator once the model execution completes.
+    to move data in and out of a block within a runner. It also stores simple metrics recorded by the
+    _BlockWrapper_ like inference start and end times among other things that are to be shipped
+    back to orchestrator once the block execution completes.
     """
 
     def __init__(self, opts: Optional[types.InferenceOpts] = None) -> None:
         """
         Args:
             opts (Optional[types.InferenceOpts], optional):
-                Data being passed into the model. Defaults to None.
+                Data being passed into the block. Defaults to None.
         """
         self._outputs_buffer: List[datatypes.Data] = []
         self._opts = opts
-        self._model_inf_start_time: str = ""
-        self._model_inf_end_time: str = ""
+        self._block_inf_start_time: str = ""
+        self._block_inf_end_time: str = ""
 
     def output(self, val: datatypes.Data) -> None:
         self._outputs_buffer.append(val)
@@ -55,17 +55,17 @@ class InferenceCtx:
     def get_output_buffer(self) -> List[datatypes.Data]:
         return self._outputs_buffer
 
-    def set_model_inf_start_time(self) -> None:
-        self._model_inf_start_time = get_current_utc_time_iso()
+    def set_block_inf_start_time(self) -> None:
+        self._block_inf_start_time = get_current_utc_time_iso()
 
-    def set_model_inf_end_time(self) -> None:
-        self._model_inf_end_time = get_current_utc_time_iso()
+    def set_block_inf_end_time(self) -> None:
+        self._block_inf_end_time = get_current_utc_time_iso()
 
-    def get_model_inf_times(self) -> types.ModelInfTimes:
-        return types.ModelInfTimes(InfStartTime=self._model_inf_start_time, InfEndTime=self._model_inf_end_time)
+    def get_block_inf_times(self) -> types.BlockInfTimes:
+        return types.BlockInfTimes(InfStartTime=self._block_inf_start_time, InfEndTime=self._block_inf_end_time)
 
-class ModelWrapper:
-    """The base class that wraps all user defined models. Every user defined model is expected
+class BlockWrapper:
+    """The base class that wraps all user defined blocks. Every user defined block is expected
     to inherit this class. This enforces a defined structure on the user and ensures proper
     integration with execution modes.
     """
@@ -80,7 +80,7 @@ class ModelWrapper:
     ) -> None:
         """
         Args:
-            config (str): Path to model specification file.
+            config (str): Path to block specification file.
             logger (Optional[Logger], optional):
                 Custom logger. If not provided, _clay_ uses it's internal default logger.
                 Defaults to None.
@@ -157,13 +157,13 @@ class ModelWrapper:
         pass
 
     def setup(self, *args: Any, **kwargs: Any) -> None:
-        """Abstract method that is to be overriden in the user model.
+        """Abstract method that is to be overriden in the user block.
         This method will always run before any user code is executed. Any form of
-        model setup code (download model weights etc) is to be defined in the `setup`
-        method of the subclass (i.e. the model code).
+        block setup code (download block weights etc) is to be defined in the `setup`
+        method of the subclass (i.e. the block code).
 
         The arguments to this method are the items defined in the _parameter_ (WIP) section
-        of the model spec file.
+        of the block spec file.
         """
         raise NotImplementedError
 
@@ -207,21 +207,21 @@ class ModelWrapper:
 
     @abstractmethod
     def get_progress(self) -> float:
-        """Returns the current progress of the model.
+        """Returns the current progress of the block.
 
         Returns:
-            float: Current model progress.
+            float: Current block progress.
         """
         pass
 
     @abstractmethod
     def set_progress(self, progress: float) -> None:
-        """This method is an **absolute setter method**. Meaning, the current progress of the model would be set to
+        """This method is an **absolute setter method**. Meaning, the current progress of the block would be set to
         _progress_ (assuming _progress_ is a valid value). The idea behind this method is to indicate *in absolute terms,
-        what the is progress of a model at a particular point*. Unline, _add_progress_, this is not an additive method.
+        what the is progress of a block at a particular point*. Unline, _add_progress_, this is not an additive method.
 
         Args:
-            progress (float): The value to which current model progress is to be set
+            progress (float): The value to which current block progress is to be set
         """
         pass
 
@@ -230,14 +230,14 @@ class ModelWrapper:
         """This method adds a progress `delta` to the progress calculated so far. The difference between
         `add_progress` and `set_progress` is that the `add_progress` is an **relative additive** method, while the
         `set_progress` is an *abosulte setter* method. `add_progress` *add* the *progress_delta* to the current progress.
-        For example, if the progress of the model prior to the function call was 25 and _progress_delta_ was set to 5, post
-        execution of this function the progress of the model would be 30.
+        For example, if the progress of the block prior to the function call was 25 and _progress_delta_ was set to 5, post
+        execution of this function the progress of the block would be 30.
 
-        This method should be used when the model would want to indicate a certain delta in progress. For example, _every iteration
-        of this loop would add a unit of 5 to the total model progress_.
+        This method should be used when the block would want to indicate a certain delta in progress. For example, _every iteration
+        of this loop would add a unit of 5 to the total block progress_.
 
         Args:
-            progress_delta (float): Amount of change that is to be reflected in the model progress.
+            progress_delta (float): Amount of change that is to be reflected in the block progress.
 
         """
         pass
@@ -259,7 +259,7 @@ class ModelWrapper:
         pass
 
     async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
-        """The preprocess abstract method. This the first method that the model
+        """The preprocess abstract method. This the first method that the block
         needs to *compulsorily* override.
 
         The arguments are defined by the user and *has to* corressponds
@@ -280,7 +280,7 @@ class ModelWrapper:
 
         Raises:
             NotImplementedError:
-                Raised during runtime if the model doesn't implement the method.
+                Raised during runtime if the block doesn't implement the method.
 
         Returns:
             Any:
@@ -344,11 +344,11 @@ class ModelWrapper:
                 datatypes.validate_input(value, spec)
 
     async def infer(self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]) -> InferenceCtx:
-        """Entrypoint to the model inference process. All runners would call the
-        `infer` method defined on the model at a certain point to start the actual
+        """Entrypoint to the block inference process. All runners would call the
+        `infer` method defined on the block at a certain point to start the actual
         inference process.
 
-        This is the common entrypoint into models used by all runner implementations.
+        This is the common entrypoint into blocks used by all runner implementations.
 
         Internally, the `infer` method, would call the *three user defined* methods in
         the following order, **preprocess** -> **inference** -> **postprocess**
@@ -361,7 +361,7 @@ class ModelWrapper:
                 `clay.types`.
             opts (Optional[types.InferenceOpts]):
                 Data scoped to a single inference run. This contextual information
-                is not used by the model in anyway. Rather this data is used by clay
+                is not used by the block in anyway. Rather this data is used by clay
                 to perform housekeeping, infrastructur related tasks like callbacks
                 and, more importantly, pass out a list of outputs to the runner.
 
@@ -381,11 +381,11 @@ class ModelWrapper:
 
         _inf_ctx = InferenceCtx(opts=opts)
         try:
-            _inf_ctx.set_model_inf_start_time()
+            _inf_ctx.set_block_inf_start_time()
             _return_vals = await self.preprocess(**d)
             _return_vals = await self.inference(**_return_vals)
             _return_vals = await self.postprocess(**_return_vals)
-            _inf_ctx.set_model_inf_end_time()
+            _inf_ctx.set_block_inf_end_time()
         finally:
             await self.cleanup_inference()
 
@@ -405,7 +405,7 @@ class ModelWrapper:
         return get_streamvalues(self.logger)
 
 
-ModelWrapperType = TypeVar("ModelWrapperType", bound=ModelWrapper)
+BlockWrapperType = TypeVar("BlockWrapperType", bound=BlockWrapper)
 
 
 class BaseRunner(object):
@@ -413,20 +413,20 @@ class BaseRunner(object):
 
     def __init__(
         self,
-        modelcls: Type[ModelWrapper],
-        model_args: Dict[str, Any],
+        blockcls: Type[BlockWrapper],
+        block_args: Dict[str, Any],
         cfg_path: str,
         logger: Union[None, Logger],
         enable_debug_logs: Optional[bool] = None,
     ) -> None:
-        self._modelcls = modelcls
-        self._model_args = model_args
+        self._blockcls = blockcls
+        self._block_args = block_args
         self.config = yaml_to_namespace(cfg_path)
         self.enable_debug_logs = enable_debug_logs
         if logger is None:
             log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
             logger = ClayLogger(
-                logger_name="model_runner",
+                logger_name="block_runner",
                 propagate=True,
                 level=log_level,
             )
@@ -449,10 +449,10 @@ class BaseRunner(object):
 
     # Legacy __set_feature_flags__ method removed - proto types are now the default
 
-    def _init_model(self) -> None:
-        self.logger.info("Initializing Model...")
-        self._model: ModelWrapper = self._modelcls(**self._model_args)
-        self.logger.info("Model initialization complete.")
+    def _init_block(self) -> None:
+        self.logger.info("Initializing Block...")
+        self._block: BlockWrapper = self._blockcls(**self._block_args)
+        self.logger.info("Block initialization complete.")
 
     @abstractmethod
     def _collect_inputs(

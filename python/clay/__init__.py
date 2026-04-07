@@ -2,6 +2,6 @@ from clay import callback
 from clay._signals import failure
 from clay.run import Run
 
-from .core import ModelWrapper
+from .core import BlockWrapper
 
-__all__ = ["ModelWrapper", "Run", "callback", "failure"]
+__all__ = ["BlockWrapper", "Run", "callback", "failure"]

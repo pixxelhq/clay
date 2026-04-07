@@ -7,7 +7,7 @@ from pathlib import Path
 import nest_asyncio
 import pytest
 
-from .models.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
+from .blocks.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
 
 sys.path.append(str((Path(__file__).parent) / "testrepo"))
 
@@ -23,7 +23,7 @@ def session_setup(request):
 
 
 @pytest.fixture(scope="function")
-def toy_model() -> YMXPLUSC:
+def toy_block() -> YMXPLUSC:
     return YMXPLUSC(config=YMXPLUSC_CONFIG)
 
 def pytest_configure():

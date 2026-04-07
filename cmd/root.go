@@ -12,11 +12,11 @@ import (
 var RootCmd = &cobra.Command{
 	Use:          "clay",
 	SilenceUsage: true,
-	Short:        "A tool to bridge gap between model development on local machines and deployment on the platform",
+	Short:        "A tool to bridge gap between block development on local machines and deployment on the platform",
 	Long: heredoc.Doc(`Clay provide users the tooling and the scaffolding needed to quickly:
-	1.Refactor their model in a pre-defined structure
+	1.Refactor their block in a pre-defined structure
 	2.Programmatically declare their inputs and outputs, environment and compute requirements
-	3.Provide tooling to easily and locally test their models that are deployed on our infra`),
+	3.Provide tooling to easily and locally test their blocks that are deployed on our infra`),
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
@@ -39,6 +39,6 @@ func init() {
 	RootCmd.AddCommand(pushToDockerRegistryCmd())
 	RootCmd.AddCommand(UploadCmd())
 	RootCmd.AddCommand(runDockerImageCmd())
-	RootCmd.AddCommand(publishModelToRegistryCmd())
+	RootCmd.AddCommand(publishBlockToRegistryCmd())
 	RootCmd.AddCommand(BlockCmd())
 }

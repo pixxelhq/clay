@@ -1,36 +1,34 @@
 # Clay Architecture Overview
 
-This document provides a high-level overview of Clay's architecture, components, and how they work together to enable standardized model deployment.
+This document provides a high-level overview of Clay's architecture, components, and how they work together to enable standardized block deployment.
 
 ## Glossary
 
-* **Model**: A function that takes inputs, performs computations, and returns outputs. It can be anything from simple arithmetic to complex deep learning models.
+* **Block**: A function that takes inputs, performs computations, and returns outputs. It can be anything from simple arithmetic to complex deep learning blocks. Also Clay's terminology for a packaged block with its specification, container, and metadata.
 
-* **Block**: Clay's terminology for a packaged model with its specification, container, and metadata.
+* **BlockWrapper**: The Python interface that all Clay blocks implement, defining setup, preprocess, inference, and postprocess methods.
 
-* **ModelWrapper**: The Python interface that all Clay models implement, defining setup, preprocess, inference, and postprocess methods.
+* **Orchestrator**: The system responsible for running blocks (e.g., Kubernetes, Docker, cloud services). Pixxel has its own orchestrator called ORCHESTRATOR, which we use to deploy our block on our platform [Platform](https://aurora.pixxel.space/){:target="_blank"}.
 
-* **Orchestrator**: The system responsible for running models (e.g., Kubernetes, Docker, cloud services). Pixxel has its own orchestrator called ORCHESTRATOR, which we use to deploy our model on our platform [Platform](https://aurora.pixxel.space/){:target="_blank"}.
+* **Runner**: Clay's execution engine that handles block lifecycle, input/output processing, and communication with the orchestrator.
 
-* **Runner**: Clay's execution engine that handles model lifecycle, input/output processing, and communication with the orchestrator.
+* **Registry**: Centralized service storing block metadata, versions, and specifications.
 
-* **Registry**: Centralized service storing model metadata, versions, and specifications.
+* **Block Assets**: Files stored in cloud storage (S3) associated with a block, such as pre-trained block weights, configuration files, or reference data. Assets can be shared across all versions or version-specific.
 
-* **Block Assets**: Files stored in cloud storage (S3) associated with a block, such as pre-trained model weights, configuration files, or reference data. Assets can be shared across all versions or version-specific.
-
-* **Type System**: Clay's standardized data types (Raster, Vector, Number, etc.) that enable models to communicate.
+* **Type System**: Clay's standardized data types (Raster, Vector, Number, etc.) that enable blocks to communicate.
 
 ## High-Level Workflow
 
 ```
 ┌─────────────────┐
-│ Model Developer │
+│ Block Developer │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────────────────────┐
-│   Model Development (Clay)      │
-│   • Write ModelWrapper code     │
+│   Block Development (Clay)      │
+│   • Write BlockWrapper code     │
 │   • Define specification        │
 │   • Test locally                │
 └────────┬────────────────────────┘
@@ -48,14 +46,14 @@ This document provides a high-level overview of Clay's architecture, components,
 │   Orchestrator (Your Choice)    │
 │   • Pull container              │
 │   • Provide environment         │
-│   • Execute model               │
+│   • Execute block               │
 └────────┬────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────┐
 │   Clay Runtime (Runner)         │
 │   • Validate inputs             │
-│   • Execute ModelWrapper        │
+│   • Execute BlockWrapper        │
 │   • Handle outputs              │
 └─────────────────────────────────┘
 ```
@@ -64,7 +62,7 @@ This document provides a high-level overview of Clay's architecture, components,
 
 ### 1. Clay CLI
 
-Command-line tool for model development:
+Command-line tool for block development:
 
 * Create project scaffolding
 * Generate Dockerfiles
@@ -73,9 +71,9 @@ Command-line tool for model development:
 * Publish to registry
 
 ```bash
-clay create project ./mymodel MyModel
+clay create project ./myblock MyBlock
 clay build
-clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" mymodel:0.0.1
+clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" myblock:0.0.1
 ```
 For complete reference, see [Command Reference](cli-reference.md)
 
@@ -83,9 +81,9 @@ For complete reference, see [Command Reference](cli-reference.md)
 
 Runtime library providing:
 
-* **ModelWrapper**: Base class for all models
+* **BlockWrapper**: Base class for all blocks
 * **Type System**: Raster, Vector, Number, String, Date, Tabular
-* **Runners**: Clay's execution engine that handles model lifecycle, input/output processing, and  communication with the orchestrator.
+* **Runners**: Clay's execution engine that handles block lifecycle, input/output processing, and  communication with the orchestrator.
 * **Storage**: Abstraction over s3(currently supported), local filesystem
 * **Logging**: [Structured JSON logging](logging.md)
 * **Progress Tracking**: [Built-in progress reporting](progress.md)
@@ -94,7 +92,7 @@ Runtime library providing:
 
 YAML configuration declaring:
 
-* Model metadata (name, version, author)
+* Block metadata (name, version, author)
 * Inputs and outputs with types
 * Build instructions (dependencies, Python version)
 
@@ -102,18 +100,18 @@ For complete reference, see [Block Specifications](spec.md).
 
 ### 4. Clay Registry
 
-Centralized model management:
+Centralized block management:
 
 * REST API for registry operations
 * PostgreSQL backend for metadata
 * Version tracking and history
-* Model discovery and querying
+* Block discovery and querying
 
 For complete reference, see [Clay Registry](registry.md).
 
 ### 5. Block Assets
 
-Cloud storage for model-related files:
+Cloud storage for block-related files:
 
 * Upload, download, and list assets via CLI
 * Name-level assets shared across all versions
@@ -124,7 +122,7 @@ For complete reference, see [Block Assets Management](block-assets.md).
 
 ### 6. Type System
 
-Standardized data types enabling model interoperability:
+Standardized data types enabling block interoperability:
 
 | Type | Purpose |
 |------|---------|
@@ -138,18 +136,18 @@ Standardized data types enabling model interoperability:
 Types provide validation, metadata, and consistent serialization.
 
 For complete reference, see [Input/Output & Datatypes](IO.md).
-## How Models Work
+## How Blocks Work
 
-### The ModelWrapper Interface
+### The BlockWrapper Interface
 
-Every Clay model implements four methods:
+Every Clay block implements four methods:
 
 ```python
-from clay import ModelWrapper
+from clay import BlockWrapper
 
-class MyModel(ModelWrapper):
+class MyBlock(BlockWrapper):
     def setup(self, **parameters):
-        """Initialize model once at startup"""
+        """Initialize block once at startup"""
         # Load weights, initialize resources
         pass
 
@@ -159,8 +157,8 @@ class MyModel(ModelWrapper):
         return processed_data
 
     async def inference(self, **processed_data):
-        """Run model predictions"""
-        # Execute model logic
+        """Run block predictions"""
+        # Execute block logic
         return predictions
 
     async def postprocess(self, **predictions):
@@ -179,7 +177,7 @@ class MyModel(ModelWrapper):
 6. **Output Handling**: Runner validates outputs, uploads files to storage
 7. **Completion**: Runner reports success/failure to orchestrator
 
-For tutorial on how to build a model, see [Tutorial](model-development.md)
+For tutorial on how to build a block, see [Tutorial](block-development.md)
 ## Environment Variables
 
 Clay uses environment variables for runtime configuration:

@@ -31,8 +31,8 @@ class TestCallbackBase(TestCase):
         self.assertIsNone(data.end_time)
         self.assertIsNone(data.failure_type)
         self.assertIsNone(data.err_msg)
-        
-        # Test model serialization
+
+        # Test block serialization
         data_dict = data.model_dump(exclude_none=True)
         self.assertEqual(data_dict["id"], "test-123")
         self.assertEqual(data_dict["metadata"], {})
@@ -56,7 +56,7 @@ class TestCallbackBase(TestCase):
         test_failure_type = ErrorType.BAD_REQUEST
         test_err_msg = "Invalid input"
         test_metadata = {"version": "1.0", "env": "test"}
-        
+
         # Create callback data with all arguments
         data = CallbackData(
             id=test_id,
@@ -69,7 +69,7 @@ class TestCallbackBase(TestCase):
             err_msg=test_err_msg,
             metadata=test_metadata
         )
-        
+
         # Verify attributes
         self.assertEqual(data.id, test_id)
         self.assertEqual(data.inputs, test_inputs)
@@ -80,8 +80,8 @@ class TestCallbackBase(TestCase):
         self.assertEqual(data.failure_type, test_failure_type)
         self.assertEqual(data.err_msg, test_err_msg)
         self.assertEqual(data.metadata, test_metadata)
-        
-        # Test model serialization
+
+        # Test block serialization
         data_dict = data.model_dump(exclude_none=True)
         self.assertEqual(data_dict["id"], test_id)
         self.assertEqual(data_dict["inputs"], test_inputs)
@@ -93,18 +93,18 @@ class TestCallbackBase(TestCase):
         self.assertEqual(data_dict["err_msg"], test_err_msg)
         self.assertEqual(data_dict["metadata"], test_metadata)
         
-    def test_model_dump_serialization(self):
+    def test_block_dump_serialization(self):
         """Test model_dump method for serialization."""
         # Create callback data
         data = CallbackData(
-            id="compat-test", 
+            id="compat-test",
             progress=50.0,
             metadata={"test": "value"}
         )
-        
+
         # Test the model_dump method
         result = data.model_dump(exclude_none=True)
-        
+
         # Verify result
         self.assertEqual(result["id"], "compat-test")
         self.assertEqual(result["progress"], 50.0)

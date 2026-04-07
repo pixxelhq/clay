@@ -1,6 +1,6 @@
 # Block Specification
 
-The block specification file (`clay.yaml`) defines your model's metadata, inputs, outputs, and build configuration. This file is required for Clay to understand how to build, deploy, and run your model.
+The block specification file (`clay.yaml`) defines your block's metadata, inputs, outputs, and build configuration. This file is required for Clay to understand how to build, deploy, and run your block.
 
 ## Example Specification
 
@@ -8,7 +8,7 @@ The block specification file (`clay.yaml`) defines your model's metadata, inputs
 apiVersion: 0.0.1
 kind: block
 type: processing
-name: mymodel
+name: myblock
 version: v0.0.1
 author: your-name
 tags:
@@ -83,7 +83,7 @@ The API version of the specification format. Currently `0.0.1`.
 | **Type** | `string` |
 | **Required** | Yes |
 
-Specifies what kind of entity this spec file represents. For models, this should always be `block`.
+Specifies what kind of entity this spec file represents. For blocks, this should always be `block`.
 
 ---
 
@@ -98,8 +98,8 @@ Specifies what kind of entity this spec file represents. For models, this should
 
 Type of the block:
 
-- **`processing`**: Models that perform analysis, predictions, or transformations on input data
-- **`source`**: Models that generate or fetch data without requiring input data
+- **`processing`**: Blocks that perform analysis, predictions, or transformations on input data
+- **`source`**: Blocks that generate or fetch data without requiring input data
 
 For more information, see [FAQ: Difference between processing and source blocks](faq.md#difference-between-processing-and-source-blocks).
 
@@ -113,10 +113,10 @@ For more information, see [FAQ: Difference between processing and source blocks]
 | **Type** | `string` |
 | **Required** | Yes |
 
-A unique identifier for the model. Must contain only **lowercase** alphanumeric characters and hyphens.
+A unique identifier for the block. Must contain only **lowercase** alphanumeric characters and hyphens.
 
 !!! warning
-    Once the `name` is set for a model, it cannot be changed. All subsequent versions must use the same name.
+    Once the `name` is set for a block, it cannot be changed. All subsequent versions must use the same name.
 
 ---
 
@@ -131,7 +131,7 @@ A unique identifier for the model. Must contain only **lowercase** alphanumeric 
 Version of the block following [semantic versioning](https://semver.org/) (e.g., `v0.0.1`, `v1.2.3`).
 
 !!! tip "Recommendation"
-    Version your models as you would software releases. Increment the version when making changes to inputs, outputs, or model behavior.
+    Version your blocks as you would software releases. Increment the version when making changes to inputs, outputs, or block behavior.
 
 ---
 
@@ -143,7 +143,7 @@ Version of the block following [semantic versioning](https://semver.org/) (e.g.,
 | **Type** | `string` |
 | **Required** | Yes |
 
-The individual or team responsible for maintaining this model.
+The individual or team responsible for maintaining this block.
 
 ---
 
@@ -155,7 +155,7 @@ The individual or team responsible for maintaining this model.
 | **Type** | `list[string]` |
 | **Required** | No |
 
-A list of tags for categorizing and discovering the model.
+A list of tags for categorizing and discovering the block.
 
 ```yaml
 tags:
@@ -175,7 +175,7 @@ tags:
 | **Type** | `list[parameter]` |
 | **Required** | No |
 
-List of parameters passed to the model's `setup()` function during initialization. These are configuration values that remain constant during model execution.
+List of parameters passed to the block's `setup()` function during initialization. These are configuration values that remain constant during block execution.
 
 #### Parameter Fields
 
@@ -209,10 +209,10 @@ parameters:
 | **Type** | `list[input]` |
 | **Required** | Yes |
 
-List of inputs the model accepts. Each input must specify its format and type. See [Input/Output & Datatypes](IO.md) for supported formats.
+List of inputs the block accepts. Each input must specify its format and type. See [Input/Output & Datatypes](IO.md) for supported formats.
 
 !!! note
-    Do not include the `value` field in the specification. The spec defines *what* inputs the model accepts, not the actual values.
+    Do not include the `value` field in the specification. The spec defines *what* inputs the block accepts, not the actual values.
 
 #### Input Fields
 
@@ -264,10 +264,10 @@ inputs:
 | **Type** | `list[output]` |
 | **Required** | Yes |
 
-List of outputs the model produces. Each output must specify its format and type.
+List of outputs the block produces. Each output must specify its format and type.
 
 !!! note
-    Do not include the `value` field in the specification. The spec defines *what* outputs the model produces, not the actual values.
+    Do not include the `value` field in the specification. The spec defines *what* outputs the block produces, not the actual values.
 
 #### Output Fields
 
@@ -335,7 +335,7 @@ build:
 ```
 
 !!! tip
-    If your model requires geospatial libraries like `rasterio` or `geopandas`, set `gdal: true` to ensure GDAL is available.
+    If your block requires geospatial libraries like `rasterio` or `geopandas`, set `gdal: true` to ensure GDAL is available.
 
 ---
 
@@ -347,7 +347,7 @@ build:
 | **Type** | `bool` |
 | **Default** | `false` |
 
-Whether the model requires GPU acceleration. When set to `true`, the model will be scheduled on GPU-enabled infrastructure.
+Whether the block requires GPU acceleration. When set to `true`, the block will be scheduled on GPU-enabled infrastructure.
 
 ```yaml
 gpu: true
@@ -449,7 +449,7 @@ inputs:
 
 ## Complete Example
 
-Here's a complete specification for an NDVI model:
+Here's a complete specification for an NDVI block:
 
 ```yaml
 apiVersion: 0.0.1

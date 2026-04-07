@@ -4,8 +4,8 @@ Clay provides a comprehensive asset management system for storing and retrieving
 
 ## Overview
 
-Block assets are any files that your model or block needs to function properly, such as:
-- Pre-trained model weights
+Block assets are any files that your block needs to function properly, such as:
+- Pre-trained block weights
 - Configuration files
 - Reference data
 - Documentation
@@ -22,10 +22,10 @@ Assets are organized in a hierarchical structure within your cloud storage:
         ├── assets/              # Name-level assets (shared across all versions)
         │   ├── common-config.yaml
         │   ├── shared-data/
-        │   └── reference-models/
+        │   └── reference-blocks/
         └── <version>/
             └── assets/          # Version-specific assets
-                ├── model.pkl
+                ├── block.pkl
                 ├── config.yaml
                 └── data/
 ```
@@ -33,7 +33,7 @@ Assets are organized in a hierarchical structure within your cloud storage:
 ### Name-level vs Version-specific Assets
 
 - **Name-level assets** (`blocks/<name>/assets/`): Shared across all versions of a block. Use for common resources that don't change between versions.
-- **Version-specific assets** (`blocks/<name>/<version>/assets/`): Specific to a particular version. Use for version-dependent resources like model weights or version-specific configs.
+- **Version-specific assets** (`blocks/<name>/<version>/assets/`): Specific to a particular version. Use for version-dependent resources like block weights or version-specific configs.
 
 ## Commands
 
@@ -43,13 +43,13 @@ Upload files or directories to cloud storage:
 
 ```bash
 # Upload to name-level (shared across versions)
-clay block assets upload ./models --name my-block --bucket my-bucket --region us-east-1
+clay block assets upload ./blocks --name my-block --bucket my-bucket --region us-east-1
 
 # Upload to version-specific location
-clay block assets upload ./models --name my-block --version v1.0.0 --bucket my-bucket --region us-east-1
+clay block assets upload ./blocks --name my-block --version v1.0.0 --bucket my-bucket --region us-east-1
 
 # Upload a single file
-clay block assets upload model.pkl --name my-block --version v1.0.0 --bucket my-bucket
+clay block assets upload block.pkl --name my-block --version v1.0.0 --bucket my-bucket
 
 # Upload README with template processing
 clay block assets upload ./catalog_readme --name my-block --version v1.0.0 \
@@ -65,7 +65,7 @@ When uploading README or catalog files with the `--readme` flag, Clay will:
 
 Example:
 ```bash
-# Your catalog_readme/model-README.md contains:
+# Your catalog_readme/block-README.md contains:
 # ![]({{ addUrl "sample_input.png" }})
 # This will be processed to:
 # ![](https://my-bucket.s3.us-east-1.amazonaws.com/blocks/my-block/v1.0.0/catalog_readme/sample_input.png)
@@ -92,7 +92,7 @@ Download specific assets to your local filesystem:
 
 ```bash
 # Download a single file
-clay block assets download model.pkl --name my-block --version v1.0.0 \
+clay block assets download block.pkl --name my-block --version v1.0.0 \
   --bucket my-bucket --region us-east-1
 
 # Download to a specific location
@@ -162,53 +162,53 @@ Configure AWS credentials using one of these methods:
 ### Complete Workflow Example
 
 ```bash
-# 1. Upload model weights for a new version
-clay block assets upload ./trained_models/v2.0.0/ \
+# 1. Upload block weights for a new version
+clay block assets upload ./trained_blocks/v2.0.0/ \
   --name image-classifier --version v2.0.0 \
-  --bucket ml-models --region us-west-2
+  --bucket ml-blocks --region us-west-2
 
 # 2. Upload shared configuration
 clay block assets upload ./configs/base_config.yaml \
   --name image-classifier \
-  --bucket ml-models --region us-west-2
+  --bucket ml-blocks --region us-west-2
 
 # 3. List all assets to verify
 clay block assets list --name image-classifier --version v2.0.0 \
-  --bucket ml-models --region us-west-2
+  --bucket ml-blocks --region us-west-2
 
-# 4. Download model for inference
-clay block assets download model.pkl \
+# 4. Download block for inference
+clay block assets download block.pkl \
   --name image-classifier --version v2.0.0 \
-  --bucket ml-models --region us-west-2 \
-  --output ./model_cache/
+  --bucket ml-blocks --region us-west-2 \
+  --output ./block_cache/
 ```
 
-### Integration with Model Code
+### Integration with Block Code
 
 ```python
 import os
 from clay_utils import download_block_asset  # hypothetical utility
 
-class MyModel:
+class MyBlock:
     def __init__(self, block_name, version):
         self.block_name = block_name
         self.version = version
         
-    def load_model(self):
-        # Download model weights if not cached
-        model_path = f"./cache/{self.version}/model.pkl"
-        if not os.path.exists(model_path):
+    def load_block(self):
+        # Download block weights if not cached
+        block_path = f"./cache/{self.version}/block.pkl"
+        if not os.path.exists(block_path):
             # This would use clay CLI or SDK internally
             download_block_asset(
-                asset_path="model.pkl",
+                asset_path="block.pkl",
                 block_name=self.block_name,
                 version=self.version,
-                output_path=model_path
+                output_path=block_path
             )
         
-        # Load the model
-        with open(model_path, 'rb') as f:
-            self.model = pickle.load(f)
+        # Load the block
+        with open(block_path, 'rb') as f:
+            self.block = pickle.load(f)
 ```
 
 ## Troubleshooting

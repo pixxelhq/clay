@@ -80,7 +80,7 @@ class JSONFormatter(logging.Formatter):
 
         # we use `stringify` instead of `json.dumps` so that in the rare case that a logged object
         # is not JSON serializable, we can still convert it to a string as a fallback option
-        # and avoid the model failing because of a logging issue.
+        # and avoid the block failing because of a logging issue.
         return stringify(log_entry) + self.generate_stack_trace_if_exc_info(record)
 
 

@@ -105,7 +105,7 @@ func pushToDockerRegistryCmd() *cobra.Command {
 		Use:     "push [IMAGE]",
 		Short:   "Push the docker image to registry. This command uses sudo to build docker image",
 		Long:    "Push the docker image to registry, if image is not provided, it will use `name` and `tag` mentioned in clay.yaml for image name in the format `name:tag`",
-		Example: "clay push registry.io/testing-model:0.0.1",
+		Example: "clay push registry.io/testing-block:0.0.1",
 		RunE:    pushCmd,
 	}
 

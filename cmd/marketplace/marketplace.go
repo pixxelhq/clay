@@ -31,7 +31,7 @@ func UploadReadme() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "readme",
-		Short: "Upload the readme for the model to cloud",
+		Short: "Upload the readme for the block to cloud",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			cwd, err := os.Getwd()
 			if err != nil {
@@ -62,7 +62,7 @@ func UploadReadme() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := common.Getlogger()
 			s3Namespace := filepath.Join(blockName, blockVersion, localReadmeFolder)
-			versionedModelName := filepath.Join(blockName, blockVersion)
+			versionedBlockName := filepath.Join(blockName, blockVersion)
 			s3BucketUrl := "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/"
 			err := marketplace.ParseMarkdown(blockName, blockVersion, s3BucketUrl)
 			if err != nil {
@@ -78,7 +78,7 @@ func UploadReadme() *cobra.Command {
 				logger.Error().Err(err).Stack().Msg(err.Error())
 				return err
 			}
-			s3CatalogUrl = "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/" + versionedModelName + "/catalog_readme/parsed.md"
+			s3CatalogUrl = "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/" + versionedBlockName + "/catalog_readme/parsed.md"
 			fmt.Print(string(s3CatalogUrl))
 			return nil
 		},

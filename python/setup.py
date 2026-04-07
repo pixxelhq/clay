@@ -31,7 +31,7 @@ def get_version() -> dict:
 setup(
     name="pixxel-clay",
     version=str(get_version()),
-    description="This is the SDK that would be used to deploy all models at pixxel.",
+    description="This is the SDK that would be used to deploy all blocks at pixxel.",
     # Author details
     author_email="ml@pixxel.co.in",
     url="https://github.com/example/clay",

@@ -21,7 +21,7 @@ func Getlogger() *logger.Logger {
 		LoggerName:           "clay",
 		ModuleName:           "clay",
 		Directory:            "/tmp/clay/logs/",
-		Filename:             "modelspec.logs.txt",
+		Filename:             "blockspec.logs.txt",
 		MaxBackups:           0,
 		MaxSize:              512,
 		MaxAge:               0,

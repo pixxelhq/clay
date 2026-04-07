@@ -1,4 +1,4 @@
-name: Publish model to Clay registry
+name: Publish block to Clay registry
 
 on: workflow_dispatch
 
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  publish-model-doc:
+  publish-block-doc:
     runs-on: [ubuntu-latest]
     outputs:
       doc-url: ${{ `{{steps.upload_assets.outputs.DOC_URL}}` }}
@@ -49,13 +49,13 @@ jobs:
           rename-to: clay
           chmod: 0755
 
-      - name: Upload model assets to s3
+      - name: Upload block assets to s3
         id: upload_assets
         run: |
           set -e
           # Upload catalog (readme and thumbnail)
           # Version is automatically read from clay.yaml config when --readme flag is set
-          BASE_URL=$(clay block assets upload catalog --name {{ .ModelName }} --bucket clay-model-registry --region us-east-2 --readme)
+          BASE_URL=$(clay block assets upload catalog --name {{ .BlockName }} --bucket clay-block-registry --region us-east-2 --readme)
 
           # Construct full URLs with specific file paths
           DOC_URL="${BASE_URL}/parsed.md"
@@ -67,8 +67,8 @@ jobs:
           echo "Documentation URL: $DOC_URL"
           echo "Thumbnail URL: $THUMBNAIL_URL"
 
-  publish-model:
-    needs: publish-model-doc
+  publish-block:
+    needs: publish-block-doc
     runs-on: [ubuntu-latest]
     if: (github.event_name == 'workflow_dispatch')
     permissions:
@@ -109,10 +109,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Publish model to clay registry
+      - name: Publish block to clay registry
         run: |
-          DOC_URL=${{`{{ needs.publish-model-doc.outputs.doc-url }}`}}
-          THUMBNAIL_URL=${{`{{ needs.publish-model-doc.outputs.thumbnail-url }}`}}
+          DOC_URL=${{`{{ needs.publish-block-doc.outputs.doc-url }}`}}
+          THUMBNAIL_URL=${{`{{ needs.publish-block-doc.outputs.thumbnail-url }}`}}
           echo "Documentation URL: $DOC_URL"
           echo "Thumbnail URL: $THUMBNAIL_URL"
-          clay publish --model-registry-host=${{`{{env.CLAY_REGISTRY_HOST}}`}} --documentation-url=$DOC_URL --thumbnail-url=$THUMBNAIL_URL
+          clay publish --block-registry-host=${{`{{env.CLAY_REGISTRY_HOST}}`}} --documentation-url=$DOC_URL --thumbnail-url=$THUMBNAIL_URL

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from clay.types import ModelStates
+from clay.types import BlockStates
 
 
 class ErrorType(str, Enum):
@@ -30,7 +30,7 @@ class CallbackData(BaseModel):
         failure_type: Error type at root level (using ErrorType enum)
         err_msg: Error message at root level
         metadata: Optional additional metadata
-        status: Current state of the model execution (using ModelStates enum)
+        status: Current state of the block execution (using BlockStates enum)
     """
     id: str = Field(serialization_alias="id")
     inputs: Optional[List[Dict[str, Any]]] = None
@@ -42,7 +42,7 @@ class CallbackData(BaseModel):
     err_msg: Optional[str] = None
     disclaimer: Optional[Dict[str, str]] = None
     metadata: Dict[str, str] = Field(default_factory=dict)
-    status: Annotated[ModelStates, Field(serialization_alias="state")] = ModelStates.INPROGRESS
+    status: Annotated[BlockStates, Field(serialization_alias="state")] = BlockStates.INPROGRESS
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert callback data to a dictionary for serialization."""
@@ -63,7 +63,7 @@ class CallbackInterface(ABC):
             metadata: Dict[str, str],
             inputs: List[Dict[str, Any]] = None,  # type: ignore
             logger: Optional[Union[logging.Logger, Any]] = None,
-            status: ModelStates = ModelStates.INPROGRESS,
+            status: BlockStates = BlockStates.INPROGRESS,
             *,
             progress: Optional[float] = None,
             outputs: Optional[List[Dict[str, Any]]] = None,
@@ -75,20 +75,20 @@ class CallbackInterface(ABC):
     ) -> bool:
         """
         Send a unified callback that can represent progress, success, or error states.
-        
+
         Args:
             id: Unique identifier for the execution
             inputs: List of input data objects
             metadata: Additional metadata
             logger: Optional logger for debug information
-            status: Current state of the model execution (using ModelStates enum)
+            status: Current state of the block execution (using BlockStates enum)
             progress: Optional progress percentage (0-100)
             outputs: Optional list of output data objects
             start_time: Optional start timestamp in seconds
             end_time: Optional end timestamp in seconds
             failure_type: Optional error type (using ErrorType enum)
             err_msg: Optional error message
-            
+
         Returns:
             bool: True if callback was sent successfully, False otherwise
         """
@@ -127,7 +127,7 @@ class CallbackInterface(ABC):
             outputs=outputs,
             start_time=start_time,
             end_time=end_time,
-            status=ModelStates.COMPLETED
+            status=BlockStates.COMPLETED
         )
 
     def send_progress(
@@ -136,7 +136,7 @@ class CallbackInterface(ABC):
             progress: float,
             inputs: List[Dict[str, Any]],
             metadata: Dict[str, str],
-            status: Optional[ModelStates] = None,
+            status: Optional[BlockStates] = None,
             logger: Optional[Union[logging.Logger, Any]] = None
     ) -> bool:
         """
@@ -147,7 +147,7 @@ class CallbackInterface(ABC):
             progress: Current progress percentage (0-100)
             inputs: List of input data objects
             metadata: Additional metadata
-            status: Current state of the model execution (using ModelStates enum)
+            status: Current state of the block execution (using BlockStates enum)
             logger: Optional logger for debug information
 
         Returns:
@@ -159,7 +159,7 @@ class CallbackInterface(ABC):
             metadata=metadata,
             logger=logger,
             progress=progress,
-            status=status if status is not None else ModelStates.INPROGRESS
+            status=status if status is not None else BlockStates.INPROGRESS
         )
 
     def send_error(
@@ -198,5 +198,5 @@ class CallbackInterface(ABC):
             err_msg=err_msg,
             start_time=start_time,
             end_time=end_time,
-            status=ModelStates.FAILED
+            status=BlockStates.FAILED
         )

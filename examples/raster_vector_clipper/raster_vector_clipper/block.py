@@ -9,12 +9,12 @@ from shapely.errors import ShapelyError
 from shapely.geometry import box
 
 import datatypes as T
-from clay.core import ModelWrapper
+from clay.core import BlockWrapper
 
 
-class RasterVectorClipper(ModelWrapper):
+class RasterVectorClipper(BlockWrapper):
     def setup(self, buffer_distance: float = 0.0, **hyperparameters) -> None:  # type: ignore
-        """Initialize the model with parameters.
+        """Initialize the block with parameters.
 
         Args:
             buffer_distance: Optional buffer distance to apply to vector geometry before clipping

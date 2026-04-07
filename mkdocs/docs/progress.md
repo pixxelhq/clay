@@ -1,8 +1,8 @@
-# Indicating Model Progress
+# Indicating Block Progress
 
-Most of the models in our ecosystem are long running models. Hence, indicating the progress of an inference is a key component of the user experience.
+Most of the blocks in our ecosystem are long running blocks. Hence, indicating the progress of an inference is a key component of the user experience.
 
-Indicating the progress of a process, model or not, is _generally a tricky process_ without any standardised way to do it. For example,
+Indicating the progress of a process, block or not, is _generally a tricky process_ without any standardised way to do it. For example,
 
 * Who should be reporting this progress? Should it be the process itself or some sort of manager process?
 * If its the process, then how do we maintain state?
@@ -14,23 +14,23 @@ Well, we have outlined our approach with usage examples below.
 
 ## Our Approach
 
-* The total progress of the model is bounded between 0 and 100, i.e. `[0, 100]`. Of which, the model has access to the `(5, 95)` range. The ranges `[0, 5]` and `[95, 100]` are reserved by Clay.
+* The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Of which, the block has access to the `(5, 95)` range. The ranges `[0, 5]` and `[95, 100]` are reserved by Clay.
 
-* There are two types of API exposed by clay for the model author to use,
+* There are two types of API exposed by clay for the block author to use,
     * `add_progress` - _A relative, additive API._
     * `set_progress` - _An absolute, setter API._
 
-* Progress is tracked, internally by the base `ModelWrapper` class, which is the base class for all models.
+* Progress is tracked, internally by the base `BlockWrapper` class, which is the base class for all blocks.
 
 * Precision is welcomed wherever possible, but approximations also work.
 
-* Since these methods are an attribute of the `ModelWrapper` class and by extension, the subclassed model, the methods cannot be used in a third party function, out of the box. For example,
+* Since these methods are an attribute of the `BlockWrapper` class and by extension, the subclassed block, the methods cannot be used in a third party function, out of the box. For example,
 
 ```python
 def some_function():
     # cannot indicate progress in this function without passing down `self`.
 
-class Model(ModelWrapper):
+class Block(BlockWrapper):
     def inference(self, a: Raster):
         # can indicate progress here
         self.add_progress(5)
@@ -41,11 +41,11 @@ class Model(ModelWrapper):
 
 ### `add_progress`
 
-Simply put, this is an _additive API_. Meaning, it simply _adds_ a certain value to whatever the existing progress of the model is. If you are going to use this endpoint to indicate the progress of the model, post the execution of a certain block of code, it is helpful to ask yourself, something like, _"How much % of the total execution of my model is this code block responsible for, approximately?"_. The answer is the input that you should send to `add_progress`.
+Simply put, this is an _additive API_. Meaning, it simply _adds_ a certain value to whatever the existing progress of the block is. If you are going to use this endpoint to indicate the progress of the block, post the execution of a certain block of code, it is helpful to ask yourself, something like, _"How much % of the total execution of my block is this code block responsible for, approximately?"_. The answer is the input that you should send to `add_progress`.
 
 ### `set_progress`
 
-This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ the current progress of the model to a particular value. Of-course, the value needs to pass a set of internal validations. If you intend to use this endpoint to indicate the progress of a model, post the execution of a block of code, it would be helpful to ask yourself a question like, _"What do I expect the current progress of execution to be at this particular point in my code?"_.
+This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ the current progress of the block to a particular value. Of-course, the value needs to pass a set of internal validations. If you intend to use this endpoint to indicate the progress of a block, post the execution of a block of code, it would be helpful to ask yourself a question like, _"What do I expect the current progress of execution to be at this particular point in my code?"_.
 
 ## Rules of Thumb
 
@@ -60,7 +60,7 @@ This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ t
 ### Simple usage of `add_progress`
 
 ```python
-class M(ModelWrapper):
+class B(BlockWrapper):
     def __init__(
         self,
         config: str,
@@ -110,7 +110,7 @@ class M(ModelWrapper):
     you have to indicate a current progress, meaning, you have to fetch the last value and then increment it with a certain value.
 
 ```python
-class M(ModelWrapper):
+class B(BlockWrapper):
     def __init__(
         self,
         config: str,
@@ -153,7 +153,7 @@ class M(ModelWrapper):
 
 ```
 
-### Setting progress from functions external to ModelWrapper
+### Setting progress from functions external to BlockWrapper
 
 !!! warning
 
@@ -161,11 +161,11 @@ class M(ModelWrapper):
     an anti-pattern in the Python World.
 
 ```python
-def external_function(__model_self_, some_param: int) -> int:
-    __model_self_.add_progress(5)
+def external_function(__block_self_, some_param: int) -> int:
+    __block_self_.add_progress(5)
     return some_param + 100
 
-class M(ModelWrapper):
+class B(BlockWrapper):
     def __init__(
         self,
         config: str,

@@ -1,6 +1,6 @@
 # CLI Reference
 
-The Clay CLI provides commands for creating, building, publishing, and managing ML model blocks.
+The Clay CLI provides commands for creating, building, publishing, and managing ML blocks.
 
 ## General Commands
 
@@ -22,22 +22,22 @@ clay <command> --help
 
 ---
 
-## Model Commands
+## Block Commands
 
-Commands for creating, building, and running models.
+Commands for creating, building, and running blocks.
 
 ### Create Project
 
-Generate starter files for a new model project.
+Generate starter files for a new block project.
 
 ```shell
-clay create project <outputDir> <modelName>
+clay create project <outputDir> <blockName>
 ```
 
 | Argument | Description |
 |----------|-------------|
 | `outputDir` | Directory where project files will be created |
-| `modelName` | Name of the model |
+| `blockName` | Name of the block |
 
 ### Build
 
@@ -92,9 +92,9 @@ clay publish [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--docker-registry-host` | Docker registry URL | `REDACTED.dkr.ecr.us-east-2.amazonaws.com` |
-| `--model-registry-host` | Clay registry host | `http://localhost:8080` |
-| `--documentation-url` | Model documentation URL | — |
-| `--thumbnail-url` | Model thumbnail URL | — |
+| `--block-registry-host` | Clay registry host | `http://localhost:8080` |
+| `--documentation-url` | Block documentation URL | — |
+| `--thumbnail-url` | Block thumbnail URL | — |
 
 ---
 
@@ -193,7 +193,7 @@ clay block assets download <asset-path> [flags]
 
 ## Upload Commands
 
-Commands for uploading model assets.
+Commands for uploading block assets.
 
 ### Upload Readme
 

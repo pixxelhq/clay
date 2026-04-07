@@ -1,15 +1,15 @@
 # Environment Variables Reference
 
-This document details the environment variables used to configure and run a model locally or through an orchestrator. Each variable controls a distinct aspect of execution, data management, or orchestration. Understanding and setting these variables correctly ensures smooth and reproducible runs—whether executing single-model insights or workflows of chained models.
+This document details the environment variables used to configure and run a block locally or through an orchestrator. Each variable controls a distinct aspect of execution, data management, or orchestration. Understanding and setting these variables correctly ensures smooth and reproducible runs—whether executing single-block insights or workflows of chained blocks.
 
 ***
 
 ## 1. `EXECUTION_ID`
 
-- **Purpose**: Uniquely identifies each model run instance.
-- **Scope**: Used for tracing, auditing, and debugging execution logs and results. This ID is particularly important when the model communicates its status via callbacks, allowing the orchestrator to track which specific execution is reporting progress.
+- **Purpose**: Uniquely identifies each block run instance.
+- **Scope**: Used for tracing, auditing, and debugging execution logs and results. This ID is particularly important when the block communicates its status via callbacks, allowing the orchestrator to track which specific execution is reporting progress.
 - **Best Practice**: Set by the orchestrator; must be globally unique for each run.
-- **Usage in Callbacks**: When models report their status (success/failure, progress) to the callback endpoint, the EXECUTION_ID helps the orchestrator correlate the callback to the specific model run.
+- **Usage in Callbacks**: When blocks report their status (success/failure, progress) to the callback endpoint, the EXECUTION_ID helps the orchestrator correlate the callback to the specific block run.
 
 ***
 
@@ -17,7 +17,7 @@ This document details the environment variables used to configure and run a mode
 ## 2. `INPUT_JSON_ENV_KEY`
 
 **Purpose:**
-Provides flexibility for different execution environments by specifying which environment variable contains the model's input data. This design allows Clay to work seamlessly with various orchestrators and execution contexts.
+Provides flexibility for different execution environments by specifying which environment variable contains the block's input data. This design allows Clay to work seamlessly with various orchestrators and execution contexts.
 
 **How it works:**
 - Clay reads the value of `INPUT_JSON_ENV_KEY` to determine which environment variable contains the actual input data
@@ -27,8 +27,8 @@ Provides flexibility for different execution environments by specifying which en
 **Example:**
 ```bash
 # Kubernetes executor might set:
-export INPUT_JSON_ENV_KEY="K8S_MODEL_INPUT"
-export K8S_MODEL_INPUT='[{"name": "data", "type": "url", "value": "s3://bucket/file.tif"}]'
+export INPUT_JSON_ENV_KEY="K8S_BLOCK_INPUT"
+export K8S_BLOCK_INPUT='[{"name": "data", "type": "url", "value": "s3://bucket/file.tif"}]'
 
 # Argo Workflows executor might set:
 export INPUT_JSON_ENV_KEY="ARGO_TEMPLATE"
@@ -48,7 +48,7 @@ export INPUT_JSON='[{"name": "data", "type": "url", "value": "s3://bucket/file.t
   ```jq
   [.inputs.parameters[] | (.value | fromjson) + {name: .name}]
   ```
-- **Usage**: Processes parameterized inputs in workflow scenarios by transforming, filtering, or extracting specific values needed for model consumption.
+- **Usage**: Processes parameterized inputs in workflow scenarios by transforming, filtering, or extracting specific values needed for block consumption.
 
 **Example:**
 ```bash
@@ -76,9 +76,9 @@ export INPUT_JSON_JQ_FILTER='[.data[] | {name: .id, type: .dataType, value: .pat
 
 ## 4. `INPUT_JSON`
 
-- **Purpose**: The default environment variable for model input data. This is used when `INPUT_JSON_ENV_KEY` is not set.
+- **Purpose**: The default environment variable for block input data. This is used when `INPUT_JSON_ENV_KEY` is not set.
 - **Format**: JSON string (typically a list of dictionaries, specifying `name`, `type`, `format`, and `value`).
-- **Usage**: This is the fallback input source. When `INPUT_JSON_ENV_KEY` is not specified, Clay reads input data directly from this variable. For local runs, users can set it manually or use the test_model.py script which sets it automatically.
+- **Usage**: This is the fallback input source. When `INPUT_JSON_ENV_KEY` is not specified, Clay reads input data directly from this variable. For local runs, users can set it manually or use the test_block.py script which sets it automatically.
 - **Relationship to INPUT_JSON_ENV_KEY**: If `INPUT_JSON_ENV_KEY` is set to a value like "CUSTOM_INPUT", Clay will read from the `CUSTOM_INPUT` environment variable instead of `INPUT_JSON`.
 - **Example**:
   <details>
@@ -133,7 +133,7 @@ export INPUT_JSON_JQ_FILTER='[.data[] | {name: .id, type: .dataType, value: .pat
 
 - **Purpose**: Directory path on the local file system where downloaded artifacts (input files, data resources) are stored.
 - **Default Value**: `/tmp/inputs`
-- **Role**: Used for processing files (such as raster or vector data) needed by the model. Clay downloads remote files referenced in the input to this location before processing.
+- **Role**: Used for processing files (such as raster or vector data) needed by the block. Clay downloads remote files referenced in the input to this location before processing.
 - **Best Practice**: Ensure path is writable and has enough storage when handling large datasets.
 
 **Example:**
@@ -142,15 +142,15 @@ export INPUT_JSON_JQ_FILTER='[.data[] | {name: .id, type: .dataType, value: .pat
 # Files will be downloaded to /tmp/inputs/
 
 # Custom download location:
-export LOCAL_ARTIFACT_DOWNLOAD_PATH="/workspace/model_inputs"
-# Files will be downloaded to /workspace/model_inputs/
+export LOCAL_ARTIFACT_DOWNLOAD_PATH="/workspace/block_inputs"
+# Files will be downloaded to /workspace/block_inputs/
 ```
 
 ***
 
 ## 6. `REMOTE_OUTPUT_PATH`
 
-- **Purpose**: Specifies where to upload output artifacts produced by a model run.
+- **Purpose**: Specifies where to upload output artifacts produced by a block run.
 - **Default Value**: `/tmp/clay/outputs`
 - **Usage**: Output files which include result data are transferred to this remote location for downstream processing or client access. This can be a local path or an S3 location.
 
@@ -160,7 +160,7 @@ export LOCAL_ARTIFACT_DOWNLOAD_PATH="/workspace/model_inputs"
 # Outputs will be uploaded to /tmp/clay/outputs/
 
 # S3 remote storage:
-export REMOTE_OUTPUT_PATH="s3://my-bucket/model-outputs/run-123/"
+export REMOTE_OUTPUT_PATH="s3://my-bucket/block-outputs/run-123/"
 # Outputs will be uploaded to the specified S3 location
 
 # Custom local path:
@@ -171,9 +171,9 @@ export REMOTE_OUTPUT_PATH="/shared/storage/outputs"
 
 ## 7. `REMOTE_INPUT_PATH`
 
-- **Purpose**: Specifies the remote path for uploading input files before model execution.
+- **Purpose**: Specifies the remote path for uploading input files before block execution.
 - **Default Value**: `/tmp/clay/inputs`
-- **Role**: Remote path (local or S3) where input files are uploaded after being downloaded from their original sources. This provides a staging area for model inputs.
+- **Role**: Remote path (local or S3) where input files are uploaded after being downloaded from their original sources. This provides a staging area for block inputs.
 
 **Example:**
 ```bash
@@ -181,7 +181,7 @@ export REMOTE_OUTPUT_PATH="/shared/storage/outputs"
 # Inputs will be uploaded to /tmp/clay/inputs/
 
 # S3 remote storage:
-export REMOTE_INPUT_PATH="s3://my-bucket/model-inputs/run-123/"
+export REMOTE_INPUT_PATH="s3://my-bucket/block-inputs/run-123/"
 # Input files will be uploaded to the specified S3 location
 
 # Custom local path:
@@ -195,7 +195,7 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: Directory path where output specification files (e.g., `spec.json`) are stored locally.
 - **Default Value**: `/tmp/clay/outputs/`
-- **Usage**: Acts as a working directory for model outputs. The output specification file contains detailed metadata about the model's results including data properties, processing parameters, and other relevant information for end users.
+- **Usage**: Acts as a working directory for block outputs. The output specification file contains detailed metadata about the block's results including data properties, processing parameters, and other relevant information for end users.
 
 ***
 
@@ -211,8 +211,8 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 ## 10. `CALLBACK_ENDPOINT`
 
-- **Purpose**: The URL endpoint for the model to communicate runtime status and progress updates to the orchestrator.
-- **Usage**: Facilitates reporting of model status (success/failure, progress metrics).
+- **Purpose**: The URL endpoint for the block to communicate runtime status and progress updates to the orchestrator.
+- **Usage**: Facilitates reporting of block status (success/failure, progress metrics).
 - **Note**: When running locally, this variable can be omitted.
 
 ***
@@ -221,6 +221,6 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: Provides additional headers (e.g., `userid`, `organisationid`) for authenticated callbacks.
 - **Format**: JSON string containing relevant authentication info.
-- **Note**: Skip this variable when running models locally.
+- **Note**: Skip this variable when running blocks locally.
 
 ***
