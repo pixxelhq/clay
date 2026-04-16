@@ -1,131 +1,55 @@
-name: 'Deploy docs'
+name: "Deploy docs"
 
 on:
   push:
     paths:
-      - 'mkdocs/**'
+      - "mkdocs/**"
     branches:
       - main
   release:
     types:
       - released
   workflow_dispatch:
-    inputs:
-      tag:
-        required: false
-        description: "Tag used to define Clay image"
-        default: latest
-
-env:
-  AWS_DEFAULT_REGION: us-east-2
-  ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
 
 permissions:
-  id-token: write
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
-    runs-on: [ self-hosted, pixxel-org-self-hosted-runners ]
-    outputs:
-      img-tag: ${{ steps.persist_img_tag.outputs.IMG_TAG }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-          audience: sigstore
-          aws-region: ${{env.AWS_DEFAULT_REGION}}
+          python-version: "3.10"
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Install dependencies
+        run: pip install mkdocs-material mkdocstrings mkdocstrings-python mkdocs-autorefs mkdocs-schema-reader
 
-      - name: Set Image Tag (PR On Main)
-        if: ${{ github.event_name == 'push' }}
-        env:
-          SHA: ${{ github.sha }}
-        run: |
-          echo "IMAGE_TAG=$SHA" >> $GITHUB_ENV
+      - name: Build docs
+        run: mkdocs build -f mkdocs/mkdocs.yml -d ../site
 
-      - name: Set Image Tag (Workflow Dispatch)
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        env:
-          TAG: ${{ github.event.inputs.tag }}
-        run: |
-          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
-
-      - name: Set Image Tag (Release)
-        if: ${{ github.event_name == 'release'}}
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
-
-      - name: Persist Image Tag across Jobs
-        id: persist_img_tag
-        env:
-          TAG: ${{ env.IMAGE_TAG }}
-        run: |
-          echo "IMG_TAG=$TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Login to AWS Container Registry
-        id: login-ecr
-        uses: docker/login-action@v2
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          registry: ${{ env.ECR_REGISTRY }}
-
-      - name: Set aws codeartifact token for clay
-        id: codeartifact-token
-        run: |
-          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
-
-      - name: Build and Push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          platforms: linux/amd64
-          file: clay-docs.Dockerfile
-          push: true
-          secrets: |
-              CODEARTIFACT_AUTH_TOKEN=${{ env.CODEARTIFACT_AUTH_TOKEN }}
-          tags: |
-              ${{ env.ECR_REGISTRY }}/clay-docs:${{ env.IMAGE_TAG }}
+          path: site
 
   deploy:
-    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Set Image tag
-        id: image_tag
-        run: |
-          IMAGE_TAG=${{ needs.build.outputs.img-tag }}
-          IMAGE_TAG=${IMAGE_TAG:-"latest"}
-          echo "$IMAGE_TAG"
-          echo "::set-output name=value::$IMAGE_TAG"
-
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-          audience: sigstore
-          aws-region: ${{env.AWS_DEFAULT_REGION}}
-
-      - name: Deploy Helm
-        uses: bitovi/github-actions-deploy-eks-helm@v1.2.3
-        with:
-          aws-region: ${{env.AWS_DEFAULT_REGION}}
-          cluster-name: p-core-services-k8s
-          config-files: mkdocs/clay-docs-values.yaml
-          chart-path: raystack/app
-          chart-repository: https://raystack.github.io/charts/
-          namespace: docs
-          values: image.tag=${{ steps.image_tag.outputs.value }}
-          name: clay-docs
-          helm-wait: true
-          timeout: 600s
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

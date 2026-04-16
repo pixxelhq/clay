@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
@@ -13,9 +12,6 @@ import (
 )
 
 var (
-	awsSecretID   string = "CODEARTIFACT_AUTH_TOKEN"
-	awsSecretFile string = "CODEARTIFACT_AUTH_TOKEN.txt"
-
 	dockerfilePath string
 	buildTag       string
 	buildNoCache   bool
@@ -74,24 +70,13 @@ func buildImage(projectDir string, cfg *config.Config) error {
 		}
 	}
 
-	//Generate AWS code artifact secret for downloaing clay python sdk
-	//This should be removed once clay is open sourced.
-	secretFile, err := generateAWSSecret()
-	if err != nil {
-		return err
-	}
-	defer os.Remove(secretFile.Name())
-
-	//Set secret and build-arg for AWS secret
-	buildSecrets = append(buildSecrets, fmt.Sprintf("id=%s,src=%s", awsSecretID, secretFile.Name()))
-
 	bf := docker.BuildFlags{
 		Secrets:   buildSecrets,
 		BuildArgs: buildArgs,
 		NoCache:   buildNoCache,
 		Platforms: platform,
 	}
-	err = docker.Build(buildTag, dockerfilePath, bf)
+	err := docker.Build(buildTag, dockerfilePath, bf)
 	if err != nil {
 		return err
 	}
@@ -160,33 +145,6 @@ func getOrCreateDockerfile(srcCodeDir string, cfg *config.Config) (string, error
 	}
 
 	return dockerfilePath, err
-}
-
-func generateAWSSecret() (*os.File, error) {
-	args := []string{}
-	args = append(args, "codeartifact", "get-authorization-token",
-		"--domain", "REDACTED-ARTIFACTORY",
-		"--domain-owner", "REDACTED-AWS-ACCT",
-		"--query", "authorizationToken",
-		"--region", "us-east-2",
-		"--output", "text")
-
-	outputFile, err := os.Create(awsSecretFile)
-	if err != nil {
-		return nil, fmt.Errorf("error while generating aws secret: %w", err)
-	}
-	defer outputFile.Close()
-
-	awsGenerateSecretCmd := exec.Command("aws", args...)
-	awsGenerateSecretCmd.Stdout = outputFile
-	awsGenerateSecretCmd.Stderr = os.Stderr
-
-	if err := awsGenerateSecretCmd.Run(); err != nil {
-		defer os.Remove(outputFile.Name())
-		return nil, err
-	}
-
-	return outputFile, nil
 }
 
 func runDockerImageCmd() *cobra.Command {

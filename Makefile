@@ -3,14 +3,8 @@ init:
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
-generate-secrets:
-		aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > CODEARTIFACT_AUTH_TOKEN.txt
-
-clean-secrets:
-		rm CODEARTIFACT_AUTH_TOKEN.txt
-
-init-requirements:	generate-secrets
-			pip install pixxel-datatypes -r python/requirements/requirements-dev.txt --extra-index-url https://aws:$$(cat CODEARTIFACT_AUTH_TOKEN.txt)@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
+init-requirements:
+			pip install pixxel-datatypes -r python/requirements/requirements-dev.txt
 
 package:
 	make build/package
@@ -43,14 +37,11 @@ spell-check-docs:
 build-docs:
 		cd mkdocs; mkdocs build
 
-build-docs-docker-image: generate-secrets
+build-docs-docker-image: 
 		sudo DOCKER_BUILDKIT=1 docker build \
-		--secret id=CODEARTIFACT_AUTH_TOKEN,src=CODEARTIFACT_AUTH_TOKEN.txt \
-		--build-arg AWS_ENV_PROFILE=$(AWS_ENV_PROFILE) \
 		-t clay-docs \
 		-f clay-docs.Dockerfile \
 		.
-		$(MAKE) clean-secrets
 
 serve-docs:
 		cd mkdocs; mkdocs serve
@@ -100,25 +91,5 @@ go-binaries:
 		GOOS=linux GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-linux-$$ARCH; \
 	done
 
-test-with-runner: generate-secrets
-	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
-	echo 'Waiting for Minio to be ready...'
-	sleep 10
-	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
-	sudo docker compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='kube' block
-	cd examples/runner && sudo docker compose run -e EXECUTOR='kube' -e FEATURE_FORCE_INPUT_TYPES_TO_V2='1' -e FEATURE_FORCE_OUTPUT_TYPES_TO_V2='1' \
-	block "$$(cat demo-test/sample_block_inputs.json)"
-
-test-with-runnerv2: generate-secrets
-	sudo docker compose -f examples/runner/docker-compose.yml up -d --build minio
-	echo 'Waiting for Minio to be ready...'
-	sleep 10
-	sudo docker compose -f examples/runner/docker-compose.yml up -d --build createbucket && sleep 5
-	sudo docker compose -f examples/runner/docker-compose.yml build --build-arg EXECUTOR='argo' block
-	cd examples/runner && sudo docker compose run -e EXECUTOR='argo' -e FEATURE_FORCE_INPUT_TYPES_TO_V2='1' -e FEATURE_FORCE_OUTPUT_TYPES_TO_V2='1' \
-	-e ARGO_TEMPLATE='{"name":"cdy","inputs":[{"name":"some_raster","value":"s3://testinputs/inputs/some_raster/some_raster.tif","stac_url": "https://platform-gateway.example.com/atlas/stac/collections/62288e91-4372-4806-8b11-a2d9aee6e84f/items/2025_03_10_stac"}, {"name":"some_vector","value":"s3://testinputs/inputs/some_vector/some_vector.geojson"}]}' block
-	$(MAKE) clean-secrets
-
-tear-down:
-	cd examples/runner && sudo docker-compose down --volumes --remove-orphans
-	rm -r examples/runner/minio_storage
+test-with-runner: 
+	// TODO:To be added once we test opensource runner with clay

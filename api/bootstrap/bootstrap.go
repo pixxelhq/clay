@@ -80,5 +80,3 @@ func CreateProject(outputDir, blockName string) error {
 
 	return nil
 }
-
-// TODO: Write tests

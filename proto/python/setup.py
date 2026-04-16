@@ -16,7 +16,7 @@ setup(
     description="Schema for supported data-types within the Pixxel ecosystem",
     # Author details
     author_email="mlops@pixxel.co.in",
-    url="https://github.com/example/datatypes-schema",
+    url="https://github.com/example/clay",
 
     # Choose your license
     license="Ask Raghav",
@@ -29,7 +29,7 @@ setup(
     # List run-time dependencies here. These will be installed by pip when
     # your project is installed.
     install_requires=[
-        "protobuf"
+        "protobuf>=6.33.2,<7"
     ],
     include_package_data=True,
     package_data={"datatypes-schema": ["py.typed"]}

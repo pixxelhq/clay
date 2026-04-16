@@ -30,9 +30,7 @@ services:
   block:
     build:
       context: "../../"
-      secrets:
-        - CODEARTIFACT_AUTH_TOKEN
-      dockerfile: api-test/raster_vector_clipper/Dockerfile
+      dockerfile: examples/raster_vector_clipper/Dockerfile
     image: raster-vector-clipper:latest
     container_name: raster-vector-clipper
     env_file:
@@ -44,7 +42,3 @@ networks:
 
 volumes:
   minio_storage:
-
-secrets:
-  CODEARTIFACT_AUTH_TOKEN:
-    file: ../../CODEARTIFACT_AUTH_TOKEN.txt

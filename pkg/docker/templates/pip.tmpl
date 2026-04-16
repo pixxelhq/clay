@@ -10,12 +10,9 @@ ENV PYTHONBUFFERED 1
 
 COPY {{ .DependencyFile }} .
 
-RUN --mount=type=secret,id=CODEARTIFACT_AUTH_TOKEN \
-    CODEARTIFACT_AUTH_TOKEN=$(cat /run/secrets/CODEARTIFACT_AUTH_TOKEN) && \
-    pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir \
     pixxel-clay=={{ .ClayVersion }} \
-    --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
-    -r {{ .DependencyFile  }}
+    -r {{ .DependencyFile }}
 
 COPY {{ .SrcCodeDir }} /app
 COPY clay.yaml /
