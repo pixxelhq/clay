@@ -1,7 +1,6 @@
 name: "Tests and lint"
 
 permissions:
-  id-token: write
   contents: read
 
 on:
@@ -26,11 +25,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: 1.22.2
-      - name: Configure private token url
-        env:
-          GO_RELEASE_TOKEN: ${{ secrets.GO_RELEASE }}
-        run: |
-          git config --global url."https://${GO_RELEASE_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
       - name: Test
         run: make test-go
 
@@ -48,23 +42,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Configure AWS Credentials for Code Artifact Access
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-          audience: sigstore
-          aws-region: us-east-2
-
-      - name: Set aws codeartifact token for clay
-        id: codeartifact-token
-        run: |
-          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text)" >> "$GITHUB_ENV"
-
       - name: Install Dependencies
         working-directory: ./python
         run: |
-          pip install --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ coverage pre-commit -r requirements/requirements-dev.txt .
+          pip install coverage pre-commit -r requirements/requirements-dev.txt .
 
       - name: Run Pytest
         working-directory: ./python

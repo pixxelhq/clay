@@ -15,12 +15,9 @@ ENV PATH=$CONDA_PREFIX/bin:$PATH
 
 USER root
 
-RUN --mount=type=secret,id=CODEARTIFACT_AUTH_TOKEN \
-    CODEARTIFACT_AUTH_TOKEN=$(cat /run/secrets/CODEARTIFACT_AUTH_TOKEN) && \
-    pip3 install --no-cache-dir \
-    pixxel-clay=={{ .ClayVersion }} \
-    --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/
-
+RUN pip3 install --no-cache-dir \
+    pixxel-clay=={{ .ClayVersion }}
+    
 RUN apt-get update && \
     apt-get install -y libgl1
 

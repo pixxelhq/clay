@@ -3,11 +3,7 @@ name: Publish Proto Python Package
 on: workflow_dispatch
 
 permissions:
-  id-token: write
   contents: read
-
-env:
-  AWS_ACCOUNT_NUMBER: REDACTED-AWS-ACCT
 
 jobs:
   build-and-push-python-package:
@@ -18,12 +14,6 @@ jobs:
         python-version: ["3.10.14"]
 
     steps:
-      - name: Configure AWS Credentials for Code Artifact Access
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_NUMBER }}:role/GithubActionsRole
-          audience: sigstore
-          aws-region: us-east-2
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -34,11 +24,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install twine build
-      - name: Build and publish
+      - name: Build and publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          export TWINE_PASSWORD=`aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner ${{ env.AWS_ACCOUNT_NUMBER }} --query authorizationToken --output text`
-          export TWINE_USERNAME=aws
-          export REPO_URL=`aws codeartifact get-repository-endpoint --domain REDACTED-ARTIFACTORY --domain-owner ${{ env.AWS_ACCOUNT_NUMBER }} --repository python --format pypi --query repositoryEndpoint --output text`
           python -m build ./proto/python
-          python -m twine upload proto/python/dist/* --repository-url=$REPO_URL --verbose 
+          python -m twine upload proto/python/dist/* --verbose
           

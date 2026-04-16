@@ -12,12 +12,10 @@ RUN python3 -m pip install mkdocs-material mkdocstrings mkdocstrings-python mkdo
 
 COPY python/requirements/requirements-dev.txt .
 
-RUN --mount=type=secret,id=CODEARTIFACT_AUTH_TOKEN \
-    CODEARTIFACT_AUTH_TOKEN=$(cat /run/secrets/CODEARTIFACT_AUTH_TOKEN) && \
-    pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir \
     pixxel-datatypes \
-    --extra-index-url https://aws:${CODEARTIFACT_AUTH_TOKEN}@REDACTED.d.codeartifact.us-east-2.amazonaws.com/pypi/python/simple/ \
     -r requirements-dev.txt
+
 
 RUN make build-docs
 

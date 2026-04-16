@@ -228,42 +228,6 @@ We have a file `latest_data.tiff` on our local, you can give the path from where
 ## Build block in docker image
 Run `clay build`
 
-The output will look something like
-
-```shell
-aws codeartifact get-authorization-token --domain REDACTED-ARTIFACTORY --domain-owner REDACTED-AWS-ACCT --query authorizationToken --region us-east-2 --output text > 
-sudo DOCKER_BUILDKIT=1 docker build \
-		--secret id=CODEARTIFACT_AUTH_TOKEN,src= \
-		--build-arg AWS_ENV_PROFILE= \
-		-t ndvi \
-		-f Dockerfile \
-		.
-Password:
-[+] Building 0.0s (0/1)                                                                                                                                                                             docker:defau[+] Building 4.3s (11/11) FINISHED                                                       docker:default
- => [internal] load .dockerignore                                                                  0.0s
- => => transferring context: 2B                                                                    0.0s
- => [internal] load build definition from Dockerfile                                               0.0s
- => => transferring dockerfile: 687B                                                               0.0s
- => [internal] load metadata for ghcr.io/osgeo/gdal:ubuntu-small-3.6.3                             4.2s
- => [stage-0 1/6] FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3@sha256:bfa7915a3ef942b4f6f61223ee57e  0.0s
- => [internal] load build context                                                                  0.0s
- => => transferring context: 1.61kB                                                                0.0s
- => CACHED [stage-0 2/6] WORKDIR /app                                                              0.0s
- => CACHED [stage-0 3/6] RUN apt-get update &&     apt-get install -y python3.10 python3-pip wget  0.0s
- => CACHED [stage-0 4/6] COPY requirements.txt .                                                   0.0s
- => CACHED [stage-0 5/6] RUN --mount=type=secret,id=CODEARTIFACT_AUTH_TOKEN     CODEARTIFACT_AUTH  0.0s
- => CACHED [stage-0 6/6] COPY Ndvi /app                                                            0.0s
- => exporting to image                                                                             0.0s
- => => exporting layers                                                                            0.0s
- => => writing image sha256:8ee114042d7ee72c99bdab931ed2ecdafe46d2ea4a19efbcba439214f84ba984       0.0s
- => => naming to docker.io/library/ndvi                                                            0.0s
-
-What's Next?
-  View summary of image vulnerabilities and recommendations → docker scout quickview
-/Library/Developer/CommandLineTools/usr/bin/make clean-secrets
-rm 
-```
-
 ## Run the block locally
 
 Run the block using `clay run`:
