@@ -22,14 +22,13 @@ func DescribeBlockCmd() *cobra.Command {
 		Describe the block for the given name from the Clay registry.
 		If no version flag is provided, it will list all versions of the given block.
 		Use --version to describe a specific version of the block.
-		Use --clay-registry on the parent "block" command to target a specific registry.
 		`),
 		Example: "clay block describe my-block --version=0.0.1",
 		Args:    cobra.ExactArgs(1),
 		RunE:    describeBlockCmd,
 	}
-
-	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Filter by block version (e.g. v0.0.1)")
+	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
+	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Possible status of block: draft, released, disabled")
 	return cmd
 }
 

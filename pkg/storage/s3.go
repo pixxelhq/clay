@@ -42,7 +42,12 @@ func NewS3Provider(config S3Config) (*S3Provider, error) {
 		awsConfig.Region = aws.String(config.Region)
 	}
 
-	sess, err := session.NewSession(awsConfig)
+	// SharedConfigEnable makes the SDK honor AWS_PROFILE / ~/.aws/config,
+	// including SSO profiles (SDK v1 ignores these by default).
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            *awsConfig,
+		SharedConfigState: session.SharedConfigEnable,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS session: %w", err)
 	}

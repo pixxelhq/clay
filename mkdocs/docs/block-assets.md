@@ -1,239 +1,137 @@
 # Block Assets Management
 
-Clay provides a comprehensive asset management system for storing and retrieving files associated with your blocks in cloud storage. This feature supports multiple cloud providers (currently S3, with GCS and Azure coming soon) and allows you to organize assets at both the block name level (shared across versions) and version-specific level.
+Clay's `block assets` commands let you upload, list, and download files associated with your blocks in cloud storage. The interface is platform-agnostic: every command takes a single `--url` flag that names a complete storage location. The URL's scheme tells Clay which backend to use.
 
 ## Overview
 
-Block assets are any files that your block needs to function properly, such as:
+Block assets are any files a block needs to function, such as:
+
 - Pre-trained block weights
 - Configuration files
 - Reference data
 - Documentation
 - Scripts and utilities
 
-## Storage Structure
+## The `--url` contract
 
-Assets are organized in a hierarchical structure within your cloud storage:
+All three commands (`upload`, `list`, `download`) take a single `--url <storage-url>` flag. For upload/list it points at the folder. For download it points at the file.
+
+Only AWS S3 virtual-hosted HTTPS URLs are supported:
 
 ```
-<bucket>/
-└── blocks/
-    └── <block-name>/
-        ├── assets/              # Name-level assets (shared across all versions)
-        │   ├── common-config.yaml
-        │   ├── shared-data/
-        │   └── reference-blocks/
-        └── <version>/
-            └── assets/          # Version-specific assets
-                ├── block.pkl
-                ├── config.yaml
-                └── data/
+https://<bucket>.s3.<region>.amazonaws.com/<prefix>/
 ```
 
-### Name-level vs Version-specific Assets
-
-- **Name-level assets** (`blocks/<name>/assets/`): Shared across all versions of a block. Use for common resources that don't change between versions.
-- **Version-specific assets** (`blocks/<name>/<version>/assets/`): Specific to a particular version. Use for version-dependent resources like block weights or version-specific configs.
+The bucket and region are parsed out of the host — the region must be in the URL, so the SDK never has to discover it at runtime. `s3://` URIs and other hosts return a clear error.
 
 ## Commands
 
 ### Upload Assets
 
-Upload files or directories to cloud storage:
-
 ```bash
-# Upload to name-level (shared across versions)
-clay block assets upload ./blocks --name my-block --bucket my-bucket --region us-east-1
-
-# Upload to version-specific location
-clay block assets upload ./blocks --name my-block --version v1.0.0 --bucket my-bucket --region us-east-1
+# Upload a directory
+clay block assets upload ./blocks \
+  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 
 # Upload a single file
-clay block assets upload block.pkl --name my-block --version v1.0.0 --bucket my-bucket
+clay block assets upload block.pkl \
+  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 
-# Upload README with template processing
-clay block assets upload ./docs --name my-block --version v1.0.0 \
-  --bucket my-bucket --region us-east-1 --readme
+# Parse a template and upload the directory
+clay block assets upload ./docs \
+  --parse README.md:parsed.md \
+  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/
 ```
 
-### Upload with Template Processing
+### Upload with `--parse` Template Processing
 
-When uploading README or catalog files with the `--readme` flag, Clay will:
-1. Process any markdown templates using the `{{addUrl "filename"}}` function
-2. Replace template variables with actual URLs based on your bucket and block details
-3. Upload the processed files to the specified location
+When you pass `--parse`, Clay renders the named file through Go's `text/template` engine before uploading the directory. The format is:
+
+```
+--parse <input>[:<output>]
+```
+
+Paths are relative to the `<path>` argument (the upload directory). If `<output>` is omitted, it defaults to `<name>.parsed<ext>` (e.g. `README.md` becomes `README.parsed.md`).
+
+The template can reference a helper:
+
+- `{{ addUrl "filename" }}` — expands to `<your --url>/filename`.
+
+This lets you write relative asset references that resolve to absolute URLs at upload time.
 
 Example:
-```bash
-# Your docs/README.md contains:
-# ![]({{ addUrl "sample_input.png" }})
-# This will be processed to:
-# ![](https://my-bucket.s3.us-east-1.amazonaws.com/blocks/my-block/v1.0.0/docs/sample_input.png)
 
-clay block assets upload ./docs --name my-block --version v1.0.0 \
-  --bucket my-bucket --region us-east-1 --readme
+```markdown
+<!-- docs/README.md -->
+![sample]({{ addUrl "sample_input.png" }})
 ```
+
+With `--url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/`, this renders to:
+
+```markdown
+![sample](https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/sample_input.png)
+```
+
+The rendered output is written next to the template and uploaded along with the rest of the folder.
 
 ### List Assets
 
-View all assets stored for a block:
-
 ```bash
-# List name-level assets
-clay block assets list --name my-block --bucket my-bucket --region us-east-1
-
-# List version-specific assets
-clay block assets list --name my-block --version v1.0.0 --bucket my-bucket --region us-east-1
+clay block assets list --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 ```
 
 ### Download Assets
 
-Download specific assets to your local filesystem:
+`--url` must point at a single file.
 
 ```bash
-# Download a single file
-clay block assets download block.pkl --name my-block --version v1.0.0 \
-  --bucket my-bucket --region us-east-1
+# Download into the current directory (keeps the remote filename)
+clay block assets download \
+  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/block.pkl
 
-# Download to a specific location
-clay block assets download configs/inference.yaml --name my-block --version v1.0.0 \
-  --bucket my-bucket --region us-east-1 --output ./my-config.yaml
-
-# Download with automatic fallback (version-specific → name-level)
-clay block assets download common-config.yaml --name my-block --version v1.0.0 \
-  --bucket my-bucket --region us-east-1
+# Download to a specific local path
+clay block assets download \
+  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/configs/inference.yaml \
+  --output ./my-config.yaml
 ```
 
 ## Authentication
 
 ### AWS S3
 
-Configure AWS credentials using one of these methods:
+Configure credentials with any of:
 
-1. **Environment Variables**:
+1. **Environment variables:**
    ```bash
    export AWS_ACCESS_KEY_ID=your-key-id
    export AWS_SECRET_ACCESS_KEY=your-secret-key
    export AWS_REGION=us-east-1
    ```
 
-2. **AWS CLI Configuration**:
-   ```bash
-   aws configure
-   ```
+2. **Shared config:** `aws configure`.
 
-3. **IAM Role** (when running on EC2 or ECS):
-   Automatically uses instance/task role credentials
-
-### Future Providers
-
-- **Google Cloud Storage (GCS)**: Will use `GOOGLE_APPLICATION_CREDENTIALS` environment variable
-- **Azure Blob Storage**: Will use `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_KEY` environment variables
+3. **IAM role:** automatically used when running on EC2 / ECS / EKS.
 
 ## Best Practices
 
-### 1. Asset Organization
-
-- Keep related assets together in directories
-- Use descriptive names for assets
-- Maintain consistent naming conventions across versions
-
-### 2. Version Management
-
-- Use version-specific assets for anything that changes between releases
-- Use name-level assets for shared, immutable resources
-- Document which assets are required for each version
-
-### 3. Security
-
-- Never commit credentials to version control
-- Use IAM roles when possible instead of access keys
-- Restrict bucket permissions to only what's necessary
-- Enable bucket versioning for critical assets
-
-### 4. Performance
-
-- Compress large files before uploading when appropriate
-- Use appropriate storage classes for infrequently accessed data
-- Consider using CDN for frequently accessed assets
-
-## Examples
-
-### Complete Workflow Example
-
-```bash
-# 1. Upload block weights for a new version
-clay block assets upload ./trained_blocks/v2.0.0/ \
-  --name image-classifier --version v2.0.0 \
-  --bucket ml-blocks --region us-west-2
-
-# 2. Upload shared configuration
-clay block assets upload ./configs/base_config.yaml \
-  --name image-classifier \
-  --bucket ml-blocks --region us-west-2
-
-# 3. List all assets to verify
-clay block assets list --name image-classifier --version v2.0.0 \
-  --bucket ml-blocks --region us-west-2
-
-# 4. Download block for inference
-clay block assets download block.pkl \
-  --name image-classifier --version v2.0.0 \
-  --bucket ml-blocks --region us-west-2 \
-  --output ./block_cache/
-```
-
-### Integration with Block Code
-
-```python
-import os
-from clay_utils import download_block_asset  # hypothetical utility
-
-class MyBlock:
-    def __init__(self, block_name, version):
-        self.block_name = block_name
-        self.version = version
-        
-    def load_block(self):
-        # Download block weights if not cached
-        block_path = f"./cache/{self.version}/block.pkl"
-        if not os.path.exists(block_path):
-            # This would use clay CLI or SDK internally
-            download_block_asset(
-                asset_path="block.pkl",
-                block_name=self.block_name,
-                version=self.version,
-                output_path=block_path
-            )
-        
-        # Load the block
-        with open(block_path, 'rb') as f:
-            self.block = pickle.load(f)
-```
+- Encode your organization's layout directly in the `--url` (e.g. `https://<bucket>.s3.<region>.amazonaws.com/blocks/<name>/<version>/`). The CLI doesn't impose a convention.
+- Keep related assets together in directories and upload them as a single `clay block assets upload` call.
+- Never commit credentials to version control; prefer IAM roles.
+- Restrict bucket permissions to what the block workflow actually needs.
+- Compress large files before uploading when appropriate.
 
 ## Troubleshooting
 
-### Common Issues
+**`unsupported storage URL scheme` / `unsupported storage URL host`**
+Only AWS S3 virtual-hosted HTTPS URLs are supported. Form: `https://<bucket>.s3.<region>.amazonaws.com/<prefix>/`. `s3://` URIs are rejected — encode the bucket and region in the HTTPS host.
 
-1. **"Asset not found" error**
-   - Verify the asset path is correct (case-sensitive)
-   - Check if uploading to version-specific vs name-level location
-   - Ensure the asset was uploaded successfully
+**`asset not found`**
+Verify `--url` exactly matches the remote path and is case-sensitive.
 
-2. **Authentication failures**
-   - Verify AWS credentials are configured correctly
-   - Check if the credentials have necessary S3 permissions
-   - Ensure the bucket exists and is accessible
+**Authentication failures**
+Confirm AWS credentials are configured (see above) and that they have the required S3 permissions on the target bucket.
 
-3. **Upload failures**
-   - Check available disk space
-   - Verify network connectivity
-   - Ensure the local file/directory exists
-   - Check S3 bucket permissions
-
-### Debug Mode
-
-For detailed logging, set the environment variable:
+**Debug logging**
 ```bash
 export CLAY_DEBUG=true
 ```

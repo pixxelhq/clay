@@ -93,67 +93,47 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
    -v, --version string   Version of block
    -e, --env string   Environment to add new block to: dev, stg, prod (default "dev")
 
-7. `clay upload readme [flags] `
+7. `clay block assets upload <path> [flags]`
 
-   Upload the readme for the block to cloud
+   Upload a file or directory to cloud storage at the location specified by `--url`.
+   The scheme of the URL determines the storage backend.
 
-   -n, --name string      Name of block as specified in spec file
-   -v, --version string   Version of block
+   --url string     Complete storage URL where assets will be uploaded (required)
+   --parse string   Render a template file before uploading. Format: <input>[:<output>]
 
-   Note: Once readme folder is uploaded, link of `parsed.md` file provided
-   in the output of this command
-   Please update the `catalog_content_url` in the spec file with the link
+   Supported URL form (AWS S3 virtual-hosted HTTPS):
+   - `https://<bucket>.s3.<region>.amazonaws.com/<prefix>/`
 
-8. `clay block assets upload <path> [flags]`
-
-   Upload assets (files or directories) to cloud storage for a block
-   
-   -n, --name string      Name of the block (required)
-   -v, --version string   Version of the block (optional)
-   --bucket string        Storage bucket name (required)
-   --provider string      Storage provider: s3, gcs, azure (default "s3")
-   --region string        Storage region (required for S3)
-   --readme               Process markdown templates before upload (for catalog/README files)
-   
    Examples:
    ```bash
-   # Upload to name-level (shared across versions)
-   clay block assets upload ./blocks --name my-block --bucket my-bucket --region us-east-1
-   
-   # Upload to version-specific
-   clay block assets upload ./blocks --name my-block --version v1.0.0 --bucket my-bucket
-   
-   # Upload with README template processing
-   clay block assets upload ./docs --name my-block --version v1.0.0 \
-     --bucket my-bucket --region us-east-1 --readme
+   # Upload a directory
+   clay block assets upload ./blocks \
+     --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
+
+   # Parse a template and upload the directory
+   clay block assets upload ./docs --parse README.md:parsed.md \
+     --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/
    ```
 
-9. `clay block assets list [flags]`
+8. `clay block assets list [flags]`
 
-   List assets stored for a block
-   
-   -n, --name string      Name of the block (required)
-   -v, --version string   Version of the block (optional)
-   --bucket string        Storage bucket name (required)
-   --provider string      Storage provider: s3, gcs, azure (default "s3")
-   --region string        Storage region (required for S3)
+   List assets at a storage URL.
 
-10. `clay block assets download <asset-path> [flags]`
+   --url string    Storage URL to list (required)
 
-    Download a specific asset from block storage
-    
-    -n, --name string      Name of the block (required)
-    -v, --version string   Version of the block (optional)
-    -o, --output string    Local path to save the downloaded asset (default ".")
-    --bucket string        Storage bucket name (required)
-    --provider string      Storage provider: s3, gcs, azure (default "s3")
-    --region string        Storage region (required for S3)
-    
-    Example:
-    ```bash
-    clay block assets download blocks/classifier.pkl --name my-block --version v1.0.0 \
-      --bucket my-bucket --output ./downloaded-block.pkl
-    ```
+9. `clay block assets download [flags]`
+
+   Download the asset at `--url` to the local filesystem. `--url` must point at a single file.
+
+   --url string           Complete storage URL of the asset to download (required)
+   -o, --output string    Local path to save the downloaded asset (directory or filename; default ".")
+
+   Example:
+   ```bash
+   clay block assets download \
+     --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/classifier.pkl \
+     --output ./downloaded-block.pkl
+   ```
 
 
 </details>

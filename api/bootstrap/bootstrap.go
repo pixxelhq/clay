@@ -20,7 +20,7 @@ const fullTemplateRoot = "templates/full"
 
 // Bootstraps a project in `outputDir` with `blockName` as a filler
 // in appropriate locations in code and configuration
-func CreateProject(outputDir, blockName string) error {
+func CreateProject(outputDir, blockName string, readmeTemplate bool) error {
 	err := verifyBlockName(blockName)
 	if err != nil {
 		return err
@@ -67,6 +67,14 @@ func CreateProject(outputDir, blockName string) error {
 
 	if err != nil {
 		return err
+	}
+
+	if readmeTemplate {
+		stub := "---\nname: Name of block\nauthor: authorname\ninput-img: {{ addUrl \"sample_input.png\" }}\noutput-img: {{ addUrl \"sample_output.png\" }}\ninputs: {input1: 'input description', input2: 'input description'}\noutputs: {output1: 'output description', output2: 'output description' }\n---\n"
+		readmePath := filepath.Join(outputDir, "docs", "README.md")
+		if err := os.WriteFile(readmePath, []byte(stub), 0644); err != nil {
+			return fmt.Errorf("failed to write catalog readme template: %w", err)
+		}
 	}
 
 	fmt.Printf("\n[IMPORTANT] To begin, navigate to your project directory in your terminal:\n1. Based on your requirement, create a python or conda env\n\n")

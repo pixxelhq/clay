@@ -5,64 +5,68 @@ This example demonstrates how to use Clay's block asset management feature to up
 ## Prerequisites
 
 - Clay CLI installed
-- AWS credentials configured (for S3 provider)
 - An S3 bucket created
+- AWS credentials configured (required — Clay currently supports only AWS S3
+  as a storage backend). Any credential source the AWS SDK recognises works:
+  environment variables (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`),
+  `AWS_PROFILE` + `~/.aws/config` (including SSO profiles), or IAM instance
+  roles. See the [Authentication](#authentication) section below for details.
 
 ## Usage Examples
 
 ### 1. Upload Assets
 
-Upload a single file to a block (name-level, shared across versions):
+Upload a single file:
 ```bash
-clay block assets upload ./block.pkl --name image-classifier --bucket my-clay-assets --region us-east-1
+clay block assets upload ./block.pkl \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
-Upload a directory to a specific version:
+Upload a directory:
 ```bash
-clay block assets upload ./blocks --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
+clay block assets upload ./weights \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
+```
+
+Upload with template parsing (renders `{{ addUrl "file" }}` references to absolute URLs):
+```bash
+clay block assets upload catalog_readme/ \
+  --parse README.md:parsed.md \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/catalog_readme/
 ```
 
 ### 2. List Assets
 
-List all assets for a block (name-level):
+List all assets at a storage location:
 ```bash
-clay block assets list --name image-classifier --bucket my-clay-assets --region us-east-1
-```
-
-List assets for a specific version:
-```bash
-clay block assets list --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
+clay block assets list \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
 ### 3. Download Assets
 
 Download a specific asset:
 ```bash
-clay block assets download block.pkl --name image-classifier --version v1.0.0 --bucket my-clay-assets --region us-east-1
+clay block assets download \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/block.pkl
 ```
 
 Download to a specific location:
 ```bash
-clay block assets download configs/inference.yaml --name image-classifier --version v1.0.0 \
-  --bucket my-clay-assets --region us-east-1 --output ./my-config.yaml
+clay block assets download \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/configs/inference.yaml \
+  --output ./my-config.yaml
 ```
 
-## Storage Structure
+## URL Format
 
-Assets are organized in the following structure:
+All commands take a single `--url` flag. Only AWS S3 virtual-hosted HTTPS URLs are supported:
 
 ```
-bucket/
-└── blocks/
-    └── <block-name>/
-        ├── assets/              # Name-level assets (shared)
-        │   ├── common-config.yaml
-        │   └── shared-blocks/
-        └── <version>/
-            └── assets/          # Version-specific assets
-                ├── block.pkl
-                └── configs/
+https://<bucket>.s3.<region>.amazonaws.com/<prefix>/
 ```
+
+The bucket and region are parsed from the hostname. `s3://` URIs are not supported.
 
 ## Authentication
 
@@ -79,13 +83,9 @@ Or use AWS CLI configuration:
 aws configure
 ```
 
-### Future Providers
-- **GCS**: Will use `GOOGLE_APPLICATION_CREDENTIALS`
-- **Azure**: Will use `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_KEY`
-
 ## Best Practices
 
-1. **Use version-specific assets** for blocks and configs that change between versions
-2. **Use name-level assets** for shared resources like common configurations or data
-3. **Always specify region** for S3 to avoid defaulting to us-east-1
-4. **Version fallback**: When downloading with a version specified, the system will check version-specific assets first, then fall back to name-level assets if not found
+1. Encode your layout directly in the `--url` (e.g. `.../blocks/<name>/<version>/`). The CLI does not impose a convention.
+2. Keep related assets together in directories and upload them in a single call.
+3. Never commit credentials to version control; prefer IAM roles.
+4. Compress large files before uploading when appropriate.
