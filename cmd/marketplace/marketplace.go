@@ -15,18 +15,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	localReadmeFolder = "catalog_readme/"
-	s3Bucket = "p-platform-clay-public-catalog-s3-01" //TODO: this should be removed before making clay opensource
-)
+const localReadmeFolder = "docs/"
 
 var s3CatalogUrl string
 
+// UploadReadme is the legacy `clay upload readme` implementation. It is
+// retained only to keep existing CI integrations (e.g. the Orchestrator
+// orchestrator) working during the deprecation window. New users should use
+// `clay block assets upload --readme` instead, which supports configurable
+// providers/buckets cleanly.
+//
+// TODO: remove once all callers migrate off `clay upload readme`.
 func UploadReadme() *cobra.Command {
 
 	var (
 		blockVersion string
 		blockName    string
+		s3Bucket     string
+		s3Region     string
 	)
 
 	cmd := &cobra.Command{
@@ -43,8 +49,7 @@ func UploadReadme() *cobra.Command {
 				return err
 			}
 
-			blockVersion, err = cmd.Flags().GetString("version")
-			if err != nil || blockVersion == "" {
+			if blockVersion == "" {
 				blockVersion = cfg.Version
 			}
 
@@ -52,9 +57,22 @@ func UploadReadme() *cobra.Command {
 				return pkg.ErrInvalidValue("invalid version syntax. Follow semVer pattern eg. v0.0.1")
 			}
 
-			blockName, err = cmd.Flags().GetString("name")
-			if err != nil || blockName == "" {
+			if blockName == "" {
 				blockName = cfg.Name
+			}
+
+			if s3Bucket == "" {
+				s3Bucket = os.Getenv("CLAY_CATALOG_S3_BUCKET")
+			}
+			if s3Region == "" {
+				if v := os.Getenv("CLAY_CATALOG_S3_REGION"); v != "" {
+					s3Region = v
+				} else {
+					s3Region = "us-east-2"
+				}
+			}
+			if s3Bucket == "" {
+				return pkg.ErrInvalidValue("--bucket is required (or set CLAY_CATALOG_S3_BUCKET)")
 			}
 
 			return nil
@@ -63,13 +81,13 @@ func UploadReadme() *cobra.Command {
 			logger := common.Getlogger()
 			s3Namespace := filepath.Join(blockName, blockVersion, localReadmeFolder)
 			versionedBlockName := filepath.Join(blockName, blockVersion)
-			s3BucketUrl := "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/"
+			s3BucketUrl := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/", s3Bucket, s3Region)
 			err := marketplace.ParseMarkdown(blockName, blockVersion, s3BucketUrl)
 			if err != nil {
 				logger.Error().Err(err).Stack().Msg(err.Error())
 				return err
 			}
-			awsSession, err := session.NewSession(&aws.Config{Region: aws.String("us-east-2")})
+			awsSession, err := session.NewSession(&aws.Config{Region: aws.String(s3Region)})
 			if err != nil {
 				return err
 			}
@@ -78,19 +96,21 @@ func UploadReadme() *cobra.Command {
 				logger.Error().Err(err).Stack().Msg(err.Error())
 				return err
 			}
-			s3CatalogUrl = "https://" + s3Bucket + ".s3.us-east-2.amazonaws.com/" + versionedBlockName + "/catalog_readme/parsed.md"
+			s3CatalogUrl = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s/docs/parsed.md", s3Bucket, s3Region, versionedBlockName)
 			fmt.Print(string(s3CatalogUrl))
 			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&blockName, "name", "n", "", "Name of block as specified in spec file")
 	cmd.Flags().StringVarP(&blockVersion, "version", "v", "", "Version of block")
+	cmd.Flags().StringVar(&s3Bucket, "bucket", "", "S3 bucket to upload the readme to (or set CLAY_CATALOG_S3_BUCKET)")
+	cmd.Flags().StringVar(&s3Region, "region", "", "S3 region (or set CLAY_CATALOG_S3_REGION, default us-east-2)")
 	return cmd
 }
 
 func GetS3CatalogUrl() (string, error) {
 	if s3CatalogUrl == "" {
-		return "", errors.New("catlog url is empty")
+		return "", errors.New("catalog url is empty")
 	}
 
 	return s3CatalogUrl, nil

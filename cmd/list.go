@@ -18,24 +18,25 @@ var (
 func ListBlockRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List block",
+		Short: "List blocks in the Clay registry",
 		Long: heredoc.Doc(`
-		If no flag provided, it will list all the latest block from clay registry
-		Use flag "name" to list all the versions of the block.
-		Use flag "version" after "name" to list a specific version of the block.
-		Use flag "clay-registry-host" to list all the blocks from a specific registry.
-		Example: clay list --name=block-name --version=0.0.1
+		List blocks from the Clay registry.
+		If no flags are provided, it will list all the latest blocks.
+		Use --name to list all versions of a specific block.
+		Use --name with --version to list a specific version.
+		Use --clay-registry on the parent "block" command to target a specific registry.
 		`),
+		Example: "clay block list --name=my-block --version=0.0.1",
 		RunE: listBlockRegistryCmd,
 	}
 
-	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of block")
-	cmd.Flags().StringVarP(&version, "version", "v", "", "Version of the block")
+	cmd.Flags().StringVarP(&name, "name", "n", "", "Filter by block name")
+	cmd.Flags().StringVarP(&version, "version", "v", "", "Filter by block version (requires --name)")
 	return cmd
 }
 
 func listBlockRegistryCmd(cmd *cobra.Command, args []string) error {
-	br := registry.NewBlockRegistry(host, 5*time.Second)
+	r := registry.New(clayRegistryHost, 5*time.Second)
 	var (
 		blocks registry.Blocks
 		err    error
@@ -43,7 +44,7 @@ func listBlockRegistryCmd(cmd *cobra.Command, args []string) error {
 	)
 
 	if name != "" && version != "" {
-		block, err = br.GetBlockByNameAndVersion(name, version)
+		block, err = r.GetBlockByNameAndVersion(name, version)
 		if err != nil {
 			return err
 		}
@@ -58,13 +59,13 @@ func listBlockRegistryCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if name != "" {
-		blocks, err = br.GetBlockByName(name)
+		blocks, err = r.GetBlockByName(name)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		blocks, err = br.ListBlocks()
+		blocks, err = r.ListBlocks()
 		if err != nil {
 			return err
 		}

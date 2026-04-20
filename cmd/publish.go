@@ -4,34 +4,48 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/example/clay/pkg/config"
+	"github.com/example/clay/pkg/docker"
 	"github.com/example/clay/pkg/registry"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	blockRegistryHost string
-	dockerRegistry    string
-	documentationURL  string
-	thumbnailURL      string
+	clayRegistry     string
+	dockerRegistry   string
+	documentationURL string
+	thumbnailURL     string
 )
 
 func publishBlockToRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "publish",
-		Short: "Publish the block to the Clay registry",
-		Long:  "Build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
-		RunE:  publishBlockCmd,
+		Use:     "publish",
+		Short:   "Publish the block to the Clay registry",
+		Long:    "Build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
+		Example: "clay publish --docker-registry registry.example.com --clay-registry https://clay.example.com",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if dockerRegistry == "" {
+				if dockerRegistry = os.Getenv("CLAY_DOCKER_REGISTRY"); dockerRegistry == "" {
+					return fmt.Errorf("--docker-registry is required (or set CLAY_DOCKER_REGISTRY env var)")
+				}
+			}
+			if clayRegistry == "" {
+				if clayRegistry = os.Getenv("CLAY_REGISTRY_HOST"); clayRegistry == "" {
+					return fmt.Errorf("--clay-registry is required (or set CLAY_REGISTRY_HOST env var)")
+				}
+			}
+			return nil
+		},
+		RunE: publishBlockCmd,
 	}
 
-	cmd.Flags().StringVar(&dockerRegistry, "docker-registry-host", "REDACTED.dkr.ecr.us-east-2.amazonaws.com", "If specified, the block's Docker image will be pushed to that registry. Otherwise, the default registry will be used")
-	cmd.Flags().StringVar(&blockRegistryHost, "block-registry-host", "http://localhost:8080", "If specified, the block will be published to that registry. Otherwise, the default registry will be used.")
-	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "If specified this can be used for block documentation")
-	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "If specified this can be used for block thumbnail")
+	cmd.Flags().StringVar(&dockerRegistry, "docker-registry", "", "Docker image registry URL (env: CLAY_DOCKER_REGISTRY)")
+	cmd.Flags().StringVar(&clayRegistry, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
+	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "URL for block documentation")
+	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "URL for block thumbnail")
 
 	return cmd
 }
@@ -49,31 +63,29 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 
 	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
 
-	// build image
-	buildCmd := exec.Command("clay", "build", "-t", image)
-	buildCmd.Stderr = os.Stderr
-	buildCmd.Stdout = os.Stdout
-	if err := buildCmd.Run(); err != nil {
+	// Build the docker image. Pass the fully-qualified image (including the
+	// docker registry host) as the tag so the build output is directly
+	// pushable without re-tagging.
+	builtTag, err := buildImage(cwd, cfg, image)
+	if err != nil {
 		return err
 	}
 
-	// push image to docker registry
-	pushCmd := exec.Command("clay", "push", image)
-	pushCmd.Stderr = os.Stderr
-	pushCmd.Stdout = os.Stdout
-	if err := pushCmd.Run(); err != nil {
-		return err
+	// Push image to docker registry
+	if err := docker.Push(builtTag); err != nil {
+		return fmt.Errorf("failed to push image %s: %w", builtTag, err)
 	}
+	fmt.Printf("🎉 docker image %s has been pushed to the registry\n", builtTag)
 
-	br := registry.NewBlockRegistry(blockRegistryHost, 5*time.Second)
+	r := registry.New(clayRegistry, 5*time.Second)
 
-	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, image)
+	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, builtTag)
 	if err != nil {
 		return err
 	}
 
 	//publish block to clay registry
-	err = br.Publish(req)
+	err = r.Publish(req)
 	if err == registry.ErrAlreadyExists {
 		return fmt.Errorf("block %s with version %s already exists, skipping the publish", req.Name, req.Version)
 	}

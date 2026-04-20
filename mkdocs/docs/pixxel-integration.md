@@ -13,7 +13,7 @@ This guide walks you through the complete workflow for developing and deploying 
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Create Block   │────▶│  Build & Test   │────▶│ Push to Registry│────▶│ Deploy to Orchestrator│
+│  Create Block   │────▶│  Build & Test   │────▶│ Push to Registry│────▶│Deploy to Orchestrator│
 │  (clay create)  │     │  (clay build)   │     │ (GitHub Actions)│     │    (Platform)     │
 └─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
@@ -81,10 +81,10 @@ clay --version
 
 ```bash
 # Login to AWS SSO
-aws sso login --profile=d-platform-services
+aws sso login --profile=your-aws-profile
 
 # If credentials aren't detected, export the profile
-export AWS_PROFILE=d-platform-services
+export AWS_PROFILE=your-aws-profile
 ```
 
 !!! success "Setup Complete!"
@@ -100,7 +100,7 @@ Follow these steps to create a new block and deploy it to Orchestrator.
 
 ```bash
 # Create a new project
-clay create project ./MyBlock MyBlock
+clay new ./MyBlock MyBlock
 
 # Navigate to the project
 cd MyBlock
@@ -286,7 +286,7 @@ git push -u origin main
 
 ```bash
 # Create new project
-clay create project ./BlockName BlockName
+clay new ./BlockName BlockName
 
 # Build Docker image
 clay build
@@ -316,7 +316,7 @@ clay upload readme --name <block-name> --version <version>
 
 ### Block Documentation
 
-Update `catalog_readme/block-README.md`:
+Update `docs/README.md`:
 
 ```markdown
 ---
@@ -337,7 +337,7 @@ How to use it...
 
 Upload with:
 ```bash
-clay upload readme --name <block-name> --version <version>
+clay block assets upload ./docs --name <block-name> --bucket <bucket> --region <region> --readme
 ```
 
 ---
@@ -348,10 +348,10 @@ clay upload readme --name <block-name> --version <version>
 
 ```bash
 # Re-login to AWS SSO
-aws sso login --profile=d-platform-services
+aws sso login --profile=your-aws-profile
 
 # Export profile if not detected
-export AWS_PROFILE=d-platform-services
+export AWS_PROFILE=your-aws-profile
 ```
 
 ### Build Failures

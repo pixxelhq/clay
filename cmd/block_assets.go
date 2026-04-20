@@ -28,13 +28,37 @@ func BlockAssetsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "assets",
 		Short: "Manage block assets in cloud storage",
-		Long:  "Upload, list, and download assets associated with blocks in cloud storage (S3, GCS, Azure)",
+		Long: `Manage assets associated with blocks in cloud storage.
+
+Supports uploading, listing, and downloading files linked to a specific
+block and version. Currently supports S3, with GCS and Azure planned.`,
+		Example: `  # Upload a directory to S3
+  clay block assets upload ./data -n my-block --bucket my-bucket --region us-east-1
+
+  # List all assets for a block
+  clay block assets list -n my-block --bucket my-bucket
+
+  # Download a specific asset
+  clay block assets download model.bin -n my-block --bucket my-bucket -o ./models/`,
 	}
 
-	cmd.PersistentFlags().StringVarP(&assetBlockName, "name", "n", "", "Name of the block (required)")
-	cmd.PersistentFlags().StringVarP(&assetBlockVersion, "version", "v", "", "Version of the block (optional, reads from config when --readme flag is set)")
-	cmd.PersistentFlags().BoolVar(&isReadme, "readme", false, "Process markdown templates before upload (for catalog/README files)")
-	cmd.MarkPersistentFlagRequired("name")
+	// Block identification. Both name and version are optional; when omitted
+	// they are read from clay.yaml in the current working directory.
+	cmd.PersistentFlags().StringVarP(&assetBlockName, "name", "n", "", "Block name (default: read from clay.yaml)")
+	cmd.PersistentFlags().StringVarP(&assetBlockVersion, "version", "v", "", "Block version (default: read from clay.yaml)")
+
+	// Storage configuration
+	cmd.PersistentFlags().StringVar(&storageProvider, "provider", "s3", "Storage provider: s3, gcs, azure")
+	cmd.PersistentFlags().StringVar(&storageBucket, "bucket", "", "Storage bucket name")
+	cmd.PersistentFlags().StringVar(&storageRegion, "region", "", "Storage region (optional for S3)")
+
+	// Processing options
+	// TODO: remove --readme once marketplace consumers migrate to publishing
+	// pre-rendered docs directly. This flag exists to preserve the legacy
+	// markdown template-processing flow (docs/README.md -> docs/parsed.md).
+	cmd.PersistentFlags().BoolVar(&isReadme, "readme", false, "Process markdown templates before upload")
+
+	cmd.MarkPersistentFlagRequired("bucket")
 
 	cmd.AddCommand(blockAssetsUploadCmd())
 	cmd.AddCommand(blockAssetsListCmd())
@@ -44,53 +68,46 @@ func BlockAssetsCmd() *cobra.Command {
 }
 
 func blockAssetsUploadCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "upload <path>",
-		Short: "Upload assets to block storage",
-		Long:  "Upload a file or directory to cloud storage for a specific block",
-		Args:  cobra.ExactArgs(1),
-		RunE:  runBlockAssetsUpload,
+		Short: "Upload a file or directory to block storage",
+		Long: `Upload a file or directory to cloud storage for a specific block.
+
+When --readme is set, markdown templates are processed before upload
+and the version is read from clay.yaml if not explicitly provided.`,
+		Example: `  clay block assets upload ./data -n my-block --bucket my-bucket --region us-east-1
+  clay block assets upload ./docs -n my-block --bucket my-bucket --readme`,
+		Args: cobra.ExactArgs(1),
+		RunE: runBlockAssetsUpload,
 	}
-
-	cmd.Flags().StringVar(&storageProvider, "provider", "s3", "Storage provider (s3, gcs, azure)")
-	cmd.Flags().StringVar(&storageBucket, "bucket", "", "Storage bucket name (required)")
-	cmd.Flags().StringVar(&storageRegion, "region", "", "Storage region (required for S3)")
-	cmd.MarkFlagRequired("bucket")
-
-	return cmd
 }
 
 func blockAssetsListCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "list",
-		Short: "List assets for a block",
-		Long:  "List all assets stored for a specific block and optionally version",
-		RunE:  runBlockAssetsList,
+		Short: "List all assets for a block",
+		Long:  "List all assets stored for a specific block. Optionally filter by version.",
+		Example: `  clay block assets list -n my-block --bucket my-bucket
+  clay block assets list -n my-block -v 1.0.0 --bucket my-bucket`,
+		RunE: runBlockAssetsList,
 	}
-
-	cmd.Flags().StringVar(&storageProvider, "provider", "s3", "Storage provider (s3, gcs, azure)")
-	cmd.Flags().StringVar(&storageBucket, "bucket", "", "Storage bucket name (required)")
-	cmd.Flags().StringVar(&storageRegion, "region", "", "Storage region (required for S3)")
-	cmd.MarkFlagRequired("bucket")
-
-	return cmd
 }
 
 func blockAssetsDownloadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "download <asset-path>",
-		Short: "Download a specific asset",
-		Long:  "Download an asset from block storage to local filesystem",
-		Args:  cobra.ExactArgs(1),
-		RunE:  runBlockAssetsDownload,
+		Short: "Download an asset to the local filesystem",
+		Long: `Download an asset from block storage to a local path.
+
+If the asset is not found at the specified version, it falls back
+to searching at the block (name) level.`,
+		Example: `  clay block assets download model.bin -n my-block --bucket my-bucket
+  clay block assets download model.bin -n my-block --bucket my-bucket -o ./models/`,
+		Args: cobra.ExactArgs(1),
+		RunE: runBlockAssetsDownload,
 	}
 
-	cmd.Flags().StringVar(&storageProvider, "provider", "s3", "Storage provider (s3, gcs, azure)")
-	cmd.Flags().StringVar(&storageBucket, "bucket", "", "Storage bucket name (required)")
-	cmd.Flags().StringVar(&storageRegion, "region", "", "Storage region (required for S3)")
 	cmd.Flags().StringVarP(&outputPath, "output", "o", ".", "Local path to save the downloaded asset")
-	cmd.MarkFlagRequired("bucket")
-
 	return cmd
 }
 
@@ -98,16 +115,16 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 	localPath := args[0]
 	ctx := context.Background()
 
+	if err := populateBlockIdentityFromConfig(); err != nil {
+		return err
+	}
+
 	if _, err := os.Stat(localPath); err != nil {
 		return fmt.Errorf("local path does not exist: %s", localPath)
 	}
 
 	// If readme flag is set, process markdown templates
 	if isReadme {
-		// Load version from config if not provided (needed for markdown processing)
-		if err := populateVersionFromConfig(); err != nil {
-			return err
-		}
 		bucketURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/", storageBucket, storageRegion)
 		if storageRegion == "" {
 			bucketURL = fmt.Sprintf("https://%s.s3.amazonaws.com/", storageBucket)
@@ -120,11 +137,11 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to parse markdown: %w", err)
 		}
 
-		// Update localPath to the processed catalog_readme folder
-		localPath = "catalog_readme"
+		// Update localPath to the processed docs folder
+		localPath = "docs"
 
 		if _, err := os.Stat(localPath); err != nil {
-			return fmt.Errorf("processed catalog path does not exist: %s", localPath)
+			return fmt.Errorf("processed docs path does not exist: %s", localPath)
 		}
 	}
 
@@ -134,8 +151,14 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Construct remote base path
+	// Construct remote base path. When --readme is set we preserve the
+	// "docs/" prefix on the remote key so that URLs rendered by
+	// api/marketplace/catalog.go (which point to .../<block>/<version>/docs/<file>)
+	// match the actual uploaded object keys.
 	remotePath := getAssetPath(assetBlockName, assetBlockVersion)
+	if isReadme {
+		remotePath = fmt.Sprintf("%s/docs", remotePath)
+	}
 
 	// Check if uploading a directory or file
 	fileInfo, err := os.Stat(localPath)
@@ -177,6 +200,10 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 func runBlockAssetsList(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
+	if err := populateBlockIdentityFromConfig(); err != nil {
+		return err
+	}
+
 	// Create storage provider
 	provider, err := createStorageProvider()
 	if err != nil {
@@ -213,6 +240,10 @@ func runBlockAssetsList(cmd *cobra.Command, args []string) error {
 func runBlockAssetsDownload(cmd *cobra.Command, args []string) error {
 	assetPath := args[0]
 	ctx := context.Background()
+
+	if err := populateBlockIdentityFromConfig(); err != nil {
+		return err
+	}
 
 	// Create storage provider
 	provider, err := createStorageProvider()
@@ -320,23 +351,36 @@ func getPublicURL(remotePath string) string {
 	}
 }
 
-// populateVersionFromConfig reads the version from clay.yaml when it's not explicitly
-// provided via command-line flags. This should only be called when version is needed
-// (e.g., when --readme flag is set).
-func populateVersionFromConfig() error {
+// populateBlockIdentityFromConfig fills in assetBlockName and/or
+// assetBlockVersion from clay.yaml in the current working directory when they
+// are not provided via command-line flags. Returns an error if the config
+// cannot be read and either field is still missing afterward.
+func populateBlockIdentityFromConfig() error {
+	if assetBlockName != "" && assetBlockVersion != "" {
+		return nil
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	cfg, err := config.GetConfig(cwd)
+	if err != nil {
+		return fmt.Errorf("--name/--version not set and failed to read clay.yaml: %w", err)
+	}
+
+	if assetBlockName == "" {
+		assetBlockName = cfg.Name
+		fmt.Fprintf(os.Stderr, "Using block name from config: %s\n", assetBlockName)
+	}
 	if assetBlockVersion == "" {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get current working directory: %w", err)
-		}
-
-		cfg, err := config.GetConfig(cwd)
-		if err != nil {
-			return fmt.Errorf("failed to read config file: %w", err)
-		}
-
 		assetBlockVersion = cfg.Version
 		fmt.Fprintf(os.Stderr, "Using version from config: %s\n", assetBlockVersion)
+	}
+
+	if assetBlockName == "" {
+		return fmt.Errorf("block name is required: provide --name or set it in clay.yaml")
 	}
 	return nil
 }

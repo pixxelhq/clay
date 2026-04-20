@@ -1,9 +1,6 @@
-clay
-black
-black[jupyter]
-flake8
-ipykernel
-isort==5.12.0
-mypy
+pixxel-clay
+pixxel-datatypes
+ruff
+pyright
 pytest
 pre-commit

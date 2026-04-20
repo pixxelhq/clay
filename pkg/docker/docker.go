@@ -167,10 +167,10 @@ func ImageExists(image string) error {
 }
 
 func Run(image string, args []string, envVars []string, cfg *config.Config) error {
-	fmt.Printf("🧐 Serching image %s \n", image)
+	fmt.Printf("🧐 Searching image %s \n", image)
 	err := ImageExists(image)
 	if err == ErrDoesNotExists {
-		return fmt.Errorf("oops image %s does not exists. First build the image using `clay build` command to build this image", image)
+		return fmt.Errorf("oops image %s does not exist. First build the image using `clay build` command to build this image", image)
 	}
 
 	runArgs := buildDockerRunArgs(image, envVars, cfg)

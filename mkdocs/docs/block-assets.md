@@ -52,7 +52,7 @@ clay block assets upload ./blocks --name my-block --version v1.0.0 --bucket my-b
 clay block assets upload block.pkl --name my-block --version v1.0.0 --bucket my-bucket
 
 # Upload README with template processing
-clay block assets upload ./catalog_readme --name my-block --version v1.0.0 \
+clay block assets upload ./docs --name my-block --version v1.0.0 \
   --bucket my-bucket --region us-east-1 --readme
 ```
 
@@ -65,12 +65,12 @@ When uploading README or catalog files with the `--readme` flag, Clay will:
 
 Example:
 ```bash
-# Your catalog_readme/block-README.md contains:
+# Your docs/README.md contains:
 # ![]({{ addUrl "sample_input.png" }})
 # This will be processed to:
-# ![](https://my-bucket.s3.us-east-1.amazonaws.com/blocks/my-block/v1.0.0/catalog_readme/sample_input.png)
+# ![](https://my-bucket.s3.us-east-1.amazonaws.com/blocks/my-block/v1.0.0/docs/sample_input.png)
 
-clay block assets upload ./catalog_readme --name my-block --version v1.0.0 \
+clay block assets upload ./docs --name my-block --version v1.0.0 \
   --bucket my-bucket --region us-east-1 --readme
 ```
 

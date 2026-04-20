@@ -22,22 +22,22 @@ clay <command> --help
 
 ---
 
-## Block Commands
+## Project Commands
 
 Commands for creating, building, and running blocks.
 
-### Create Project
+### New
 
-Generate starter files for a new block project.
+Scaffold a new block project at the given path.
 
 ```shell
-clay create project <outputDir> <blockName>
+clay new <path> <name>
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `outputDir` | Directory where project files will be created |
-| `blockName` | Name of the block |
+| `path` | Directory where project files will be created |
+| `name` | Name of the block |
 
 ### Build
 
@@ -91,8 +91,8 @@ clay publish [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--docker-registry-host` | Docker registry URL | `REDACTED.dkr.ecr.us-east-2.amazonaws.com` |
-| `--block-registry-host` | Clay registry host | `http://localhost:8080` |
+| `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
+| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
 | `--documentation-url` | Block documentation URL | — |
 | `--thumbnail-url` | Block thumbnail URL | — |
 
@@ -114,7 +114,7 @@ clay block list [flags]
 |------|-------------|---------|
 | `-n, --name` | Filter by block name | — |
 | `-v, --version` | Specific version to list | — |
-| `--host` | Clay registry host | `https://clay-registry.example.com` |
+| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
 
 ### Describe Block
 
@@ -131,7 +131,7 @@ clay block describe <name> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-v, --version` | Specific version to describe | — |
-| `--host` | Clay registry host | `https://clay-registry.example.com` |
+| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
 
 ---
 

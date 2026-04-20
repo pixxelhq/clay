@@ -72,11 +72,11 @@ func TestListBlocks(t *testing.T) {
 			}))
 			defer server.Close()
 
-			// Create a blockRegistry instance with the test server URL
-			br := NewBlockRegistry(server.URL, 2*time.Second)
+			// Create a Registry instance with the test server URL
+			r := New(server.URL, 2*time.Second)
 
 			// Call the ListBlocks method
-			blocks, err := br.ListBlocks()
+			blocks, err := r.ListBlocks()
 
 			// Check the expected error
 			if tt.expectedError != "" && err.Error() != tt.expectedError {

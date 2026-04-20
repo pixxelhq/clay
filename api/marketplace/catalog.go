@@ -15,33 +15,42 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-const catalogPath = "catalog_readme/block-README.md"
+const catalogPath = "docs/README.md"
 
 func UrlFuncMap(targetUrl string) map[string]interface{} {
 	return map[string]interface{}{
 		"addUrl": func(s string) string {
-			return targetUrl + "/catalog_readme/" + s
+			return targetUrl + "/docs/" + s
 		},
 	}
 }
 
 func ParseMarkdown(blockName string, blockVersion string, s3BucketUrl string) error {
-
 	targetUrl, err := url.Parse(s3BucketUrl)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to parse bucket url: %w", err)
 	}
 	targetUrl.Path = path.Join(targetUrl.Path, blockName, blockVersion)
 
-	temp := template.Must(template.New("block-README.md").Funcs(UrlFuncMap(targetUrl.String())).ParseFiles(catalogPath))
-	fo, err := os.Create("catalog_readme/parsed.md")
+	if _, err := os.Stat(catalogPath); err != nil {
+		return fmt.Errorf("expected %s to exist in the current directory: %w", catalogPath, err)
+	}
+
+	// Ensure the docs/ output directory exists before writing parsed.md. The
+	// source README lives there too, but we guard against odd setups where
+	// docs/ is a symlink or partially populated.
+	if err := os.MkdirAll("docs", 0o755); err != nil {
+		return fmt.Errorf("failed to create docs directory: %w", err)
+	}
+
+	temp := template.Must(template.New("README.md").Funcs(UrlFuncMap(targetUrl.String())).ParseFiles(catalogPath))
+	fo, err := os.Create("docs/parsed.md")
 	if err != nil {
 		return err
 	}
 	defer fo.Close()
-	err = temp.Execute(fo, nil)
-	if err != nil {
-		log.Fatal(err)
+	if err := temp.Execute(fo, nil); err != nil {
+		return fmt.Errorf("failed to render markdown template: %w", err)
 	}
 	return nil
 }
