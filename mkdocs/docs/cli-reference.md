@@ -137,11 +137,17 @@ clay block describe <name> [flags]
 
 ## Block Assets Commands
 
-Commands for managing block assets in cloud storage.
+Commands for managing block assets in cloud storage. The remote location is specified with a single `--url` flag.
+
+Supported URL form (AWS S3 virtual-hosted HTTPS):
+
+- `https://<bucket>.s3.<region>.amazonaws.com/<prefix>/`
+
+The region must be in the URL. `s3://` URIs and other hosts are rejected.
 
 ### Upload Assets
 
-Upload files or directories to cloud storage for a block. Assets can be stored at the block name level (shared across versions) or version-specific.
+Upload a file or directory to cloud storage at the location given by `--url`.
 
 ```shell
 clay block assets upload <path> [flags]
@@ -149,16 +155,12 @@ clay block assets upload <path> [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-n, --name` | Name of the block (required) | — |
-| `-v, --version` | Version of the block (optional) | — |
-| `--bucket` | Storage bucket name (required) | — |
-| `--provider` | Storage provider: `s3`, `gcs`, `azure` | `s3` |
-| `--region` | Storage region (required for S3) | — |
-| `--readme` | Process markdown templates before upload | `false` |
+| `--url` | Complete storage URL where assets will be uploaded (required) | — |
+| `--parse` | Render a template file inside `<path>` (which must be a directory) before uploading. Format: `<input>[:<output>]`, relative to `<path>`. The `{{ addUrl "file" }}` helper resolves to `<base-url>/file`, where `<base-url>` is the value of `--url`. If `<output>` is omitted, defaults to `<name>.parsed<ext>`. | — |
 
 ### List Assets
 
-List all assets stored in cloud storage for a block.
+List all assets at the location given by `--url`.
 
 ```shell
 clay block assets list [flags]
@@ -166,44 +168,17 @@ clay block assets list [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-n, --name` | Name of the block (required) | — |
-| `-v, --version` | Version of the block (optional) | — |
-| `--bucket` | Storage bucket name (required) | — |
-| `--provider` | Storage provider: `s3`, `gcs`, `azure` | `s3` |
-| `--region` | Storage region (required for S3) | — |
+| `--url` | Complete storage URL to list (required) | — |
 
 ### Download Assets
 
-Download an asset file from cloud storage. If a version is specified, it checks version-specific assets first, then falls back to name-level assets.
+Download the asset at `--url` to the local filesystem. `--url` must point at a single file.
 
 ```shell
-clay block assets download <asset-path> [flags]
+clay block assets download [flags]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-n, --name` | Name of the block (required) | — |
-| `-v, --version` | Version of the block (optional) | — |
-| `-o, --output` | Local path to save the downloaded asset | `.` |
-| `--bucket` | Storage bucket name (required) | — |
-| `--provider` | Storage provider: `s3`, `gcs`, `azure` | `s3` |
-| `--region` | Storage region (required for S3) | — |
-
----
-
-## Upload Commands
-
-Commands for uploading block assets.
-
-### Upload Readme
-
-Upload the README documentation for a block to cloud storage for the marketplace catalog.
-
-```shell
-clay upload readme [flags]
-```
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-n, --name` | Name of the block | — |
-| `-v, --version` | Version of the block | — |
+| `--url` | Complete storage URL of the asset to download (required) | — |
+| `-o, --output` | Local path to save the downloaded asset (directory or filename) | `.` |

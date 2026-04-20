@@ -66,13 +66,16 @@ jobs:
         id: upload_assets
         run: |
           set -e
-          # Upload catalog (readme and thumbnail)
-          # Version is automatically read from clay.yaml config when --readme flag is set
-          BASE_URL=$(clay block assets upload catalog --name {{ .BlockName }} --bucket ${{`{{ vars.CATALOG_S3_BUCKET }}`}} --region ${{`{{ vars.AWS_REGION }}`}} --readme)
+          # Upload catalog readme and thumbnail.
+          # Trailing slash is required — DOC_URL and THUMBNAIL_URL append filenames directly.
+          ASSET_URL="https://clay-block-registry.s3.us-east-2.amazonaws.com/{{ .BlockName }}/catalog_readme/"
+          clay block assets upload catalog_readme/ \
+            --parse README.md:parsed.md \
+            --url "$ASSET_URL"
 
           # Construct full URLs with specific file paths
-          DOC_URL="${BASE_URL}/parsed.md"
-          THUMBNAIL_URL="${BASE_URL}/thumbnail.png"
+          DOC_URL="${ASSET_URL}parsed.md"
+          THUMBNAIL_URL="${ASSET_URL}thumbnail.png"
 
           echo "DOC_URL=$DOC_URL" >> $GITHUB_OUTPUT
           echo "THUMBNAIL_URL=$THUMBNAIL_URL" >> $GITHUB_OUTPUT

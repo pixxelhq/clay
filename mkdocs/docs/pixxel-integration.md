@@ -303,7 +303,8 @@ clay block describe <name> --version <version> --env dev
 clay add block clay.yaml --env prod
 
 # Upload block README
-clay upload readme --name <block-name> --version <version>
+clay block assets upload catalog_readme/ --parse README.md:parsed.md \
+  --url https://<bucket>.s3.<region>.amazonaws.com/<block-name>/<version>/catalog_readme/
 ```
 
 ### Environment-Specific Deployment
@@ -337,7 +338,8 @@ How to use it...
 
 Upload with:
 ```bash
-clay block assets upload ./docs --name <block-name> --bucket <bucket> --region <region> --readme
+clay block assets upload ./docs --parse README.md:parsed.md \
+  --url https://<bucket>.s3.<region>.amazonaws.com/<block-name>/<version>/docs/
 ```
 
 ---

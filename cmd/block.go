@@ -24,7 +24,6 @@ func BlockCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
 	cmd.AddCommand(ListBlockRegistryCmd())
 	cmd.AddCommand(DescribeBlockCmd())
 	cmd.AddCommand(BlockAssetsCmd())
