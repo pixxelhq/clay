@@ -25,9 +25,9 @@ var (
 func buildDockerImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "build",
-		Short:   "Build an image from clay.yaml, This command uses sudo to build docker image",
-		Long:    "Build an image from clay.yaml. \nIf tag is not provided it will use `name` and `version` mentioned in the clay.yaml for image creation in the format `name:tag`",
-		Example: "clay build -t tagName -f ./Dockerfile",
+		Short:   "Build a Docker image from clay.yaml",
+		Long:    "Build a Docker image from clay.yaml.\nIf --tag is not provided, the image is tagged as `<name>:<version>` using the values from clay.yaml.",
+		Example: "clay build --tag my-block:0.1.0 --file ./Dockerfile",
 		RunE:    buildCmd,
 	}
 
@@ -52,13 +52,20 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return buildImage(cwd, cfg)
+	_, err = buildImage(cwd, cfg, buildTag)
+	return err
 }
 
-func buildImage(projectDir string, cfg *config.Config) error {
-	if buildTag == "" {
-		buildTag = fmt.Sprintf("%s:%s", cfg.Name, cfg.Version)
-		fmt.Printf("No build tag provided. Using `name` and `version` from clay.yaml as the build tag: %s\n", buildTag)
+// buildImage builds the block's docker image and returns the resolved tag
+// (either the tag argument, or a "<name>:<version>" default derived from the
+// project config). Callers pass in the desired tag explicitly — the function
+// does not read or mutate the `buildTag` package-level variable — so that
+// both CLI (`clay build`) and programmatic callers (`clay publish`) behave
+// predictably.
+func buildImage(projectDir string, cfg *config.Config, tag string) (string, error) {
+	if tag == "" {
+		tag = fmt.Sprintf("%s:%s", cfg.Name, cfg.Version)
+		fmt.Printf("No build tag provided. Using `name` and `version` from clay.yaml as the build tag: %s\n", tag)
 	}
 
 	if dockerfilePath == "" {
@@ -66,7 +73,7 @@ func buildImage(projectDir string, cfg *config.Config) error {
 		srcCodeDir := filepath.Base(projectDir)
 		dockerfilePath, err = getOrCreateDockerfile(srcCodeDir, cfg)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -76,21 +83,20 @@ func buildImage(projectDir string, cfg *config.Config) error {
 		NoCache:   buildNoCache,
 		Platforms: platform,
 	}
-	err := docker.Build(buildTag, dockerfilePath, bf)
-	if err != nil {
-		return err
+	if err := docker.Build(tag, dockerfilePath, bf); err != nil {
+		return "", err
 	}
 
-	fmt.Printf("🎉 docker image %s has been built using %s \n", buildTag, dockerfilePath)
-	return nil
+	fmt.Printf("🎉 docker image %s has been built using %s \n", tag, dockerfilePath)
+	return tag, nil
 }
 
 func pushToDockerRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "push [IMAGE]",
-		Short:   "Push the docker image to registry. This command uses sudo to build docker image",
-		Long:    "Push the docker image to registry, if image is not provided, it will use `name` and `tag` mentioned in clay.yaml for image name in the format `name:tag`",
-		Example: "clay push registry.io/testing-block:0.0.1",
+		Use:     "push [image]",
+		Short:   "Push a built Docker image to a Docker registry",
+		Long:    "Push a Docker image to the Docker registry.\nIf [image] is not provided, it defaults to `<name>:<version>` from clay.yaml.",
+		Example: "clay push registry.example.com/my-block:0.1.0",
 		RunE:    pushCmd,
 	}
 
@@ -149,11 +155,15 @@ func getOrCreateDockerfile(srcCodeDir string, cfg *config.Config) (string, error
 
 func runDockerImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run [IMAGE NAME] [ARG...]",
-		Short: "Run the docker image",
-		Long: heredoc.Doc(
-			"Run the docker image. You need to provide the image name which you want to run.\n"),
-		Example: "clay run <image_name> -e INPUT_JSON=\"$(cat <input_file.json>)\"",
+		Use:   "run <image> [args...]",
+		Short: "Run a block's Docker image locally",
+		Long: heredoc.Doc(`
+			Run a block's Docker image locally.
+
+			<image> is the Docker image to run. Any trailing [args...] are passed
+			through to the container's entrypoint.
+		`),
+		Example: "clay run my-block:0.1.0 -e INPUT_JSON=\"$(cat input.json)\"",
 		RunE:    runImage,
 		Args:    cobra.MinimumNArgs(1),
 	}

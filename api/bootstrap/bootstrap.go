@@ -52,7 +52,7 @@ func CreateProject(outputDir, blockName string) error {
 			return nil
 		}
 
-		_data, ok := data[d.Name()]
+		_data, ok := data[relPath]
 		if ok {
 			writeTemplateToFile(fullTemplate, path, outPath, _data)
 		} else {

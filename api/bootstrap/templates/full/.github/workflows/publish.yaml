@@ -1,12 +1,25 @@
 name: Publish block to Clay registry
 
+# This workflow is a starting point and assumes an AWS deployment. The
+# account-specific values below are sourced from repository/organization
+# secrets and variables so the template itself stays cloud-agnostic. Either
+# configure the referenced secrets/vars or adapt the workflow to your own
+# infrastructure (GCP, Azure, etc.). Required configuration:
+#   vars.CLAY_REGISTRY_HOST        - Clay registry URL
+#   vars.AWS_REGION                - AWS region (e.g. us-east-2)
+#   vars.CATALOG_S3_BUCKET         - S3 bucket for block catalog assets
+#   vars.ECR_REGISTRY              - ECR registry host (e.g. 123456789012.dkr.ecr.us-east-2.amazonaws.com)
+#   vars.GITHUB_OIDC_AUDIENCE      - OIDC audience configured in the IAM trust policy
+#   secrets.AWS_ACCOUNT_ID         - AWS account that hosts the deploy/publish roles
+#   secrets.CLAY_BIN_DOWNLOAD_TOKEN - PAT used to fetch the clay CLI release
+
 on: workflow_dispatch
 
 env:
-  CLAY_REGISTRY_HOST: http://clay-registry-staging.example.com
-  CLAY_CLI_VERSION: v0.5.6-alpha
-  AWS_DEFAULT_REGION: us-east-2
-  ECR_REGISTRY: REDACTED.dkr.ecr.us-east-2.amazonaws.com
+  CLAY_REGISTRY_HOST: ${{`{{ vars.CLAY_REGISTRY_HOST }}`}}
+  CLAY_CLI_VERSION: {{ .Version }}
+  AWS_DEFAULT_REGION: ${{`{{ vars.AWS_REGION }}`}}
+  ECR_REGISTRY: ${{`{{ vars.ECR_REGISTRY }}`}}
 
 permissions:
   id-token: write
@@ -33,8 +46,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-          audience: https://github.com/pixxelhq
+          role-to-assume: arn:aws:iam::${{`{{ secrets.AWS_ACCOUNT_ID }}`}}:role/GithubDeployRole
+          audience: ${{`{{ vars.GITHUB_OIDC_AUDIENCE }}`}}
           aws-region: ${{`{{ env.AWS_DEFAULT_REGION }}`}}
 
       - name: Download Clay Binaries
@@ -55,7 +68,7 @@ jobs:
           set -e
           # Upload catalog (readme and thumbnail)
           # Version is automatically read from clay.yaml config when --readme flag is set
-          BASE_URL=$(clay block assets upload catalog --name {{ .BlockName }} --bucket clay-block-registry --region us-east-2 --readme)
+          BASE_URL=$(clay block assets upload catalog --name {{ .BlockName }} --bucket ${{`{{ vars.CATALOG_S3_BUCKET }}`}} --region ${{`{{ vars.AWS_REGION }}`}} --readme)
 
           # Construct full URLs with specific file paths
           DOC_URL="${BASE_URL}/parsed.md"
@@ -84,8 +97,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::REDACTED:role/REDACTED
-          audience: sigstore
+          role-to-assume: arn:aws:iam::${{`{{ secrets.AWS_ACCOUNT_ID }}`}}:role/GithubActionsRole
+          audience: ${{`{{ vars.GITHUB_OIDC_AUDIENCE }}`}}
           aws-region: ${{`{{ env.AWS_DEFAULT_REGION }}`}}
 
       - name: Login to AWS Container Registry

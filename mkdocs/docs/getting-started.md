@@ -53,7 +53,7 @@ This guide walks you through installing Clay and creating your first block proje
 Let's create a project for a block named `MyBlock`. The following command creates the project in the current directory by default. You can specify a different directory path instead of `.`
 
 ```shell
-clay create project . MyBlock
+clay new . MyBlock
 ```
 
 Navigate into the project directory:
@@ -76,11 +76,11 @@ MyBlock/
 │   ├── block.py                 # Your block implementation (BlockWrapper)
 │   ├── entry.py                 # Block entry point (don't modify)
 │   ├── __version__.py           # Version tracking
-├── tests/
+├── tests/                      
 │   ├── test_block.py           # Local testing script
 │   └── sample_block_inputs.json # Example inputs for testing
-├── catalog_readme/
-│   └── block-README.md          # Block documentation
+├── docs/             
+│   └── README.md                # Block documentation
 ├── clay.yaml                    # Clay configuration
 ├── requirements.txt             # Python dependencies
 ├── conda.yaml                   # Conda environment (for GPU blocks)
@@ -174,7 +174,7 @@ MyBlock/
     1. **Edit `src/block.py`**: Implement your block logic
     2. **Update `clay.yaml`**: Define inputs, outputs, and requirements
     3. **Modify `sample_block_inputs.json`**: Add realistic test data
-    4. **Update `catalog_readme/block-README.md`**: Document your block
+    4. **Update `docs/README.md`**: Document your block
 
 !!! info "Files You Won't need to Modify"
     * `src/entry.py` - Clay's block entry point
@@ -278,15 +278,15 @@ Irrespectively, a user is welcome to maintain their own registry for block manag
 
     **Available Flags:**
 
-    - `--docker-registry-host` - Docker registry to push the image to
-    - `--block-registry-host` - Clay block registry host URL (default: "http://localhost:8080")
+    - `--docker-registry` - Docker image registry to push to (env: `CLAY_DOCKER_REGISTRY`)
+    - `--clay-registry` - Clay block registry URL (env: `CLAY_REGISTRY_HOST`)
     - `--documentation-url` - URL for block documentation
     - `--thumbnail-url` - URL for block thumbnail image
 
-    **Example with custom registry:**
+    **Example with custom registries:**
 
     ```shell
-    clay publish --block-registry-host https://your-registry.example.com --docker-registry-host your-docker-registry.example.com
+    clay publish --clay-registry https://clay.example.com --docker-registry registry.example.com
     ```
 
 * **List Available Blocks**

@@ -19,25 +19,24 @@ func DescribeBlockCmd() *cobra.Command {
 		Use:   "describe <name>",
 		Short: "Describe the block for the given name",
 		Long: heredoc.Doc(`
-		If no flag provided, it will list all the versions of the given block name from clay registry.
-		Use flag "version" to list a specific version of the block.
-		Use flag "clay-registry-host" to list all the blocks from a specific registry.
-		Example: clay list --version=0.0.1
+		Describe the block for the given name from the Clay registry.
+		If no version flag is provided, it will list all versions of the given block.
+		Use --version to describe a specific version of the block.
+		Use --clay-registry on the parent "block" command to target a specific registry.
 		`),
-		RunE: describeBlockCmd,
+		Example: "clay block describe my-block --version=0.0.1",
+		Args:    cobra.ExactArgs(1),
+		RunE:    describeBlockCmd,
 	}
 
-	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Possible status of block: draft, released, disabled")
+	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Filter by block version (e.g. v0.0.1)")
 	return cmd
 }
 
 func describeBlockCmd(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("name argument is required")
-	}
 	name := args[0]
 
-	br := registry.NewBlockRegistry(host, 5*time.Second)
+	r := registry.New(clayRegistryHost, 5*time.Second)
 	var (
 		blocks registry.Blocks
 		err    error
@@ -45,7 +44,7 @@ func describeBlockCmd(cmd *cobra.Command, args []string) error {
 	)
 
 	if describeCmdVersion != "" {
-		block, err = br.GetBlockByNameAndVersion(name, describeCmdVersion)
+		block, err = r.GetBlockByNameAndVersion(name, describeCmdVersion)
 		if err != nil {
 			return err
 		}
@@ -59,7 +58,7 @@ func describeBlockCmd(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	blocks, err = br.GetBlockByName(name)
+	blocks, err = r.GetBlockByName(name)
 	if err != nil {
 		return err
 	}

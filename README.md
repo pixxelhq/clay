@@ -46,9 +46,9 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
   for operations related to a block</summary>
 
 
-1. `clay create project [outputDir] [blockName]`
+1. `clay new <path> <name>`
 
-    Generate starter files for your block
+    Scaffold a new block project at the given path.
 
 2. `clay create dockerfile [blockSpecificationPath] [sourceCodeFolder] [useHttpRunner] [flags]`
 
@@ -59,7 +59,7 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
 3. `clay add block [specFilePath] [flags]`
 
     Add a new block in Pixxel Labs
-    A block, with the specification file, will be added to orchestrator.
+    A block, with the specification file, will be added to the registry.
     -e, --env Set environment flag to add new block to: dev, stg, prod (default "dev")
 
 4. `clay list block [flags]`
@@ -124,7 +124,7 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
    clay block assets upload ./blocks --name my-block --version v1.0.0 --bucket my-bucket
    
    # Upload with README template processing
-   clay block assets upload ./catalog_readme --name my-block --version v1.0.0 \
+   clay block assets upload ./docs --name my-block --version v1.0.0 \
      --bucket my-bucket --region us-east-1 --readme
    ```
 
@@ -170,7 +170,7 @@ Install the **latest** version of `clay` CLI tool from here: https://github.com/
 Create your project with:
 
 ```bash
-clay create project path/to/outputDirectory BlockNameInCamelCase
+clay new path/to/outputDirectory BlockNameInCamelCase
 ```
 
 This will create your project here: `path/to/outputDirectory/BlockNameInCamelCase`.
@@ -343,7 +343,7 @@ Open `src/__version__.py` and edit the version.
 
 Refer to [semver](https://semver.org) for details on how to version your block.
 
-Commit your code, and push it to GitHub. `Clay` and `Orchestrator` will take it from here!
+Commit your code, and push it to GitHub. `Clay` will take it from here!
 
 
 

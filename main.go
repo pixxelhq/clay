@@ -20,7 +20,8 @@ func main() {
 func getSetVersion() {
 	re := regexp.MustCompile(`"([^"]*)"`)
 	match := re.FindStringSubmatch(versionString)
-	Version := match[1]
-	bootstrap.Version = Version
-	docker.ClayVersion = Version
+	version := match[1]
+	cmd.Version = version
+	bootstrap.Version = version
+	docker.ClayVersion = version
 }

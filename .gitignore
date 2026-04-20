@@ -18,6 +18,10 @@ lulc
 tests/__pycache__
 tests/__pycache__/__init__.cpython-38.pyc
 !mkdocs/docs
+!api/bootstrap/templates/full/docs
+!api/bootstrap/templates/full/docs/**
+!examples/**/docs
+!examples/**/docs/**
 site
 .dmypy.json
 bin

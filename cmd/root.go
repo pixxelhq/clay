@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/example/clay/cmd/create"
+	newproject "github.com/example/clay/cmd/newproject"
 	"github.com/spf13/cobra"
 )
 
@@ -13,10 +13,10 @@ var RootCmd = &cobra.Command{
 	Use:          "clay",
 	SilenceUsage: true,
 	Short:        "A tool to bridge gap between block development on local machines and deployment on the platform",
-	Long: heredoc.Doc(`Clay provide users the tooling and the scaffolding needed to quickly:
-	1.Refactor their block in a pre-defined structure
-	2.Programmatically declare their inputs and outputs, environment and compute requirements
-	3.Provide tooling to easily and locally test their blocks that are deployed on our infra`),
+	Long: heredoc.Doc(`Clay provides the tooling and scaffolding needed to quickly:
+	1. Refactor your block into a pre-defined structure
+	2. Programmatically declare inputs, outputs, environment and compute requirements
+	3. Easily build, test and deploy your blocks locally or on your infrastructure`),
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
@@ -25,6 +25,7 @@ var RootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
+	RootCmd.Version = Version
 	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -32,8 +33,7 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	RootCmd.AddCommand(create.CreateCmd)
+	RootCmd.AddCommand(newproject.NewCmd)
 	RootCmd.AddCommand(VersionCmd())
 	RootCmd.AddCommand(buildDockerImageCmd())
 	RootCmd.AddCommand(pushToDockerRegistryCmd())

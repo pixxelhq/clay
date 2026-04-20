@@ -6,17 +6,11 @@ import (
 )
 
 func IsValidVersion(version string) bool {
-	if semver.IsValid(version) {
-		return true
-	} else {
-		return false
-	}
-
+	return semver.IsValid(version)
 }
 
 func Getlogger() *logger.Logger {
-
-	logger := logger.NewLogger(&logger.LogConfig{
+	return logger.NewLogger(&logger.LogConfig{
 		EnableConsoleLogging: true,
 		LoggerName:           "clay",
 		ModuleName:           "clay",
@@ -26,17 +20,4 @@ func Getlogger() *logger.Logger {
 		MaxSize:              512,
 		MaxAge:               0,
 	})
-	return logger
-}
-
-type UnauthorisedError struct {
-	Msg string
-}
-
-func (u UnauthorisedError) Error() string {
-	return u.Msg
-}
-
-func NewUnauthorisedError(msg string) error {
-	return UnauthorisedError{msg}
 }

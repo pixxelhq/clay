@@ -13,14 +13,16 @@ var (
 	ErrAlreadyExists = errors.New("block_already_exists")
 )
 
-type blockRegistry struct {
+// Registry is a client for the Clay block registry HTTP API.
+type Registry struct {
 	httpClient *http.Client
 	host       string
 	timeout    time.Duration
 }
 
-func NewBlockRegistry(host string, timeout time.Duration) *blockRegistry {
-	return &blockRegistry{
+// New returns a Registry client pointed at host with the given request timeout.
+func New(host string, timeout time.Duration) *Registry {
+	return &Registry{
 		host:    host,
 		timeout: timeout,
 		httpClient: &http.Client{
@@ -78,8 +80,8 @@ type Block struct {
 
 type Blocks []*Block
 
-func (br *blockRegistry) Publish(req *PublishBlockRequest) error {
-	url := br.host + "/v1/blocks"
+func (r *Registry) Publish(req *PublishBlockRequest) error {
+	url := r.host + "/v1/blocks"
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -93,7 +95,7 @@ func (br *blockRegistry) Publish(req *PublishBlockRequest) error {
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := br.httpClient.Do(httpReq)
+	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
@@ -116,8 +118,8 @@ func (br *blockRegistry) Publish(req *PublishBlockRequest) error {
 
 }
 
-func (br *blockRegistry) ListBlocks() (Blocks, error) {
-	url := br.host + "/v1/blocks"
+func (r *Registry) ListBlocks() (Blocks, error) {
+	url := r.host + "/v1/blocks"
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request for list blocks: %w", err)
@@ -125,7 +127,7 @@ func (br *blockRegistry) ListBlocks() (Blocks, error) {
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := br.httpClient.Do(httpReq)
+	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request for list blocks: %w", err)
 	}
@@ -143,8 +145,8 @@ func (br *blockRegistry) ListBlocks() (Blocks, error) {
 	return respData.Data, nil
 }
 
-func (br *blockRegistry) GetBlockByName(name string) (Blocks, error) {
-	url := br.host + fmt.Sprintf("/v1/blocks/%s", name)
+func (r *Registry) GetBlockByName(name string) (Blocks, error) {
+	url := r.host + fmt.Sprintf("/v1/blocks/%s", name)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request for list blocks with name %s: %w", name, err)
@@ -152,7 +154,7 @@ func (br *blockRegistry) GetBlockByName(name string) (Blocks, error) {
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := br.httpClient.Do(httpReq)
+	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request for list blocks with name %s: %w", name, err)
 	}
@@ -170,8 +172,8 @@ func (br *blockRegistry) GetBlockByName(name string) (Blocks, error) {
 	return respData.Data, nil
 }
 
-func (br *blockRegistry) GetBlockByNameAndVersion(name, version string) (*Block, error) {
-	url := br.host + fmt.Sprintf("/v1/blocks/%s/versions/%s", name, version)
+func (r *Registry) GetBlockByNameAndVersion(name, version string) (*Block, error) {
+	url := r.host + fmt.Sprintf("/v1/blocks/%s/versions/%s", name, version)
 	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request for list block with name %s and version %s: %w", name, version, err)
@@ -179,7 +181,7 @@ func (br *blockRegistry) GetBlockByNameAndVersion(name, version string) (*Block,
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := br.httpClient.Do(httpReq)
+	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request for list block with name %s and version %s: %w", name, version, err)
 	}

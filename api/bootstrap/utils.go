@@ -118,17 +118,17 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 
 func getTemplateData(titleBlockName string, specBlockName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"block.py":       Block{BlockName: titleBlockName},
-		"entry.py":       Entry{BlockName: titleBlockName},
-		"README.md":      Readme{Name: titleBlockName},
-		"test_block.py":  TestBlock{BlockName: titleBlockName},
-		"Makefile":       Makefile{BlockName: titleBlockName},
-		"test_main.py":   TestBlock{BlockName: titleBlockName},
-		"pyproject.toml": PyProject{BlockName: titleBlockName},
-		"benchmark.yaml": GithubWorkflow{BlockName: specBlockName},
-		"build.yaml":     GithubWorkflow{BlockName: specBlockName},
-		"publish.yaml":   GithubWorkflow{BlockName: specBlockName},
-		"clay.yaml":      Config{Name: titleBlockName},
+		"src/block.py":                          Block{BlockName: titleBlockName},
+		"src/entry.py":                          Entry{BlockName: titleBlockName},
+		"README.md":                             Readme{Name: titleBlockName},
+		"tests/test_block.py":                   TestBlock{BlockName: titleBlockName},
+		"Makefile":                               Makefile{BlockName: titleBlockName},
+		"tests/test_main.py":                    TestBlock{BlockName: titleBlockName},
+		"pyproject.toml":                         PyProject{BlockName: titleBlockName},
+		".github/workflows/benchmark.yaml":      GithubWorkflow{BlockName: specBlockName, Version: Version},
+		".github/workflows/build.yaml":          GithubWorkflow{BlockName: specBlockName, Version: Version},
+		".github/workflows/publish.yaml":        GithubWorkflow{BlockName: specBlockName, Version: Version},
+		"clay.yaml":                              Config{Name: titleBlockName},
 	}
 	return data
 }
