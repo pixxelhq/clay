@@ -12,8 +12,6 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-var Version string
-
 type TemplateData interface{}
 
 type Config struct {
@@ -35,11 +33,6 @@ type Block Entry
 type TestBlock Entry
 
 type Makefile Entry
-
-type GithubWorkflow struct {
-	BlockName string
-	Version   string
-}
 
 type PyProject Entry
 
@@ -116,7 +109,7 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 	return nil
 }
 
-func getTemplateData(titleBlockName string, specBlockName string) map[string]TemplateData {
+func getTemplateData(titleBlockName string) map[string]TemplateData {
 	data := map[string]TemplateData{
 		"src/block.py":                          Block{BlockName: titleBlockName},
 		"src/entry.py":                          Entry{BlockName: titleBlockName},
@@ -125,9 +118,6 @@ func getTemplateData(titleBlockName string, specBlockName string) map[string]Tem
 		"Makefile":                               Makefile{BlockName: titleBlockName},
 		"tests/test_main.py":                    TestBlock{BlockName: titleBlockName},
 		"pyproject.toml":                         PyProject{BlockName: titleBlockName},
-		".github/workflows/benchmark.yaml":      GithubWorkflow{BlockName: specBlockName, Version: Version},
-		".github/workflows/build.yaml":          GithubWorkflow{BlockName: specBlockName, Version: Version},
-		".github/workflows/publish.yaml":        GithubWorkflow{BlockName: specBlockName, Version: Version},
 		"clay.yaml":                              Config{Name: titleBlockName},
 	}
 	return data

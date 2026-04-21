@@ -27,7 +27,7 @@ func CreateProject(outputDir, blockName string, readmeTemplate bool) error {
 	}
 	titleblockName := strcase.ToCamel(blockName)
 	specblockName := strcase.ToSnake(blockName)
-	data := getTemplateData(titleblockName, specblockName)
+	data := getTemplateData(titleblockName)
 	outputDir = filepath.Join(outputDir, specblockName)
 	fmt.Printf("Cleaning up %s ...\n-----------------\n", outputDir)
 	deleteDir(outputDir)

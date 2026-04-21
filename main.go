@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"regexp"
 
-	"github.com/example/clay/api/bootstrap"
 	"github.com/example/clay/cmd"
 	"github.com/example/clay/pkg/docker"
 )
@@ -20,8 +19,7 @@ func main() {
 func getSetVersion() {
 	re := regexp.MustCompile(`"([^"]*)"`)
 	match := re.FindStringSubmatch(versionString)
-	version := match[1]
-	cmd.Version = version
-	bootstrap.Version = version
-	docker.ClayVersion = version
+	Version := match[1]
+	docker.ClayVersion = Version
+	cmd.Version = Version
 }

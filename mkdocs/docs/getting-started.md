@@ -67,11 +67,6 @@ Clay generates a complete project scaffolding with everything you need to develo
 
 ```
 MyBlock/
-├── .github/                      # GitHub Actions workflows
-│   └── workflows/
-│       ├── build.yaml           # Build and test workflow
-│       ├── publish.yaml         # Publish to registry workflow
-│       └── benchmark.yaml       # Performance benchmarking
 ├── src/                         # Main source code directory
 │   ├── block.py                 # Your block implementation (BlockWrapper)
 │   ├── entry.py                 # Block entry point (don't modify)
@@ -178,7 +173,6 @@ MyBlock/
 
 !!! info "Files You Won't need to Modify"
     * `src/entry.py` - Clay's block entry point
-    * `.github/workflows/` - Unless customizing CI/CD
     * `src/specifications/` - Generated from clay.yaml -->
 
 <!-- ### Python Environment Setup (Optional but Recommended)

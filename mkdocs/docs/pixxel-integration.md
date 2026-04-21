@@ -123,8 +123,7 @@ MyBlock/
 │   └── sample_block_inputs.json
 ├── clay.yaml             # Block specification
 ├── requirements.txt      # Python dependencies
-├── Makefile             # Build commands
-└── .github/workflows/   # CI/CD pipelines
+└── Makefile              # Build commands
 ```
 
 ### Step 2: Implement Your Block
@@ -214,9 +213,6 @@ clay build
 
 !!! note "Expected Output"
     You'll see logs for block initialization, preprocessing, inference, and postprocessing. A warning about missing `ORCHESTRATOR_URL` is normal for local runs.
-
-!!! tip "Benchmark Your Block"
-    Before deploying to production, benchmark your block to determine optimal CPU and memory limits for Kubernetes. This helps with accurate pricing and resource allocation. See [Benchmarking](benchmarking.md) for details on using mbench with GitHub Actions.
 
 ### Step 5: Deploy to Orchestrator
 
@@ -395,7 +391,6 @@ export AWS_PROFILE=your-aws-profile
 
 - [Block Configs Repository](https://github.com/example/block-configs)
 - [infra Infrastructure](https://github.com/example/infra)
-- [Benchmarking Guide](benchmarking.md) - Measure CPU, RAM, and runtime for pricing and resource limits
 - Monitoring Dashboards - Ask MLOps team for access
 
 ---

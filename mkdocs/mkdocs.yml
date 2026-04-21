@@ -228,7 +228,6 @@ nav:
   - Reference:
     - CLI Reference: "cli-reference.md"
     - Logging: "logging.md"
-    - Benchmarking Blocks: "benchmarking.md"
   - Pixxel Platform Integration:
     - Integration Guide: "pixxel-integration.md"
   - FAQs: "faq.md"
