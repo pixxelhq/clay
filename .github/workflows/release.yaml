@@ -1,0 +1,104 @@
+name: Release Clay SDK + CLI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and verify tag exists
+        id: resolve
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag '$TAG' does not exist in the repo."
+            exit 1
+          fi
+          TAG_SHA=$(git rev-list -n 1 "refs/tags/$TAG")
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
+          echo "Tag $TAG resolves to $TAG_SHA"
+
+      - name: Verify __version__.py at tag matches tag
+        run: |
+          TAG="${{ steps.resolve.outputs.tag }}"
+          TAG_VERSION="${TAG#v}"
+          FILE_VERSION=$(git show "refs/tags/$TAG:python/clay/__version__.py" | python3 -c "import sys; ns={}; exec(sys.stdin.read(), ns); print(ns['__VERSION__'])")
+          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch: python/clay/__version__.py at $TAG is '$FILE_VERSION' but tag is '$TAG_VERSION'"
+            exit 1
+          fi
+          echo "Version matches: $FILE_VERSION"
+
+      - name: Verify tag is reachable from main
+        run: |
+          git fetch origin main
+          TAG_SHA="${{ steps.resolve.outputs.sha }}"
+          if ! git merge-base --is-ancestor "$TAG_SHA" origin/main; then
+            echo "::error::Tag ${{ steps.resolve.outputs.tag }} points at $TAG_SHA which is not on origin/main. Release only from main."
+            exit 1
+          fi
+
+  release-python-sdk:
+    needs: validate-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-version.outputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build SDK
+        run: python -m build ./python
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload python/dist/* --verbose
+
+  release-cli:
+    needs: [validate-version, release-python-sdk]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.validate-version.outputs.tag }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.22.2
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

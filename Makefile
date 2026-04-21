@@ -91,5 +91,5 @@ go-binaries:
 		GOOS=linux GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-linux-$$ARCH; \
 	done
 
-test-with-runner: 
+test-with-runner:
 	// TODO:To be added once we test opensource runner with clay

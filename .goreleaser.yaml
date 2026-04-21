@@ -2,6 +2,7 @@ project_name: clay
 
 release:
   make_latest: true
+  mode: keep-existing
 
 builds:
   - id: "clay"
@@ -25,24 +26,9 @@ changelog:
 
 checksum:
   name_template: "checksums.txt"
+
 snapshot:
   name_template: "{{ .Tag }}-next"
 
-brews:
-  - name: clay
-    homepage: "https://github.com/example/clay"
-    description: "Clay CLI to support list, get, add, update blocks and upload their readme"
-    dependencies:
-      - name: git
-    repository:
-      owner: pixxelhq
-      name: homebrew-tap
-    license: "Apache 2.0"
-    folder: Formula
-    download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
-    custom_require: "../lib/private_strategy"
-    install: |-
-      bin.install "clay"
-    commit_author:
-      name: MLOps
-      email: 	marketplace@pixxel.co.in
+# TODO: add a `brews:` section here so `brew install clay`
+
