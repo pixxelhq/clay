@@ -17,5 +17,8 @@
   ],
   "reportMissingImports": false,
   "reportMissingModuleSource": false,
-  "reportSelfClsParameterName": false
+  "reportSelfClsParameterName": false,
+  "extraPaths": [
+    "proto/python"
+  ]
 }

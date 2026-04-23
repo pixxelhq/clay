@@ -14,8 +14,6 @@ class TestCallbackBase(TestCase):
         self.assertEqual(ErrorType.RUNTIME_EXCEPTION, "runtime_exception")
         self.assertEqual(ErrorType.UNKNOWN, "unknown")
 
-    # Removed test_callback_error since CallbackError has been removed
-
     def test_callback_data_with_minimal_args(self):
         """Test callback data with only required arguments."""
         # Create callback data with minimal arguments

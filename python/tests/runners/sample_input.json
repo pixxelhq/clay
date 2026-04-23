@@ -5,7 +5,7 @@
         "format": "raster",
         "value": "",
         "is_artiface": "true",
-        "stac_url": "./tests/example_stac.json",
+        "stac_url": "{{FIXTURES_DIR}}/example_stac.json",
         "properties": {
             "bands": [
                 "B01",
@@ -36,6 +36,6 @@
         "type": "url",
         "format": "vector",
         "is_artiface": "true",
-        "value": "./tests/vector.geojson"
+        "value": "{{FIXTURES_DIR}}/vector.geojson"
     }
 ]

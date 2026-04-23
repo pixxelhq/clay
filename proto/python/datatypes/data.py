@@ -1,6 +1,7 @@
 import abc
 import re
 import typing
+from enum import Enum
 from typing import Any, Dict
 
 from google.protobuf.json_format import MessageToDict, MessageToJson, ParseDict
@@ -12,14 +13,15 @@ from .data_pb2 import *
 
 T = typing.TypeVar("T")
 
-FormatTypes = Union[
-    gen_types.Raster,
-    gen_types.Vector,
-    gen_types.Tabular,
-    gen_types.Date,
-    gen_types.Number,
-    gen_types.String,
-]
+
+class FormatTypes(Enum):
+    RASTER = "raster"
+    VECTOR = "vector"
+    TABULAR = "tabular"
+    DATE = "date"
+    STRING = "string"
+    NUMBER = "number"
+
 
 Data = Union[
     gen_types.Raster,
@@ -97,7 +99,7 @@ class DataWrapperInterface(abc.ABC):
 
 
 class DataWrapper(DataWrapperInterface):
-    def __init__(self, proto_cls: FormatTypes):
+    def __init__(self, proto_cls: Data):
         descriptor = proto_cls.DESCRIPTOR
         for field in descriptor.fields:
             # Set default if field has one
@@ -135,7 +137,7 @@ class DataWrapper(DataWrapperInterface):
     def get_is_artifact(self) -> bool:
         return self._proto_cls_initialised.is_artifact
 
-    def get_proto(self) -> FormatTypes:
+    def get_proto(self) -> Data:
         return self._proto_cls_initialised
 
     def serialize_to_dict(self) -> typing.Dict[str, typing.Any]:
@@ -388,7 +390,7 @@ def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
     value = input_data.get_value()
     fmt = input_data.get_format()
 
-    if fmt == "string":
+    if fmt == FormatTypes.STRING.value:
         string_validation = gen_types.StringValidation()
         if "regex_match" in validation:
             string_validation.regex_match = validation["regex_match"]
@@ -396,7 +398,7 @@ def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
             string_validation.allowed_values.extend(validation["allowed_values"])
         validate_string(name, value, string_validation)
 
-    elif fmt == "number":
+    elif fmt == FormatTypes.NUMBER.value:
         number_validation = gen_types.NumberValidation()
         if "min_value" in validation:
             number_validation.min_value = validation["min_value"]

@@ -11,308 +11,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-/*
-func Test_LegacyAndProtoTypeMarshalEquality(t *testing.T) {
-	dummyDiscreteViz := data.DiscreteViz(map[string]string{"1": "2"})
-	dummyValue := "123"
-	dummySatelliteLookAngle := 2.3
-	dummySunElevationAngle := 2.5
-	testcases := []struct {
-		Name            string
-		LegacyType      data.DataInterface
-		ProtoType       func() DataWrapperInterface
-		OnlyCheckFields map[string]struct{}
-		IgnoreFields    map[string]struct{}
-	}{
-		{
-			Name: "raster-all-but-properties-unset",
-			LegacyType: data.Raster{
-				DataMeta: data.DataMeta{
-					FormatMeta: data.FormatMeta{Format: "raster"},
-					TypeMeta: data.TypeMeta{
-						Type:        "url",
-						Name:        "raster",
-						DisplayName: "Raster",
-						Description: "some-description",
-						IsArtifact:  true,
-						Metadata:    map[string]string{"meta": "data"},
-						Group:       "group",
-					},
-					Value: data.Str("123"),
-				},
-				Area:        420.420,
-				AssetSource: data.AssetSource{Id: "id", Identifier: "identifier", Type: "atlas"},
-			},
-			ProtoType: func() DataWrapperInterface {
-				r := generated.Raster{
-					Format:      generated.Format_raster,
-					Type:        "url",
-					Name:        "raster",
-					DisplayName: "Raster",
-					Description: "some-description",
-					IsArtifact:  true,
-					Metadata:    map[string]string{"meta": "data"},
-					Group:       "group",
-					Value:       "123",
-					Area:        420.420,
-					AssetSource: &generated.AssetSource{Id: "id", Identifier: "identifier", Type: "atlas"},
-				}
-				return DataWrapper{Pb: r.ProtoReflect()}
-			},
-			OnlyCheckFields: nil,
-			IgnoreFields:    map[string]struct{}{"version": {}, "properties": {}},
-		},
-		{
-			Name: "all-fields-set-raster",
-			LegacyType: data.Raster{
-				DataMeta: data.DataMeta{
-					FormatMeta: data.FormatMeta{Format: "raster"},
-					TypeMeta: data.TypeMeta{
-						Type:        "url",
-						Name:        "raster",
-						DisplayName: "Raster",
-						Description: "some-description",
-						IsArtifact:  true,
-						Metadata:    map[string]string{"meta": "data"},
-						Group:       "group",
-					},
-					Value: data.Str("some-value"),
-				},
-				AssetSource: data.AssetSource{Id: "asset-id", Identifier: "asset-identifier", Type: "atlas"},
-				Area:        400.23,
-				Properties: data.RasterProperties{
-					Collection:         "sentinel-2",
-					Source:             "elements",
-					Bands:              []string{"B01"},
-					Date:               "1-1-1999",
-					DType:              "uint8",
-					SatelliteLookAngle: 2.3,
-					SunElevation:       2.5,
-					Images:             []string{"img-1"},
-					Visualization: &data.Viz{
-						Type:       "continuous",
-						Continuous: data.ContinuousViz{ColorMapName: "range", Range: [][]float32{{-1, -2}}},
-						Discrete:   &dummyDiscreteViz,
-						Bucket: [][]data.BucketViz{
-							{
-								{
-									Range:     []float32{-1, -2},
-									ColorCode: "red",
-								},
-							},
-						},
-					},
-					Discretization: &data.Discretization{
-						Type: "index",
-						Classes: []data.DiscretizationClass{
-							{Color: "red", Name: "grass", Value: &dummyValue, Range: []float32{1, 2}},
-						},
-					},
-				},
-			},
-			ProtoType: func() DataWrapperInterface {
-				r := generated.Raster{
-					Version:     generated.Version_v2,
-					Format:      generated.Format_raster,
-					Type:        "url",
-					Name:        "raster",
-					DisplayName: "Raster",
-					Description: "some-description",
-					IsArtifact:  true,
-					Metadata:    map[string]string{"meta": "data"},
-					Group:       "group",
-					Value:       "some-value",time="2025-09-30T09:04:34.038Z" level=info msg="Executor initialized" deadline="0001-01-01 00:00:00 +0000 UTC" includeScriptOutput=false namespace=orchestrator podName=41171b5f-9de1-4ec0-9d9d-25335b40f0eb template=time="2025-09-30T09:04:34.038Z" level=info msg="Executor initialized" deadline="0001-01-01 00:00:00 +0000 UTC" includeScriptOutput=false namespace=orchestrator podName=41171b5f-9de1-4ec0-9d9d-25335b40f0eb template=time="2025-09-30T09:04:34.038Z" level=info msg="Executor initialized" deadline="0001-01-01 00:00:00 +0000 UTC" includeScriptOutput=false namespace=orchestrator podName=41171b5f-9de1-4ec0-9d9d-25335b40f0eb template=time="2025-09-30T09:04:34.038Z" level=info msg="Executor initialized" deadline="0001-01-01 00:00:00 +0000 UTC" includeScriptOutput=false namespace=orchestrator podName=41171b5f-9de1-4ec0-9d9d-25335b40f0eb template=time="2025-09-30T09:04:34.038Z" level=info msg="Executor initialized" deadline="0001-01-01 00:00:00 +0000 UTC" includeScriptOutput=false namespace=orchestrator podName=41171b5f-9de1-4ec0-9d9d-25335b40f0eb template=time="2025-09-30T09:04:34.038Z" level=info msg="Executor initialized" deadline="0001-01-01 00:00:00 +0000 UTC" includeScriptOutput=false namespace=orchestrator podName=41171b5f-9de1-4ec0-9d9d-25335b40f0eb template=
-					Area:        400.23,
-					AssetSource: &generated.AssetSource{Id: "asset-id", Identifier: "asset-identifier", Type: "atlas"},
-					Properties: &generated.RasterProperties{
-						Bands:              []string{"B01"},
-						Collection:         "sentinel-2",
-						Source:             "elements",
-						Date:               "1-1-1999",
-						Dtype:              "uint8",
-						SunElevation:       &dummySunElevationAngle,
-						SatelliteLookAngle: &dummySatelliteLookAngle,
-						Images:             []string{"img-1"},
-						Visualisation: &generated.Visualization{
-							Type: generated.VizTypes_continuous,
-							Continuous: &generated.ContinuousViz{
-								ColorMapName:  "range",
-								BandwiseRange: []*generated.Range{{Min: -1, Max: -2}},
-							},
-							Bucket: &generated.BucketViz{
-								Bandwise: []*generated.ListOfBuckets{
-									{
-										Items: []*generated.Bucket{
-											{ColorCode: "red", Min: -1, Max: -2},
-										},
-									},
-								},
-							},
-						},
-						Discretization: &generated.Discretization{
-							Type:    "index",
-							Classes: []*generated.DiscretizationClass{{Color: "red", Name: "grass", Value: "123"}},
-						},
-					},
-				}
-				return DataWrapper{Pb: r.ProtoReflect()}
-			},
-			OnlyCheckFields: nil,
-			IgnoreFields:    map[string]struct{}{"version": {}, "properties.visualisation": {}, "properties.discretization": {}},
-		},
-	}
-
-	for _, tc := range testcases {
-		legacyBytes, err := json.Marshal(tc.LegacyType)
-		if err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
-		protoBytes, err := json.Marshal(tc.ProtoType())
-		if err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
-
-		legacyMap := map[string]interface{}{}
-		protoMap := map[string]interface{}{}
-		if err := json.Unmarshal(legacyBytes, &legacyMap); err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
-		if err := json.Unmarshal(protoBytes, &protoMap); err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
-
-		equal := compareLegacyAndProtoTypeMaps(legacyMap, protoMap, "", tc.IgnoreFields, tc.OnlyCheckFields)
-		if !equal {
-			t.Errorf("%s: not equal", tc.Name)
-			t.Fail()
-		}
-	}
-}
-
-func Test_DataWrapper_GetFormat(t *testing.T) {
-	r := generated.Raster{Format: generated.Format_date}
-	dw := DataWrapper{Pb: r.ProtoReflect()}
-
-	s, err := dw.GetFormat()
-	if err != nil || s != "date" {
-		t.Errorf(
-			"failed: expected: %+v, %+v; got: %+v, %+v", nil, "date", err, s,
-		)
-	}
-	r = generated.Raster{}
-	dw = DataWrapper{Pb: r.ProtoReflect()}
-	v := dw.SchemaVersion()
-	if v != generated.Version_v2.String() {
-		t.Errorf("failed schema version: expected: %s, got: %s", "v2", v)
-	}
-}
-
-func Test_DataWrapper_GetIsArtifact(t *testing.T) {
-	r := generated.Raster{Format: generated.Format_date, IsArtifact: true}
-	dw := DataWrapper{Pb: r.ProtoReflect()}
-	s := dw.GetIsArtifact()
-	if s != true {
-		t.Errorf("incorrect return value. expected: %v, got: %v", r.IsArtifact, s)
-	}
-}
-
-func Test_DataSpecWrapper_Validate(t *testing.T) {
-	tests := []struct {
-		name     string
-		spec     func() *DataSpecWrapper
-		input    func() *DataWrapper
-		errIsNil bool
-	}{
-		{
-			name: "base valid case",
-			spec: func() *DataSpecWrapper {
-				maxArea := float64(1000)
-				minArea := float64(10)
-				rs := generated.RasterSpec{
-					Format: generated.Format_raster,
-					Validation: &generated.RasterValidation{
-						MinArea: &minArea,
-						MaxArea: &maxArea,
-					},
-				}
-				return &DataSpecWrapper{Pb: rs.ProtoReflect()}
-			},
-			input: func() *DataWrapper {
-				testRaster := generated.Raster{
-					Format: generated.Format_raster,
-					Area:   1200,
-				}
-				return &DataWrapper{Pb: testRaster.ProtoReflect()}
-
-			},
-			errIsNil: false,
-		},
-		{
-			name: "base failed validation case",
-			spec: func() *DataSpecWrapper {
-				maxArea := float64(1000)
-				minArea := float64(10)
-				rs := generated.RasterSpec{
-					Format: generated.Format_raster,
-					Validation: &generated.RasterValidation{
-						MinArea: &minArea,
-						MaxArea: &maxArea,
-					},
-				}
-				return &DataSpecWrapper{Pb: rs.ProtoReflect()}
-			},
-			input: func() *DataWrapper {
-				testRaster := generated.Raster{
-					Format: generated.Format_raster,
-					Area:   200,
-				}
-				return &DataWrapper{Pb: testRaster.ProtoReflect()}
-
-			},
-			errIsNil: true,
-		},
-		{
-			name: "base succeess, one param is nil validation case",
-			spec: func() *DataSpecWrapper {
-				maxArea := float64(1000)
-				rs := generated.RasterSpec{
-					Format: generated.Format_raster,
-					Validation: &generated.RasterValidation{
-						MinArea: nil,
-						MaxArea: &maxArea,
-					},
-				}
-				return &DataSpecWrapper{Pb: rs.ProtoReflect()}
-			},
-			input: func() *DataWrapper {
-				testRaster := generated.Raster{
-					Format: generated.Format_raster,
-					Area:   200,
-				}
-				return &DataWrapper{Pb: testRaster.ProtoReflect()}
-
-			},
-			errIsNil: true,
-		},
-	}
-
-	for _, tc := range tests {
-		s := tc.spec()
-		d := tc.input()
-		err := s.ValidateWithInput(*d)
-		if (tc.errIsNil == true && err != nil) || (tc.errIsNil == false && err == nil) {
-			t.Errorf(
-				"tc.name: %s, errIsNil: %v, got: %v", tc.name, tc.errIsNil, err,
-			)
-			t.FailNow()
-		}
-	}
-}
-*/
 
 func Test_Unmarshal_WithDefaults(t *testing.T) {
 	testM := map[string]interface{}{
@@ -441,7 +139,6 @@ func Test_ConvertingToProtoValues(t *testing.T) {
 		field    string
 		value    interface{}
 		expected func() protoreflect.Message
-		skip     bool
 		err      error
 	}{
 		{
@@ -595,9 +292,6 @@ func Test_ConvertingToProtoValues(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if tt.skip {
-			continue
-		}
 		msg := tt.input()
 		fd := msg.Interface().ProtoReflect().Descriptor().Fields().ByTextName(tt.field)
 		pv, err := convertToProtoValue(tt.value, msg, fd)
@@ -754,9 +448,9 @@ func Test_SetField_NestedMessage(t *testing.T) {
 		{
 			name:  "set source",
 			field: "properties.source",
-			value: "pixxel",
+			value: "test-source",
 			validator: func() bool {
-				return msg.Properties != nil && *msg.Properties.Source == "pixxel"
+				return msg.Properties != nil && *msg.Properties.Source == "test-source"
 			},
 		},
 		{
@@ -883,35 +577,6 @@ func Test_GetStacUrl(t *testing.T) {
 	}
 }
 
-/*
-	func Test_SetField_WholeMessage(t *testing.T) {
-		msg := &TestMessage{}
-		wrapper := NewDataWrapper(msg)
-
-		nestedMsg := &NestedMessage{
-			NestedString: "test nested",
-		}
-
-		err := wrapper.SetField("nested_field", nestedMsg)
-		assert.NoError(t, err)
-
-		val, err := wrapper.GetField("nested_field")
-		assert.NoError(t, err)
-		assert.True(t, proto.Equal(nestedMsg, val.(proto.Message)))
-	}
-
-	func Test_SetField_NilValue(t *testing.T) {
-		msg := &TestMessage{}
-		wrapper := NewDataWrapper(msg)
-
-		err := wrapper.SetField("string_field", nil)
-		assert.NoError(t, err)
-
-		val, err := wrapper.GetField("string_field")
-		assert.NoError(t, err)
-		assert.Empty(t, val)
-	}
-*/
 func TestProtobufFieldOverwrite(t *testing.T) {
 	// Create a simple message with a string field
 	msg := &generated.Discretization{

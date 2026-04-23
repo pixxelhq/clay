@@ -2,7 +2,8 @@ import unittest
 from dataclasses import dataclass
 from typing import Any, Dict, Union
 
-from google.protobuf.json_format import ParseError
+import pytest
+from google.protobuf.json_format import MessageToDict, ParseError
 
 from datatypes import DataWrapper, data
 
@@ -27,7 +28,7 @@ class TestCreateTypeFromDict(unittest.TestCase):
     def test_get_format(self):
         r = data.Raster(format="raster")
         rw = DataWrapper(r)
-        assert rw.get_format() == "raster"
+        assert rw.get_format() == data.FormatTypes.RASTER.value
 
     def test_set_metadata(self):
         r = data.Raster(format="raster")
@@ -171,3 +172,158 @@ def test__convert_legacy_value_primittives_to_string():
     assert v == "1.23456"
     v = data._convert_legacy_value_primitives_to_string_(False)
     assert v == "false"
+
+
+# --- Roundtrip tests: proto type -> MessageToDict -> FromDict -> MessageToDict ---
+
+def _roundtrip(obj, from_dict_fn):
+    dumped = MessageToDict(obj, preserving_proto_field_name=True)
+    rebuilt = from_dict_fn(dumped)
+    assert MessageToDict(rebuilt, preserving_proto_field_name=True) == dumped
+    return rebuilt
+
+
+def test_raster_roundtrip_via_fromdict():
+    raster = data.Raster(
+        format=data.Format.raster,
+        type="url",
+        name="r",
+        is_artifact=True,
+        value="s3://bucket/key.tif",
+    )
+    _roundtrip(raster, data.RasterFromDict)
+
+
+def test_vector_roundtrip_via_fromdict():
+    vector = data.Vector(
+        format=data.Format.vector,
+        type="url",
+        name="v",
+        is_artifact=True,
+        value="s3://bucket/key.geojson",
+    )
+    _roundtrip(vector, data.VectorFromDict)
+
+
+def test_tabular_roundtrip_via_fromdict():
+    tabular = data.Tabular(
+        format=data.Format.tabular,
+        type="url",
+        name="t",
+        is_artifact=True,
+        value="s3://bucket/key.csv",
+    )
+    _roundtrip(tabular, data.TabularFromDict)
+
+
+def test_date_roundtrip_via_fromdict():
+    date = data.Date(
+        format=data.Format.date,
+        type="str",
+        name="d",
+        is_artifact=False,
+        value="2026-04-21",
+    )
+    _roundtrip(date, data.DateFromDict)
+
+
+def test_string_roundtrip_via_fromdict():
+    string = data.String(
+        format=data.Format.string,
+        type="str",
+        name="s",
+        is_artifact=False,
+        value="hello world",
+    )
+    _roundtrip(string, data.StringFromDict)
+
+
+def test_number_roundtrip_via_fromdict():
+    number = data.Number(
+        format=data.Format.number,
+        type="str",
+        name="n",
+        is_artifact=False,
+        value="42.5",
+    )
+    _roundtrip(number, data.NumberFromDict)
+
+
+def test_from_dict_dispatches_by_format():
+    """The generic dispatcher routes by the `format` field to the correct proto type."""
+    r = data.FromDict({"format": "raster", "name": "r", "value": "x.tif"})
+    assert isinstance(r, data.Raster)
+    assert r.name == "r"
+
+    v = data.FromDict({"format": "vector", "name": "v", "value": "x.geojson"})
+    assert isinstance(v, data.Vector)
+
+    n = data.FromDict({"format": "number", "name": "threshold", "value": "0.5"})
+    assert isinstance(n, data.Number)
+
+    s = data.FromDict({"format": "string", "name": "label", "value": "foo"})
+    assert isinstance(s, data.String)
+
+
+def test_raster_roundtrip_with_nested_properties():
+    """Roundtrip a Raster whose properties include nested visualisation + bands."""
+    raster = data.Raster(
+        format=data.Format.raster,
+        type="url",
+        name="r",
+        is_artifact=True,
+        value="s3://bucket/key.tif",
+        properties=data.RasterProperties(
+            bands=["B01", "B02", "B03"],
+            source="planetary",
+            collection="sentinel-2-l2a",
+            visualisation=data.Visualization(
+                type=data.VizTypes.continuous,
+                continuous=data.ContinuousViz(
+                    color_map_name="jet",
+                    bandwise_range=[data.Range(min=0, max=1000)],
+                ),
+            ),
+        ),
+    )
+    rebuilt = _roundtrip(raster, data.RasterFromDict)
+    assert isinstance(rebuilt, data.Raster)
+    # Sanity: the nested visualisation survived the roundtrip
+    assert rebuilt.properties.visualisation.continuous.color_map_name == "jet"
+
+
+# --- validate_input tests ---
+
+def _wrapped(from_dict_fn, d) -> DataWrapper:
+    """Call *FromDict with wrap=True and narrow the union return type to DataWrapper."""
+    dw = from_dict_fn(d, wrap=True)
+    assert isinstance(dw, DataWrapper)
+    return dw
+
+
+def test_validate_input_string_allowed_values_pass():
+    s = _wrapped(data.StringFromDict, {"format": "string", "name": "mode", "value": "fast"})
+    data.validate_input(s, {"validation": {"allowed_values": ["fast", "slow"]}})
+
+
+def test_validate_input_string_allowed_values_fail():
+    s = _wrapped(data.StringFromDict, {"format": "string", "name": "mode", "value": "bogus"})
+    with pytest.raises(data.ValidationError):
+        data.validate_input(s, {"validation": {"allowed_values": ["fast", "slow"]}})
+
+
+def test_validate_input_number_min_max_pass():
+    n = _wrapped(data.NumberFromDict, {"format": "number", "name": "threshold", "value": "0.5"})
+    data.validate_input(n, {"validation": {"min_value": 0.0, "max_value": 1.0}})
+
+
+def test_validate_input_number_min_max_fail():
+    n = _wrapped(data.NumberFromDict, {"format": "number", "name": "threshold", "value": "2.0"})
+    with pytest.raises(data.ValidationError):
+        data.validate_input(n, {"validation": {"min_value": 0.0, "max_value": 1.0}})
+
+
+def test_validate_input_no_validation_spec_is_noop():
+    """If the spec has no 'validation' key, validate_input returns without error."""
+    s = _wrapped(data.StringFromDict, {"format": "string", "name": "mode", "value": "anything"})
+    data.validate_input(s, {"name": "mode", "format": "string"})

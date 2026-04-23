@@ -7,8 +7,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from clay.callback.callback import CallbackData, CallbackInterface, ErrorType
-from clay.types import BlockStates
+from clay.callback.callback import BlockStates, CallbackData, CallbackInterface, ErrorType
 
 
 class HTTPCallback(CallbackInterface):

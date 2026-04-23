@@ -17,13 +17,17 @@ from clay.logger import Logger
 from clay.runners.runner import JobRunner, deep_merge
 
 
+FIXTURES_DIR = Path(__file__).parent
+DUMMY_SPEC_PATH = str(FIXTURES_DIR / "dummy-spec.yml")
+
+
 class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Load input JSON once for the whole class
-        with (Path(__file__).parent / "sample_input.json").open() as f:
-            cls.input_json = f.read()
+        # Load input JSON once for the whole class, resolving fixture paths
+        raw = (FIXTURES_DIR / "sample_input.json").read_text()
+        cls.input_json = raw.replace("{{FIXTURES_DIR}}", str(FIXTURES_DIR))
 
     def setUp(self) -> None:
         os.makedirs("./workingdir", exist_ok=True)
@@ -35,7 +39,6 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "LOCAL_ARTIFACT_DOWNLOAD_PATH": "./workingdir/inputs",
             "REMOTE_OUTPUT_PATH": "s3://workingdir/clay/outputs",
             "REMOTE_INPUT_PATH": "s3://workingdir/clay/",
-# Legacy FORCE_INPUT_TYPES_TO_V2 environment variable removed
             "CALLBACK_ENDPOINT": "http://localhost:3000/callback",
             "CALLBACK_HEADERS": "{}",
             "OUTPUT_JSON_PATH": "./workingdir/clay/outputs/",
@@ -104,8 +107,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             a = JobRunner(
                 "dummy",
                 M,
-                {"config": "./tests/dummy-spec.yml"},
-                "./tests/dummy-spec.yml",
+                {"config": DUMMY_SPEC_PATH},
+                DUMMY_SPEC_PATH,
                 None,
             )
             a.start()
@@ -198,8 +201,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             a = JobRunner(
                 "dummy",
                 M,
-                {"config": "./tests/dummy-spec.yml"},
-                "./tests/dummy-spec.yml",
+                {"config": DUMMY_SPEC_PATH},
+                DUMMY_SPEC_PATH,
                 None,
             )
             a.start()
@@ -278,8 +281,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             a = JobRunner(
                 "dummy",
                 M,
-                {"config": "./tests/dummy-spec.yml"},
-                "./tests/dummy-spec.yml",
+                {"config": DUMMY_SPEC_PATH},
+                DUMMY_SPEC_PATH,
                 None,
             )
             a.start()
@@ -363,8 +366,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             a = JobRunner(
                 "dummy",
                 M,
-                {"config": "./tests/dummy-spec.yml"},
-                "./tests/dummy-spec.yml",
+                {"config": DUMMY_SPEC_PATH},
+                DUMMY_SPEC_PATH,
                 None,
             )
             a.start()

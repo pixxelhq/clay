@@ -1,10 +1,19 @@
+.PHONY: init init-requirements package build/package go-binaries \
+	test test-go test-python test-registry test-integration test-with-runner \
+	format pre-commit \
+	spell-check-docs build-docs build-docs-docker-image serve-docs docs
+
+# --- Setup ---
+
 init:
 	pip install -r python/requirements/requirements-dev.txt
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
 init-requirements:
-			pip install pixxel-datatypes -r python/requirements/requirements-dev.txt
+				pip install pixxel-datatypes -r python/requirements/requirements-dev.txt
+
+# --- Build / package ---
 
 package:
 	make build/package
@@ -12,56 +21,6 @@ package:
 build/package:
 	pip install build
 	python -m build ./python
-
-python-test:
-	cd python; pytest -vv
-
-test:
-	go test ./...
-	cd python; pytest -vv
-
-test-go:
-	go test $(shell go list ./... | grep -v 'registry')
-
-test-python:
-	cd python; pytest -vv
-	
-test-registry:
-	cd registry; go test ./...
-
-.PHONY: docs
-
-spell-check-docs:
-	codespell mkdocs/docs/*.md
-
-build-docs:
-		cd mkdocs; mkdocs build
-
-build-docs-docker-image: 
-		sudo DOCKER_BUILDKIT=1 docker build \
-		-t clay-docs \
-		-f clay-docs.Dockerfile \
-		.
-
-serve-docs:
-		cd mkdocs; mkdocs serve
-
-docs:
-	cd mkdocs; mkdocs build -v; mkdocs serve;
-
-format:
-		@cd python; \
-		echo "Linting with ruff..."; \
-		ruff check; \
-		echo "Formatting with ruff..."; \
-		ruff format . ; \
-		pre-commit run
-
-pre-commit:
-		pre-commit run
-
-
-.PHONY: go-binaries
 
 go-binaries:
 	$(eval PROJECT_NAME := clay)
@@ -91,5 +50,61 @@ go-binaries:
 		GOOS=linux GOARCH=$$ARCH go build -o $(OUTPUT_DIR)/$(PROJECT_NAME)-$(VERSION)-linux-$$ARCH; \
 	done
 
+# --- Tests ---
+
+test:
+	go test ./...
+	cd python; pytest -vv
+	cd proto/python; pytest -vv
+
+test-go:
+	go test $(shell go list ./... | grep -v 'registry')
+
+test-python:
+	cd python; pytest -vv
+	cd proto/python; pytest -vv
+
+test-registry:
+	cd registry; go test ./...
+
+test-integration:
+	go test -tags=integration ./pkg/docker/...
+
+# TODO: to be implemented once the repo is open-sourced and we can test clay
+# against the open-source runner.
 test-with-runner:
-	// TODO:To be added once we test opensource runner with clay
+	@echo "test-with-runner is not yet implemented; pending open-source runner migration."
+	@exit 1
+
+# --- Format / lint ---
+
+format:
+	@cd python; \
+	echo "Linting with ruff..."; \
+	ruff check; \
+	echo "Formatting with ruff..."; \
+	ruff format . ; \
+	pre-commit run
+
+pre-commit:
+	pre-commit run
+
+# --- Docs ---
+
+spell-check-docs:
+	codespell mkdocs/docs/*.md
+
+build-docs:
+	cd mkdocs; mkdocs build
+
+build-docs-docker-image:
+	DOCKER_BUILDKIT=1 docker build \
+	-t clay-docs \
+	-f clay-docs.Dockerfile \
+	.
+
+serve-docs:
+	cd mkdocs; mkdocs serve
+
+docs:
+	cd mkdocs; mkdocs build -v; mkdocs serve;
