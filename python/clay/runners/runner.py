@@ -10,13 +10,12 @@ import jq
 
 import datatypes
 from clay import __version__ as clay_version
-from clay import type_utils, types, utils
-from clay.callback import CallbackInterface, ErrorType, HTTPCallback
+from clay import utils
+from clay.callback import BlockStates, CallbackInterface, ErrorType, HTTPCallback
 from clay.core import BaseRunner, BlockWrapper
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger
 from clay.storage.fs import create_provider, process_input_list, process_output_list, process_spec_files
-from clay.types import BlockStates
 from clay.utils import cast_inputs, get_current_utc_time_iso, yaml_to_namespace
 
 
@@ -28,8 +27,6 @@ class RunnerConfig:
     _get_local_artifact_download_path_env_key: Final[str] = "LOCAL_ARTIFACT_DOWNLOAD_PATH"
     _remote_output_path_env_key: Final[str] = "REMOTE_OUTPUT_PATH"
     _remote_input_path_env_key: Final[str] = "REMOTE_INPUT_PATH"
-    # Legacy environment variable - no longer needed
-    # _force_input_types_to_v2_env_key: Final[str] = "FORCE_INPUT_TYPES_TO_V2"
     _callback_endpoint_env_key: Final[str] = "CALLBACK_ENDPOINT"
     _callback_headers_env_key: Final[str] = "CALLBACK_HEADERS"
     _output_json_path_env_key: Final[str] = "OUTPUT_JSON_PATH"
@@ -42,13 +39,9 @@ class RunnerConfig:
     _get_local_artifact_download_path: str = "/tmp/inputs"
     _remote_output_path: str = "/tmp/clay/outputs"
     _remote_input_path: str = "/tmp/clay/inputs"
-    # Legacy flag - no longer needed
-    # _force_input_types_to_v2: bool = False
-    _config: Optional[Dict[str, Any]]
     _block_config: SimpleNamespace = {}  # type: ignore
     _callback_endpoint: str
     _callback_headers: Dict[str, str] = {}
-    _callback_handler: CallbackInterface
     _outputs_json_path = "/tmp/clay/outputs/"
     _outputs_json_base_file_name = "spec.json"
 
@@ -62,7 +55,6 @@ class RunnerConfig:
         self._input_json_jq_filter = os.getenv(self._input_json_jq_filter_env_key, None)
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
                                                            "/tmp/inputs")
-        # Legacy flag removed - always use proto types
         self._block_config = yaml_to_namespace(config_path)
         self._callback_endpoint = os.getenv(self._callback_endpoint_env_key, "http://localhost:3000/callback")
         self._callback_headers = json.loads(os.getenv(self._callback_headers_env_key, "{}"))
@@ -92,8 +84,6 @@ class RunnerConfig:
     def get_input_json(self) -> List[Dict[str, Any]]:
         self._process_input_json()
         return self._input_json
-
-# Legacy should_use_v2_input_types method removed - proto types are now the default
 
     def get_local_artifact_download_path(self) -> str:
         return self._get_local_artifact_download_path
@@ -176,8 +166,8 @@ class JobRunner(BaseRunner):
         inputs: Dict[str, datatypes.DataWrapper] = {}
         input_config_dict = utils.convert_list_to_dict(self._params.get_block_config().inputs, "name")
         for input_data in input_json:
-            typed_input: datatypes.DataWrapper = type_utils.TypeFromDict(input_data)
-            if typed_input.get_format() == types.FormatTypes.RASTER.value and not typed_input.get_field("stac_url"):
+            typed_input: datatypes.DataWrapper = datatypes.FromDict(input_data, wrap=True)  # type: ignore[assignment]
+            if typed_input.get_format() == datatypes.FormatTypes.RASTER.value and not typed_input.get_field("stac_url"):
                 typed_input.set_field("stac_url", input_config_dict[typed_input.get_name()].get("default", ""))
             if typed_input.get_value() == "":
                 typed_input.set_value(input_config_dict[typed_input.get_name()].get("default", ""))
@@ -196,17 +186,6 @@ class JobRunner(BaseRunner):
         self._inputs = process_input_list(self._inputs, self._params.get_local_artifact_download_path(),
                                           self._params.get_remote_input_path())
         self.logger.info("✅ processing input artifacts completed")
-
-    def output(self, key: str, value: Union[str, int, float], properties: Optional[
-        Union[
-            types.RasterProperties,
-            types.VectorProperties,
-            types.DateProperties,
-            types.TabularProperties,
-            Dict[str, Any],
-        ]
-    ] = None) -> None:
-        pass
 
     def success(self) -> Any:
         self._logger.info("sending callback for success")
@@ -246,9 +225,6 @@ class JobRunner(BaseRunner):
             status=BlockStates.FAILED
         )
 
-    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapper]) -> None:
-        pass
-
     def _get_output_list(self) -> List[Dict[str, Any]]:
         if self._output_dict is not None:
             return self._output_dict
@@ -259,7 +235,7 @@ class JobRunner(BaseRunner):
             output_properties = out_dict.get("properties")
             config_properties = (self._params.expected_outputs[output.get_name()]).get("properties")
             merged_properties = deep_merge(output_properties, config_properties)
-            if output.get_format() != "string":
+            if output.get_format() != datatypes.FormatTypes.STRING.value:
                 output.set_properties(merged_properties)
             output_dict.append(output.serialize_to_dict())
         self._output_dict = output_dict
@@ -350,8 +326,8 @@ class JobRunner(BaseRunner):
         )
 
         try:
-            result = asyncio.get_event_loop().run_until_complete(self._block.infer(inputs=self._inputs, opts=None))
-            wrapped_result = type_utils.WrapTypes(result._outputs_buffer)
+            result = asyncio.get_event_loop().run_until_complete(self._block.infer(inputs=self._inputs))
+            wrapped_result = [datatypes.DataWrapper(t) for t in result._outputs_buffer]
             output_dict: Dict[str, datatypes.DataWrapper] = {}
             self._inference_output = wrapped_result  # type: ignore
             for output in self._inference_output:

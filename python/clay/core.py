@@ -2,8 +2,6 @@ import asyncio
 import logging
 import os
 from abc import abstractmethod
-from collections import defaultdict
-from copy import deepcopy
 from functools import cached_property
 from logging import Logger
 from typing import (
@@ -13,56 +11,32 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    TypeVar,
     Union,
 )
 
 import datatypes
-from clay import type_utils, types
+
 from clay.exceptions import FailedExecutionException
-from clay.logger import ClayLogger, get_streamvalues
+from clay.logger import ClayLogger
 from clay.utils import (
-    PRIMITIVE_TYPES,
     cast_inputs,
-    get_current_utc_time_iso,
     yaml_to_namespace,
 )
 
-# Legacy FeatureFlags class removed - proto types are now the default
 
 class InferenceCtx:
-    """
-    Utility object whose lifetime is scoped to a single inference run. This object is essentially used
-    to move data in and out of a block within a runner. It also stores simple metrics recorded by the
-    _BlockWrapper_ like inference start and end times among other things that are to be shipped
-    back to orchestrator once the block execution completes.
+    """Utility object whose lifetime is scoped to a single inference run.
+
+    Used to move data in and out of a block within a runner. Outputs produced
+    by `postprocess` are buffered here for the runner to collect.
     """
 
-    def __init__(self, opts: Optional[types.InferenceOpts] = None) -> None:
-        """
-        Args:
-            opts (Optional[types.InferenceOpts], optional):
-                Data being passed into the block. Defaults to None.
-        """
+    def __init__(self) -> None:
         self._outputs_buffer: List[datatypes.Data] = []
-        self._opts = opts
-        self._block_inf_start_time: str = ""
-        self._block_inf_end_time: str = ""
 
     def output(self, val: datatypes.Data) -> None:
         self._outputs_buffer.append(val)
 
-    def get_output_buffer(self) -> List[datatypes.Data]:
-        return self._outputs_buffer
-
-    def set_block_inf_start_time(self) -> None:
-        self._block_inf_start_time = get_current_utc_time_iso()
-
-    def set_block_inf_end_time(self) -> None:
-        self._block_inf_end_time = get_current_utc_time_iso()
-
-    def get_block_inf_times(self) -> types.BlockInfTimes:
-        return types.BlockInfTimes(InfStartTime=self._block_inf_start_time, InfEndTime=self._block_inf_end_time)
 
 class BlockWrapper:
     """The base class that wraps all user defined blocks. Every user defined block is expected
@@ -91,8 +65,6 @@ class BlockWrapper:
             log_level = logging.DEBUG if self.enable_debug_logs else logging.INFO
             logger = ClayLogger(logger_name=self.__class__.__name__, propagate=True, level=log_level)
         self.logger: Logger = logger
-        self._inputs_prop_map: Dict[str, Any] = defaultdict(None)
-        self._runner_properties: Dict[types._CommonEnvvars, Any] = defaultdict(None)
 
         self.run_setup()
 
@@ -115,33 +87,8 @@ class BlockWrapper:
         self.setup(**self.params)
 
     @cached_property
-    def recieve_input_properties(self) -> bool:
-        """
-        Returns:
-            bool: _description_
-        """
-        return False
-
-    @cached_property
-    def receive_raw_inputs(self) -> bool:
-        """If set to `True`, `preprocess` would receive unprocessed, raw inputs,
-        instead of data items cleaned and processed in to `clay.types`. This is
-        generally a very unsafe operation and is not recommended. This kept for
-        reasons for backward compatibility.
-        """
-        return False
-
-    @cached_property
     def wrap_inputs(self) -> bool:
         return False
-
-    def _dep_format_output(self, outputs: tuple) -> Any:
-        output_containers = deepcopy(self.config.outputs)
-        for output, output_container in zip(outputs, output_containers):
-            output_container["value"] = output
-            if not output_container.get("properties", False):
-                output_container["properties"] = {}
-        return output_containers
 
     def __init_subclass__(cls) -> None:
         """Ensures all functions defined in __OVERRIDABLE_FUNCS__ are coroutines
@@ -153,9 +100,6 @@ class BlockWrapper:
                 func
             ), f"{of} is not a coroutine. Method signatures should start with `async def` instead of `def`"
 
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
-        pass
-
     def setup(self, *args: Any, **kwargs: Any) -> None:
         """Abstract method that is to be overriden in the user block.
         This method will always run before any user code is executed. Any form of
@@ -166,44 +110,6 @@ class BlockWrapper:
         of the block spec file.
         """
         raise NotImplementedError
-
-    def _dep_parse_inputs(self, inputs: list) -> dict:
-        # remove empty dicts
-        inputs = list(filter(lambda x: len(x) > 0, inputs))
-
-        # We assume that json.loads has done most primitive type conversions and
-        # only explicitly cast values that are still "incorrectly" left as strings.
-        # Since this will almost never happen, the below step will likely
-        # never actuall run, but is kept for safety
-        # Casting Inputs:
-        for item in inputs:
-            if isinstance(item.get("value", None), str) and PRIMITIVE_TYPES[item["type"].lower()] is not str:
-                item["value"] = cast_inputs(item["value"], item["type"])
-
-        # filling in default values for any missing inputs
-        provided_inputs = [item.get("name", None) for item in inputs]
-        for param in self.config.inputs:
-            if param["name"] not in provided_inputs:
-                _param = {**param}
-                _param["value"] = cast_inputs(_param.pop("default"), _param["type"].lower())
-                inputs.append(_param)
-
-        # Setting the key-value pairs as required
-        if self.recieve_input_properties:
-            result = {item["name"]: item for item in inputs}
-        else:
-            result = {item["name"]: item["value"] for item in inputs}
-
-        return result
-
-    def __del__(self) -> None:
-        self.cleanup_session()
-
-    def cleanup_session(self) -> None:
-        pass
-
-    async def cleanup_inference(self) -> None:
-        pass
 
     @abstractmethod
     def get_progress(self) -> float:
@@ -333,7 +239,6 @@ class BlockWrapper:
         Raises:
             datatypes.ValidationError: If validation fails
         """
-        # Build a map of input specs by name
         input_specs = {spec["name"]: spec for spec in self.config.inputs}
 
         for name, value in inputs.items():
@@ -343,7 +248,7 @@ class BlockWrapper:
             if isinstance(value, datatypes.DataWrapper):
                 datatypes.validate_input(value, spec)
 
-    async def infer(self, inputs: Dict[str, Any], opts: Optional[types.InferenceOpts]) -> InferenceCtx:
+    async def infer(self, inputs: Dict[str, Any]) -> InferenceCtx:
         """Entrypoint to the block inference process. All runners would call the
         `infer` method defined on the block at a certain point to start the actual
         inference process.
@@ -356,38 +261,25 @@ class BlockWrapper:
         Args:
             inputs (Dict[str, Any]):
                 The inputs are provided to this method as a dictionary with string keys.
-                If `receive_raw_inputs` is set to `True`, then the values would be python
-                dictionaries. If set to `False`, the values would a type defined in
-                `clay.types`.
-            opts (Optional[types.InferenceOpts]):
-                Data scoped to a single inference run. This contextual information
-                is not used by the block in anyway. Rather this data is used by clay
-                to perform housekeeping, infrastructur related tasks like callbacks
-                and, more importantly, pass out a list of outputs to the runner.
-
-                For more information, see [this faq.](faq.md#why-do-we-have-a-inferencectx-type-and-why-does-infer-return-a-inferencectx)
+                Values are typed items from the `datatypes` package.
 
         Returns:
             InferenceCtx: A context class scoped to the inference run.
         """
-        # Validate inputs before processing
         self._validate_inputs(inputs)
 
         d: Dict[str, Union[datatypes.DataWrapper, datatypes.Data]] = inputs
         if not self.wrap_inputs:
             # lift the wrapped types
             for key, value in inputs.items():
-                d[key] = type_utils.lift_underlying_type(value)
+                if not isinstance(value, datatypes.DataWrapper):
+                    raise TypeError("Only DataWrapper instances are supported")
+                d[key] = value.get_proto()
 
-        _inf_ctx = InferenceCtx(opts=opts)
-        try:
-            _inf_ctx.set_block_inf_start_time()
-            _return_vals = await self.preprocess(**d)
-            _return_vals = await self.inference(**_return_vals)
-            _return_vals = await self.postprocess(**_return_vals)
-            _inf_ctx.set_block_inf_end_time()
-        finally:
-            await self.cleanup_inference()
+        _inf_ctx = InferenceCtx()
+        _return_vals = await self.preprocess(**d)
+        _return_vals = await self.inference(**_return_vals)
+        _return_vals = await self.postprocess(**_return_vals)
 
         assert isinstance(_return_vals, dict), "postprocess can only return a dict"
 
@@ -399,13 +291,6 @@ class BlockWrapper:
             _inf_ctx.output(v)
 
         return _inf_ctx
-
-    def get_logs(self) -> Optional[str]:
-        """returns the logger buffer as a string"""
-        return get_streamvalues(self.logger)
-
-
-BlockWrapperType = TypeVar("BlockWrapperType", bound=BlockWrapper)
 
 
 class BaseRunner(object):
@@ -433,21 +318,13 @@ class BaseRunner(object):
         assert isinstance(logger, Logger)
         self._logger: Logger = logger
 
-        # Legacy feature flags removed - proto types are now the default
-
     def __init_subclass__(cls) -> None:
         assert "_collect_inputs" in dir(cls)
-        assert "failure" in dir(cls) 
+        assert "failure" in dir(cls)
 
     @property
     def logger(self) -> Logger:
         return self._logger
-
-    # Legacy set_feature_flag_on method removed - proto types are now the default
-
-    # Legacy is_feature_flag_on method removed - proto types are now the default
-
-    # Legacy __set_feature_flags__ method removed - proto types are now the default
 
     def _init_block(self) -> None:
         self.logger.info("Initializing Block...")
@@ -479,10 +356,6 @@ class BaseRunner(object):
         **kwargs: Any,
     ) -> Any:
         # Accepts a clay.exceptions.FailedExecutionException
-        pass
-
-    @abstractmethod
-    def _flush_output_buffer(self, output_buffer: List[datatypes.DataWrapper]) -> None:
         pass
 
     @abstractmethod

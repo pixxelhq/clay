@@ -1,20 +1,22 @@
 """
 Tests for the storage module that handles file operations.
 """
+import json
 import os
 import tempfile
 from unittest import mock
 
 import pytest
 
-from clay.storage.fs import process_input_list, process_output_list
+import datatypes
+
+from clay.storage.fs import process_input_list, process_output_list, process_spec_files
 from clay.storage.fs.s3 import S3Storage
-from clay.type_utils import TypeFromDict
 
 
 # Helper function to create a data wrapper for testing
-def create_test_data_wrapper(value, is_artifact=True, format_type="raster"):
-    """Create a data wrapper for testing using TypeFromDict."""
+def create_test_data_wrapper(value, is_artifact=True, format_type="raster") -> datatypes.DataWrapper:
+    """Create a DataWrapper for testing via datatypes.FromDict(..., wrap=True)."""
     data_dict = {
         "name": "test_data",
         "type": "url",
@@ -36,8 +38,9 @@ def create_test_data_wrapper(value, is_artifact=True, format_type="raster"):
             "geometry": "polygon"
         }
 
-    # Use TypeFromDict to create a proper DataWrapper instance
-    return TypeFromDict(data_dict)
+    dw = datatypes.FromDict(data_dict, wrap=True)
+    assert isinstance(dw, datatypes.DataWrapper)
+    return dw
 
 
 class TestStorageModule:
@@ -73,6 +76,16 @@ class TestStorageModule:
 
             # Check that the value was updated in the result
             assert result["test_item"].get_value() == expected_dest_path
+
+            # STAC download path (stac_url was a https:// URL handled by requests.get mock):
+            # the downloaded JSON should be written to {item_dir}/stac.json and
+            # the item's stac_url field rewritten to the local path.
+            expected_stac_path = os.path.join(dest_dir, "test_item", "stac.json")
+            assert os.path.exists(expected_stac_path), "stac.json not written locally"
+            with open(expected_stac_path) as f:
+                import json as _json
+                assert _json.load(f) == {"test": "stac_data"}
+            assert result["test_item"].get_field("stac_url") == expected_stac_path
 
     def test_process_input_list_ignores_non_artifacts(self):
         """Test that non-artifact items are not processed."""
@@ -257,6 +270,15 @@ class TestS3Storage:
             with open(expected_path, 'r') as f:
                 assert f.read() == "mocked s3 content"
 
+            # STAC download: the mocked requests.get should have written stac.json
+            # locally and the item's stac_url field should now point there.
+            expected_stac_path = os.path.join(dest_dir, "test_s3_item", "stac.json")
+            assert os.path.exists(expected_stac_path), "stac.json not written locally"
+            with open(expected_stac_path) as f:
+                import json as _json
+                assert _json.load(f) == {"test": "stac_data"}
+            assert result["test_s3_item"].get_field("stac_url") == expected_stac_path
+
     @mock.patch('boto3.client')
     def test_s3_integration_with_process_output_list(self, mock_boto_client):
         """Test S3 integration with process_output_list."""
@@ -287,3 +309,123 @@ class TestS3Storage:
             # Check that the result has the updated path
             expected_s3_path = "s3://test-bucket/outputs/test_s3_output/test_output.tif"
             assert result["test_s3_output"].get_value() == expected_s3_path
+
+
+class TestProcessInputListUploadToRemote:
+    """Covers the upload-to-remote phase of process_input_list (storage.py:153-172)."""
+
+    @mock.patch('requests.get')
+    def test_uploads_to_local_remote(self, mock_requests_get):
+        """With a local `remote_destination_path`, every file under `destination_path`
+        should be mirrored to the remote directory."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"test": "stac_data"}
+        mock_requests_get.return_value = mock_response
+
+        with tempfile.TemporaryDirectory() as source_dir, \
+             tempfile.TemporaryDirectory() as dest_dir, \
+             tempfile.TemporaryDirectory() as remote_dir:
+            test_file = os.path.join(source_dir, "payload.tif")
+            with open(test_file, "w") as f:
+                f.write("payload")
+
+            data_list = {"item": create_test_data_wrapper(test_file)}
+            process_input_list(data_list, dest_dir, remote_dir)
+
+            # Local destination holds artifact, spec, and downloaded STAC
+            assert os.path.isfile(os.path.join(dest_dir, "item", "payload.tif"))
+            assert os.path.isfile(os.path.join(dest_dir, "item", "spec.json"))
+            assert os.path.isfile(os.path.join(dest_dir, "item", "stac.json"))
+
+            # Remote destination mirrors all three
+            assert os.path.isfile(os.path.join(remote_dir, "item", "payload.tif"))
+            assert os.path.isfile(os.path.join(remote_dir, "item", "spec.json"))
+            assert os.path.isfile(os.path.join(remote_dir, "item", "stac.json"))
+
+            # Content parity between local and remote artifact
+            with open(os.path.join(remote_dir, "item", "payload.tif")) as f:
+                assert f.read() == "payload"
+
+    @mock.patch('requests.get')
+    @mock.patch('boto3.client')
+    def test_uploads_to_s3_remote(self, mock_boto_client, mock_requests_get):
+        """With an `s3://` remote_destination_path, every file under `destination_path`
+        should be uploaded via the S3 provider."""
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"test": "stac_data"}
+        mock_requests_get.return_value = mock_response
+
+        mock_s3 = mock.MagicMock()
+        mock_boto_client.return_value = mock_s3
+
+        with tempfile.TemporaryDirectory() as source_dir, \
+             tempfile.TemporaryDirectory() as dest_dir:
+            test_file = os.path.join(source_dir, "payload.tif")
+            with open(test_file, "w") as f:
+                f.write("payload")
+
+            data_list = {"item": create_test_data_wrapper(test_file)}
+            process_input_list(data_list, dest_dir, "s3://remote-bucket/inputs")
+
+            # Collect all uploaded (bucket, key) pairs
+            uploads = {
+                (call.args[1], call.args[2])
+                for call in mock_s3.upload_file.call_args_list
+            }
+            assert ("remote-bucket", "inputs/item/payload.tif") in uploads
+            assert ("remote-bucket", "inputs/item/spec.json") in uploads
+            assert ("remote-bucket", "inputs/item/stac.json") in uploads
+
+    def test_non_artifact_still_uploads_spec(self):
+        """Non-artifact items still get a spec.json written locally and uploaded,
+        per storage.py:146-150 which runs outside the `is_artifact` guard."""
+        with tempfile.TemporaryDirectory() as dest_dir, \
+             tempfile.TemporaryDirectory() as remote_dir:
+            data_list = {
+                "param": create_test_data_wrapper("42", is_artifact=False, format_type="number")
+            }
+            process_input_list(data_list, dest_dir, remote_dir)
+
+            assert os.path.isfile(os.path.join(dest_dir, "param", "spec.json"))
+            assert os.path.isfile(os.path.join(remote_dir, "param", "spec.json"))
+
+
+class TestProcessSpecFiles:
+    """Tests for process_spec_files (storage.py:236-253)."""
+
+    def test_raises_on_missing_source(self):
+        with tempfile.TemporaryDirectory() as dest_dir:
+            with pytest.raises(FileNotFoundError):
+                process_spec_files("/nonexistent/spec.json", dest_dir, "out")
+
+    def test_local_destination_is_noop(self):
+        """Local (file protocol) destination paths are skipped — the function only
+        uploads when destination has a non-file protocol."""
+        with tempfile.TemporaryDirectory() as src_dir, \
+             tempfile.TemporaryDirectory() as dest_dir:
+            source = os.path.join(src_dir, "spec.json")
+            with open(source, "w") as f:
+                json.dump({"k": "v"}, f)
+
+            process_spec_files(source, dest_dir, "out_name")
+
+            # Nothing should have been written to dest_dir
+            assert os.listdir(dest_dir) == []
+
+    @mock.patch('boto3.client')
+    def test_s3_destination_uploads(self, mock_boto_client):
+        mock_s3 = mock.MagicMock()
+        mock_boto_client.return_value = mock_s3
+
+        with tempfile.TemporaryDirectory() as src_dir:
+            source = os.path.join(src_dir, "spec.json")
+            with open(source, "w") as f:
+                json.dump({"k": "v"}, f)
+
+            process_spec_files(source, "s3://bucket/outputs", "my_output")
+
+            mock_s3.upload_file.assert_called_once_with(
+                source, "bucket", "outputs/my_output/spec.json"
+            )

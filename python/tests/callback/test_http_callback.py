@@ -4,8 +4,15 @@ from http import HTTPStatus
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from clay.callback.callback import CallbackData, ErrorType
+from clay.callback.callback import BlockStates, CallbackData, ErrorType
 from clay.callback.http_callback import HTTPCallback
+
+
+def test_block_states_values():
+    assert BlockStates.CREATED.value == "created"
+    assert BlockStates.INPROGRESS.value == "inprogress"
+    assert BlockStates.COMPLETED.value == "completed"
+    assert BlockStates.FAILED.value == "failed"
 
 
 class TestHTTPCallback(TestCase):
@@ -69,83 +76,68 @@ class TestHTTPCallback(TestCase):
         self.callback._log(self.logger, "invalid_level", "Should not raise error")
 
     @patch('requests.Session.post')
-    def test_send_callback_success(self, mock_post):
-        """Test successful callback sending."""
-        # Setup mock response
-        mock_response = Mock()
-        mock_response.status_code = HTTPStatus.OK
-        mock_response.text = "Success"
-        mock_post.return_value = mock_response
-        
-        # Create test data
+    def test_send_callback_success_status_codes(self, mock_post):
+        """_send_callback treats 200, 202, and 204 as success."""
         callback_data = CallbackData(
             id="test-123",
             progress=50.0,
             inputs=[{"name": "input1", "value": "test"}],
             metadata={"version": "1.0"}
         )
-        
-        # Send callback
-        result = self.callback._send_callback(callback_data, self.logger)
-        
-        # Verify result
-        self.assertTrue(result)
-        
-        # Verify the request was made properly
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
-        
-        # Check URL
-        self.assertEqual(call_args[1]["url"], self.callback_url)
-        
-        # Check headers
-        self.assertEqual(call_args[1]["headers"], self.callback.headers)
-        
-        # Check payload
-        payload = call_args[1]["json"]
-        self.assertEqual(payload["data"]["id"], "test-123")
-        self.assertEqual(payload["data"]["progress"], 50.0)
 
-    @patch('requests.Session.patch')
-    def test_send_callback_failure(self, mock_patch):
-        """Test callback sending failure."""
-        # Setup mock response for error
+        for status in (HTTPStatus.OK, HTTPStatus.ACCEPTED, HTTPStatus.NO_CONTENT):
+            with self.subTest(status=status):
+                mock_post.reset_mock()
+                mock_response = Mock()
+                mock_response.status_code = status
+                mock_response.text = "OK"
+                mock_post.return_value = mock_response
+
+                result = self.callback._send_callback(callback_data, self.logger)
+
+                self.assertTrue(result, f"status {status} should be treated as success")
+                mock_post.assert_called_once()
+                call_args = mock_post.call_args
+                self.assertEqual(call_args[1]["url"], self.callback_url)
+                self.assertEqual(call_args[1]["headers"], self.callback.headers)
+                payload = call_args[1]["json"]
+                self.assertEqual(payload["data"]["id"], "test-123")
+                self.assertEqual(payload["data"]["progress"], 50.0)
+
+    @patch('requests.Session.post')
+    def test_send_callback_failure(self, mock_post):
+        """Non-success HTTP status codes cause _send_callback to return False."""
         mock_response = Mock()
         mock_response.status_code = HTTPStatus.BAD_REQUEST
         mock_response.text = "Error"
-        mock_patch.return_value = mock_response
-        
-        # Create test data
+        mock_post.return_value = mock_response
+
         callback_data = CallbackData(
             id="error-test",
             inputs=[{"name": "input1", "value": "test"}],
             metadata={}
         )
-        
-        # Send callback
-        result = self.callback._send_callback(callback_data, self.logger)
-        
-        # Verify result
-        self.assertFalse(result)
 
-    @patch('requests.Session.patch')
-    def test_send_callback_exception(self, mock_patch):
-        """Test callback sending with exception."""
-        # Setup mock to raise exception
-        mock_patch.side_effect = Exception("Connection error")
-        
-        # Create test data
+        result = self.callback._send_callback(callback_data, self.logger)
+
+        self.assertFalse(result)
+        mock_post.assert_called_once()
+
+    @patch('requests.Session.post')
+    def test_send_callback_exception(self, mock_post):
+        """Exceptions from the transport are caught and yield False."""
+        mock_post.side_effect = Exception("Connection error")
+
         callback_data = CallbackData(
             id="exception-test",
             inputs=[{"name": "input1", "value": "test"}],
             metadata={}
         )
-        
-        # Send callback
+
         result = self.callback._send_callback(callback_data, self.logger)
-        
-        # Verify result
+
         self.assertFalse(result)
+        mock_post.assert_called_once()
 
     @patch('clay.callback.http_callback.HTTPCallback._send_callback')
     def test_send_unified(self, mock_send):

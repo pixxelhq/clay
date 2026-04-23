@@ -8,19 +8,19 @@ import pytest
 from clay import BlockWrapper
 from clay.core import BaseRunner
 
-from .blocks.ymxplusc import YMXPLUSC, YMXPLUSC_CONFIG
+from ..fixtures.blocks.dummy_block import DummyBlock, DUMMY_BLOCK_CONFIG
 
 
-def test_mw_missing_setup_override() -> None:
+def test_missing_setup_override() -> None:
     class M(BlockWrapper):
         async def preprocess(self, *args: Any, **kwargs: Any) -> Any:
             pass
 
     with pytest.raises(NotImplementedError):
-        M(config="./tests/blocks/ymxplusc.yaml")
+        M(config=DUMMY_BLOCK_CONFIG)
 
 
-def test_mw_blocking_method_override() -> None:
+def test_blocking_method_override() -> None:
     with pytest.raises(AssertionError):
 
         class M(BlockWrapper):
@@ -36,10 +36,10 @@ class TestBaseRunner(unittest.TestCase):
         class DemoRunner(BaseRunner):
             def __init__(self):
                 super().__init__(
-                    blockcls=YMXPLUSC,
-                    block_args={"config": YMXPLUSC_CONFIG},
+                    blockcls=DummyBlock,
+                    block_args={"config": DUMMY_BLOCK_CONFIG},
                     logger=None,
-                    cfg_path=YMXPLUSC_CONFIG,
+                    cfg_path=DUMMY_BLOCK_CONFIG,
                 )
                 self._current_progress: float = 0.0
     
@@ -59,15 +59,30 @@ class TestBaseRunner(unittest.TestCase):
                 new_progress = self._current_progress + progress_delta
                 self.set_progress(new_progress)
 
-        self._test_blockcls = YMXPLUSC
+        self._test_blockcls = DummyBlock
         self._test_runnercls = DemoRunner
         time.sleep(1)
 
-    def test_setup(self):
+    def test_setup_does_not_override_existing_env_var(self):
+        """An env var already present in os.environ is NOT overwritten by block config."""
+        self.addCleanup(os.environ.pop, "SAMPLE_ENV", None)
+        self.addCleanup(os.environ.pop, "SAMPLE_ENV_1", None)
         os.environ["SAMPLE_ENV"] = "alreadyExists"
+
         self.r = self._test_runnercls()
-        self.r._init_block()        
+        self.r._init_block()
+
         assert os.environ["SAMPLE_ENV"] == "alreadyExists"
+
+    def test_setup_injects_missing_env_var_from_config(self):
+        """An env var absent from os.environ IS injected from the block config."""
+        self.addCleanup(os.environ.pop, "SAMPLE_ENV", None)
+        self.addCleanup(os.environ.pop, "SAMPLE_ENV_1", None)
+        os.environ.pop("SAMPLE_ENV_1", None)
+
+        self.r = self._test_runnercls()
+        self.r._init_block()
+
         assert os.environ["SAMPLE_ENV_1"] == "2"
 
     def test_block_init(self):

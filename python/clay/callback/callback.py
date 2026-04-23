@@ -6,7 +6,16 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from clay.types import BlockStates
+
+class BlockStates(str, Enum):
+    """Block execution states reported via callbacks."""
+    CREATED = "created"
+    INPROGRESS = "inprogress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+    def __repr__(self) -> str:
+        return self.value
 
 
 class ErrorType(str, Enum):

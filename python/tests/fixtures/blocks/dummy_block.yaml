@@ -1,25 +1,8 @@
 ---
 kind: block
 type: processing
-tags:
-  - mathematics
-name: Line Equation
-description: Calculate the Y coordinate of a line given X
-author: akash@pixxel.co.in
-resources:
-  cpu:
-    min: 1000m
-    max: 4000m
-  mem:
-    min: 1000Mi
-    max: 4000Mi
-build:
-  pythonVersion: 3.9
-  conda: false
-  gdal: true
-  apt-get:
-    - wget
-  requirements: requirements.txt
+name: Dummy Block
+description: Minimal test fixture block
 
 env:
   SAMPLE_ENV: "value"
@@ -32,6 +15,7 @@ parameters:
   - name: intercept
     type: float
     default: 0.0
+
 inputs:
   - name: x
     format: number
@@ -40,7 +24,8 @@ inputs:
   - name: info
     type: string
     dtype: str
-    default: "The above computation was carried out."
+    default: "placeholder"
+
 outputs:
   - name: y_coordinate
     format: number
@@ -48,6 +33,3 @@ outputs:
   - name: equation
     format: string
     type: str
-options:
-  dry_run: true
-  preview: true
