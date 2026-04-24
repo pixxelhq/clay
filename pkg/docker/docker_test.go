@@ -40,6 +40,16 @@ func TestCreateDockerFileForPip(t *testing.T) {
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
+
+	targetStr = "COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/"
+	if !strings.Contains(string(content), targetStr) {
+		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
+	}
+
+	targetStr = "uv pip install --system --no-cache"
+	if !strings.Contains(string(content), targetStr) {
+		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
+	}
 }
 
 func TestCreateDockerFileForConda(t *testing.T) {
@@ -71,6 +81,16 @@ func TestCreateDockerFileForConda(t *testing.T) {
 	}
 
 	targetStr = "COPY conda.yaml ."
+	if !strings.Contains(string(content), targetStr) {
+		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
+	}
+
+	targetStr = "COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/"
+	if !strings.Contains(string(content), targetStr) {
+		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
+	}
+
+	targetStr = "uv pip install --system --no-cache"
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}

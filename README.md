@@ -159,7 +159,11 @@ You should take some time to look at the files that have been created. You can r
 
 ### Setp 2: Setup project
 
-1. Create and activate a fresh python envrionment based on the tool you are using, `venv` or `conda`
+1. Create and activate a fresh python envrionment based on the tool you are using, `uv`, `venv`, or `conda`
+    * For `uv` (recommended) run:
+        - install uv if needed: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+        - create new environment: `uv venv`
+        - activate new environment: `source .venv/bin/activate`
     * For `venv` run:
         - create new environment: `python3 -m venv <env_name>`
         - activate new environment: `source venv/bin/activate`
@@ -175,7 +179,7 @@ You should take some time to look at the files that have been created. You can r
     <br> <br>
     Now run
     ```bash
-    pip install clay --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
+    uv pip install clay --index-url https://gitlab+deploy-token-1735743:<YOUR-GITLAB-TOKEN>@gitlab.com/api/v4/projects/38508365/packages/pypi/simple
     ```
 
 Next, you should run:

@@ -27,10 +27,10 @@ import "github.com/example/clay/proto/go"
 
 ## Python Usage
 
-The Python datatypes package is published separately as `pixxel-datatypes` and can be installed via pip:
+The Python datatypes package is published separately as `pixxel-datatypes` and can be installed via `uv` or `pip`:
 
 ```bash
-pip install pixxel-datatypes
+uv pip install pixxel-datatypes
 ```
 
 Then import in your code:

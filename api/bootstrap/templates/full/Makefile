@@ -3,14 +3,11 @@ setup:
 		echo "Initializing Git repository..."; \
 		git init; \
 	fi
-	@if command -v pip >/dev/null 2>&1; then \
-		pip install -r requirements.txt; \
-	elif command -v pip3 >/dev/null 2>&1; then \
-		pip3 install -r requirements.txt; \
-	else \
-		echo "Error: neither pip nor pip3 is installed" >&2; \
-		exit 1; \
+	@if ! command -v uv >/dev/null 2>&1; then \
+		echo "Installing uv..."; \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
 	fi
+	uv pip install -r requirements.txt
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 

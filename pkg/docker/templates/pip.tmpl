@@ -1,16 +1,17 @@
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y python{{ .PythonVersion }} python3-pip {{ .AptGetPkgs | join }} && \
-    pip3 install --upgrade pip
+    apt-get install -y python{{ .PythonVersion }} python3-pip {{ .AptGetPkgs | join }}
 
 ENV PYTHONBUFFERED 1
 
 COPY {{ .DependencyFile }} .
 
-RUN pip3 install --no-cache-dir \
+RUN uv pip install --system --no-cache \
     pixxel-clay=={{ .ClayVersion }} \
     -r {{ .DependencyFile }}
 

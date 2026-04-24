@@ -1,25 +1,31 @@
-.PHONY: init init-requirements package build/package go-binaries \
+.PHONY: init init-requirements ensure-uv package build/package go-binaries \
 	test test-go test-python test-registry test-integration test-with-runner \
 	format pre-commit \
 	spell-check-docs build-docs build-docs-docker-image serve-docs docs
 
 # --- Setup ---
 
-init:
-	pip install -r python/requirements/requirements-dev.txt
+ensure-uv:
+	@command -v uv >/dev/null 2>&1 || { \
+		echo "Installing uv..."; \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
+	}
+
+init: ensure-uv
+	uv pip install -r python/requirements/requirements-dev.txt
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
-init-requirements:
-				pip install pixxel-datatypes -r python/requirements/requirements-dev.txt
+init-requirements: ensure-uv
+	uv pip install pixxel-datatypes -r python/requirements/requirements-dev.txt
 
 # --- Build / package ---
 
 package:
 	make build/package
 
-build/package:
-	pip install build
+build/package: ensure-uv
+	uv pip install build
 	python -m build ./python
 
 go-binaries:
