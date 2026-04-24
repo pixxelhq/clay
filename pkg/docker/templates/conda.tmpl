@@ -1,5 +1,7 @@
 FROM mambaorg/micromamba:1-focal-cuda-11.3.1
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
 ENV PYTHONBUFFERED 1
 
 WORKDIR /app
@@ -15,7 +17,7 @@ ENV PATH=$CONDA_PREFIX/bin:$PATH
 
 USER root
 
-RUN pip3 install --no-cache-dir \
+RUN uv pip install --system --no-cache \
     pixxel-clay=={{ .ClayVersion }}
     
 RUN apt-get update && \

@@ -79,7 +79,8 @@ func CreateProject(outputDir, blockName string, readmeTemplate bool) error {
 
 	fmt.Printf("\n[IMPORTANT] To begin, navigate to your project directory in your terminal:\n1. Based on your requirement, create a python or conda env\n\n")
 	fmt.Printf("	Use the below command to create a python virtual env:\n")
-	fmt.Print("			python -m venv ./env\n")
+	fmt.Print("			curl -LsSf https://astral.sh/uv/install.sh | sh\n")
+	fmt.Print("			uv venv\n")
 	fmt.Print("			source .venv/bin/activate\n\n")
 	fmt.Printf("	Use the below command to create a conda env:\n")
 	fmt.Print("			conda create -n envName python=3.9\n")
