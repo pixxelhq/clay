@@ -235,7 +235,7 @@ class JobRunner(BaseRunner):
             output_properties = out_dict.get("properties")
             config_properties = (self._params.expected_outputs[output.get_name()]).get("properties")
             merged_properties = deep_merge(output_properties, config_properties)
-            if output.get_format() != datatypes.FormatTypes.STRING.value:
+            if output.get_format() not in (datatypes.FormatTypes.STRING.value, datatypes.FormatTypes.NUMBER.value):
                 output.set_properties(merged_properties)
             output_dict.append(output.serialize_to_dict())
         self._output_dict = output_dict

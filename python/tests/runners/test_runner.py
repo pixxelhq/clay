@@ -9,20 +9,18 @@ from unittest import mock
 from unittest.mock import patch  # noqa
 
 import boto3
+import datatypes
 from moto import mock_aws
 
-import datatypes
 from clay.core import BlockWrapper
 from clay.logger import Logger
 from clay.runners.runner import JobRunner, deep_merge
-
 
 FIXTURES_DIR = Path(__file__).parent
 DUMMY_SPEC_PATH = str(FIXTURES_DIR / "dummy-spec.yml")
 
 
 class TestJobRunner(unittest.IsolatedAsyncioTestCase):
-
     @classmethod
     def setUpClass(cls):
         # Load input JSON once for the whole class, resolving fixture paths
@@ -48,9 +46,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
     @mock.patch("clay.callback.http_callback.requests.Session.post")
     async def test_read_inputs(self, mock_post) -> None:
         mock_response = mock.Mock()
-        mock_response.json.return_value = {
-            "data": {"successful_update": "True", "updated_fields": {}, "err": ""}
-        }
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
@@ -115,17 +111,10 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             parsed_json = json.loads(self.input_json)
 
             def normalize(d):
-                relevant = {
-                    k: d[k]
-                    for k in d
-                    if k
-                    in ["format", "type", "name", "value", "stac_url", "properties"]
-                }
+                relevant = {k: d[k] for k in d if k in ["format", "type", "name", "value", "stac_url", "properties"]}
                 if "properties" in relevant:
                     relevant["properties"] = {
-                        k: relevant["properties"][k]
-                        for k in relevant["properties"]
-                        if k in ["bands", "collection"]
+                        k: relevant["properties"][k] for k in relevant["properties"] if k in ["bands", "collection"]
                     }
                 return relevant
 
@@ -137,9 +126,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
     @mock.patch("clay.callback.http_callback.requests.Session.post")
     async def test_set_outputs(self, mock_post) -> None:
         mock_response = mock.Mock()
-        mock_response.json.return_value = {
-            "data": {"successful_update": "True", "updated_fields": {}, "err": ""}
-        }
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
@@ -217,9 +204,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
     @mock.patch("clay.callback.http_callback.requests.Session.post")
     async def test_upload_input_asset(self, mock_post) -> None:
         mock_response = mock.Mock()
-        mock_response.json.return_value = {
-            "data": {"successful_update": "True", "updated_fields": {}, "err": ""}
-        }
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
@@ -295,9 +280,7 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
     @mock.patch("clay.callback.http_callback.requests.Session.post")
     async def test_set_output_properties(self, mock_post) -> None:
         mock_response = mock.Mock()
-        mock_response.json.return_value = {
-            "data": {"successful_update": "True", "updated_fields": {}, "err": ""}
-        }
+        mock_response.json.return_value = {"data": {"successful_update": "True", "updated_fields": {}, "err": ""}}
         mock_response.status_code = 200
         mock_post.return_value = mock_response
 
@@ -430,7 +413,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
                     elif "clay/outputs/string/spec.json" == key:
                         assert data == expected_output_string
             env_patcher.stop()
-            
+
+
 class TestDeepMerge(unittest.TestCase):
     def test_simple_merge(self):
         output = {"a": 1}

@@ -8,7 +8,7 @@ import pytest
 from clay import BlockWrapper
 from clay.core import BaseRunner
 
-from ..fixtures.blocks.dummy_block import DummyBlock, DUMMY_BLOCK_CONFIG
+from ..fixtures.blocks.dummy_block import DUMMY_BLOCK_CONFIG, DummyBlock
 
 
 def test_missing_setup_override() -> None:
@@ -42,7 +42,7 @@ class TestBaseRunner(unittest.TestCase):
                     cfg_path=DUMMY_BLOCK_CONFIG,
                 )
                 self._current_progress: float = 0.0
-    
+
             def get_progress(self) -> float:
                 return self._current_progress
 
