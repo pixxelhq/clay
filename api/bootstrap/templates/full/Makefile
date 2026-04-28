@@ -20,3 +20,6 @@ lint:
 
 clean:
 	rm -rf *.egg-info build dist
+
+test-block:
+	python tests/test_block.py

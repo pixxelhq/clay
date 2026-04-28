@@ -63,7 +63,7 @@ func CreateDockerFile(projectDir, outputDir string, cfg *config.Config) (string,
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("creating dockerfile in %s", outputDir)
+	fmt.Printf("creating dockerfile in %s\n", outputDir)
 	if err := tmpl.Execute(dockerfile, dc); err != nil {
 		return "", err
 	}

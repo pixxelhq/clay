@@ -18,7 +18,7 @@ class TestCallbackBase(TestCase):
         """Test callback data with only required arguments."""
         # Create callback data with minimal arguments
         data = CallbackData(id="test-123")
-        
+
         # Verify attributes
         self.assertEqual(data.id, "test-123")
         self.assertIsNone(data.inputs)
@@ -65,7 +65,7 @@ class TestCallbackBase(TestCase):
             end_time=test_end_time,
             failure_type=test_failure_type,
             err_msg=test_err_msg,
-            metadata=test_metadata
+            metadata=test_metadata,
         )
 
         # Verify attributes
@@ -90,15 +90,11 @@ class TestCallbackBase(TestCase):
         self.assertEqual(data_dict["failure_type"], test_failure_type)
         self.assertEqual(data_dict["err_msg"], test_err_msg)
         self.assertEqual(data_dict["metadata"], test_metadata)
-        
+
     def test_block_dump_serialization(self):
         """Test model_dump method for serialization."""
         # Create callback data
-        data = CallbackData(
-            id="compat-test",
-            progress=50.0,
-            metadata={"test": "value"}
-        )
+        data = CallbackData(id="compat-test", progress=50.0, metadata={"test": "value"})
 
         # Test the model_dump method
         result = data.model_dump(exclude_none=True)
@@ -109,19 +105,15 @@ class TestCallbackBase(TestCase):
         self.assertEqual(result["metadata"], {"test": "value"})
         self.assertNotIn("inputs", result)  # excluded because None
         self.assertNotIn("outputs", result)  # excluded because None
-        
+
     def test_to_dict_method_backward_compatibility(self):
         """Test to_dict method for backward compatibility."""
         # Create callback data
-        data = CallbackData(
-            id="compat-test", 
-            progress=50.0,
-            metadata={"test": "value"}
-        )
-        
+        data = CallbackData(id="compat-test", progress=50.0, metadata={"test": "value"})
+
         # Test the to_dict method
         result = data.to_dict()
-        
+
         # Verify result (should match model_dump behavior)
         self.assertEqual(result["id"], "compat-test")
         self.assertEqual(result["progress"], 50.0)

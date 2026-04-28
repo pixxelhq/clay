@@ -108,5 +108,5 @@ class {{.BlockName}}(BlockWrapper):
         self.logger.info(f"Postprocessing: result={result}")
 
         return {
-            "output1": T.Number(name="output1", value=result),
+            "output1": T.Number(name="output1", value=str(result)),
         }

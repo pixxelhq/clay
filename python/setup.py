@@ -9,14 +9,9 @@ DEFAULT_REQ = "requirements/requirements.txt"
 def load_requirements(fname: str = DEFAULT_REQ) -> list[str]:
     req_file = PROJECT_ROOT / fname
     if not req_file.is_file():
-        raise FileNotFoundError(
-            f"[setup.py] Cannot locate dependency file:\n  {req_file}"
-        )
+        raise FileNotFoundError(f"[setup.py] Cannot locate dependency file:\n  {req_file}")
 
-    lines = (
-        line.strip()
-        for line in req_file.read_text(encoding="utf-8").splitlines()
-    )
+    lines = (line.strip() for line in req_file.read_text(encoding="utf-8").splitlines())
     return [ln for ln in lines if ln and not ln.startswith("#")]
 
 
