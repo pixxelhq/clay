@@ -1,7 +1,30 @@
 definitions:
+  http.CreateBlockRequest:
+    properties:
+      docker_image:
+        type: string
+      documentation_url:
+        type: string
+      kind:
+        type: string
+      name:
+        type: string
+      specification:
+        $ref: '#/definitions/http.Specification'
+      thumbnail_url:
+        type: string
+      type:
+        type: string
+      version:
+        type: string
+    type: object
   http.CreateBlockResponse:
     properties:
       created_at:
+        type: string
+      docker_image:
+        type: string
+      documentation_url:
         type: string
       id:
         type: string
@@ -9,6 +32,8 @@ definitions:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
+      thumbnail_url:
+        type: string
       type:
         type: string
       updated_at:
@@ -16,9 +41,13 @@ definitions:
       version:
         type: string
     type: object
-  http.GetBlockVersion:
+  http.GetBlockByNameAndVersion:
     properties:
       created_at:
+        type: string
+      docker_image:
+        type: string
+      documentation_url:
         type: string
       id:
         type: string
@@ -28,6 +57,8 @@ definitions:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
+      thumbnail_url:
+        type: string
       type:
         type: string
       updated_at:
@@ -39,12 +70,20 @@ definitions:
     properties:
       created_at:
         type: string
+      docker_image:
+        type: string
+      documentation_url:
+        type: string
       id:
+        type: string
+      kind:
         type: string
       name:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
+      thumbnail_url:
+        type: string
       type:
         type: string
       updated_at:
@@ -65,19 +104,19 @@ definitions:
       error:
         type: string
     type: object
-  http.RegistryResponse-http_GetBlockByNameResponse:
+  http.RegistryResponse-http_GetBlockByNameAndVersion:
     properties:
       data:
-        items:
-          $ref: '#/definitions/http.GetBlockVersion'
-        type: array
+        $ref: '#/definitions/http.GetBlockByNameAndVersion'
       error:
         type: string
     type: object
-  http.RegistryResponse-http_GetBlockVersion:
+  http.RegistryResponse-http_GetBlocksByNameResponse:
     properties:
       data:
-        $ref: '#/definitions/http.GetBlockVersion'
+        items:
+          $ref: '#/definitions/http.GetBlockByNameAndVersion'
+        type: array
       error:
         type: string
     type: object
@@ -98,8 +137,10 @@ definitions:
         type: string
       build:
         type: object
-      description:
-        type: string
+      env:
+        type: object
+      gpu:
+        type: boolean
       inputs:
         type: object
       outputs:
@@ -110,14 +151,14 @@ definitions:
         items:
           type: string
         type: array
-      title:
-        type: string
     type: object
 host: localhost:8080
 info:
-  contact:
-    email: mlops@pixxel.co.in
-    name: MLOps team
+  contact: {}
+  description: HTTP API for the Clay block registry.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
   title: Clay Registry
   version: "1.0"
 paths:
@@ -143,12 +184,21 @@ paths:
       tags:
       - Block
     post:
+      consumes:
+      - application/json
       description: publish the specific version of the block.
+      parameters:
+      - description: Block to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateBlockRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/http.RegistryResponse-http_CreateBlockResponse'
         "400":
@@ -177,7 +227,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.RegistryResponse-http_GetBlockByNameResponse'
+            $ref: '#/definitions/http.RegistryResponse-http_GetBlocksByNameResponse'
         "400":
           description: Bad Request
           schema:
@@ -209,7 +259,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.RegistryResponse-http_GetBlockVersion'
+            $ref: '#/definitions/http.RegistryResponse-http_GetBlockByNameAndVersion'
         "400":
           description: Bad Request
           schema:

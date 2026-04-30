@@ -47,6 +47,10 @@ The block follows Clay's standard architecture with clear separation of responsi
 
 ## Testing with MinIO
 
+[MinIO](https://min.io/) is an open-source, S3-compatible object store. This
+example uses MinIO as a local stand-in for AWS S3 so you can run the full
+upload/download flow without cloud credentials.
+
 ### Local Development
 
 1. **Start MinIO services**:

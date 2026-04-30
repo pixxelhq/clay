@@ -76,7 +76,11 @@ Raster represents TIFF/GeoTIFF data, commonly used for satellite imagery and geo
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: true) |
+| `group` | string | Optional grouping identifier — useful for relating multiple I/O fields to the same logical entity |
+| `default` | string | Default value applied when none is provided at runtime |
 | `properties` | [RasterProperties](#rasterproperties) | Raster-specific properties |
+| `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
+| `version` | [Version](#version) | Schema version (default: `v2`) |
 | `stac_url` | string | STAC item URL |
 | `area` | double | Area covered in square meters |
 
@@ -113,7 +117,11 @@ Vector represents GeoJSON data, used for polygons, points, and other geometric d
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: true) |
+| `group` | string | Optional grouping identifier |
+| `default` | string | Default value applied when none is provided at runtime |
 | `properties` | [VectorProperties](#vectorproperties) | Vector-specific properties |
+| `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
+| `version` | [Version](#version) | Schema version (default: `v2`) |
 | `area` | double | Area covered in square meters |
 
 **Example:**
@@ -143,7 +151,12 @@ Tabular represents table-based data like CSV files.
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: true) |
+| `group` | string | Optional grouping identifier |
+| `default` | string | Default value applied when none is provided at runtime |
 | `properties` | [TabularProperties](#tabularproperties) | Tabular-specific properties |
+| `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
+| `version` | [Version](#version) | Schema version (default: `v2`) |
+| `area` | double | Area covered in square meters |
 
 **Example:**
 ```python
@@ -171,6 +184,11 @@ Number represents numeric data types (integers, floats).
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: false) |
+| `group` | string | Optional grouping identifier |
+| `default` | string | Default value applied when none is provided at runtime |
+| `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
+| `version` | [Version](#version) | Schema version (default: `v2`) |
+| `area` | double | Area covered in square meters |
 
 **Example:**
 ```python
@@ -201,6 +219,11 @@ String represents text data.
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: false) |
+| `group` | string | Optional grouping identifier |
+| `default` | string | Default value applied when none is provided at runtime |
+| `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
+| `version` | [Version](#version) | Schema version (default: `v2`) |
+| `area` | double | Area covered in square meters |
 
 **Example:**
 ```python
@@ -227,7 +250,12 @@ Date represents date/time data.
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: false) |
+| `group` | string | Optional grouping identifier |
+| `default` | string | Default value applied when none is provided at runtime |
 | `properties` | [DateProperties](#dateproperties) | Date-specific properties |
+| `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
+| `version` | [Version](#version) | Schema version (default: `v2`) |
+| `area` | double | Area covered in square meters |
 
 **Example:**
 ```python
@@ -300,6 +328,28 @@ results = datatypes.Tabular(
 | Field | Type | Description |
 |-------|------|-------------|
 | `from_aoi` | bool | Whether to derive date from AOI |
+
+### AssetSource
+
+Provenance information attached to any input or output value. Useful when the
+same logical asset can come from multiple upstream producers (a satellite
+provider, an internal pipeline, a third-party feed) and downstream consumers
+need to disambiguate them.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique identifier for the asset source |
+| `type` | string | Type of the source (e.g. `"internal"`, `"external"`) |
+| `layer_name` | string | Human readable identifier for display |
+
+### Version
+
+Schema version of a datatype value. Lets the runtime tell apart older payloads
+from new ones when the schema evolves.
+
+| Value | Description |
+|-------|-------------|
+| `v2` | Current schema version (default for all datatypes) |
 
 ---
 

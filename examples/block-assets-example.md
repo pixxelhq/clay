@@ -6,8 +6,10 @@ This example demonstrates how to use Clay's block asset management feature to up
 
 - Clay CLI installed
 - An S3 bucket created
-- AWS credentials configured (required — Clay currently supports only AWS S3
-  as a storage backend). Any credential source the AWS SDK recognises works:
+- AWS credentials configured. The `clay block assets` commands only support
+  AWS S3 virtual-hosted HTTPS URLs — runtime block I/O can use any
+  S3-compatible backend, but asset management is AWS-S3-specific.
+  Any credential source the AWS SDK recognises works:
   environment variables (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`),
   `AWS_PROFILE` + `~/.aws/config` (including SSO profiles), or IAM instance
   roles. See the [Authentication](#authentication) section below for details.

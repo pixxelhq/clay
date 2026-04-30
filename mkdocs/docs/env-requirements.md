@@ -224,3 +224,22 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 - **Note**: Skip this variable when running blocks locally.
 
 ***
+
+## CLI environment variables
+
+These variables configure the Clay CLI itself and are read on the host (not
+inside the block container). They mirror the corresponding command-line flags.
+
+### `CLAY_DOCKER_REGISTRY`
+
+- **Purpose**: Docker image registry that `clay publish` pushes block images to.
+- **Equivalent flag**: `--docker-registry`.
+- **Used by**: `clay publish`.
+
+### `CLAY_REGISTRY_HOST`
+
+- **Purpose**: URL of the Clay block registry that the CLI talks to.
+- **Equivalent flag**: `--clay-registry`.
+- **Used by**: `clay publish`, `clay block list`, `clay block describe`.
+
+***

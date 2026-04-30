@@ -1,6 +1,6 @@
 site_name: Clay Documentation
 site_description: Open-source framework for packaging and deploying ML models
-site_url: https://github.com/example/clay
+site_url: https://pixxelhq.github.io/clay/
 repo_name: example/clay
 repo_url: https://github.com/example/clay
 edit_uri: edit/main/mkdocs/docs/
@@ -228,7 +228,5 @@ nav:
   - Reference:
     - CLI Reference: "cli-reference.md"
     - Logging: "logging.md"
-  - Pixxel Platform Integration:
-    - Integration Guide: "pixxel-integration.md"
   - FAQs: "faq.md"
   - ChangeLog: "CHANGELOG.md"

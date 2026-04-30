@@ -1,7 +1,7 @@
 .PHONY: init init-requirements ensure-uv package build/package go-binaries \
 	test test-go test-python test-registry test-integration test-with-runner \
 	format pre-commit \
-	spell-check-docs build-docs build-docs-docker-image serve-docs docs
+	spell-check-docs build-docs serve-docs docs
 
 # --- Setup ---
 
@@ -102,12 +102,6 @@ spell-check-docs:
 
 build-docs:
 	cd mkdocs; mkdocs build
-
-build-docs-docker-image:
-	DOCKER_BUILDKIT=1 docker build \
-	-t clay-docs \
-	-f clay-docs.Dockerfile \
-	.
 
 serve-docs:
 	cd mkdocs; mkdocs serve

@@ -9,9 +9,10 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {
-            "name": "MLOps team",
-            "email": "mlops@pixxel.co.in"
+        "contact": {},
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
         },
         "version": "{{.Version}}"
     },
@@ -51,6 +52,9 @@ const docTemplate = `{
             },
             "post": {
                 "description": "publish the specific version of the block.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -58,9 +62,20 @@ const docTemplate = `{
                     "Block"
                 ],
                 "summary": "Publish the block to clay registry",
+                "parameters": [
+                    {
+                        "description": "Block to create",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateBlockRequest"
+                        }
+                    }
+                ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/http.RegistryResponse-http_CreateBlockResponse"
                         }
@@ -103,7 +118,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.RegistryResponse-http_GetBlockByNameResponse"
+                            "$ref": "#/definitions/http.RegistryResponse-http_GetBlocksByNameResponse"
                         }
                     },
                     "400": {
@@ -151,7 +166,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.RegistryResponse-http_GetBlockVersion"
+                            "$ref": "#/definitions/http.RegistryResponse-http_GetBlockByNameAndVersion"
                         }
                     },
                     "400": {
@@ -171,10 +186,45 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "http.CreateBlockRequest": {
+            "type": "object",
+            "properties": {
+                "docker_image": {
+                    "type": "string"
+                },
+                "documentation_url": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "specification": {
+                    "$ref": "#/definitions/http.Specification"
+                },
+                "thumbnail_url": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
         "http.CreateBlockResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "docker_image": {
+                    "type": "string"
+                },
+                "documentation_url": {
                     "type": "string"
                 },
                 "id": {
@@ -185,6 +235,9 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
+                },
+                "thumbnail_url": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -197,10 +250,16 @@ const docTemplate = `{
                 }
             }
         },
-        "http.GetBlockVersion": {
+        "http.GetBlockByNameAndVersion": {
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "docker_image": {
+                    "type": "string"
+                },
+                "documentation_url": {
                     "type": "string"
                 },
                 "id": {
@@ -214,6 +273,9 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
+                },
+                "thumbnail_url": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -232,7 +294,16 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "docker_image": {
+                    "type": "string"
+                },
+                "documentation_url": {
+                    "type": "string"
+                },
                 "id": {
+                    "type": "string"
+                },
+                "kind": {
                     "type": "string"
                 },
                 "name": {
@@ -240,6 +311,9 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
+                },
+                "thumbnail_url": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -272,25 +346,25 @@ const docTemplate = `{
                 }
             }
         },
-        "http.RegistryResponse-http_GetBlockByNameResponse": {
+        "http.RegistryResponse-http_GetBlockByNameAndVersion": {
             "type": "object",
             "properties": {
                 "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/http.GetBlockVersion"
-                    }
+                    "$ref": "#/definitions/http.GetBlockByNameAndVersion"
                 },
                 "error": {
                     "type": "string"
                 }
             }
         },
-        "http.RegistryResponse-http_GetBlockVersion": {
+        "http.RegistryResponse-http_GetBlocksByNameResponse": {
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/http.GetBlockVersion"
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.GetBlockByNameAndVersion"
+                    }
                 },
                 "error": {
                     "type": "string"
@@ -323,8 +397,11 @@ const docTemplate = `{
                 "build": {
                     "type": "object"
                 },
-                "description": {
-                    "type": "string"
+                "env": {
+                    "type": "object"
+                },
+                "gpu": {
+                    "type": "boolean"
                 },
                 "inputs": {
                     "type": "object"
@@ -340,9 +417,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                },
-                "title": {
-                    "type": "string"
                 }
             }
         }
@@ -356,7 +430,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Clay Registry",
-	Description:      "",
+	Description:      "HTTP API for the Clay block registry.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
