@@ -47,6 +47,7 @@ jobs:
       - name: Install Dependencies
         working-directory: ./python
         run: |
+          uv pip install --system ../proto/python
           uv pip install --system coverage pre-commit -r requirements/requirements-dev.txt .
 
       - name: Run Pytest

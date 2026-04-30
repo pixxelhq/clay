@@ -17,7 +17,7 @@ init: ensure-uv
 	pre-commit install --hook-type commit-msg
 
 init-requirements: ensure-uv
-	uv pip install pixxel-datatypes -r python/requirements/requirements-dev.txt
+	uv pip install ./proto/python -r python/requirements/requirements-dev.txt
 
 # --- Build / package ---
 
