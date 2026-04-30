@@ -3,8 +3,5 @@ mkdocs-schema-reader
 mkdocstrings
 mkdocstrings-python
 mkdocs-autorefs
-mkdocs-glightbox
 tomli
 codespell
-mkdocs_protobuf
-

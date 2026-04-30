@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Clay is a framework for packaging ML models for deployment on Pixxel's infrastructure. It consists of:
+Clay is an open-source framework for packaging ML models as deployable blocks. It consists of:
 - **Clay CLI** (Go): Command-line tool for creating projects, building containers, and managing model registry
 - **Clay Python package**: Runtime library used by packaged models for execution
 
@@ -51,24 +51,23 @@ The repository is organized as follows:
 
 ## Architecture
 
-### Model Execution Flow
-1. Models are packaged using `clay create dockerfile` with a specification YAML
-2. The Python clay library provides `ModelWrapper` base class for `setup()`, `preprocess()`, `inference()`, `postprocess()` methods
-3. Models can run as HTTP servers (`http_runner.py`) or batch jobs (`job_runner.py`, `job_runner_v2.py`)
-4. Storage abstraction handles S3/local file operations
+### Block Execution Flow
+1. Blocks are packaged with `clay build` (a `Dockerfile` is generated from the spec when one doesn't already exist)
+2. The Python clay library provides the `BlockWrapper` base class with `setup()`, `preprocess()`, `inference()`, `postprocess()` methods
+3. Blocks run via the unified runner in `python/clay/runners/runner.py` (HTTP server or batch job mode)
+4. Storage abstraction handles S3-compatible / local file operations
 5. Progress callbacks report execution status
 
 ### Registry System
 - Go-based HTTP API server with Swagger docs
 - PostgreSQL backend with sqlc-generated queries
-- Manages model blocks, versions, and deployment metadata
-- Environments: dev, stg, prod
+- Manages block definitions, versions, and deployment metadata
 
 ### Key Components
-- `python/clay/core.py` - Core model wrapper and execution logic
-- `python/clay/runners/runner.py` - Base runner interface (recently modified)
+- `python/clay/core.py` - `BlockWrapper` base class and execution logic
+- `python/clay/runners/runner.py` - Runner that drives the block lifecycle
 - `cmd/root.go` - CLI entry point and command structure
-- `pkg/docker/docker.go` - Dockerfile generation from model specs
+- `pkg/docker/docker.go` - Dockerfile generation from block specs
 
 ## Configuration
 
@@ -80,12 +79,12 @@ The repository is organized as follows:
 
 ## Common Workflows
 
-### Creating a New Model
-1. `clay create project <outputDir> <ModelName>` - Generate project template
-2. Edit `specifications/model_specification_dev.yaml` - Define inputs/outputs
-3. Implement model logic in `src/model.py`
-4. Test locally with `python src/test_model.py`
-5. Package with `make package-and-test-model`
+### Creating a New Block
+1. `clay new <outputDir> <BlockName>` - Generate project template
+2. Edit `clay.yaml` - Define inputs, outputs, and runtime
+3. Implement block logic in `src/block.py`
+4. Test locally with `python tests/test_block.py`
+5. Package and run with `clay build` then `clay run`
 
 ### Registry Operations
 - `clay list block` - List available models

@@ -6,7 +6,7 @@ version: v0.0.1
 title: Raster Vector Clipper - API Test Block
 status: released
 description: Stable block for clipping raster data using vector geometries. Used for end-to-end API testing with MinIO storage.
-author: <please-fill-in-here>@pixxel.co.in
+author: <your-email>
 tags:
   - imagery
   - processing

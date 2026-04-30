@@ -16,9 +16,10 @@ Well, we have outlined our approach with usage examples below.
 
 * The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Of which, the block has access to the `(5, 95)` range. The ranges `[0, 5]` and `[95, 100]` are reserved by Clay.
 
-* There are two types of API exposed by clay for the block author to use,
-    * `add_progress` - _A relative, additive API._
-    * `set_progress` - _An absolute, setter API._
+* Clay exposes three progress APIs for the block author to use:
+    * `add_progress` — _A relative, additive API._
+    * `set_progress` — _An absolute, setter API._
+    * `get_progress` — _A read-only getter for the current progress value._
 
 * Progress is tracked, internally by the base `BlockWrapper` class, which is the base class for all blocks.
 
@@ -46,6 +47,17 @@ Simply put, this is an _additive API_. Meaning, it simply _adds_ a certain value
 ### `set_progress`
 
 This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ the current progress of the block to a particular value. Of-course, the value needs to pass a set of internal validations. If you intend to use this endpoint to indicate the progress of a block, post the execution of a block of code, it would be helpful to ask yourself a question like, _"What do I expect the current progress of execution to be at this particular point in my code?"_.
+
+### `get_progress`
+
+A read-only getter that returns the block's current progress as a `float` in the `(5, 95)` range Clay reserves for blocks. Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
+
+```python
+last = self.get_progress()
+self.set_progress(last + per_iteration)
+```
+
+`get_progress` never raises and has no side effects.
 
 ## Rules of Thumb
 

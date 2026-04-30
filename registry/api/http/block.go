@@ -24,8 +24,10 @@ func NewBlock(s block.Service) *blockHandler {
 //	@Description	publish the specific version of the block.
 //	@Tags			Block
 //
+//	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	RegistryResponse[CreateBlockResponse]
+//	@Param			body	body		CreateBlockRequest	true	"Block to create"
+//	@Success		201	{object}	RegistryResponse[CreateBlockResponse]
 //	@Failure		400	{object}	RegistryResponse[any]
 //	@Failure		500	{object}	RegistryResponse[any]
 //	@Router			/v1/blocks [post]

@@ -79,7 +79,6 @@ clay run [IMAGE NAME] [ARG...] [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-e, --env` | Set environment variables (`KEY=VALUE` format) | — |
-| `-f, --file` | Path to file containing input data | — |
 
 ### Publish
 

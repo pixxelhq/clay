@@ -94,9 +94,9 @@ This method will take the return value of `inference` as input. Here we are taki
     ```python
     from typing import Any, Dict, List
     import rasterio
+    import datatypes
     import clay
     from clay.core import BlockWrapper
-    from clay import types as datatypes
     class Ndvi(BlockWrapper):
         def setup(self, bands: List[str]) -> None:  # type: ignore
             self.bands = bands
@@ -239,24 +239,19 @@ clay run -e INPUT_JSON="$(cat sample_block_inputs.json)" ndvi:latest
 The output will look something like:
 
 ```shell
-Using configuration located at: /Users/xyz/work/example/blocks/NDVI/Ndvi/clay.yaml
-WARNING - 2024-04-12 01:07:16,192 - runner.py:195 - job_block_runner - 'remote-prefix'
+Using configuration located at: /path/to/NDVI/Ndvi/clay.yaml
 INFO - 2024-04-12 01:07:16,193 - core.py:346 - job_block_runner - Initializing Block...
 INFO - 2024-04-12 01:07:16,195 - core.py:348 - job_block_runner - Block initialization complete.
-WARNING - 2024-04-12 01:07:17,200 - core.py:372 - job_block_runner - `ORCHESTRATOR_URL` not set, and hence not firing callback
-ERROR - 2024-04-12 01:07:17,200 - runner.py:403 - job_block_runner - Failed to fire callback
 WARNING - 2024-04-12 01:07:17,202 - block.py:17 - Ndvi - In pre-process. Use self.logger for all logging. Avoid print statements
 INFO - 2024-04-12 01:07:17,202 - block.py:23 - Ndvi - preprocess has been completed, moving on to inference
 INFO - 2024-04-12 01:07:17,241 - block.py:30 - Ndvi - looking for band B04 in raster band-list
 INFO - 2024-04-12 01:07:17,662 - block.py:30 - Ndvi - looking for band B08 in raster band-list
-/Users/xyz/work/example/blocks/NDVI/Ndvi/block.py:34: RuntimeWarning: invalid value encountered in divide
+block.py:34: RuntimeWarning: invalid value encountered in divide
   ndvi = (required_bands["B08"] - required_bands["B04"]) / (required_bands["B08"] + required_bands["B04"])
 INFO - 2024-04-12 01:07:17,683 - block.py:35 - Ndvi - shape of calculated ndvi raster: (1390, 2834)
 INFO - 2024-04-12 01:07:17,683 - block.py:36 - Ndvi - inference has been completed, moving on to postprocess
 INFO - 2024-04-12 01:07:17,694 - block.py:41 - Ndvi - In postprocessing
 INFO - 2024-04-12 01:07:17,949 - runner.py:260 - job_block_runner - copying file from `result.tif` to `runs/wf123/job123/task123/outputs/result/result.tif`
-WARNING - 2024-04-12 01:07:18,006 - core.py:372 - job_block_runner - `ORCHESTRATOR_URL` not set, and hence not firing callback
-WARNING - 2024-04-12 01:07:18,006 - runner.py:426 - job_block_runner - failed to fire callback successfully
 INFO - 2024-04-12 01:07:18,006 - runner.py:470 - job_block_runner - results: [Raster(Format='raster', Type='url', Name='result', Value='runs/wf123/job123/task123/outputs/result/result.tif', Default=None, IsArtifact=True, Properties=RasterProperties(Bands=None, Source=None, Collection='sentinel-s2-l2a-cogs', Dtype=None))]
 ```
 
@@ -268,6 +263,3 @@ Once your block is built and tested locally, you can:
 
 - **Publish to Registry**: Use `clay publish` to push your block to the Clay registry
 - **Deploy**: Deploy your block to your infrastructure or orchestrator
-
-!!! info "Pixxel Users"
-    For Pixxel-specific deployment workflows (GitHub Actions, Orchestrator integration, Platform platform), see [Pixxel Platform Integration](pixxel-integration.md).

@@ -8,7 +8,7 @@ This document provides a high-level overview of Clay's architecture, components,
 
 * **BlockWrapper**: The Python interface that all Clay blocks implement, defining setup, preprocess, inference, and postprocess methods.
 
-* **Orchestrator**: The system responsible for running blocks (e.g., Kubernetes, Docker, cloud services). Pixxel has its own orchestrator called ORCHESTRATOR, which we use to deploy our block on our platform [Platform](https://aurora.pixxel.space/){:target="_blank"}.
+* **Orchestrator**: The system responsible for running blocks — this might be Kubernetes, Argo Workflows, Airflow, a custom scheduler, or any system capable of pulling a container and executing it against a Clay runner.
 
 * **Runner**: Clay's execution engine that handles block lifecycle, input/output processing, and communication with the orchestrator.
 
@@ -84,7 +84,7 @@ Runtime library providing:
 * **BlockWrapper**: Base class for all blocks
 * **Type System**: Raster, Vector, Number, String, Date, Tabular
 * **Runners**: Clay's execution engine that handles block lifecycle, input/output processing, and  communication with the orchestrator.
-* **Storage**: Abstraction over s3(currently supported), local filesystem
+* **Storage**: Abstraction over S3-compatible storage (including MinIO) and the local filesystem
 * **Logging**: [Structured JSON logging](logging.md)
 * **Progress Tracking**: [Built-in progress reporting](progress.md)
 
@@ -116,7 +116,7 @@ Cloud storage for block-related files:
 * Upload, download, and list assets via CLI
 * Name-level assets shared across all versions
 * Version-specific assets for particular releases
-* Support for S3 (GCS and Azure coming soon)
+* Backed by any S3-compatible object store (AWS S3, MinIO, etc.)
 
 For complete reference, see [Block Assets Management](block-assets.md).
 
@@ -166,6 +166,14 @@ class MyBlock(BlockWrapper):
         # Convert to output types
         return formatted_outputs
 ```
+
+In addition to the four lifecycle methods above, `BlockWrapper` exposes a small set of helpers your block code can call on `self`:
+
+* `self.add_progress(delta)` — bump the current progress by a relative amount
+* `self.set_progress(value)` — set the current progress to an absolute value
+* `self.get_progress()` — read the current progress
+
+See [Indicating Progress](progress.md) for usage patterns.
 
 ### Execution Flow
 

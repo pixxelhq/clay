@@ -1,148 +1,117 @@
-# Clay Project Contributing guide
+# Contributing to Clay
+
+Thanks for your interest in contributing to Clay! This guide covers everything
+you need to set up a development environment, make changes, and open a pull
+request.
+
+If you are reporting a security issue, please read [SECURITY.md](SECURITY.md)
+first — do **not** open a public issue for vulnerabilities.
 
 ## Prerequisites
 
 ### System Requirements
-- Go (version 1.20 or later)
-- Python (version 3.8 or later)
-- Docker
-- AWS CLI
-- pre-commit
-- pip
 
-### AWS Setup
-- Configure AWS CLI with appropriate credentials
-- Access to AWS CodeArtifact
-- Permissions for REDACTED-ARTIFACTORY
+- **Go** 1.22 or later
+- **Python** 3.10 or later
+- **Docker** (for building images and running integration tests)
+- **[uv](https://docs.astral.sh/uv/)** (preferred Python installer) or `pip`
+- **pre-commit** (`pip install pre-commit` or `brew install pre-commit`)
 
-### Installation Steps
+No internal credentials, VPN access, or private package indexes are required.
+All dependencies are fetched from public PyPI and the public Go module proxy.
 
-1. **Clone the Repository**
-   ```bash
-   git clone <repository-url>
-   cd clay
-   ```
+## Getting Started
 
-2. **Install Development Dependencies**
-   ```bash
-   make init
-   ```
-   This command will:
-   - Install development requirements
-   - Set up pre-commit hooks
-   - Configure commit message hooks
+### 1. Fork and clone
 
-3. **Initialize Requirements**
-   ```bash
-   make init-requirements
-   ```
-   Generates CodeArtifact authentication token and installs project requirements
+```bash
+git clone https://github.com/<your-username>/clay.git
+cd clay
+```
+
+### 2. Install development dependencies
+
+```bash
+make init
+```
+
+This installs Python dev requirements, sets up pre-commit hooks, and
+configures commit-message hooks.
+
+### 3. Install project requirements
+
+```bash
+make init-requirements
+```
+
+This installs Clay's runtime Python dependencies from public PyPI.
 
 ## Development Workflow
 
-### Building the Project
+### Build
 
-#### Build Package
 ```bash
-make package
+make package        # Build the Python distribution (sdist + wheel) under build/
+make go-binaries    # Build the Clay CLI for macOS / Linux / Windows under bin/
 ```
-Creates distributable Python package in the `build/` directory.
 
-### Testing
+### Test
 
-#### Run All Tests
 ```bash
-make test
+make test           # Run both Go and Python tests
+make test-python    # Python only
+make test-go        # Go only (excludes the registry service)
+make test-registry  # Registry service tests (requires a local Postgres)
 ```
-Executes both Go and Python tests.
 
-#### Language-Specific Tests
-- Python Tests: `make test-python`
-- Go Tests: `make test-go`
-- Registry Tests: `make test-registry`
+Integration tests via Docker Compose:
 
-### Code Quality
-
-#### Formatting
 ```bash
-make format
+make test-with-runner     # Kubernetes executor
+make test-with-runnerv2   # Argo executor
+make tear-down            # Clean up Docker Compose resources afterwards
 ```
-- Lints Python code using Ruff
-- Formats code automatically
-- Runs pre-commit checks
 
-#### Pre-commit Checks
+### Format and lint
+
 ```bash
-make pre-commit
+make format       # ruff format + pre-commit hooks
+make pre-commit   # Run the pre-commit hooks manually
 ```
-Manually triggers pre-commit hooks.
+
+Run these before opening a pull request — CI enforces the same checks.
 
 ### Documentation
 
-#### Build Documentation
+Clay's docs live under [`mkdocs/`](mkdocs/).
+
 ```bash
-make build-docs
+make build-docs         # Build the site
+make serve-docs         # Serve locally at http://localhost:8000
+make spell-check-docs   # Spell-check markdown
 ```
-Builds project documentation using MkDocs.
 
-#### Serve Documentation Locally
-```bash
-make serve-docs
-```
-Builds and serves documentation on a local development server.
+## Submitting a Pull Request
 
-#### Spell Check Documentation
-```bash
-make spell-check-docs
-```
-Checks spelling in documentation markdown files.
+1. Create a topic branch off `main` (`git checkout -b fix/short-description`).
+2. Make your changes. Keep commits focused — one logical change per commit.
+3. Add or update tests for any behavior change.
+4. Add an entry to [`CHANGELOG.md`](CHANGELOG.md) under the next unreleased
+   version, under `### New Features` or `### Fixes` as appropriate.
+5. Run `make format` and `make test` locally and make sure they pass.
+6. Push your branch and open a pull request against `main`. Fill out the PR
+   template.
+7. Address review feedback by pushing additional commits to the same branch —
+   avoid force-pushing once reviewers have started looking at the diff.
 
-### Build Binaries
+## Reporting Bugs and Requesting Features
 
-#### Generate Cross-Platform Binaries
-```bash
-make go-binaries
-```
-Creates binaries for:
-- macOS (amd64 and arm64)
-- Windows (amd64)
-- Linux (amd64 and arm64)
+Please use the GitHub issue templates:
 
-Binaries are output to the `./bin` directory.
-
-### Integration Testing
-
-#### Test with Runner
-```bash
-make test-with-runner
-```
-Runs integration tests using Docker Compose with Kubernetes executor.
-
-#### Test with Runner V2
-```bash
-make test-with-runnerv2
-```
-Runs integration tests using Docker Compose with Argo executor.
-
-### Cleanup
-
-#### Tear Down Test Environment
-```bash
-make tear-down
-```
-Removes Docker Compose resources and temporary files.
-
-## Contributing
-
-1. Install development dependencies
-2. Run pre-commit hooks
-3. Write tests for new features
-4. Ensure all tests pass before submitting a PR
-
-## Troubleshooting
-
-- Ensure AWS CLI is configured correctly
-- Check network connectivity to AWS CodeArtifact
-- Verify Python and Go versions match prerequisites
+- [Bug report](.github/ISSUE_TEMPLATE/bug_report.md)
+- [Feature request](.github/ISSUE_TEMPLATE/feature_request.md)
 
 ## License
+
+By contributing to Clay, you agree that your contributions will be licensed
+under the [Apache License 2.0](LICENSE).

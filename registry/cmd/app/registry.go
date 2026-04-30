@@ -11,9 +11,10 @@ import (
 
 // @title				Clay Registry
 // @version				1.0
+// @description			HTTP API for the Clay block registry.
+// @license.name		Apache 2.0
+// @license.url			https://www.apache.org/licenses/LICENSE-2.0.html
 // @host				localhost:8080
-// @contact.name		MLOps team
-// @contact.email		mlops@pixxel.co.in.
 func main() {
 	errCh := make(chan error, 1)
 	wg := sync.WaitGroup{}

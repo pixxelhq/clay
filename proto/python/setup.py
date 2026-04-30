@@ -13,21 +13,20 @@ def get_version() -> dict:
 setup(
     name="pixxel-datatypes",
     version=str(get_version()),
-    description="Schema for supported data-types within the Pixxel ecosystem",
-    # Author details
-    author_email="mlops@pixxel.co.in",
+    description="Schema for supported data-types in Clay blocks.",
     url="https://github.com/example/clay",
-
-    # Choose your license
-    license="Ask Raghav",
+    license="Apache-2.0",
     packages=find_packages(
         include=["datatypes"], exclude=["datatypes/tests", "test_*",]
     ),
-
-    # What does your project relate to?
-    # keywords = 'put keywords here'
-    # List run-time dependencies here. These will be installed by pip when
-    # your project is installed.
+    classifiers=[
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+    ],
+    python_requires=">=3.10",
     install_requires=[
         "protobuf>=6.33.2,<7"
     ],

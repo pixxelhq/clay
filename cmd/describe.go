@@ -28,7 +28,7 @@ func DescribeBlockCmd() *cobra.Command {
 		RunE:    describeBlockCmd,
 	}
 	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
-	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Possible status of block: draft, released, disabled")
+	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Specific version to describe (omit to list all versions)")
 	return cmd
 }
 

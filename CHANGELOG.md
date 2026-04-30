@@ -4,6 +4,20 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
+## Unreleased
+### New Features
+- Clay is now released as open source under the Apache License 2.0.
+- Added `LICENSE`, `SECURITY.md`, and GitHub issue / pull-request templates.
+- Rewrote top-level `README.md`, `CONTRIBUTING.md`, and `mkdocs` documentation
+  for external users; removed internal deployment guide.
+- Cleaned `setup.py` package metadata (license, description) and dropped stale
+  Python 3.8 / 3.9 classifiers.
+### Fixes
+- Removed dead `clay-docs.Dockerfile` and unused `build-docs-docker-image`
+  Makefile target.
+- Removed internal contact metadata from the Clay Registry Swagger
+  specification.
+
 ## v1.3.1a2 - 2025-05-02
 ### New Features
 - Introduced `stac_url` in `Raster` datatype.
