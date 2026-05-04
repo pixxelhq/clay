@@ -3,7 +3,7 @@ package http
 import (
 	"time"
 
-	"github.com/example/clay/registry/pkg/log"
+	"github.com/pixxelhq/clay-framework/registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 )

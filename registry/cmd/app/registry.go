@@ -4,9 +4,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/example/clay/registry/api/http"
+	"github.com/pixxelhq/clay-framework/registry/api/http"
 
-	_ "github.com/example/clay/registry/api_docs" // Swagger docs
+	_ "github.com/pixxelhq/clay-framework/registry/api_docs" // Swagger docs
 )
 
 // @title				Clay Registry

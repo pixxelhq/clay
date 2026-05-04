@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	store "github.com/example/clay/registry/internal/store/sqlc"
-	rerr "github.com/example/clay/registry/pkg/error"
-	"github.com/example/clay/registry/pkg/log"
+	store "github.com/pixxelhq/clay-framework/registry/internal/store/sqlc"
+	rerr "github.com/pixxelhq/clay-framework/registry/pkg/error"
+	"github.com/pixxelhq/clay-framework/registry/pkg/log"
 )
 
 type Specification struct {

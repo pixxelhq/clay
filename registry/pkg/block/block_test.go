@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	mock_store "github.com/example/clay/registry/internal/store/mock"
-	store "github.com/example/clay/registry/internal/store/sqlc"
-	rerr "github.com/example/clay/registry/pkg/error"
+	mock_store "github.com/pixxelhq/clay-framework/registry/internal/store/mock"
+	store "github.com/pixxelhq/clay-framework/registry/internal/store/sqlc"
+	rerr "github.com/pixxelhq/clay-framework/registry/pkg/error"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

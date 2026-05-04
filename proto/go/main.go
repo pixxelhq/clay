@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strconv"
 
-	generated "github.com/example/clay/proto/go/generated"
+	generated "github.com/pixxelhq/clay-framework/proto/go/generated"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"

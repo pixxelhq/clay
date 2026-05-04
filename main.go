@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"regexp"
 
-	"github.com/example/clay/cmd"
-	"github.com/example/clay/pkg/docker"
+	"github.com/pixxelhq/clay-framework/cmd"
+	"github.com/pixxelhq/clay-framework/pkg/docker"
 )
 
 //go:embed python/clay/__version__.py

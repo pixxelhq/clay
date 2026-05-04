@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/example/clay/pkg/config"
+	"github.com/pixxelhq/clay-framework/pkg/config"
 )
 
 var (
