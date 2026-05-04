@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	newproject "github.com/example/clay/cmd/newproject"
+	newproject "github.com/pixxelhq/clay-framework/cmd/newproject"
 	"github.com/spf13/cobra"
 )
 

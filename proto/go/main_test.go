@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/example/clay/proto/go/generated"
+	"github.com/pixxelhq/clay-framework/proto/go/generated"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )

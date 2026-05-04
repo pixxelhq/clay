@@ -30,16 +30,16 @@ Pick whichever installation method is most convenient.
 ### Option 1 — Download a pre-built binary (recommended)
 
 Download the latest release for your platform from
-[GitHub Releases](https://github.com/example/clay/releases) and move it onto
+[GitHub Releases](https://github.com/pixxelhq/clay-framework/releases) and move it onto
 your `PATH`:
 
 ```shell
 # macOS (Apple Silicon)
-curl -L https://github.com/example/clay/releases/latest/download/clay-<version>-macosx-arm64 -o /usr/local/bin/clay
+curl -L https://github.com/pixxelhq/clay-framework/releases/latest/download/clay-<version>-macosx-arm64 -o /usr/local/bin/clay
 chmod +x /usr/local/bin/clay
 
 # Linux (amd64)
-curl -L https://github.com/example/clay/releases/latest/download/clay-<version>-linux-amd64 -o /usr/local/bin/clay
+curl -L https://github.com/pixxelhq/clay-framework/releases/latest/download/clay-<version>-linux-amd64 -o /usr/local/bin/clay
 chmod +x /usr/local/bin/clay
 ```
 
@@ -62,7 +62,7 @@ Binaries are published for macOS (amd64, arm64), Linux (amd64, arm64), and Windo
 Requires Go 1.22+.
 
 ```shell
-git clone https://github.com/example/clay.git
+git clone https://github.com/pixxelhq/clay-framework.git
 cd clay
 make go-binaries        # output goes to ./bin/
 ```

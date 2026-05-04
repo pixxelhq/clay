@@ -32,7 +32,7 @@ proto/
 ## Go Usage
 
 ```go
-import "github.com/example/clay/proto/go"
+import "github.com/pixxelhq/clay-framework/proto/go"
 ```
 
 ## Python Usage

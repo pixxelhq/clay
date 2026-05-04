@@ -5,7 +5,7 @@ import (
 
 	"github.com/lib/pq"
 
-	rerr "github.com/example/clay/registry/pkg/error"
+	rerr "github.com/pixxelhq/clay-framework/registry/pkg/error"
 )
 
 func PGErrorToRegistryError(err error) *rerr.RegistryError {

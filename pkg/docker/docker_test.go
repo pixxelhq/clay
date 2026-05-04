@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/example/clay/pkg/config"
+	"github.com/pixxelhq/clay-framework/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 

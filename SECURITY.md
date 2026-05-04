@@ -5,7 +5,7 @@
 If you believe you have found a security vulnerability in Clay, please report
 it privately via GitHub's private vulnerability reporting:
 
-**https://github.com/example/clay/security/advisories/new**
+**https://github.com/pixxelhq/clay-framework/security/advisories/new**
 
 Please do **not** open a public issue, pull request, or discussion for
 security-related reports.

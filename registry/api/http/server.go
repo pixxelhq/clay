@@ -8,10 +8,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/example/clay/registry/config"
-	store "github.com/example/clay/registry/internal/store/sqlc"
-	"github.com/example/clay/registry/pkg/block"
-	"github.com/example/clay/registry/pkg/log"
+	"github.com/pixxelhq/clay-framework/registry/config"
+	store "github.com/pixxelhq/clay-framework/registry/internal/store/sqlc"
+	"github.com/pixxelhq/clay-framework/registry/pkg/block"
+	"github.com/pixxelhq/clay-framework/registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"

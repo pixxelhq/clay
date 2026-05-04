@@ -1,8 +1,8 @@
 site_name: Clay Documentation
 site_description: Open-source framework for packaging and deploying ML models
-site_url: https://pixxelhq.github.io/clay/
-repo_name: example/clay
-repo_url: https://github.com/example/clay
+site_url: https://pixxelhq.github.io/clay-framework/
+repo_name: pixxelhq/clay-framework
+repo_url: https://github.com/pixxelhq/clay-framework
 edit_uri: edit/main/mkdocs/docs/
 
 theme:
@@ -121,7 +121,7 @@ markdown_extensions:
   - pymdownx.magiclink:         # Auto-link URLs
       repo_url_shorthand: true
       user: pixxelhq
-      repo: clay
+      repo: clay-framework
   - pymdownx.smartsymbols       # Smart symbols
   - pymdownx.snippets:          # Include snippets
       check_paths: true
@@ -143,7 +143,7 @@ extra:
   # Social links
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/example/clay
+      link: https://github.com/pixxelhq/clay-framework
       name: Clay on GitHub
 
   # Analytics (optional - add your Google Analytics ID)
@@ -193,6 +193,15 @@ plugins:
       handlers:
         python:
           paths: ["../python"]
+          inventories:
+            - url: https://docs.python-requests.org/en/master/objects.inv
+              domains: [py, std]
+            - url: https://docs.python.org/3/objects.inv
+              domains: [py, std]
+            - url: https://docs.pydantic.dev/latest/objects.inv
+              domains: [py, std]
+            - url: https://typing-extensions.readthedocs.io/en/latest/objects.inv
+              domains: [py, std]
           options:
             docstring_style: google
             show_root_toc_entry: false
@@ -205,12 +214,6 @@ plugins:
             signature_crossrefs: true
             merge_init_into_class: true
             separate_signature: true
-          import:
-            - url: https://docs.python-requests.org/en/master/objects.inv
-            - url: https://docs.python.org/3.9/objects.inv
-            - url: https://docs.pydantic.dev/latest/objects.inv
-            - url: https://typing-extensions.readthedocs.io/en/latest/objects.inv
-          domains: ["py", "std"]
 
 nav:
   - Home: "index.md"
