@@ -62,13 +62,10 @@ func describeBlockCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, block := range blocks {
-		prettyJSON, err := json.MarshalIndent(block, "", "  ")
-		if err != nil {
-			fmt.Printf("Failed to generate pretty JSON version %v, error : %s\n", block.Version, err)
-			continue
-		}
-		fmt.Println(string(prettyJSON))
+	prettyJSON, err := json.MarshalIndent(blocks, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to generate pretty JSON: %w", err)
 	}
+	fmt.Println(string(prettyJSON))
 	return nil
 }
