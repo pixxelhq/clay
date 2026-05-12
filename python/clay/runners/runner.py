@@ -207,11 +207,15 @@ class JobRunner(BaseRunner):
             *args: Any,
             **kwargs: Any
     ) -> Any:
-        err_msg = ""
-        failure_type = ErrorType.RUNTIME_EXCEPTION
+        err_msg = str(exc) or repr(exc)
         if isinstance(exc, FailedExecutionException):
             err_msg = exc.msg
             failure_type = ErrorType.BAD_REQUEST
+        elif isinstance(exc, TypeError) and "missing" in err_msg and "required" in err_msg and "argument" in err_msg:
+            # Python signature mismatch from preprocess(**inputs) — caller omitted a required input declared in clay.yaml.
+            failure_type = ErrorType.BAD_REQUEST
+        else:
+            failure_type = ErrorType.RUNTIME_EXCEPTION
 
         self._callback_handler.send(
             id=self._params.get_execution_id(),
@@ -292,10 +296,11 @@ class JobRunner(BaseRunner):
         remote_path = self._params.get_remote_input_path()
         if not remote_path:
             self.logger.warning("cannot upload asset as no remote path was found")
+        asset_basename = os.path.basename(file_path)
         if is_input:
-            remote_input_path = os.path.join(remote_path, "inputs", io_name, file_path)
+            remote_input_path = os.path.join(remote_path, "inputs", io_name, asset_basename)
         else:
-            remote_input_path = os.path.join(remote_path, "outputs", io_name, file_path)
+            remote_input_path = os.path.join(remote_path, "outputs", io_name, asset_basename)
         self.logger.info(f"uploading file at {file_path} to {remote_input_path}")
         dest_provider = create_provider(remote_path)
         dest_provider.upload(file_path, remote_input_path)
