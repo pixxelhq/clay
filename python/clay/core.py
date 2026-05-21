@@ -268,7 +268,7 @@ class BlockWrapper:
         """
         self._validate_inputs(inputs)
 
-        d: Dict[str, Any] = inputs
+        d: Dict[str, Union[datatypes.DataWrapper, datatypes.TypedDataView]] = inputs
         if not self.wrap_inputs:
             for key, value in inputs.items():
                 if not isinstance(value, datatypes.DataWrapper):
