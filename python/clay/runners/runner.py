@@ -16,7 +16,7 @@ from clay.core import BaseRunner, BlockWrapper
 from clay.exceptions import FailedExecutionException
 from clay.logger import ClayLogger
 from clay.storage.fs import create_provider, process_input_list, process_output_list, process_spec_files
-from clay.utils import cast_inputs, get_current_utc_time_iso, yaml_to_namespace
+from clay.utils import get_current_utc_time_iso, yaml_to_namespace
 
 
 class RunnerConfig:
@@ -75,11 +75,6 @@ class RunnerConfig:
                     raise ValueError(f"Failed to process input JSON with jq filter '{self._input_json_jq_filter}': {e}")
             else:
                 self._input_json = json.loads(self._input_json_string)
-
-        # FIXME: this is a hack to ensure that the input JSON always has the correct types, as argo might send
-        # float as string
-        for inp in self._input_json:
-            inp["value"] = cast_inputs(inp["value"], inp["type"])
 
     def get_input_json(self) -> List[Dict[str, Any]]:
         self._process_input_json()
