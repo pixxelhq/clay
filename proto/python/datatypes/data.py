@@ -312,23 +312,26 @@ def _convert_legacy_value_primitives_to_string_(v: Union[int, float, str, bool])
     return v
 
 
-def cast_typed_value(raw: str, declared_type: Optional[str]) -> Any:
+TypedValue = Union[str, int, float, bool]
+
+
+def cast_typed_value(raw_value: str, declared_type: Optional[str]) -> TypedValue:
     """Cast a proto string value to the type declared on the proto's `type` field."""
     if not declared_type:
-        return raw
+        return raw_value
     t = declared_type.lower()
     if t == "int":
-        return int(raw)
+        return int(raw_value)
     if t == "float":
-        return float(raw)
+        return float(raw_value)
     if t in ("bool", "boolean"):
-        v = raw.strip().lower()
+        v = raw_value.strip().lower()
         if v in ("true", "1", "yes"):
             return True
         if v in ("false", "0", "no", ""):
             return False
-        raise ValueError(f"cannot interpret '{raw}' as a boolean")
-    return raw
+        raise ValueError(f"cannot interpret '{raw_value}' as a boolean")
+    return raw_value
 
 
 class TypedDataView:
@@ -338,7 +341,7 @@ class TypedDataView:
         self._proto = proto
 
     @property
-    def value(self) -> Any:
+    def value(self) -> TypedValue:
         return cast_typed_value(self._proto.value, self._proto.type)
 
     def __getattr__(self, name: str) -> Any:
