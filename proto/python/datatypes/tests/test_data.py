@@ -327,3 +327,78 @@ def test_validate_input_no_validation_spec_is_noop():
     """If the spec has no 'validation' key, validate_input returns without error."""
     s = _wrapped(data.StringFromDict, {"format": "string", "name": "mode", "value": "anything"})
     data.validate_input(s, {"name": "mode", "format": "string"})
+
+
+# --- Typed .value access (cast_typed_value + TypedDataView) ---
+
+
+def test_cast_typed_value_int():
+    assert data.cast_typed_value("5", "int") == 5
+    assert data.cast_typed_value("-3", "Int") == -3
+
+
+def test_cast_typed_value_float():
+    assert data.cast_typed_value("1.5", "float") == 1.5
+    assert data.cast_typed_value("2", "Float") == 2.0
+
+
+@pytest.mark.parametrize("raw,expected", [("true", True), ("True", True), ("1", True), ("yes", True)])
+def test_cast_typed_value_bool_truthy(raw, expected):
+    assert data.cast_typed_value(raw, "bool") is expected
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [("false", False), ("False", False), ("0", False), ("no", False), ("", False)],
+)
+def test_cast_typed_value_bool_falsy(raw, expected):
+    assert data.cast_typed_value(raw, "boolean") is expected
+
+
+def test_cast_typed_value_bool_invalid_raises():
+    with pytest.raises(ValueError):
+        data.cast_typed_value("maybe", "bool")
+
+
+def test_cast_typed_value_passthrough_for_unknown_or_absent_type():
+    assert data.cast_typed_value("42", None) == "42"
+    assert data.cast_typed_value("42", "") == "42"
+    # Unrecognised declared types (e.g. "url" on a raster) are not Python primitives,
+    # so the raw string is returned unchanged.
+    assert data.cast_typed_value("42", "url") == "42"
+    assert data.cast_typed_value("hello", "str") == "hello"
+
+
+def test_typed_data_view_uses_proto_type_field():
+    n = data.Number(name="weight", type="int", value="5")
+    view = data.TypedDataView(n)
+    assert view.value == 5
+    assert isinstance(view.value, int)
+
+
+def test_typed_data_view_delegates_other_attributes():
+    n = data.Number(name="weight", type="int", value="5")
+    view = data.TypedDataView(n)
+    assert view.name == "weight"
+    assert view.type == "int"
+
+
+def test_typed_data_view_no_type_returns_raw():
+    # When the proto has no declared type, `.value` falls through as the raw string.
+    n = data.Number(name="raw", value="5")
+    view = data.TypedDataView(n)
+    assert view.value == "5"
+
+
+def test_data_wrapper_typed_view_round_trip():
+    """End-to-end: a typed input parsed via FromDict round-trips through the typed view."""
+    dw = data.FromDict(
+        {"name": "weight", "format": "number", "type": "int", "value": 5},
+        wrap=True,
+    )
+    assert isinstance(dw, DataWrapper)
+    view = dw.typed_view()
+    assert view.value == 5
+    assert isinstance(view.value, int)
+    # The proto still stores the value as a string for wire compat.
+    assert dw.get_proto().value == "5"
