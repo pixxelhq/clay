@@ -268,13 +268,12 @@ class BlockWrapper:
         """
         self._validate_inputs(inputs)
 
-        d: Dict[str, Union[datatypes.DataWrapper, datatypes.Data]] = inputs
+        d: Dict[str, Any] = inputs
         if not self.wrap_inputs:
-            # lift the wrapped types
             for key, value in inputs.items():
                 if not isinstance(value, datatypes.DataWrapper):
                     raise TypeError("Only DataWrapper instances are supported")
-                d[key] = value.get_proto()
+                d[key] = value.typed_view()
 
         _inf_ctx = InferenceCtx()
         _return_vals = await self.preprocess(**d)
