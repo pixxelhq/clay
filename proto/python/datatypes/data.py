@@ -140,6 +140,10 @@ class DataWrapper(DataWrapperInterface):
     def get_proto(self) -> Data:
         return self._proto_cls_initialised
 
+    def typed_view(self) -> "TypedDataView":
+        """Return a proxy whose `.value` honors the proto's declared type."""
+        return TypedDataView(self._proto_cls_initialised)
+
     def serialize_to_dict(self) -> typing.Dict[str, typing.Any]:
         return MessageToDict(
             self._proto_cls_initialised,
@@ -306,6 +310,42 @@ def _convert_legacy_value_primitives_to_string_(v: Union[int, float, str, bool])
     elif isinstance(v, int) or isinstance(v, float):
         return str(v)
     return v
+
+
+TypedValue = Union[str, int, float, bool]
+
+
+def cast_typed_value(raw_value: str, declared_type: Optional[str]) -> TypedValue:
+    """Cast a proto string value to the type declared on the proto's `type` field."""
+    if not declared_type:
+        return raw_value
+    t = declared_type.lower()
+    if t == "int":
+        return int(raw_value)
+    if t == "float":
+        return float(raw_value)
+    if t in ("bool", "boolean"):
+        v = raw_value.strip().lower()
+        if v in ("true", "1", "yes"):
+            return True
+        if v in ("false", "0", "no", ""):
+            return False
+        raise ValueError(f"cannot interpret '{raw_value}' as a boolean")
+    return raw_value
+
+
+class TypedDataView:
+    """Proxy over a Data proto whose `.value` honors the proto's declared type."""
+
+    def __init__(self, proto: Data) -> None:
+        self._proto = proto
+
+    @property
+    def value(self) -> TypedValue:
+        return cast_typed_value(self._proto.value, self._proto.type)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._proto, name)
 
 
 class ValidationError(DataWrapperError):
