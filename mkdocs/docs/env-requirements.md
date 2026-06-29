@@ -45,7 +45,7 @@ export INPUT_JSON='[{"name": "data", "type": "url", "value": "s3://bucket/file.t
 
 - **Purpose**: Defines a [jq](https://stedolan.github.io/jq/) filter for parsing input JSON, especially within workflows.
 - **Default Value**:
-  ```jq
+  ```bash
   [.inputs.parameters[] | (.value | fromjson) + {name: .name}]
   ```
 - **Usage**: Processes parameterized inputs in workflow scenarios by transforming, filtering, or extracting specific values needed for block consumption.
