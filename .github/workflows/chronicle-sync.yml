@@ -1,0 +1,26 @@
+name: chronicle-sync
+
+on:
+  push:
+    branches: [main]
+    paths: ["mkdocs/docs/**"]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: [self-hosted, pixxel-org-self-hosted-runners]
+    steps:
+      - uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: https://vault.pixxel.dev/
+          token: ${{ secrets.VAULT_TOKEN }}
+          secrets: |
+            aws/data/core/production/chronicle/platform GITHUB_TOKEN
+      - uses: pixxelhq/chronicle-sync-action@main
+        with:
+          source_path: mkdocs/docs
+          target_repo: pixxelhq/platform-internal-docs
+          target_path: content/clay
+          target_branch: main
+          token: ${{ steps.vault.outputs.GITHUB_TOKEN }}
