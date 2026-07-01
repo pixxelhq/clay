@@ -1,3 +1,8 @@
+---
+title: Block Specification
+order: 5
+---
+
 # Block Specification
 
 The block specification file (`clay.yaml`) defines your block's metadata, inputs, outputs, and build configuration. This file is required for Clay to understand how to build, deploy, and run your block.

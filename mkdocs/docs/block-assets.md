@@ -1,3 +1,8 @@
+---
+title: Block Assets
+order: 8
+---
+
 # Block Assets Management
 
 Clay's `block assets` commands let you upload, list, and download files associated with your blocks in cloud storage. The interface is platform-agnostic: every command takes a single `--url` flag that names a complete storage location. The URL's scheme tells Clay which backend to use.

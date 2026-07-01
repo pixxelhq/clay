@@ -1,3 +1,8 @@
+---
+title: Home
+order: 1
+---
+
 # Welcome to Clay
 
 [Visit the project on Github](https://github.com/pixxelhq/clay-framework)

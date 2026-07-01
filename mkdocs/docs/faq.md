@@ -1,3 +1,8 @@
+---
+title: FAQs
+order: 13
+---
+
 # FAQ
 
 ### Why should we create projects with Clay?

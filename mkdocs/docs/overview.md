@@ -1,3 +1,8 @@
+---
+title: Overview
+order: 3
+---
+
 # Clay Architecture Overview
 
 This document provides a high-level overview of Clay's architecture, components, and how they work together to enable standardized block deployment.

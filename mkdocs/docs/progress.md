@@ -1,3 +1,8 @@
+---
+title: Indicating Progress
+order: 10
+---
+
 # Indicating Block Progress
 
 Most of the blocks in our ecosystem are long running blocks. Hence, indicating the progress of an inference is a key component of the user experience.

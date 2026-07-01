@@ -1,3 +1,8 @@
+---
+title: Block Development Tutorial
+order: 9
+---
+
 # Block Development
 Welcome to our tutorial on creating an NDVI block for Landsat imagery using Clay.
 

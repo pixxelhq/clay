@@ -1,3 +1,8 @@
+---
+title: Logging
+order: 12
+---
+
 # Logging
 
 Clay provides structured JSON logging through the `BlockWrapper`'s `self.logger` attribute. Use it to print useful information at various stages of the block pipeline.
