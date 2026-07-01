@@ -1,3 +1,8 @@
+---
+title: Getting Started
+order: 2
+---
+
 # Getting Started
 
 This guide walks you through installing Clay and creating your first block project.

@@ -1,3 +1,8 @@
+---
+title: CLI Reference
+order: 11
+---
+
 # CLI Reference
 
 The Clay CLI provides commands for creating, building, publishing, and managing ML blocks.

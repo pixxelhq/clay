@@ -1,3 +1,8 @@
+---
+title: Environment Variables
+order: 6
+---
+
 # Environment Variables Reference
 
 This document details the environment variables used to configure and run a block locally or through an orchestrator. Each variable controls a distinct aspect of execution, data management, or orchestration. Understanding and setting these variables correctly ensures smooth and reproducible runs—whether executing single-block insights or workflows of chained blocks.

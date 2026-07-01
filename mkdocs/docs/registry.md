@@ -1,3 +1,8 @@
+---
+title: Clay Registry
+order: 7
+---
+
 # Clay Registry
 
 The Clay Registry is an optional HTTP service for tracking blocks, their

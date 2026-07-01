@@ -1,3 +1,8 @@
+---
+title: Input/Output & Datatypes
+order: 4
+---
+
 # Input/Output & Datatypes
 
 An ML block can be considered as a black box function that takes something as input and returns something which is treated as output. Clay enforces the block to have input and output of certain `types`. We call these types `datatypes`.
