@@ -18,7 +18,7 @@ Docker containers without ever publishing to a registry.
 - Block definitions (name, kind, type, description)
 - Versions of each block
 - Docker image reference for each version
-- Documentation and thumbnail URLs
+- A copy of the structured catalog documentation (media, sample I/O, and content sections)
 - Block specification snapshots
 
 The registry is a Go HTTP service backed by PostgreSQL. Source lives under

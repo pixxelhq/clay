@@ -97,8 +97,6 @@ clay publish [flags]
 |------|-------------|---------|
 | `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
 | `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
-| `--documentation-url` | Block documentation URL | — |
-| `--thumbnail-url` | Block thumbnail URL | — |
 
 ---
 
@@ -160,7 +158,8 @@ clay block assets upload <path> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--url` | Complete storage URL where assets will be uploaded (required) | — |
-| `--parse` | Render a template file inside `<path>` (which must be a directory) before uploading. Format: `<input>[:<output>]`, relative to `<path>`. The `{{ addUrl "file" }}` helper resolves to `<base-url>/file`, where `<base-url>` is the value of `--url`. If `<output>` is omitted, defaults to `<name>.parsed<ext>`. | — |
+| `--catalog` | Name of a `catalog.yaml` inside `<path>` (the model repo directory). Uploads each file declared in its `media:` section to `<--url>/<relative-path>` and rewrites those `media:` values to the uploaded URLs. Bake the block/version into `--url`. | — |
+| `--out` | Where to write the rewritten catalog (with `--catalog`); relative paths resolve against `<path>`. Defaults to overwriting the `--catalog` file in place. | — |
 
 ### List Assets
 

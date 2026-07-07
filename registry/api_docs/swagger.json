@@ -182,10 +182,10 @@
         "http.CreateBlockRequest": {
             "type": "object",
             "properties": {
-                "docker_image": {
-                    "type": "string"
+                "catalog": {
+                    "type": "object"
                 },
-                "documentation_url": {
+                "docker_image": {
                     "type": "string"
                 },
                 "kind": {
@@ -196,9 +196,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -211,13 +208,13 @@
         "http.CreateBlockResponse": {
             "type": "object",
             "properties": {
+                "catalog": {
+                    "type": "object"
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "docker_image": {
-                    "type": "string"
-                },
-                "documentation_url": {
                     "type": "string"
                 },
                 "id": {
@@ -228,9 +225,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -252,9 +246,6 @@
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -266,9 +257,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -290,9 +278,6 @@
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -304,9 +289,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"

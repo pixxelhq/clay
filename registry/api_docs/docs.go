@@ -189,10 +189,10 @@ const docTemplate = `{
         "http.CreateBlockRequest": {
             "type": "object",
             "properties": {
-                "docker_image": {
-                    "type": "string"
+                "catalog": {
+                    "type": "object"
                 },
-                "documentation_url": {
+                "docker_image": {
                     "type": "string"
                 },
                 "kind": {
@@ -203,9 +203,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -218,13 +215,13 @@ const docTemplate = `{
         "http.CreateBlockResponse": {
             "type": "object",
             "properties": {
+                "catalog": {
+                    "type": "object"
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "docker_image": {
-                    "type": "string"
-                },
-                "documentation_url": {
                     "type": "string"
                 },
                 "id": {
@@ -235,9 +232,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -259,9 +253,6 @@ const docTemplate = `{
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -273,9 +264,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -297,9 +285,6 @@ const docTemplate = `{
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -311,9 +296,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"

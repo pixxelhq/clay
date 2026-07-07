@@ -6,16 +6,19 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/pixxelhq/clay-framework/pkg/catalog"
 	"github.com/pixxelhq/clay-framework/pkg/storage"
 	"github.com/spf13/cobra"
 )
 
 var (
-	storageURL string
-	outputPath string
-	parseSpec  string
+	storageURL  string
+	outputPath  string
+	catalogFile string
+	catalogOut  string
 )
 
 // BlockAssetsCmd returns the assets command group
@@ -49,36 +52,33 @@ func blockAssetsUploadCmd() *cobra.Command {
 		Short: "Upload assets to block storage",
 		Long: `Upload a file or directory to the storage location specified by --url.
 
-If --parse is provided, <path> must be a directory and --parse names a
-template file inside that directory. The template is rendered through Go's
-text/template engine before uploading the directory. Use
-{{ addUrl "file" }} inside the template to resolve relative asset
-references against --url.`,
+If --catalog is provided, <path> must be the model repo directory and
+--catalog names a catalog.yaml inside it: each file declared in its media:
+section is uploaded and the media: values are rewritten to the uploaded URLs.`,
 		Example: `  # Upload a plain directory or file
   clay block assets upload ./weights \
     --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/
 
-  # Parse a template file inside the directory and upload the directory
-  clay block assets upload catalog_readme/ \
-    --parse README.md:parsed.md \
-    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/
-
-  # Parse with auto-generated output name
-  # (README.md -> block-README.parsed.md)
-  clay block assets upload docs/ \
-    --parse README.md \
-    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/docs/`,
+  # Upload the media declared in catalog.yaml and rewrite it in place.
+  # Bake the block/version into --url.
+  clay block assets upload . \
+    --catalog catalog.yaml \
+    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/`,
 		Args: cobra.ExactArgs(1),
 		RunE: runBlockAssetsUpload,
 	}
 
 	cmd.Flags().StringVar(&storageURL, "url", "", "Storage URL where assets will be uploaded (required)")
-	cmd.Flags().StringVar(&parseSpec, "parse", "",
-		`Template file inside <path> to render before uploading
-(format: <input>[:<output>]). Paths are relative to <path>.
-Requires <path> to be a directory. Use {{ addUrl "file" }} to
-resolve asset references against --url. Output defaults to
-<name>.parsed<ext>.`)
+	cmd.Flags().StringVar(&catalogFile, "catalog", "",
+		`Catalog filename inside <path> (e.g. catalog.yaml). Uploads
+each file declared in its media: section to --url/<relPath>,
+then rewrites those media: values to the uploaded URLs. Bake
+the block/version into --url; the media relative path is
+appended to it.`)
+	cmd.Flags().StringVar(&catalogOut, "out", "",
+		`Where to write the rewritten catalog (with --catalog).
+Relative paths are resolved against <path>. Defaults to
+overwriting the --catalog file in place.`)
 	cmd.MarkFlagRequired("url")
 
 	return cmd
@@ -138,18 +138,11 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if parseSpec != "" {
+	if catalogFile != "" {
 		if !info.IsDir() {
-			return fmt.Errorf("--parse requires <path> to be a directory containing the template; got file %q", localPath)
+			return fmt.Errorf("--catalog requires <path> to be the model repo directory; got file %q", localPath)
 		}
-		inputPath, parsedPath, err := resolveParseSpec(parseSpec, localPath)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(os.Stderr, "Parsing template %s → %s...\n", inputPath, parsedPath)
-		if err := parseTemplateFile(inputPath, parsedPath, storageURL); err != nil {
-			return fmt.Errorf("failed to parse template: %w", err)
-		}
+		return runCatalogUpload(ctx, provider, remotePrefix, localPath)
 	}
 
 	if info.IsDir() {
@@ -167,6 +160,65 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintln(os.Stderr, "✓ Upload completed successfully")
+	fmt.Println(storageURL)
+	return nil
+}
+
+func runCatalogUpload(ctx context.Context, provider storage.Provider, remotePrefix, repoDir string) error {
+	catPath := filepath.Join(repoDir, catalogFile)
+	cat, err := catalog.LoadFile(catPath)
+	if err != nil {
+		return err
+	}
+	if cat == nil {
+		return fmt.Errorf("catalog file not found: %s", catPath)
+	}
+
+	if len(cat.Media) == 0 {
+		return fmt.Errorf("%s has no media: section, nothing to upload", catPath)
+	}
+
+	keys := make([]string, 0, len(cat.Media))
+	for key := range cat.Media {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	abs := make(map[string]string, len(cat.Media))
+	for _, key := range keys {
+		p, err := catalog.ResolvePath(repoDir, cat.Media[key])
+		if err != nil {
+			return fmt.Errorf("media key %q: %w", key, err)
+		}
+		abs[key] = p
+	}
+
+	base := strings.TrimRight(storageURL, "/")
+	for _, key := range keys {
+		rel := cat.Media[key]
+		fmt.Fprintf(os.Stderr, "Uploading catalog media %q → %s/%s...\n", key, base, rel)
+		if err := provider.Upload(ctx, abs[key], path.Join(remotePrefix, rel)); err != nil {
+			return fmt.Errorf("failed to upload catalog media %q: %w", key, err)
+		}
+		cat.Media[key] = base + "/" + rel
+	}
+
+	outPath := catPath
+	if catalogOut != "" {
+		outPath = catalogOut
+		if !filepath.IsAbs(outPath) {
+			outPath = filepath.Join(repoDir, outPath)
+		}
+	}
+	out, err := cat.Bytes()
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(outPath, out, 0644); err != nil {
+		return fmt.Errorf("failed to write rewritten catalog: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "✓ Uploaded %d media file(s); wrote rewritten catalog to %s\n", len(cat.Media), outPath)
 	fmt.Println(storageURL)
 	return nil
 }

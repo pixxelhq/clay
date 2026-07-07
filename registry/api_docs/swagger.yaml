@@ -1,9 +1,9 @@
 definitions:
   http.CreateBlockRequest:
     properties:
+      catalog:
+        type: object
       docker_image:
-        type: string
-      documentation_url:
         type: string
       kind:
         type: string
@@ -11,8 +11,6 @@ definitions:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
-      thumbnail_url:
-        type: string
       type:
         type: string
       version:
@@ -20,11 +18,11 @@ definitions:
     type: object
   http.CreateBlockResponse:
     properties:
+      catalog:
+        type: object
       created_at:
         type: string
       docker_image:
-        type: string
-      documentation_url:
         type: string
       id:
         type: string
@@ -32,8 +30,6 @@ definitions:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
-      thumbnail_url:
-        type: string
       type:
         type: string
       updated_at:
@@ -47,8 +43,6 @@ definitions:
         type: string
       docker_image:
         type: string
-      documentation_url:
-        type: string
       id:
         type: string
       kind:
@@ -57,8 +51,6 @@ definitions:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
-      thumbnail_url:
-        type: string
       type:
         type: string
       updated_at:
@@ -72,8 +64,6 @@ definitions:
         type: string
       docker_image:
         type: string
-      documentation_url:
-        type: string
       id:
         type: string
       kind:
@@ -82,8 +72,6 @@ definitions:
         type: string
       specification:
         $ref: '#/definitions/http.Specification'
-      thumbnail_url:
-        type: string
       type:
         type: string
       updated_at:

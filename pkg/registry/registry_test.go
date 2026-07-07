@@ -1,8 +1,11 @@
 package registry
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,7 +29,6 @@ func TestListBlocks(t *testing.T) {
                         "type": "type1",
                         "version": "v1",
                         "docker_image": "image1",
-                        "documentation_url": "url1",
                         "specification": null
                     }
                 ],
@@ -35,14 +37,13 @@ func TestListBlocks(t *testing.T) {
 			serverStatus: http.StatusOK,
 			expectedBlocks: Blocks{
 				&Block{
-					ID:               "1",
-					Name:             "block1",
-					Kind:             "kind1",
-					Type:             "type1",
-					Version:          "v1",
-					DockerImage:      "image1",
-					DocumentationURL: "url1",
-					Specification:    nil,
+					ID:            "1",
+					Name:          "block1",
+					Kind:          "kind1",
+					Type:          "type1",
+					Version:       "v1",
+					DockerImage:   "image1",
+					Specification: nil,
 				},
 			},
 			expectedError: "",
@@ -97,9 +98,34 @@ func compareBlocks(a, b Blocks) bool {
 		return false
 	}
 	for i := range a {
-		if *a[i] != *b[i] {
+		if !reflect.DeepEqual(*a[i], *b[i]) {
 			return false
 		}
 	}
 	return true
+}
+
+func TestPublishBlockRequest_CatalogOmitEmpty(t *testing.T) {
+	// Without a catalog, the field must be absent so existing publish flows
+	// (and the Dexter API) see the same shape as before.
+	without, err := json.Marshal(&PublishBlockRequest{Name: "m", Version: "v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(without), "catalog") {
+		t.Errorf("catalog should be omitted when nil: %s", without)
+	}
+
+	// With a catalog, the structured content is carried verbatim under "catalog".
+	with, err := json.Marshal(&PublishBlockRequest{
+		Name:    "m",
+		Version: "v1",
+		Catalog: json.RawMessage(`{"media":{"thumbnail":"https://x/t.png"}}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(with), `"catalog":{"media"`) {
+		t.Errorf("catalog should be embedded when set: %s", with)
+	}
 }

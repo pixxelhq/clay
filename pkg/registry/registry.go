@@ -45,14 +45,15 @@ type Specification struct {
 }
 
 type PublishBlockRequest struct {
-	Name             string         `json:"name"`
-	Kind             string         `json:"kind"`
-	Type             string         `json:"type"`
-	Version          string         `json:"version"`
-	DockerImage      string         `json:"docker_image"`
-	DocumentationURL string         `json:"documentation_url"`
-	ThumbnailURL     string         `json:"thumbnail_url"`
-	Specification    *Specification `json:"specification"`
+	Name          string         `json:"name"`
+	Kind          string         `json:"kind"`
+	Type          string         `json:"type"`
+	Version       string         `json:"version"`
+	DockerImage   string         `json:"docker_image"`
+	Specification *Specification `json:"specification"`
+	// Catalog carries the structured catalog documentation (post media-rewrite)
+	// when the model repo declares a catalog.yaml.
+	Catalog json.RawMessage `json:"catalog,omitempty"`
 }
 
 type Data interface {
@@ -67,15 +68,13 @@ type RegistryResponse[T Data] struct {
 }
 
 type Block struct {
-	ID               string         `json:"id"`
-	Name             string         `json:"name"`
-	Kind             string         `json:"kind"`
-	Type             string         `json:"type"`
-	Version          string         `json:"version"`
-	DockerImage      string         `json:"docker_image"`
-	DocumentationURL string         `json:"documentation_url"`
-	ThumbnailURL     string         `json:"thumbnail_url"`
-	Specification    *Specification `json:"specification,omitempty"`
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Kind          string         `json:"kind"`
+	Type          string         `json:"type"`
+	Version       string         `json:"version"`
+	DockerImage   string         `json:"docker_image"`
+	Specification *Specification `json:"specification,omitempty"`
 }
 
 type Blocks []*Block

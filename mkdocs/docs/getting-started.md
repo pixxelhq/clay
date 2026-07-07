@@ -105,8 +105,7 @@ MyBlock/
 ├── tests/
 │   ├── test_block.py            # Local testing script
 │   └── sample_block_inputs.json # Example inputs for testing
-├── docs/
-│   └── README.md                # Block documentation
+├── catalog.yaml                 # Marketplace documentation (media + content sections)
 ├── clay.yaml                    # Clay configuration
 ├── requirements.txt / conda.yaml # Python dependencies — pip (default) or conda (recommended for GPU blocks)
 ├── Makefile                     # Common commands
@@ -216,7 +215,7 @@ User-facing documentation for your block. Provide a complete overview, including
 1. **Edit `src/block.py`** — Implement your block logic
 2. **Update `clay.yaml`** — Define inputs, outputs, and requirements
 3. **Modify `sample_block_inputs.json`** — Add realistic test data
-4. **Update `docs/README.md`** — Document your block
+4. **Update `catalog.yaml`** — Document your block for the marketplace
 
 **Files you won't need to modify:**
 
@@ -331,8 +330,6 @@ one.
 
     - `--docker-registry` *(optional)* - Docker image registry to push to (env: `CLAY_DOCKER_REGISTRY`)
     - `--clay-registry` *(optional)* - Clay block registry URL (env: `CLAY_REGISTRY_HOST`)
-    - `--documentation-url` *(optional)* - URL for block documentation
-    - `--thumbnail-url` *(optional)* - URL for block thumbnail image
 
     **Example with custom registries:**
 
@@ -355,8 +352,7 @@ one.
         "kind": "block",
         "type": "processing",
         "version": "v1.0.0",
-        "docker_image": "registry-url/my-block:v1.0.0",
-        "documentation_url": "https://..."
+        "docker_image": "registry-url/my-block:v1.0.0"
       },
       {
         "id": "another-uuid",
@@ -364,8 +360,7 @@ one.
         "kind": "block",
         "type": "processing",
         "version": "v0.2.0",
-        "docker_image": "registry-url/another-block:v0.2.0",
-        "documentation_url": "https://..."
+        "docker_image": "registry-url/another-block:v0.2.0"
       }
     ]
     ```
@@ -385,8 +380,6 @@ one.
       "type": "processing",
       "version": "v1.0.0",
       "docker_image": "registry-url/my-block:v1.0.0",
-      "documentation_url": "https://...",
-      "thumbnail_url": "https://...",
       "specification": {
         "inputs": [ /* ... */ ],
         "outputs": [ /* ... */ ],
