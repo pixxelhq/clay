@@ -1,8 +1,11 @@
 package registry
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,9 +100,34 @@ func compareBlocks(a, b Blocks) bool {
 		return false
 	}
 	for i := range a {
-		if *a[i] != *b[i] {
+		if !reflect.DeepEqual(*a[i], *b[i]) {
 			return false
 		}
 	}
 	return true
+}
+
+func TestPublishBlockRequest_CatalogOmitEmpty(t *testing.T) {
+	// Without a catalog, the field must be absent so existing publish flows
+	// (and the Dexter API) see the same shape as before.
+	without, err := json.Marshal(&PublishBlockRequest{Name: "m", Version: "v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(without), "catalog") {
+		t.Errorf("catalog should be omitted when nil: %s", without)
+	}
+
+	// With a catalog, the structured content is carried verbatim under "catalog".
+	with, err := json.Marshal(&PublishBlockRequest{
+		Name:    "m",
+		Version: "v1",
+		Catalog: json.RawMessage(`{"media":{"thumbnail":"https://x/t.png"}}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(with), `"catalog":{"media"`) {
+		t.Errorf("catalog should be embedded when set: %s", with)
+	}
 }

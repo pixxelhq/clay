@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pixxelhq/clay-framework/pkg/catalog"
 	"github.com/pixxelhq/clay-framework/pkg/config"
 	"github.com/pixxelhq/clay-framework/pkg/docker"
 	"github.com/pixxelhq/clay-framework/pkg/registry"
@@ -61,6 +62,11 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	cat, err := catalog.Load(cwd)
+	if err != nil {
+		return err
+	}
+
 	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
 
 	// Build the docker image. Pass the fully-qualified image (including the
@@ -77,9 +83,17 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("🎉 docker image %s has been pushed to the registry\n", builtTag)
 
+	var catalogJSON json.RawMessage
+	if cat != nil {
+		catalogJSON, err = cat.JSON()
+		if err != nil {
+			return err
+		}
+	}
+
 	r := registry.New(clayRegistry, 5*time.Second)
 
-	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, builtTag)
+	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, builtTag, catalogJSON)
 	if err != nil {
 		return err
 	}
@@ -97,7 +111,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string) (*registry.PublishBlockRequest, error) {
+func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string, catalogJSON json.RawMessage) (*registry.PublishBlockRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
 		return nil, fmt.Errorf("error while marshalling build json: %w", err)
@@ -123,6 +137,7 @@ func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL
 			ENV:        cfg.ENV,
 			Gpu:        cfg.Gpu,
 		},
+		Catalog: catalogJSON,
 	}
 
 	return req, nil

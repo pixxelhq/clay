@@ -53,6 +53,9 @@ type PublishBlockRequest struct {
 	DocumentationURL string         `json:"documentation_url"`
 	ThumbnailURL     string         `json:"thumbnail_url"`
 	Specification    *Specification `json:"specification"`
+	// Catalog carries the structured catalog documentation (post media-rewrite)
+	// when the model repo declares a catalog.yaml.
+	Catalog json.RawMessage `json:"catalog,omitempty"`
 }
 
 type Data interface {

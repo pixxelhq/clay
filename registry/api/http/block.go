@@ -62,6 +62,7 @@ func (bh *blockHandler) Create(ctx *gin.Context) {
 			Version:          blk.Version,
 			DocumentationURL: blk.DocumentationURL,
 			ThumbnailURL:     blk.ThumbnailURL,
+			Catalog:          blk.Catalog,
 			DockerImage:      blk.DockerImage,
 			CreatedAt:        blk.CreatedAt,
 			UpdatedAt:        blk.UpdatedAt,
@@ -247,6 +248,7 @@ func convertToServiceBlock(req CreateBlockRequest) *block.Block {
 		Version:          req.Version,
 		DocumentationURL: req.DocumentationURL,
 		ThumbnailURL:     req.ThumbnailURL,
+		Catalog:          req.Catalog,
 		DockerImage:      req.DockerImage,
 		Specification:    convertToServiceSpecification(req.Specification),
 	}

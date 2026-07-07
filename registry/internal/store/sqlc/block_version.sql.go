@@ -21,6 +21,7 @@ INSERT INTO
         specification,
         documentation_url,
         thumbnail_url,
+        catalog,
         docker_image
     )
 VALUES
@@ -30,8 +31,9 @@ VALUES
         $3,
         $4,
         $5,
-        $6
-    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at, thumbnail_url
+        $6,
+        $7
+    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at, thumbnail_url, catalog
 `
 
 type CreateBlockVersionParams struct {
@@ -40,6 +42,7 @@ type CreateBlockVersionParams struct {
 	Specification    json.RawMessage
 	DocumentationUrl sql.NullString
 	ThumbnailUrl     sql.NullString
+	Catalog          json.RawMessage
 	DockerImage      sql.NullString
 }
 
@@ -50,6 +53,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		arg.Specification,
 		arg.DocumentationUrl,
 		arg.ThumbnailUrl,
+		arg.Catalog,
 		arg.DockerImage,
 	)
 	var i BlockVersion
@@ -63,6 +67,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ThumbnailUrl,
+		&i.Catalog,
 	)
 	return i, err
 }
