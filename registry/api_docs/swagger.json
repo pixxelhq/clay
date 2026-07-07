@@ -188,9 +188,6 @@
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "kind": {
                     "type": "string"
                 },
@@ -199,9 +196,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -223,9 +217,6 @@
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -234,9 +225,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -258,9 +246,6 @@
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -272,9 +257,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -296,9 +278,6 @@
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -310,9 +289,6 @@
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"

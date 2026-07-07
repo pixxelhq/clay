@@ -15,10 +15,8 @@ import (
 )
 
 var (
-	clayRegistry     string
-	dockerRegistry   string
-	documentationURL string
-	thumbnailURL     string
+	clayRegistry   string
+	dockerRegistry string
 )
 
 func publishBlockToRegistryCmd() *cobra.Command {
@@ -45,8 +43,6 @@ func publishBlockToRegistryCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&dockerRegistry, "docker-registry", "", "Docker image registry URL (env: CLAY_DOCKER_REGISTRY)")
 	cmd.Flags().StringVar(&clayRegistry, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
-	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "URL for block documentation")
-	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "URL for block thumbnail")
 
 	return cmd
 }
@@ -93,7 +89,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 
 	r := registry.New(clayRegistry, 5*time.Second)
 
-	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, builtTag, catalogJSON)
+	req, err := buildPublishBlockRequest(cfg, builtTag, catalogJSON)
 	if err != nil {
 		return err
 	}
@@ -111,20 +107,18 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string, catalogJSON json.RawMessage) (*registry.PublishBlockRequest, error) {
+func buildPublishBlockRequest(cfg *config.Config, dockerImage string, catalogJSON json.RawMessage) (*registry.PublishBlockRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
 		return nil, fmt.Errorf("error while marshalling build json: %w", err)
 	}
 
 	req := &registry.PublishBlockRequest{
-		Name:             cfg.Name,
-		Kind:             cfg.Kind,
-		Type:             cfg.Type,
-		Version:          cfg.Version,
-		DockerImage:      dockerImage,
-		DocumentationURL: documentationURL,
-		ThumbnailURL:     thumbnailURL,
+		Name:        cfg.Name,
+		Kind:        cfg.Kind,
+		Type:        cfg.Type,
+		Version:     cfg.Version,
+		DockerImage: dockerImage,
 		Specification: &registry.Specification{
 			APIVersion: cfg.APIVersion,
 			Title:      cfg.Name,
