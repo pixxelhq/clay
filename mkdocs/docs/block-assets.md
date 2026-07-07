@@ -58,6 +58,8 @@ When you pass `--catalog`, `<path>` must be the model repo directory and `--cata
 
 Bake the block name and version into `--url`; only the media relative path is appended, so the S3 key and the rewritten URL always agree. The rewritten file is written back in place by default, or to `--out <path>`.
 
+The command is idempotent: `media:` values that are already `http(s)` URLs (from a previous run) are skipped, and if nothing was uploaded the file is left untouched. Run this upload before `clay publish` — the catalog is published as-is, so `media:` values left as relative paths will not resolve in the catalog frontend.
+
 Example — given:
 
 ```yaml

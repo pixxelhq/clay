@@ -182,25 +182,38 @@ func runCatalogUpload(ctx context.Context, provider storage.Provider, remotePref
 	for key := range cat.Media {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys) 
+	sort.Strings(keys)
 
-	abs := make(map[string]string, len(cat.Media))
+	type mediaUpload struct {
+		key, rel, abs string
+	}
+	pending := make([]mediaUpload, 0, len(cat.Media))
 	for _, key := range keys {
-		p, err := catalog.ResolvePath(repoDir, cat.Media[key])
+		val := cat.Media[key]
+		if catalog.IsRemoteURL(val) {
+			fmt.Fprintf(os.Stderr, "Skipping catalog media %q: already an uploaded URL\n", key)
+			continue
+		}
+		abs, err := catalog.ResolvePath(repoDir, val)
 		if err != nil {
 			return fmt.Errorf("media key %q: %w", key, err)
 		}
-		abs[key] = p
+		pending = append(pending, mediaUpload{key, filepath.ToSlash(filepath.Clean(val)), abs})
+	}
+
+	if len(pending) == 0 {
+		fmt.Fprintln(os.Stderr, "✓ All catalog media are already uploaded URLs; nothing to do")
+		fmt.Println(storageURL)
+		return nil
 	}
 
 	base := strings.TrimRight(storageURL, "/")
-	for _, key := range keys {
-		rel := cat.Media[key]
-		fmt.Fprintf(os.Stderr, "Uploading catalog media %q → %s/%s...\n", key, base, rel)
-		if err := provider.Upload(ctx, abs[key], path.Join(remotePrefix, rel)); err != nil {
-			return fmt.Errorf("failed to upload catalog media %q: %w", key, err)
+	for _, u := range pending {
+		fmt.Fprintf(os.Stderr, "Uploading catalog media %q → %s/%s...\n", u.key, base, u.rel)
+		if err := provider.Upload(ctx, u.abs, path.Join(remotePrefix, u.rel)); err != nil {
+			return fmt.Errorf("failed to upload catalog media %q: %w", u.key, err)
 		}
-		cat.Media[key] = base + "/" + rel
+		cat.Media[u.key] = base + "/" + u.rel
 	}
 
 	outPath := catPath
@@ -218,7 +231,7 @@ func runCatalogUpload(ctx context.Context, provider storage.Provider, remotePref
 		return fmt.Errorf("failed to write rewritten catalog: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "✓ Uploaded %d media file(s); wrote rewritten catalog to %s\n", len(cat.Media), outPath)
+	fmt.Fprintf(os.Stderr, "✓ Uploaded %d media file(s); wrote rewritten catalog to %s\n", len(pending), outPath)
 	fmt.Println(storageURL)
 	return nil
 }
