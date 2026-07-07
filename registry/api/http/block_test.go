@@ -29,13 +29,12 @@ func TestCreate(t *testing.T) {
 		{
 			name: "should return 2xx for valid request",
 			body: gin.H{
-				"id":                "uuid1_string_value",
-				"name":              "Test Block",
-				"kind":              "block",
-				"type":              "processing",
-				"version":           "1.0.0",
-				"documentation_url": "http://example.com",
-				"docker_image":      "example/image:latest",
+				"id":           "uuid1_string_value",
+				"name":         "Test Block",
+				"kind":         "block",
+				"type":         "processing",
+				"version":      "1.0.0",
+				"docker_image": "example/image:latest",
 				"specification": gin.H{
 					"apiVersion":  "1.0.0",
 					"title":       "Test Specification",
@@ -86,7 +85,7 @@ func TestCreate(t *testing.T) {
 				resp := &RegistryResponse[CreateBlockRequest]{}
 				err = json.Unmarshal(data, &resp)
 				assert.NoError(t, err)
-				assert.Equal(t, "code: BAD REQUEST, err: name, version, docker_image and documentation_url can not be empty", resp.Error)
+				assert.Equal(t, "code: BAD REQUEST, err: name, version and docker_image can not be empty", resp.Error)
 
 			},
 		},
@@ -349,13 +348,12 @@ func getBlocks() []*block.Block {
 	uuid2 := uuid.New()
 	return []*block.Block{
 		{
-			ID:               uuid1.String(),
-			Name:             "Test Block",
-			Kind:             "block",
-			Type:             "processing",
-			Version:          "1.0.0",
-			DocumentationURL: "http://example.com",
-			DockerImage:      "example/image:latest",
+			ID:          uuid1.String(),
+			Name:        "Test Block",
+			Kind:        "block",
+			Type:        "processing",
+			Version:     "1.0.0",
+			DockerImage: "example/image:latest",
 			Specification: &block.Specification{
 				Version:     "1.0.0",
 				Title:       "Test Specification",
@@ -370,13 +368,12 @@ func getBlocks() []*block.Block {
 			},
 		},
 		{
-			ID:               uuid1.String(),
-			Name:             "Test Block",
-			Kind:             "block",
-			Type:             "processing",
-			Version:          "1.1.0",
-			DocumentationURL: "http://example.com",
-			DockerImage:      "example/image:latest",
+			ID:          uuid1.String(),
+			Name:        "Test Block",
+			Kind:        "block",
+			Type:        "processing",
+			Version:     "1.1.0",
+			DockerImage: "example/image:latest",
 			Specification: &block.Specification{
 				Version:     "1.0.0",
 				Title:       "Test Specification",
@@ -390,13 +387,12 @@ func getBlocks() []*block.Block {
 			},
 		},
 		{
-			ID:               uuid2.String(),
-			Name:             "Test Block 2",
-			Kind:             "block",
-			Type:             "processing",
-			Version:          "1.0.0",
-			DocumentationURL: "http://example.com",
-			DockerImage:      "example/image:latest",
+			ID:          uuid2.String(),
+			Name:        "Test Block 2",
+			Kind:        "block",
+			Type:        "processing",
+			Version:     "1.0.0",
+			DockerImage: "example/image:latest",
 			Specification: &block.Specification{
 				Version:     "1.0.0",
 				Title:       "Test Specification",

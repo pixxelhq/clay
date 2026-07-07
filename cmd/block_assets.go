@@ -182,7 +182,7 @@ func runCatalogUpload(ctx context.Context, provider storage.Provider, remotePref
 	for key := range cat.Media {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys) 
+	sort.Strings(keys)
 
 	abs := make(map[string]string, len(cat.Media))
 	for _, key := range keys {

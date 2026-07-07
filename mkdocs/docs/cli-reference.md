@@ -97,8 +97,6 @@ clay publish [flags]
 |------|-------------|---------|
 | `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
 | `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
-| `--documentation-url` | Block documentation URL | — |
-| `--thumbnail-url` | Block thumbnail URL | — |
 
 ---
 

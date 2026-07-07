@@ -27,18 +27,16 @@ type Specification struct {
 }
 
 type Block struct {
-	ID               string
-	Name             string
-	Kind             string
-	Type             string
-	Version          string
-	Specification    *Specification
-	Catalog          json.RawMessage
-	DocumentationURL string
-	ThumbnailURL     string
-	DockerImage      string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID            string
+	Name          string
+	Kind          string
+	Type          string
+	Version       string
+	Specification *Specification
+	Catalog       json.RawMessage
+	DockerImage   string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type Service interface {
@@ -87,15 +85,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			BlockID:       upsertedBlock.ID,
 			Version:       b.Version,
 			Specification: specByte,
-			DocumentationUrl: sql.NullString{
-				String: b.DocumentationURL,
-				Valid:  b.DocumentationURL != "",
-			},
-			ThumbnailUrl: sql.NullString{
-				String: b.ThumbnailURL,
-				Valid:  b.ThumbnailURL != "",
-			},
-			Catalog: catalog,
+			Catalog:       catalog,
 			DockerImage: sql.NullString{
 				String: b.DockerImage,
 				Valid:  true,
@@ -115,18 +105,16 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			return nil, err
 		}
 		return &Block{
-			ID:               upsertedBlock.ID.String(),
-			Version:          bv.Version,
-			Name:             upsertedBlock.Name,
-			Kind:             upsertedBlock.Kind,
-			Type:             upsertedBlock.Type,
-			DocumentationURL: bv.DocumentationUrl.String,
-			ThumbnailURL:     bv.ThumbnailUrl.String,
-			Catalog:          bv.Catalog,
-			DockerImage:      bv.DockerImage.String,
-			Specification:    spec,
-			CreatedAt:        bv.CreatedAt.Time,
-			UpdatedAt:        bv.UpdatedAt.Time,
+			ID:            upsertedBlock.ID.String(),
+			Version:       bv.Version,
+			Name:          upsertedBlock.Name,
+			Kind:          upsertedBlock.Kind,
+			Type:          upsertedBlock.Type,
+			Catalog:       bv.Catalog,
+			DockerImage:   bv.DockerImage.String,
+			Specification: spec,
+			CreatedAt:     bv.CreatedAt.Time,
+			UpdatedAt:     bv.UpdatedAt.Time,
 		}, nil
 	})
 	if err != nil {
@@ -184,17 +172,15 @@ func (bs *block) GetBlockByName(ctx context.Context, name string) ([]*Block, err
 			return nil, err
 		}
 		blocks = append(blocks, &Block{
-			ID:               b.ID.String(),
-			Name:             b.Name,
-			Type:             b.Type,
-			Kind:             b.Kind,
-			Version:          b.Version,
-			Specification:    spec,
-			DocumentationURL: b.DocumentationUrl.String,
-			ThumbnailURL:     b.ThumbnailUrl.String,
-			DockerImage:      b.DockerImage.String,
-			CreatedAt:        b.CreatedAt.Time,
-			UpdatedAt:        b.UpdatedAt.Time,
+			ID:            b.ID.String(),
+			Name:          b.Name,
+			Type:          b.Type,
+			Kind:          b.Kind,
+			Version:       b.Version,
+			Specification: spec,
+			DockerImage:   b.DockerImage.String,
+			CreatedAt:     b.CreatedAt.Time,
+			UpdatedAt:     b.UpdatedAt.Time,
 		})
 	}
 
@@ -223,17 +209,15 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 		return nil, err
 	}
 	return &Block{
-		ID:               blockWithNameAndVersion.ID.String(),
-		Name:             blockWithNameAndVersion.Name,
-		Version:          blockWithNameAndVersion.Version,
-		DockerImage:      blockWithNameAndVersion.DockerImage.String,
-		DocumentationURL: blockWithNameAndVersion.DocumentationUrl.String,
-		ThumbnailURL:     blockWithNameAndVersion.ThumbnailUrl.String,
-		Specification:    spec,
-		Kind:             blockWithNameAndVersion.Kind,
-		Type:             blockWithNameAndVersion.Type,
-		CreatedAt:        blockWithNameAndVersion.CreatedAt.Time,
-		UpdatedAt:        blockWithNameAndVersion.UpdatedAt.Time,
+		ID:            blockWithNameAndVersion.ID.String(),
+		Name:          blockWithNameAndVersion.Name,
+		Version:       blockWithNameAndVersion.Version,
+		DockerImage:   blockWithNameAndVersion.DockerImage.String,
+		Specification: spec,
+		Kind:          blockWithNameAndVersion.Kind,
+		Type:          blockWithNameAndVersion.Type,
+		CreatedAt:     blockWithNameAndVersion.CreatedAt.Time,
+		UpdatedAt:     blockWithNameAndVersion.UpdatedAt.Time,
 	}, nil
 }
 
@@ -279,16 +263,14 @@ func (bs *block) GetLatestBlock(ctx context.Context, name string) (*Block, error
 	}
 
 	return &Block{
-		ID:               latestBlock.ID.String(),
-		Name:             latestBlock.Name,
-		Version:          latestBlock.Version,
-		DockerImage:      latestBlock.DockerImage.String,
-		DocumentationURL: latestBlock.DocumentationUrl.String,
-		ThumbnailURL:     latestBlock.ThumbnailUrl.String,
-		Specification:    spec,
-		Kind:             latestBlock.Kind,
-		Type:             latestBlock.Type,
-		CreatedAt:        latestBlock.CreatedAt.Time,
-		UpdatedAt:        latestBlock.UpdatedAt.Time,
+		ID:            latestBlock.ID.String(),
+		Name:          latestBlock.Name,
+		Version:       latestBlock.Version,
+		DockerImage:   latestBlock.DockerImage.String,
+		Specification: spec,
+		Kind:          latestBlock.Kind,
+		Type:          latestBlock.Type,
+		CreatedAt:     latestBlock.CreatedAt.Time,
+		UpdatedAt:     latestBlock.UpdatedAt.Time,
 	}, nil
 }
