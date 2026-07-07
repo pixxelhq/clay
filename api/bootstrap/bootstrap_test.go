@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -11,7 +10,7 @@ func TestCreateProject_GeneratesExpectedLayout(t *testing.T) {
 	outDir := t.TempDir()
 	blockName := "AwesomeBlock"
 
-	if err := CreateProject(outDir, blockName, false); err != nil {
+	if err := CreateProject(outDir, blockName); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 
@@ -21,6 +20,7 @@ func TestCreateProject_GeneratesExpectedLayout(t *testing.T) {
 		"Makefile",
 		"README.md",
 		"clay.yaml",
+		"catalog.yaml",
 		"conda.yaml",
 		"pyproject.toml",
 		"requirements.txt",
@@ -36,7 +36,7 @@ func TestCreateProject_GeneratesExpectedLayout(t *testing.T) {
 		}
 	}
 
-	expectedDirs := []string{"docs", "tests", "awesome_block"}
+	expectedDirs := []string{"tests", "awesome_block"}
 	for _, rel := range expectedDirs {
 		info, err := os.Stat(filepath.Join(projectRoot, rel))
 		if err != nil {
@@ -51,7 +51,7 @@ func TestCreateProject_GeneratesExpectedLayout(t *testing.T) {
 
 func TestCreateProject_RejectsNonAlphaBlockName(t *testing.T) {
 	outDir := t.TempDir()
-	err := CreateProject(outDir, "bad_block_name_123", false)
+	err := CreateProject(outDir, "bad_block_name_123")
 	if err == nil {
 		t.Fatal("expected error for non-alpha block name, got nil")
 	}
@@ -67,31 +67,11 @@ func TestCreateProject_OverwritesExistingProjectDir(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	if err := CreateProject(outDir, "AwesomeBlock", false); err != nil {
+	if err := CreateProject(outDir, "AwesomeBlock"); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 
 	if _, err := os.Stat(existing); !os.IsNotExist(err) {
 		t.Errorf("expected leftover file to be cleaned up, stat err: %v", err)
-	}
-}
-
-func TestCreateProject_WritesCatalogReadmeStub(t *testing.T) {
-	outDir := t.TempDir()
-
-	if err := CreateProject(outDir, "AwesomeBlock", true); err != nil {
-		t.Fatalf("CreateProject returned error: %v", err)
-	}
-
-	readmePath := filepath.Join(outDir, "awesome_block", "docs", "README.md")
-	data, err := os.ReadFile(readmePath)
-	if err != nil {
-		t.Fatalf("expected catalog README stub at %q: %v", readmePath, err)
-	}
-	content := string(data)
-	for _, marker := range []string{"name: Name of block", "author: authorname", "input-img:", "output-img:"} {
-		if !strings.Contains(content, marker) {
-			t.Errorf("catalog README missing marker %q; got:\n%s", marker, content)
-		}
 	}
 }

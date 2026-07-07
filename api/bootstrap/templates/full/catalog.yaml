@@ -1,0 +1,55 @@
+media:
+  thumbnail: catalog_readme/thumbnail.png
+  sample_input: catalog_readme/sample_input.png
+  sample_output: catalog_readme/sample_output.png
+
+badges: []
+
+description:
+  - type: text
+    body: >
+      One or two sentences describing what this block does and when to use it.
+
+input_data:
+  summary:
+    - type: text
+      body: >
+        Describe what the user must provide.
+  items:
+    - name: "Input name"
+      description: "What this input is and how it is used."
+      format: "GeoJSON"
+
+output_data:
+  summary:
+    - type: text
+      body: >
+        Describe what the block produces.
+  items:
+    - name: "Output name"
+      description: "What this output represents."
+      type: "Single band raster"
+      format: "GeoTIFF"
+
+technical_details:
+  - type: table
+    headers: ["Attribute", "Value"]
+    rows:
+      - ["Sensors Supported", "..."]
+      - ["Geographies Supported", "..."]
+
+model_run_time:
+  - type: table
+    headers: ["AOI Range", "Estimated Time"]
+    rows:
+      - ["0-500 sq km", "..."]
+
+limitation:
+  - type: text
+    body: >
+      Known limitations or conditions under which results are less reliable.
+
+accuracy:
+  - type: text
+    body: >
+      Accuracy metrics and how they were measured.

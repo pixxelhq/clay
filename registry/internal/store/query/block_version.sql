@@ -6,6 +6,7 @@ INSERT INTO
         specification,
         documentation_url,
         thumbnail_url,
+        catalog,
         docker_image
     )
 VALUES
@@ -15,7 +16,8 @@ VALUES
         $3,
         $4,
         $5,
-        $6
+        $6,
+        $7
     ) RETURNING *;
 
 -- name: GetBlockAllVersionByName :many

@@ -1,0 +1,86 @@
+# The single section Clay understands. Clay uploads each file and rewrites
+# the value to a full S3 URL before sending to Dexter. Reserved keys
+# (thumbnail, sample_input, sample_output) are required; others optional.
+media:
+  thumbnail: catalog_readme/thumbnail.png
+  sample_input: catalog_readme/sample_input.jpg
+  sample_output: catalog_readme/sample_output.jpg
+  # walkthrough_video: catalog_readme/walkthrough.mp4   # optional
+
+# Content-block array. Each block has `type` and type-specific fields.
+# Unknown types are skipped by the frontend (forward-compat).
+description:
+  - type: text
+    body: >
+      Water quality refers to the chemical, physical, and biological
+      characteristics of water.
+  - type: text
+    body: >
+      Notable parameters include pH, Dissolved Oxygen, Chlorophyll-a,
+      aCDOM and TSS.
+  - type: table
+    headers: ["TSI", "Water type", "WQI", "Water quality"]
+    rows:
+      - ["0-30",   "Ultra-Oligotrophic", "80-100", "Good"]
+      - ["30-40",  "Oligotrophic",       "60-80",  "Average"]
+      - ["40-50",  "Mesotrophic",        "40-60",  "Poor"]
+      - ["50-60",  "Eutrophic",          "20-40",  "Very Poor"]
+      - ["60-100", "Hypertrophic",       "0-20",   "Extremely Poor"]
+
+input_data:
+  summary:
+    - type: text
+      body: >
+        Provide a single Sentinel-2 L2A scene and an AOI polygon covering the
+        water body you want to analyze.
+  items:
+    - name: "Area of Interest"
+      description: "Area for which you want to perform water quality analysis"
+      format: "GeoJSON"                 # optional
+      # type omitted -- not meaningful for an AOI polygon
+
+output_data:
+  summary:
+    - type: text
+      body: >
+        The model generates seven single-band raster files, visualized over
+        the AOI, highlighting water areas with corresponding values.
+  items:
+    - name: "Chl-a (Chlorophyll-a)"
+      type: "Single band raster"
+      format: "GeoTIFF"
+      description: "Measures chlorophyll-a pigment in water."
+    - name: "WQI (Water Quality Index)"
+      type: "Single band raster"
+      format: "GeoTIFF"
+      description: "Composite index of overall water quality (0-100)."
+
+technical_details:
+  - type: table
+    headers: ["Attribute", "Value"]
+    rows:
+      - ["Sensors Supported",      "Sentinel-2, Pixxel-TD1"]
+      - ["Geographies Supported",  "All geographies"]
+      - ["Max AOI Size",           "5000 sq km"]
+      - ["Min AOI Size",           "No restriction"]
+
+model_run_time:
+  - type: table
+    headers: ["AOI Range", "Estimated Time"]
+    rows:
+      - ["0-500 sq km",     "12 minutes"]
+      - ["500-2000 sq km",  "50 minutes"]
+      - ["4500-5000 sq km", "131 minutes"]
+
+limitation:
+  - type: text
+    body: >
+      WQI images may not show sufficient variability if TSI, TI, and CI
+      values remain nearly constant (very small inland water bodies or
+      open ocean).
+
+accuracy:
+  - type: text
+    body: >
+      Median absolute percentage deviation (MAPD) ranged from 30% to 45%
+      across independent test datasets.

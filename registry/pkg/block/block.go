@@ -33,6 +33,7 @@ type Block struct {
 	Type             string
 	Version          string
 	Specification    *Specification
+	Catalog          json.RawMessage
 	DocumentationURL string
 	ThumbnailURL     string
 	DockerImage      string
@@ -75,6 +76,13 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			return nil, err
 		}
 
+		catalog := b.Catalog
+		if len(catalog) == 0 {
+			// catalog is NOT NULL DEFAULT '{}'; store an empty object when the
+			// block has no catalog rather than a SQL NULL.
+			catalog = json.RawMessage("{}")
+		}
+
 		bv, err := q.CreateBlockVersion(ctx, store.CreateBlockVersionParams{
 			BlockID:       upsertedBlock.ID,
 			Version:       b.Version,
@@ -87,6 +95,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 				String: b.ThumbnailURL,
 				Valid:  b.ThumbnailURL != "",
 			},
+			Catalog: catalog,
 			DockerImage: sql.NullString{
 				String: b.DockerImage,
 				Valid:  true,
@@ -113,6 +122,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			Type:             upsertedBlock.Type,
 			DocumentationURL: bv.DocumentationUrl.String,
 			ThumbnailURL:     bv.ThumbnailUrl.String,
+			Catalog:          bv.Catalog,
 			DockerImage:      bv.DockerImage.String,
 			Specification:    spec,
 			CreatedAt:        bv.CreatedAt.Time,

@@ -90,6 +90,7 @@ func TestCreate(t *testing.T) {
 							BlockID:          upsertedBlock.ID,
 							Specification:    specByte,
 							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+							Catalog:          json.RawMessage("{}"),
 							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}
 
@@ -98,6 +99,7 @@ func TestCreate(t *testing.T) {
 							Version:          "1.0.0",
 							Specification:    specByte,
 							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+							Catalog:          json.RawMessage("{}"),
 							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}).Return(bv, nil)
 
@@ -165,6 +167,7 @@ func TestCreate(t *testing.T) {
 							Version:          "1.0.0",
 							Specification:    specByte,
 							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+							Catalog:          json.RawMessage("{}"),
 							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}).Return(store.BlockVersion{}, errors.New("create block version error"))
 
