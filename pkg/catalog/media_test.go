@@ -53,6 +53,22 @@ func TestResolvePath_Rejections(t *testing.T) {
 	}
 }
 
+func TestIsRemoteURL(t *testing.T) {
+	cases := map[string]bool{
+		"https://bkt.s3.us-east-1.amazonaws.com/m/v1/t.png": true,
+		"http://example.com/t.png":                          true,
+		"catalog_readme/thumbnail.png":                      false,
+		"./catalog_readme/thumbnail.png":                    false,
+		"/etc/passwd":                                       false,
+		"":                                                  false,
+	}
+	for value, want := range cases {
+		if got := IsRemoteURL(value); got != want {
+			t.Errorf("IsRemoteURL(%q) = %v, want %v", value, got, want)
+		}
+	}
+}
+
 func TestResolvePath_SymlinkEscapeRejected(t *testing.T) {
 	outside := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(outside, "secret.png"), []byte("x"), 0644))

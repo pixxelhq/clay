@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+func IsRemoteURL(v string) bool {
+	return strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")
+}
+
 // ResolvePath validates that rel is a safe, existing, readable regular file
 // contained within root, and returns its absolute path. It rejects absolute
 // paths, ".." escapes, and symlinks that resolve outside root, so a media:
