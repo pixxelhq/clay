@@ -47,6 +47,8 @@ definitions:
     type: object
   http.GetBlockByNameAndVersion:
     properties:
+      catalog:
+        type: object
       created_at:
         type: string
       docker_image:

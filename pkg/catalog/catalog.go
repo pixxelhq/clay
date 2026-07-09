@@ -20,8 +20,15 @@ type Catalog struct {
 	Sections map[string]interface{} `yaml:",inline"`
 }
 
+// FilePath returns the path of the catalog file inside dir. The catalog filename
+// is fixed by the block template, so callers derive the path from a directory
+// rather than passing a name.
+func FilePath(dir string) string {
+	return filepath.Join(dir, catalogFileName)
+}
+
 func Load(projectDir string) (*Catalog, error) {
-	return LoadFile(filepath.Join(projectDir, catalogFileName))
+	return LoadFile(FilePath(projectDir))
 }
 
 func LoadFile(path string) (*Catalog, error) {
@@ -51,6 +58,19 @@ func (c *Catalog) Bytes() ([]byte, error) {
 		return nil, fmt.Errorf("error serializing %s: %w", catalogFileName, err)
 	}
 	return out, nil
+}
+
+// WriteFile serializes the catalog and writes it to path, overwriting any
+// existing file.
+func (c *Catalog) WriteFile(path string) error {
+	out, err := c.Bytes()
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, out, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", filepath.Base(path), err)
+	}
+	return nil
 }
 
 func (c *Catalog) JSON() ([]byte, error) {

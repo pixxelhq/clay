@@ -1,9 +1,12 @@
+# This is a basic catalog file to get you started. Feel free to modify any of the
+# fields below to describe your block. Under `media`, you may rename the
+# "catalog_readme" folder, but keep the file names (thumbnail.png,
+# sample_input.png, sample_output.png) exactly as they are.
+
 media:
   thumbnail: catalog_readme/thumbnail.png
   sample_input: catalog_readme/sample_input.png
   sample_output: catalog_readme/sample_output.png
-
-badges: []
 
 description:
   - type: text

@@ -26,7 +26,7 @@ func ListBlockRegistryCmd() *cobra.Command {
 		Use --name with --version to list a specific version.
 		`),
 		Example: "clay block list --name=my-block --version=0.0.1",
-		RunE: listBlockRegistryCmd,
+		RunE:    listBlockRegistryCmd,
 	}
 
 	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")

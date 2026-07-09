@@ -352,7 +352,7 @@ func NewDataSpecWrapper(pb protoreflect.Message) DataSpecWrapper {
 // `format` since that would mean all callers would have to somehow figure out
 // format before calling.
 func FromMap(m map[string]json.RawMessage) (DataWrapperInterface, error) {
-	v, _ := m["format"]
+	v := m["format"]
 
 	b, _ := json.Marshal(m)
 
@@ -437,7 +437,7 @@ func ValidateRaster(input DataWrapperInterface, validator *generated.RasterValid
 
 	_, err = input.GetStacUrl()
 	if err != nil {
-		return fmt.Errorf("%s input must have valid value (err: %v) or stac_url field (err: %v)", name, vErr, err)
+		return fmt.Errorf("%s input must have valid value (err: %w) or stac_url field (err: %w)", name, vErr, err)
 	}
 
 	return nil
@@ -550,7 +550,7 @@ func parseNumber(value string) (float64, error) {
 
 func buildProtoFieldReferenceMap(message protoreflect.Message, prefix string, fieldRefMap map[string]*InternalFieldDescriptor, parentIFD *InternalFieldDescriptor, recurLevel int) map[string]*InternalFieldDescriptor {
 	if recurLevel == protoMessageMaxRecursionLimit {
-		panic(fmt.Sprintf("Max recursion limit reached during proto message reference map build."))
+		panic("Max recursion limit reached during proto message reference map build.")
 	}
 	path := ""
 	fieldName := ""
@@ -725,7 +725,7 @@ func convertToProtoValue(value interface{}, msg protoreflect.Message, fd protore
 
 func initNestedFields(ifd *InternalFieldDescriptor, m map[string]*InternalFieldDescriptor, recurLevel int) {
 	if recurLevel == protoMessageMaxRecursionLimit {
-		panic(fmt.Sprintf("Max recursion limit reached during instatiation of unset fields"))
+		panic("Max recursion limit reached during instatiation of unset fields")
 	}
 	if ifd.IsSet {
 		return

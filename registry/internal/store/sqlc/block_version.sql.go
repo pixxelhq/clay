@@ -153,7 +153,8 @@ SELECT
     bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
-    bv.updated_at
+    bv.updated_at,
+    bv.catalog
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
@@ -177,6 +178,7 @@ type GetBlockByNameAndVersionRow struct {
 	DockerImage      sql.NullString
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
+	Catalog          json.RawMessage
 }
 
 func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNameAndVersionParams) (GetBlockByNameAndVersionRow, error) {
@@ -194,6 +196,7 @@ func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNa
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Catalog,
 	)
 	return i, err
 }

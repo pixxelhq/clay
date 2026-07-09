@@ -41,24 +41,20 @@ clay block assets upload ./blocks \
 # Upload a single file
 clay block assets upload block.pkl \
   --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
-
-# Upload the media declared in catalog.yaml and rewrite it in place
-clay block assets upload . \
-  --catalog catalog.yaml \
-  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 ```
 
-### Upload catalog media with `--catalog`
+### Upload catalog media with `upload-catalog`
 
-When you pass `--catalog`, `<path>` must be the model repo directory and `--catalog` names a `catalog.yaml` inside it. Clay:
+`clay block assets upload-catalog` publishes the media declared in the `catalog.yaml` in the current working directory (run it from the model repo root). It takes no path argument — only `--url`. Clay:
 
 1. reads the `media:` section (which maps keys to relative file paths),
-2. uploads each declared file to `<your --url>/<relative-path>` with a detected `Content-Type`,
+2. uploads each declared file to `<your --url>/<relative-path>`,
 3. rewrites each `media:` value in `catalog.yaml` to the uploaded URL. The rest of the content is carried over unchanged, but the file is re-serialized — comments and formatting are not preserved.
+4. uploads the rewritten `catalog.yaml` itself to `<your --url>/catalog.yaml`, so the published catalog lives alongside the media it references.
 
-Bake the block name and version into `--url`; only the media relative path is appended, so the S3 key and the rewritten URL always agree. The rewritten file is written back in place by default, or to `--out <path>`.
+Bake the block name and version into `--url`; only the media relative path is appended, so the S3 key and the rewritten URL always agree.
 
-The command is idempotent: `media:` values that are already `http(s)` URLs (from a previous run) are skipped, and if nothing was uploaded the file is left untouched. Run this upload before `clay publish` — the catalog is published as-is, so `media:` values left as relative paths will not resolve in the catalog frontend.
+The command is idempotent: `media:` values that are already `http(s)` URLs (from a previous run) are skipped. Run this upload before `clay publish` — the catalog is published as-is, so `media:` values left as relative paths will not resolve in the catalog frontend.
 
 Example — given:
 
@@ -70,11 +66,10 @@ media:
   sample_output: catalog_readme/sample_output.png
 ```
 
-running:
+running (from the model repo root):
 
 ```bash
-clay block assets upload . \
-  --catalog catalog.yaml \
+clay block assets upload-catalog \
   --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 ```
 

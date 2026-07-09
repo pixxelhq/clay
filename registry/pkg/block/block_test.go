@@ -396,6 +396,7 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 					Specification:    json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
 					DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
 					DockerImage:      sql.NullString{String: "example/image", Valid: true},
+					Catalog:          json.RawMessage(`{"assets":[]}`),
 					CreatedAt:        sql.NullTime{Time: sampleTime},
 					UpdatedAt:        sql.NullTime{Time: sampleTime},
 				}, nil)
@@ -407,6 +408,7 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 				Specification:    &Specification{Version: "1.0", Title: "Test Block"},
 				DocumentationURL: "http://example.com",
 				DockerImage:      "example/image",
+				Catalog:          json.RawMessage(`{"assets":[]}`),
 				CreatedAt:        sampleTime,
 				UpdatedAt:        sampleTime,
 			},

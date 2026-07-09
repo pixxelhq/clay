@@ -206,6 +206,7 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 			DocumentationURL: b.DocumentationURL,
 			ThumbnailURL:     b.ThumbnailURL,
 			Specification:    convertFromServiceSpecification(b.Specification),
+			Catalog:          b.Catalog,
 			CreatedAt:        b.CreatedAt,
 			UpdatedAt:        b.UpdatedAt,
 		},
