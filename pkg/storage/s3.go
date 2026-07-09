@@ -3,9 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"io"
-	"mime"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,46 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
-
-// extContentTypes pins the Content-Type for extensions we care about, so the
-// result does not depend on the host's mime.types registry (mp4 in particular
-// is often absent). Checked before mime.TypeByExtension and magic-byte sniffing.
-var extContentTypes = map[string]string{
-	".png":  "image/png",
-	".jpg":  "image/jpeg",
-	".jpeg": "image/jpeg",
-	".gif":  "image/gif",
-	".webp": "image/webp",
-	".svg":  "image/svg+xml",
-	".mp4":  "video/mp4",
-	".webm": "video/webm",
-	".mov":  "video/quicktime",
-	".pdf":  "application/pdf",
-	".json": "application/json",
-}
-
-// detectContentType determines an object's Content-Type from its extension,
-// falling back to magic-byte sniffing of the first 512 bytes. r is rewound to
-// the start before returning so the caller can upload from the beginning.
-func detectContentType(path string, r io.ReadSeeker) (string, error) {
-	ext := strings.ToLower(filepath.Ext(path))
-	if ct, ok := extContentTypes[ext]; ok {
-		return ct, nil
-	}
-	if ct := mime.TypeByExtension(ext); ct != "" {
-		return ct, nil
-	}
-
-	buf := make([]byte, 512)
-	n, err := r.Read(buf)
-	if err != nil && err != io.EOF {
-		return "", fmt.Errorf("failed to read file for content-type detection: %w", err)
-	}
-	if _, err := r.Seek(0, io.SeekStart); err != nil {
-		return "", fmt.Errorf("failed to rewind file after content-type detection: %w", err)
-	}
-	return http.DetectContentType(buf[:n]), nil
-}
 
 // S3Config holds S3-specific configuration
 type S3Config struct {
@@ -113,16 +70,10 @@ func (p *S3Provider) Upload(ctx context.Context, localPath, remotePath string) e
 
 	key := p.normalizeKey(remotePath)
 
-	contentType, err := detectContentType(localPath, file)
-	if err != nil {
-		return err
-	}
-
 	_, err = p.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-		Bucket:      aws.String(p.bucket),
-		Key:         aws.String(key),
-		Body:        file,
-		ContentType: aws.String(contentType),
+		Bucket: aws.String(p.bucket),
+		Key:    aws.String(key),
+		Body:   file,
 	})
 
 	if err != nil {

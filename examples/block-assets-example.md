@@ -30,10 +30,9 @@ clay block assets upload ./weights \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
-Upload catalog media and rewrite `catalog.yaml` in place (uploads each file in its `media:` section and rewrites the values to absolute URLs):
+Upload catalog media and rewrite `catalog.yaml` in place (uploads each file in its `media:` section, rewrites the values to absolute URLs, then uploads the catalog itself). Run it from the model repo root — it reads `catalog.yaml` from the current directory and takes no path argument:
 ```bash
-clay block assets upload . \
-  --catalog catalog.yaml \
+clay block assets upload-catalog \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 

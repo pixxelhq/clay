@@ -63,27 +63,27 @@ var testMediaFiles = []string{
 // the test.
 func saveFlags(t *testing.T) {
 	t.Helper()
-	origCatalog, origOut, origURL := catalogFile, catalogOut, storageURL
-	t.Cleanup(func() { catalogFile, catalogOut, storageURL = origCatalog, origOut, origURL })
+	origURL := storageURL
+	t.Cleanup(func() { storageURL = origURL })
 }
 
 func TestRunCatalogUpload(t *testing.T) {
 	saveFlags(t)
 	dir := catalogRepo(t, testCatalogBody, testMediaFiles)
 
-	catalogFile = "catalog.yaml"
-	catalogOut = ""
 	storageURL = "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/"
 
 	fake := &fakeProvider{uploaded: map[string]string{}}
 	// remotePrefix is what ProviderFromURL would strip from the URL path.
-	require.NoError(t, runCatalogUpload(context.Background(), fake, "my-block/v1", dir))
+	require.NoError(t, uploadCatalog(context.Background(), fake, "my-block/v1", dir))
 
-	// Each media file was uploaded under <prefix>/<relPath>.
-	require.Len(t, fake.uploaded, 3)
+	// Each media file was uploaded under <prefix>/<relPath>, plus the rewritten
+	// catalog.yaml itself under <prefix>/catalog.yaml.
+	require.Len(t, fake.uploaded, 4)
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/thumbnail.png")
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/sample_input.jpg")
 	assert.Equal(t, filepath.Join(dir, "catalog_readme/thumbnail.png"), fake.uploaded["my-block/v1/catalog_readme/thumbnail.png"])
+	assert.Equal(t, filepath.Join(dir, "catalog.yaml"), fake.uploaded["my-block/v1/catalog.yaml"])
 
 	// catalog.yaml was rewritten in place: media values are now full URLs and
 	// the opaque sections survive.
@@ -111,17 +111,16 @@ func TestRunCatalogUpload_SkipsAlreadyUploadedURLs(t *testing.T) {
 `
 	dir := catalogRepo(t, body, testMediaFiles[1:])
 
-	catalogFile = "catalog.yaml"
-	catalogOut = ""
 	storageURL = "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/"
 
 	fake := &fakeProvider{uploaded: map[string]string{}}
-	require.NoError(t, runCatalogUpload(context.Background(), fake, "my-block/v1", dir))
+	require.NoError(t, uploadCatalog(context.Background(), fake, "my-block/v1", dir))
 
-	// Only the two path-valued entries were uploaded.
-	require.Len(t, fake.uploaded, 2)
+	// Only the two path-valued entries were uploaded, plus the catalog.yaml.
+	require.Len(t, fake.uploaded, 3)
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/sample_input.jpg")
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/sample_output.jpg")
+	assert.Contains(t, fake.uploaded, "my-block/v1/catalog.yaml")
 
 	rewritten, err := catalog.LoadFile(filepath.Join(dir, "catalog.yaml"))
 	require.NoError(t, err)
@@ -129,9 +128,9 @@ func TestRunCatalogUpload_SkipsAlreadyUploadedURLs(t *testing.T) {
 	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/sample_input.jpg", rewritten.Media["sample_input"])
 }
 
-// When every media value is already a URL there is nothing to do: no uploads,
-// no rewrite (the file bytes stay untouched), and no error.
-func TestRunCatalogUpload_AllAlreadyUploadedIsNoOp(t *testing.T) {
+// When every media value is already a URL no media is re-uploaded and the file
+// bytes stay untouched, but the catalog.yaml itself is still published.
+func TestRunCatalogUpload_AllAlreadyUploaded(t *testing.T) {
 	saveFlags(t)
 	body := `# keep this comment
 media:
@@ -139,14 +138,14 @@ media:
 `
 	dir := catalogRepo(t, body, nil)
 
-	catalogFile = "catalog.yaml"
-	catalogOut = ""
 	storageURL = "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/"
 
 	fake := &fakeProvider{uploaded: map[string]string{}}
-	require.NoError(t, runCatalogUpload(context.Background(), fake, "my-block/v1", dir))
+	require.NoError(t, uploadCatalog(context.Background(), fake, "my-block/v1", dir))
 
-	assert.Empty(t, fake.uploaded)
+	// Only the catalog.yaml is uploaded; no media are re-uploaded.
+	require.Len(t, fake.uploaded, 1)
+	assert.Contains(t, fake.uploaded, "my-block/v1/catalog.yaml")
 	after, err := os.ReadFile(filepath.Join(dir, "catalog.yaml"))
 	require.NoError(t, err)
 	assert.Equal(t, body, string(after), "catalog must not be re-serialized when nothing changed")
@@ -159,15 +158,14 @@ func TestRunCatalogUpload_UncleanRelPath(t *testing.T) {
 	body := "media:\n  thumbnail: ./catalog_readme/thumbnail.png\n"
 	dir := catalogRepo(t, body, []string{"catalog_readme/thumbnail.png"})
 
-	catalogFile = "catalog.yaml"
-	catalogOut = ""
 	storageURL = "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/"
 
 	fake := &fakeProvider{uploaded: map[string]string{}}
-	require.NoError(t, runCatalogUpload(context.Background(), fake, "my-block/v1", dir))
+	require.NoError(t, uploadCatalog(context.Background(), fake, "my-block/v1", dir))
 
-	require.Len(t, fake.uploaded, 1)
+	require.Len(t, fake.uploaded, 2)
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/thumbnail.png")
+	assert.Contains(t, fake.uploaded, "my-block/v1/catalog.yaml")
 
 	rewritten, err := catalog.LoadFile(filepath.Join(dir, "catalog.yaml"))
 	require.NoError(t, err)
@@ -180,11 +178,10 @@ func TestRunCatalogUpload_MissingFileUploadsNothing(t *testing.T) {
 	// Only two of the three declared files exist.
 	dir := catalogRepo(t, testCatalogBody, testMediaFiles[:2])
 
-	catalogFile = "catalog.yaml"
 	storageURL = "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/"
 
 	fake := &fakeProvider{uploaded: map[string]string{}}
-	err := runCatalogUpload(context.Background(), fake, "my-block/v1", dir)
+	err := uploadCatalog(context.Background(), fake, "my-block/v1", dir)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does not exist")
 	assert.Empty(t, fake.uploaded, "no uploads should happen when validation fails")
@@ -194,11 +191,10 @@ func TestRunCatalogUpload_EmptyMedia(t *testing.T) {
 	saveFlags(t)
 	dir := catalogRepo(t, "description:\n  - type: text\n    body: hi\n", nil)
 
-	catalogFile = "catalog.yaml"
 	storageURL = "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/"
 
 	fake := &fakeProvider{uploaded: map[string]string{}}
-	err := runCatalogUpload(context.Background(), fake, "my-block/v1", dir)
+	err := uploadCatalog(context.Background(), fake, "my-block/v1", dir)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no media")
 }
@@ -206,9 +202,8 @@ func TestRunCatalogUpload_EmptyMedia(t *testing.T) {
 func TestRunCatalogUpload_NotFound(t *testing.T) {
 	saveFlags(t)
 
-	catalogFile = "catalog.yaml"
 	fake := &fakeProvider{uploaded: map[string]string{}}
-	err := runCatalogUpload(context.Background(), fake, "", t.TempDir())
+	err := uploadCatalog(context.Background(), fake, "", t.TempDir())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "catalog file not found")
 }

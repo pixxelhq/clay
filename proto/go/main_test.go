@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-
 func Test_Unmarshal_WithDefaults(t *testing.T) {
 	testM := map[string]interface{}{
 		"name":   "r",
@@ -507,8 +506,8 @@ func Test_SetField_NestedMessage(t *testing.T) {
 			}
 
 			// sanity checks
-			assert.True(t, ifd.ParentIFD.Message.Get(ifd.Fd).IsValid(), fmt.Sprintf("target message is invalid"))
-			assert.True(t, ifd.ParentIFD.Message.IsValid(), fmt.Sprintf("parent message is invalid"))
+			assert.True(t, ifd.ParentIFD.Message.Get(ifd.Fd).IsValid(), "target message is invalid")
+			assert.True(t, ifd.ParentIFD.Message.IsValid(), "parent message is invalid")
 		})
 	}
 }

@@ -160,8 +160,18 @@ clay block assets upload <path> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--url` | Complete storage URL where assets will be uploaded (required) | — |
-| `--catalog` | Name of a `catalog.yaml` inside `<path>` (the model repo directory). Uploads each file declared in its `media:` section to `<--url>/<relative-path>` and rewrites those `media:` values to the uploaded URLs. Bake the block/version into `--url`. | — |
-| `--out` | Where to write the rewritten catalog (with `--catalog`); relative paths resolve against `<path>`. Defaults to overwriting the `--catalog` file in place. | — |
+
+### Upload Catalog Media
+
+Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<relative-path>` and its value is rewritten to the uploaded URL, in place; the rewritten `catalog.yaml` is then uploaded alongside its media. Already-uploaded URLs are skipped, so re-running is idempotent. Bake the block/version into `--url`.
+
+```shell
+clay block assets upload-catalog [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--url` | Complete storage URL where the catalog media will be uploaded (required) | — |
 
 ### List Assets
 

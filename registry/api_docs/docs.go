@@ -259,6 +259,9 @@ const docTemplate = `{
         "http.GetBlockByNameAndVersion": {
             "type": "object",
             "properties": {
+                "catalog": {
+                    "type": "object"
+                },
                 "created_at": {
                     "type": "string"
                 },

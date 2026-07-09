@@ -78,8 +78,6 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 
 		catalog := b.Catalog
 		if len(catalog) == 0 {
-			// catalog is NOT NULL DEFAULT '{}'; store an empty object when the
-			// block has no catalog rather than a SQL NULL.
 			catalog = json.RawMessage("{}")
 		}
 
@@ -230,6 +228,7 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 		DocumentationURL: blockWithNameAndVersion.DocumentationUrl.String,
 		ThumbnailURL:     blockWithNameAndVersion.ThumbnailUrl.String,
 		Specification:    spec,
+		Catalog:          blockWithNameAndVersion.Catalog,
 		Kind:             blockWithNameAndVersion.Kind,
 		Type:             blockWithNameAndVersion.Type,
 		CreatedAt:        blockWithNameAndVersion.CreatedAt.Time,

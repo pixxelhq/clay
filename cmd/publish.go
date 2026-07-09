@@ -10,7 +10,6 @@ import (
 	"github.com/pixxelhq/clay-framework/pkg/config"
 	"github.com/pixxelhq/clay-framework/pkg/docker"
 	"github.com/pixxelhq/clay-framework/pkg/registry"
-
 	"github.com/spf13/cobra"
 )
 
@@ -62,9 +61,14 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cat, err := catalog.Load(cwd)
+	// Load the block's catalog.yaml (if any) up front so a malformed catalog
+	// fails the publish before the expensive image build and push.
+	catalogJSON, err := loadCatalogJSON(cwd)
 	if err != nil {
 		return err
+	}
+	if catalogJSON != nil {
+		fmt.Println("📖 catalog.yaml found; including it in the publish request")
 	}
 
 	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
@@ -82,14 +86,6 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to push image %s: %w", builtTag, err)
 	}
 	fmt.Printf("🎉 docker image %s has been pushed to the registry\n", builtTag)
-
-	var catalogJSON json.RawMessage
-	if cat != nil {
-		catalogJSON, err = cat.JSON()
-		if err != nil {
-			return err
-		}
-	}
 
 	r := registry.New(clayRegistry, 5*time.Second)
 
@@ -109,6 +105,17 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("🎉 block %s with version %s published successfully to clay registry\n", req.Name, req.Version)
 	return nil
+}
+
+func loadCatalogJSON(dir string) (json.RawMessage, error) {
+	cat, err := catalog.Load(dir)
+	if err != nil {
+		return nil, err
+	}
+	if cat == nil {
+		return nil, nil
+	}
+	return cat.JSON()
 }
 
 func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string, catalogJSON json.RawMessage) (*registry.PublishBlockRequest, error) {
