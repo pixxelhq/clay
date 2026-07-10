@@ -90,12 +90,12 @@ func TestRunCatalogUpload(t *testing.T) {
 	// remotePrefix is what ProviderFromURL would strip from the URL path.
 	require.NoError(t, uploadCatalog(context.Background(), fake, "my-block/v1", dir))
 
-	// Each media file was uploaded under <prefix>/<relPath>, plus the published
-	// catalog.yaml itself under <prefix>/catalog.yaml.
+	// Each media file was uploaded under <prefix>/<key>/<filename>, plus the
+	// published catalog.yaml itself under <prefix>/catalog.yaml.
 	require.Len(t, fake.uploaded, 4)
-	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/thumbnail.png")
-	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/sample_input.jpg")
-	assert.Equal(t, filepath.Join(dir, "catalog_readme/thumbnail.png"), fake.uploaded["my-block/v1/catalog_readme/thumbnail.png"])
+	assert.Contains(t, fake.uploaded, "my-block/v1/thumbnail/thumbnail.png")
+	assert.Contains(t, fake.uploaded, "my-block/v1/sample_input/sample_input.jpg")
+	assert.Equal(t, filepath.Join(dir, "catalog_readme/thumbnail.png"), fake.uploaded["my-block/v1/thumbnail/thumbnail.png"])
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog.yaml")
 
 	// The repo's own catalog.yaml is left untouched: still holds relative paths.
@@ -109,8 +109,8 @@ func TestRunCatalogUpload(t *testing.T) {
 	published := &catalog.Catalog{}
 	require.NoError(t, yaml.Unmarshal(fake.contents["my-block/v1/catalog.yaml"], published))
 
-	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/thumbnail.png", published.Media["thumbnail"])
-	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/sample_input.jpg", published.Media["sample_input"])
+	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/thumbnail/thumbnail.png", published.Media["thumbnail"])
+	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/sample_input/sample_input.jpg", published.Media["sample_input"])
 
 	desc := published.Sections["description"].([]interface{})
 	require.Len(t, desc, 1)
@@ -136,14 +136,14 @@ func TestRunCatalogUpload_SkipsAlreadyUploadedURLs(t *testing.T) {
 
 	// Only the two path-valued entries were uploaded, plus the catalog.yaml.
 	require.Len(t, fake.uploaded, 3)
-	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/sample_input.jpg")
-	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/sample_output.jpg")
+	assert.Contains(t, fake.uploaded, "my-block/v1/sample_input/sample_input.jpg")
+	assert.Contains(t, fake.uploaded, "my-block/v1/sample_output/sample_output.jpg")
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog.yaml")
 
 	published := &catalog.Catalog{}
 	require.NoError(t, yaml.Unmarshal(fake.contents["my-block/v1/catalog.yaml"], published))
 	assert.Equal(t, already, published.Media["thumbnail"], "URL value must be preserved untouched")
-	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/sample_input.jpg", published.Media["sample_input"])
+	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/sample_input/sample_input.jpg", published.Media["sample_input"])
 }
 
 // When every media value is already a URL no media is re-uploaded, and the
@@ -169,9 +169,10 @@ media:
 	assert.Equal(t, body, string(after), "repo catalog.yaml must never be modified")
 }
 
-// An unclean relative path ("./x") must produce the same cleaned path in both
-// the S3 key and the rewritten URL, so they always agree.
-func TestRunCatalogUpload_UncleanRelPath(t *testing.T) {
+// The destination is <key>/<filename>, so the source's directory layout is
+// dropped: only the file's basename is kept, and the S3 key and rewritten URL
+// always agree.
+func TestRunCatalogUpload_DestinationIsKeyAndFilename(t *testing.T) {
 	saveFlags(t)
 	body := "media:\n  thumbnail: ./catalog_readme/thumbnail.png\n"
 	dir := catalogRepo(t, body, []string{"catalog_readme/thumbnail.png"})
@@ -182,12 +183,12 @@ func TestRunCatalogUpload_UncleanRelPath(t *testing.T) {
 	require.NoError(t, uploadCatalog(context.Background(), fake, "my-block/v1", dir))
 
 	require.Len(t, fake.uploaded, 2)
-	assert.Contains(t, fake.uploaded, "my-block/v1/catalog_readme/thumbnail.png")
+	assert.Contains(t, fake.uploaded, "my-block/v1/thumbnail/thumbnail.png")
 	assert.Contains(t, fake.uploaded, "my-block/v1/catalog.yaml")
 
 	published := &catalog.Catalog{}
 	require.NoError(t, yaml.Unmarshal(fake.contents["my-block/v1/catalog.yaml"], published))
-	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/thumbnail.png", published.Media["thumbnail"])
+	assert.Equal(t, "https://bkt.s3.us-east-1.amazonaws.com/my-block/v1/thumbnail/thumbnail.png", published.Media["thumbnail"])
 }
 
 // A missing declared file fails before anything is uploaded.
