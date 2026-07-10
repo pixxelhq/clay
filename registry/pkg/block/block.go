@@ -33,6 +33,7 @@ type Block struct {
 	Type             string
 	Version          string
 	Specification    *Specification
+	CatalogURL       string
 	DocumentationURL string
 	ThumbnailURL     string
 	DockerImage      string
@@ -87,6 +88,10 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 				String: b.ThumbnailURL,
 				Valid:  b.ThumbnailURL != "",
 			},
+			CatalogUrl: sql.NullString{
+				String: b.CatalogURL,
+				Valid:  b.CatalogURL != "",
+			},
 			DockerImage: sql.NullString{
 				String: b.DockerImage,
 				Valid:  true,
@@ -113,6 +118,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			Type:             upsertedBlock.Type,
 			DocumentationURL: bv.DocumentationUrl.String,
 			ThumbnailURL:     bv.ThumbnailUrl.String,
+			CatalogURL:       bv.CatalogUrl.String,
 			DockerImage:      bv.DockerImage.String,
 			Specification:    spec,
 			CreatedAt:        bv.CreatedAt.Time,
@@ -220,6 +226,7 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 		DocumentationURL: blockWithNameAndVersion.DocumentationUrl.String,
 		ThumbnailURL:     blockWithNameAndVersion.ThumbnailUrl.String,
 		Specification:    spec,
+		CatalogURL:       blockWithNameAndVersion.CatalogUrl.String,
 		Kind:             blockWithNameAndVersion.Kind,
 		Type:             blockWithNameAndVersion.Type,
 		CreatedAt:        blockWithNameAndVersion.CreatedAt.Time,

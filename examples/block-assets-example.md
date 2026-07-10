@@ -30,11 +30,10 @@ clay block assets upload ./weights \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
-Upload with template parsing (renders `{{ addUrl "file" }}` references to absolute URLs):
+Upload catalog media and rewrite `catalog.yaml` in place (uploads each file in its `media:` section, rewrites the values to absolute URLs, then uploads the catalog itself). Run it from the model repo root — it reads `catalog.yaml` from the current directory and takes no path argument:
 ```bash
-clay block assets upload catalog_readme/ \
-  --parse README.md:parsed.md \
-  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/catalog_readme/
+clay block assets upload-catalog \
+  --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
 ### 2. List Assets

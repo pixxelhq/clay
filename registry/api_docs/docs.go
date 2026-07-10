@@ -189,6 +189,9 @@ const docTemplate = `{
         "http.CreateBlockRequest": {
             "type": "object",
             "properties": {
+                "catalog_url": {
+                    "type": "string"
+                },
                 "docker_image": {
                     "type": "string"
                 },
@@ -218,6 +221,9 @@ const docTemplate = `{
         "http.CreateBlockResponse": {
             "type": "object",
             "properties": {
+                "catalog_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -253,6 +259,9 @@ const docTemplate = `{
         "http.GetBlockByNameAndVersion": {
             "type": "object",
             "properties": {
+                "catalog_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },

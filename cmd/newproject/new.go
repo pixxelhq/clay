@@ -11,8 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var readmeTemplate bool
-
 // NewCmd scaffolds a new block project at the given path.
 var NewCmd = &cobra.Command{
 	Use:   "new <path> <name>",
@@ -28,14 +26,10 @@ var NewCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputDir := args[0]
 		blockName := args[1]
-		err := bootstrap.CreateProject(outputDir, blockName, readmeTemplate)
+		err := bootstrap.CreateProject(outputDir, blockName)
 		if err != nil {
 			fmt.Println(err)
 		}
 		return err
 	},
-}
-
-func init() {
-	NewCmd.Flags().BoolVar(&readmeTemplate, "readme-template", false, "Include addUrl template metadata in README.md for catalog publishing")
 }

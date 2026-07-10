@@ -3,11 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/pixxelhq/clay-framework/pkg/catalog"
 	"github.com/pixxelhq/clay-framework/pkg/storage"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +17,6 @@ import (
 var (
 	storageURL string
 	outputPath string
-	parseSpec  string
 )
 
 // BlockAssetsCmd returns the assets command group
@@ -37,6 +38,7 @@ roles.`,
 	}
 
 	cmd.AddCommand(blockAssetsUploadCmd())
+	cmd.AddCommand(blockAssetsUploadCatalogCmd())
 	cmd.AddCommand(blockAssetsListCmd())
 	cmd.AddCommand(blockAssetsDownloadCmd())
 
@@ -46,39 +48,49 @@ roles.`,
 func blockAssetsUploadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upload <path>",
-		Short: "Upload assets to block storage",
-		Long: `Upload a file or directory to the storage location specified by --url.
+		Short: "Upload a file or directory to block storage",
+		Long: `Upload a file or directory verbatim to the storage location specified
+by --url.
 
-If --parse is provided, <path> must be a directory and --parse names a
-template file inside that directory. The template is rendered through Go's
-text/template engine before uploading the directory. Use
-{{ addUrl "file" }} inside the template to resolve relative asset
-references against --url.`,
-		Example: `  # Upload a plain directory or file
-  clay block assets upload ./weights \
-    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/
-
-  # Parse a template file inside the directory and upload the directory
-  clay block assets upload catalog_readme/ \
-    --parse README.md:parsed.md \
-    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/catalog_readme/
-
-  # Parse with auto-generated output name
-  # (README.md -> block-README.parsed.md)
-  clay block assets upload docs/ \
-    --parse README.md \
-    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/docs/`,
+To publish a model's catalog.yaml media instead, use
+'clay block assets upload-catalog'.`,
+		Example: `  clay block assets upload ./weights \
+    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/`,
 		Args: cobra.ExactArgs(1),
 		RunE: runBlockAssetsUpload,
 	}
 
 	cmd.Flags().StringVar(&storageURL, "url", "", "Storage URL where assets will be uploaded (required)")
-	cmd.Flags().StringVar(&parseSpec, "parse", "",
-		`Template file inside <path> to render before uploading
-(format: <input>[:<output>]). Paths are relative to <path>.
-Requires <path> to be a directory. Use {{ addUrl "file" }} to
-resolve asset references against --url. Output defaults to
-<name>.parsed<ext>.`)
+	cmd.MarkFlagRequired("url")
+
+	return cmd
+}
+
+func blockAssetsUploadCatalogCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upload-catalog",
+		Short: "Upload catalog.yaml media and upload a rewritten catalog copy",
+		Long: `Publish the media declared in a model repo's catalog.yaml.
+
+Run this command from the root of the model repo itself. The catalog.yaml
+is read from the current working directory (the command errors if none is
+found there), and each media: path is resolved relative to that directory,
+so running it from anywhere else would fail to locate the local media files.
+
+Uploads each file listed under the catalog's media: section to
+--url/<key>/<filename>, where <key> is the media entry's key and <filename>
+is the local file's name (its source directory layout is dropped). It then
+uploads a copy of catalog.yaml alongside them, with each media: entry rewritten
+to point at its uploaded URL. Repo's catalog.yaml is never modified.
+
+Bake the block/version into --url; the <key>/<filename> suffix is appended to it.`,
+		Example: `  clay block assets upload-catalog \
+    --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/`,
+		Args: cobra.NoArgs,
+		RunE: runBlockAssetsUploadCatalog,
+	}
+
+	cmd.Flags().StringVar(&storageURL, "url", "", "Storage URL where media will be uploaded (required)")
 	cmd.MarkFlagRequired("url")
 
 	return cmd
@@ -136,20 +148,6 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 	provider, remotePrefix, err := storage.ProviderFromURL(storageURL)
 	if err != nil {
 		return err
-	}
-
-	if parseSpec != "" {
-		if !info.IsDir() {
-			return fmt.Errorf("--parse requires <path> to be a directory containing the template; got file %q", localPath)
-		}
-		inputPath, parsedPath, err := resolveParseSpec(parseSpec, localPath)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(os.Stderr, "Parsing template %s → %s...\n", inputPath, parsedPath)
-		if err := parseTemplateFile(inputPath, parsedPath, storageURL); err != nil {
-			return fmt.Errorf("failed to parse template: %w", err)
-		}
 	}
 
 	if info.IsDir() {
@@ -244,4 +242,154 @@ func runBlockAssetsDownload(cmd *cobra.Command, args []string) error {
 
 	fmt.Fprintln(os.Stderr, "✓ Download completed successfully")
 	return nil
+}
+
+func runBlockAssetsUploadCatalog(cmd *cobra.Command, args []string) error {
+	repoDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	provider, remotePrefix, err := storage.ProviderFromURL(storageURL)
+	if err != nil {
+		return err
+	}
+
+	return uploadCatalog(ctx, provider, remotePrefix, repoDir)
+}
+
+type mediaUpload struct {
+	key        string
+	remotePath string // destination suffix under --url: <key>/<filename>
+	absPath    string
+}
+
+// uploadCatalog uploads every local file declared in the catalog's media:
+// section to --url/<key>/<filename>, then uploads a copy of catalog.yaml whose media:
+// values point at those uploaded URLs. The on-disk catalog.yaml in the repo is
+// left untouched; the rewrite happens only in the published copy.
+func uploadCatalog(ctx context.Context, provider storage.Provider, remotePrefix, repoDir string) error {
+	catalogPath := catalog.FilePath(repoDir)
+	cat, err := loadCatalog(catalogPath)
+	if err != nil {
+		return err
+	}
+	if len(cat.Media) == 0 {
+		return fmt.Errorf("%s has no media: section, nothing to upload", catalogPath)
+	}
+	pending, err := mediaToUpload(cat, repoDir)
+	if err != nil {
+		return err
+	}
+
+	// uploadMedia returns a new catalog with the uploaded media URLs, leaving
+	// the repo's catalog.yaml as is.
+	published, err := uploadMedia(ctx, provider, remotePrefix, cat, pending)
+	if err != nil {
+		return err
+	}
+
+	if len(pending) > 0 {
+		fmt.Fprintf(os.Stderr, "✓ Uploaded %d media file(s)\n", len(pending))
+	} else {
+		fmt.Fprintln(os.Stderr, "✓ All catalog media are already uploaded URLs")
+	}
+
+	catalogURL, err := uploadCatalogFile(ctx, provider, remotePrefix, published, filepath.Base(catalogPath))
+	if err != nil {
+		return err
+	}
+
+	// Print the published catalog.yaml URL (not the base --url) on stdout so it
+	// can be piped straight into `clay publish --catalog-url`.
+	fmt.Println(catalogURL)
+	return nil
+}
+
+func loadCatalog(catalogPath string) (*catalog.Catalog, error) {
+	cat, err := catalog.LoadFile(catalogPath)
+	if err != nil {
+		return nil, err
+	}
+	if cat == nil {
+		return nil, fmt.Errorf("catalog file not found: %s", catalogPath)
+	}
+	return cat, nil
+}
+
+// mediaToUpload returns the media entries that still point to local files.
+// Entries already rewritten to remote URLs are skipped.
+func mediaToUpload(cat *catalog.Catalog, repoDir string) ([]mediaUpload, error) {
+	pending := make([]mediaUpload, 0, len(cat.Media))
+	for key, val := range cat.Media {
+		if catalog.IsRemoteURL(val) {
+			fmt.Fprintf(os.Stderr, "Skipping catalog media %q: already an uploaded URL\n", key)
+			continue
+		}
+		abs, err := catalog.ResolvePath(repoDir, val)
+		if err != nil {
+			return nil, fmt.Errorf("catalog media %q: %w", key, err)
+		}
+		// The destination is derived from the media key and the file's name,
+		// not the source layout: <url>/<key>/<filename>. So a media entry
+		// "thumbnail: some/local/thumbnail.webp" publishes to
+		// <url>/thumbnail/thumbnail.webp regardless of where it lives locally.
+		pending = append(pending, mediaUpload{
+			key:        key,
+			remotePath: path.Join(key, filepath.Base(val)),
+			absPath:    abs,
+		})
+	}
+	return pending, nil
+}
+
+// uploadMedia uploads each pending file and returns a new catalog whose media
+// entries are rewritten to their uploaded URLs. The input catalog is not
+// modified.
+func uploadMedia(ctx context.Context, provider storage.Provider, remotePrefix string, cat *catalog.Catalog, pending []mediaUpload) (*catalog.Catalog, error) {
+	resolvedMedia := make(map[string]string, len(cat.Media))
+	for k, v := range cat.Media {
+		resolvedMedia[k] = v
+	}
+	for _, m := range pending {
+		remoteURL, err := uploadFile(ctx, provider, remotePrefix, m.absPath, m.remotePath)
+		if err != nil {
+			return nil, err
+		}
+		resolvedMedia[m.key] = remoteURL
+	}
+	return &catalog.Catalog{Media: resolvedMedia, Sections: cat.Sections}, nil
+}
+
+// uploadCatalogFile publishes cat as filename under remotePrefix, keeping it
+// under the same prefix as the media it references, and returns the public URL
+// it was published to. The serialized catalog is staged in a temp file so the
+// repo's own catalog.yaml is never rewritten.
+func uploadCatalogFile(ctx context.Context, provider storage.Provider, remotePrefix string, cat *catalog.Catalog, filename string) (string, error) {
+	tmp, err := os.CreateTemp("", "clay-catalog-*.yaml")
+	if err != nil {
+		return "", fmt.Errorf("failed to stage catalog for upload: %w", err)
+	}
+	defer os.Remove(tmp.Name())
+	tmp.Close()
+
+	if err := cat.WriteFile(tmp.Name()); err != nil {
+		return "", err
+	}
+	return uploadFile(ctx, provider, remotePrefix, tmp.Name(), filename)
+}
+
+// uploadFile uploads localPath to remotePrefix/relPath and returns the public
+// URL it was published to. relPath identifies the item in progress output and errors.
+func uploadFile(ctx context.Context, provider storage.Provider, remotePrefix, localPath, relPath string) (string, error) {
+	remoteURL, err := url.JoinPath(storageURL, relPath)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", relPath, err)
+	}
+	fmt.Fprintf(os.Stderr, "Uploading %s → %s...\n", relPath, remoteURL)
+	if err := provider.Upload(ctx, localPath, path.Join(remotePrefix, relPath)); err != nil {
+		return "", fmt.Errorf("failed to upload %s: %w", relPath, err)
+	}
+	return remoteURL, nil
 }

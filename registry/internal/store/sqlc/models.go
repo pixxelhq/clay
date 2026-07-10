@@ -30,4 +30,5 @@ type BlockVersion struct {
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
 	ThumbnailUrl     sql.NullString
+	CatalogUrl       sql.NullString
 }

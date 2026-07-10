@@ -41,43 +41,39 @@ clay block assets upload ./blocks \
 # Upload a single file
 clay block assets upload block.pkl \
   --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
-
-# Parse a template and upload the directory
-clay block assets upload ./docs \
-  --parse README.md:parsed.md \
-  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/
 ```
 
-### Upload with `--parse` Template Processing
+### Upload catalog media with `upload-catalog`
 
-When you pass `--parse`, Clay renders the named file through Go's `text/template` engine before uploading the directory. The format is:
+`clay block assets upload-catalog` publishes the media declared in the `catalog.yaml` in the current working directory (run it from the model repo root). It takes no path argument — only `--url`. Clay:
 
-```
---parse <input>[:<output>]
-```
+1. reads the `media:` section (which maps keys to relative file paths),
+2. uploads each declared file to `<your --url>/<relative-path>`,
+3. rewrites each `media:` value in `catalog.yaml` to the uploaded URL. The rest of the content is carried over unchanged, but the file is re-serialized — comments and formatting are not preserved.
+4. uploads the rewritten `catalog.yaml` itself to `<your --url>/catalog.yaml`, so the published catalog lives alongside the media it references.
 
-Paths are relative to the `<path>` argument (the upload directory). If `<output>` is omitted, it defaults to `<name>.parsed<ext>` (e.g. `README.md` becomes `README.parsed.md`).
+Bake the block name and version into `--url`; only the media relative path is appended, so the S3 key and the rewritten URL always agree.
 
-The template can reference a helper:
+The command is idempotent: `media:` values that are already `http(s)` URLs (from a previous run) are skipped. Run this upload before `clay publish` — the catalog is published as-is, so `media:` values left as relative paths will not resolve in the catalog frontend.
 
-- `{{ addUrl "filename" }}` — expands to `<your --url>/filename`.
+Example — given:
 
-This lets you write relative asset references that resolve to absolute URLs at upload time.
-
-Example:
-
-```markdown
-<!-- docs/README.md -->
-![sample]({{ addUrl "sample_input.png" }})
-```
-
-With `--url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/`, this renders to:
-
-```markdown
-![sample](https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/catalog_readme/sample_input.png)
+```yaml
+# catalog.yaml
+media:
+  thumbnail: catalog_readme/thumbnail.png
+  sample_input: catalog_readme/sample_input.png
+  sample_output: catalog_readme/sample_output.png
 ```
 
-The rendered output is written next to the template and uploaded along with the rest of the folder.
+running (from the model repo root):
+
+```bash
+clay block assets upload-catalog \
+  --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
+```
+
+uploads `catalog_readme/thumbnail.png` to `.../my-block/v1.0.0/catalog_readme/thumbnail.png` and rewrites the `media:` value to that URL. The three reserved keys `thumbnail`, `sample_input`, and `sample_output` are required.
 
 ### List Assets
 

@@ -160,7 +160,18 @@ clay block assets upload <path> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--url` | Complete storage URL where assets will be uploaded (required) | — |
-| `--parse` | Render a template file inside `<path>` (which must be a directory) before uploading. Format: `<input>[:<output>]`, relative to `<path>`. The `{{ addUrl "file" }}` helper resolves to `<base-url>/file`, where `<base-url>` is the value of `--url`. If `<output>` is omitted, defaults to `<name>.parsed<ext>`. | — |
+
+### Upload Catalog Media
+
+Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<relative-path>` and its value is rewritten to the uploaded URL, in place; the rewritten `catalog.yaml` is then uploaded alongside its media. Already-uploaded URLs are skipped, so re-running is idempotent. Bake the block/version into `--url`.
+
+```shell
+clay block assets upload-catalog [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--url` | Complete storage URL where the catalog media will be uploaded (required) | — |
 
 ### List Assets
 

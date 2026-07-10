@@ -1,8 +1,11 @@
 package registry
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,9 +100,34 @@ func compareBlocks(a, b Blocks) bool {
 		return false
 	}
 	for i := range a {
-		if *a[i] != *b[i] {
+		if !reflect.DeepEqual(*a[i], *b[i]) {
 			return false
 		}
 	}
 	return true
+}
+
+func TestPublishBlockRequest_CatalogURLOmitEmpty(t *testing.T) {
+	// Without a catalog URL, the field must be absent so existing publish flows
+	// (and the Dexter API) see the same shape as before.
+	without, err := json.Marshal(&PublishBlockRequest{Name: "m", Version: "v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(without), "catalog") {
+		t.Errorf("catalog_url should be omitted when empty: %s", without)
+	}
+
+	// With a catalog URL, it is carried under "catalog_url".
+	with, err := json.Marshal(&PublishBlockRequest{
+		Name:       "m",
+		Version:    "v1",
+		CatalogURL: "https://x/catalog.yaml",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(with), `"catalog_url":"https://x/catalog.yaml"`) {
+		t.Errorf("catalog_url should be set: %s", with)
+	}
 }

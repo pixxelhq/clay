@@ -6,6 +6,7 @@ INSERT INTO
         specification,
         documentation_url,
         thumbnail_url,
+        catalog_url,
         docker_image
     )
 VALUES
@@ -15,7 +16,8 @@ VALUES
         $3,
         $4,
         $5,
-        $6
+        $6,
+        $7
     ) RETURNING *;
 
 -- name: GetBlockAllVersionByName :many
@@ -49,7 +51,8 @@ SELECT
     bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
-    bv.updated_at
+    bv.updated_at,
+    bv.catalog_url
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id

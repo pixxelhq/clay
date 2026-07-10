@@ -1,13 +1,12 @@
 package bootstrap
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"strings"
 	"text/template"
 	"unicode"
-
-	"errors"
 
 	"github.com/iancoleman/strcase"
 )
@@ -111,14 +110,14 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 
 func getTemplateData(titleBlockName string) map[string]TemplateData {
 	data := map[string]TemplateData{
-		"src/block.py":                          Block{BlockName: titleBlockName},
-		"src/entry.py":                          Entry{BlockName: titleBlockName},
-		"README.md":                             Readme{Name: titleBlockName},
-		"tests/test_block.py":                   TestBlock{BlockName: titleBlockName},
-		"Makefile":                               Makefile{BlockName: titleBlockName},
-		"tests/test_main.py":                    TestBlock{BlockName: titleBlockName},
-		"pyproject.toml":                         PyProject{BlockName: titleBlockName},
-		"clay.yaml":                              Config{Name: titleBlockName},
+		"src/block.py":        Block{BlockName: titleBlockName},
+		"src/entry.py":        Entry{BlockName: titleBlockName},
+		"README.md":           Readme{Name: titleBlockName},
+		"tests/test_block.py": TestBlock{BlockName: titleBlockName},
+		"Makefile":            Makefile{BlockName: titleBlockName},
+		"tests/test_main.py":  TestBlock{BlockName: titleBlockName},
+		"pyproject.toml":      PyProject{BlockName: titleBlockName},
+		"clay.yaml":           Config{Name: titleBlockName},
 	}
 	return data
 }
