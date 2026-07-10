@@ -33,7 +33,7 @@ type Block struct {
 	Type             string
 	Version          string
 	Specification    *Specification
-	Catalog          json.RawMessage
+	CatalogURL       string
 	DocumentationURL string
 	ThumbnailURL     string
 	DockerImage      string
@@ -76,11 +76,6 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			return nil, err
 		}
 
-		catalog := b.Catalog
-		if len(catalog) == 0 {
-			catalog = json.RawMessage("{}")
-		}
-
 		bv, err := q.CreateBlockVersion(ctx, store.CreateBlockVersionParams{
 			BlockID:       upsertedBlock.ID,
 			Version:       b.Version,
@@ -93,7 +88,10 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 				String: b.ThumbnailURL,
 				Valid:  b.ThumbnailURL != "",
 			},
-			Catalog: catalog,
+			CatalogUrl: sql.NullString{
+				String: b.CatalogURL,
+				Valid:  b.CatalogURL != "",
+			},
 			DockerImage: sql.NullString{
 				String: b.DockerImage,
 				Valid:  true,
@@ -120,7 +118,7 @@ func (bs *block) Create(ctx context.Context, b *Block) (*Block, error) {
 			Type:             upsertedBlock.Type,
 			DocumentationURL: bv.DocumentationUrl.String,
 			ThumbnailURL:     bv.ThumbnailUrl.String,
-			Catalog:          bv.Catalog,
+			CatalogURL:       bv.CatalogUrl.String,
 			DockerImage:      bv.DockerImage.String,
 			Specification:    spec,
 			CreatedAt:        bv.CreatedAt.Time,
@@ -228,7 +226,7 @@ func (bs *block) GetBlockByNameAndVersion(ctx context.Context, name, version str
 		DocumentationURL: blockWithNameAndVersion.DocumentationUrl.String,
 		ThumbnailURL:     blockWithNameAndVersion.ThumbnailUrl.String,
 		Specification:    spec,
-		Catalog:          blockWithNameAndVersion.Catalog,
+		CatalogURL:       blockWithNameAndVersion.CatalogUrl.String,
 		Kind:             blockWithNameAndVersion.Kind,
 		Type:             blockWithNameAndVersion.Type,
 		CreatedAt:        blockWithNameAndVersion.CreatedAt.Time,

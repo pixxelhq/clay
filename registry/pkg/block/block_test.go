@@ -24,6 +24,7 @@ var reqBlock = &Block{
 	Type:             "exampleType",
 	Version:          "1.0.0",
 	DocumentationURL: "http://example.com",
+	CatalogURL:       "http://example.com/catalog.yaml",
 	DockerImage:      "example/image:latest",
 	Specification: &Specification{
 		Version:     "1.0.0",
@@ -90,7 +91,7 @@ func TestCreate(t *testing.T) {
 							BlockID:          upsertedBlock.ID,
 							Specification:    specByte,
 							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
-							Catalog:          json.RawMessage("{}"),
+							CatalogUrl:       sql.NullString{String: "http://example.com/catalog.yaml", Valid: true},
 							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}
 
@@ -99,7 +100,7 @@ func TestCreate(t *testing.T) {
 							Version:          "1.0.0",
 							Specification:    specByte,
 							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
-							Catalog:          json.RawMessage("{}"),
+							CatalogUrl:       sql.NullString{String: "http://example.com/catalog.yaml", Valid: true},
 							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}).Return(bv, nil)
 
@@ -167,7 +168,6 @@ func TestCreate(t *testing.T) {
 							Version:          "1.0.0",
 							Specification:    specByte,
 							DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
-							Catalog:          json.RawMessage("{}"),
 							DockerImage:      sql.NullString{String: "example/image:latest", Valid: true},
 						}).Return(store.BlockVersion{}, errors.New("create block version error"))
 
@@ -396,7 +396,7 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 					Specification:    json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
 					DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
 					DockerImage:      sql.NullString{String: "example/image", Valid: true},
-					Catalog:          json.RawMessage(`{"assets":[]}`),
+					CatalogUrl:       sql.NullString{String: "http://example.com/catalog.yaml", Valid: true},
 					CreatedAt:        sql.NullTime{Time: sampleTime},
 					UpdatedAt:        sql.NullTime{Time: sampleTime},
 				}, nil)
@@ -408,7 +408,7 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 				Specification:    &Specification{Version: "1.0", Title: "Test Block"},
 				DocumentationURL: "http://example.com",
 				DockerImage:      "example/image",
-				Catalog:          json.RawMessage(`{"assets":[]}`),
+				CatalogURL:       "http://example.com/catalog.yaml",
 				CreatedAt:        sampleTime,
 				UpdatedAt:        sampleTime,
 			},

@@ -53,7 +53,7 @@ type PublishBlockRequest struct {
 	DocumentationURL string          `json:"documentation_url"`
 	ThumbnailURL     string          `json:"thumbnail_url"`
 	Specification    *Specification  `json:"specification"`
-	Catalog          json.RawMessage `json:"catalog,omitempty"`
+	CatalogURL       string          `json:"catalog_url,omitempty"`
 }
 
 type Data interface {
@@ -76,6 +76,7 @@ type Block struct {
 	DockerImage      string         `json:"docker_image"`
 	DocumentationURL string         `json:"documentation_url"`
 	ThumbnailURL     string         `json:"thumbnail_url"`
+	CatalogURL       string         `json:"catalog_url,omitempty"`
 	Specification    *Specification `json:"specification,omitempty"`
 }
 

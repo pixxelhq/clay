@@ -43,7 +43,7 @@ type CreateBlockRequest struct {
 	DocumentationURL string          `json:"documentation_url"`
 	ThumbnailURL     string          `json:"thumbnail_url"`
 	Specification    *Specification  `json:"specification"`
-	Catalog          json.RawMessage `json:"catalog,omitempty"`
+	CatalogURL       string          `json:"catalog_url,omitempty"`
 }
 
 type CreateBlockResponse struct {
@@ -57,7 +57,7 @@ type CreateBlockResponse struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	Specification    *Specification  `json:"specification"`
-	Catalog          json.RawMessage `json:"catalog,omitempty"`
+	CatalogURL       string          `json:"catalog_url,omitempty"`
 }
 
 type (
@@ -91,5 +91,5 @@ type GetBlockByNameAndVersion struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	Specification    *Specification  `json:"specification"`
-	Catalog          json.RawMessage `json:"catalog,omitempty"`
+	CatalogURL       string          `json:"catalog_url,omitempty"`
 }
