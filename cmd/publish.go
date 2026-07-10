@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/pixxelhq/clay-framework/pkg/catalog"
 	"github.com/pixxelhq/clay-framework/pkg/config"
 	"github.com/pixxelhq/clay-framework/pkg/docker"
 	"github.com/pixxelhq/clay-framework/pkg/registry"
@@ -18,6 +17,7 @@ var (
 	dockerRegistry   string
 	documentationURL string
 	thumbnailURL     string
+	catalogURL       string
 )
 
 func publishBlockToRegistryCmd() *cobra.Command {
@@ -46,6 +46,7 @@ func publishBlockToRegistryCmd() *cobra.Command {
 	cmd.Flags().StringVar(&clayRegistry, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
 	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "URL for block documentation")
 	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "URL for block thumbnail")
+	cmd.Flags().StringVar(&catalogURL, "catalog-url", "", "URL of the published catalog.yaml (see 'clay block assets upload-catalog')")
 
 	return cmd
 }
@@ -59,16 +60,6 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	cfg, err := config.GetConfig(cwd)
 	if err != nil {
 		return err
-	}
-
-	// Load the block's catalog.yaml (if any) up front so a malformed catalog
-	// fails the publish before the expensive image build and push.
-	catalogJSON, err := loadCatalogJSON(cwd)
-	if err != nil {
-		return err
-	}
-	if catalogJSON != nil {
-		fmt.Println("📖 catalog.yaml found; including it in the publish request")
 	}
 
 	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
@@ -89,7 +80,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 
 	r := registry.New(clayRegistry, 5*time.Second)
 
-	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, builtTag, catalogJSON)
+	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, catalogURL, builtTag)
 	if err != nil {
 		return err
 	}
@@ -107,18 +98,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func loadCatalogJSON(dir string) (json.RawMessage, error) {
-	cat, err := catalog.Load(dir)
-	if err != nil {
-		return nil, err
-	}
-	if cat == nil {
-		return nil, nil
-	}
-	return cat.JSON()
-}
-
-func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, dockerImage string, catalogJSON json.RawMessage) (*registry.PublishBlockRequest, error) {
+func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, catalogURL, dockerImage string) (*registry.PublishBlockRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
 		return nil, fmt.Errorf("error while marshalling build json: %w", err)
@@ -144,7 +124,7 @@ func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL
 			ENV:        cfg.ENV,
 			Gpu:        cfg.Gpu,
 		},
-		Catalog: catalogJSON,
+		CatalogURL: catalogURL,
 	}
 
 	return req, nil

@@ -69,17 +69,19 @@ To publish a model's catalog.yaml media instead, use
 func blockAssetsUploadCatalogCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upload-catalog",
-		Short: "Upload catalog.yaml media and rewrite it in place",
+		Short: "Upload catalog.yaml media and upload a rewritten catalog copy",
 		Long: `Publish the media declared in a model repo's catalog.yaml.
 
-Each file listed in the catalog's media: section is uploaded to
---url/<relPath> and its media: value is rewritten to the uploaded URL,
-writing the result back to catalog.yaml in place. Entries that are already
-uploaded URLs are skipped, so re-running is idempotent.
+Run this command from the root of the model repo itself. The catalog.yaml
+is read from the current working directory (the command errors if none is
+found there), and each media: path is resolved relative to that directory,
+so running it from anywhere else would fail to locate the local media files.
 
-The catalog.yaml is read from the current working directory; the command
-errors if none is found there. Bake the block/version into --url; the media
-relative path is appended to it.`,
+Uploads each file listed under the catalog's media: section to --url/<relPath>.
+It then uploads a copy of catalog.yaml alongside them, with each media: entry
+rewritten to point at its uploaded URL. Repo's catalog.yaml is never modified. 
+
+Bake the block/version into --url; the media relative path is appended to it.`,
 		Example: `  clay block assets upload-catalog \
     --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/`,
 		Args: cobra.NoArgs,
@@ -262,9 +264,9 @@ type mediaUpload struct {
 }
 
 // uploadCatalog uploads every local file declared in the catalog's media:
-// section to --url/<relPath>, rewrites those media: values to the uploaded URLs
-// in place, and finally uploads the rewritten catalog.yaml itself so the
-// published catalog lives alongside the media it references.
+// section to --url/<relPath>, then uploads a copy of catalog.yaml whose media:
+// values point at those uploaded URLs. The on-disk catalog.yaml in the repo is
+// left untouched; the rewrite happens only in the published copy.
 func uploadCatalog(ctx context.Context, provider storage.Provider, remotePrefix, repoDir string) error {
 	catalogPath := catalog.FilePath(repoDir)
 	cat, err := loadCatalog(catalogPath)
@@ -279,24 +281,28 @@ func uploadCatalog(ctx context.Context, provider storage.Provider, remotePrefix,
 		return err
 	}
 
+	publishedMedia, err := uploadMedia(ctx, provider, remotePrefix, cat.Media, pending)
+	if err != nil {
+		return err
+	}
+
 	if len(pending) > 0 {
-		if err := uploadMedia(ctx, provider, remotePrefix, cat, pending); err != nil {
-			return err
-		}
-		if err := cat.WriteFile(catalogPath); err != nil {
-			return err
-		}
-		fmt.Fprintf(os.Stderr, "✓ Uploaded %d media file(s); wrote rewritten catalog to %s\n", len(pending), catalogPath)
+		fmt.Fprintf(os.Stderr, "✓ Uploaded %d media file(s)\n", len(pending))
 	} else {
 		fmt.Fprintln(os.Stderr, "✓ All catalog media are already uploaded URLs")
 	}
 
-	// Upload catalog.yaml itself alongside its media.
-	if err := uploadCatalogFile(ctx, provider, remotePrefix, catalogPath); err != nil {
+	// Publish a copy of the catalog with rewritten media, leaving the repo's
+	// catalog.yaml as is.
+	published := &catalog.Catalog{Media: publishedMedia, Sections: cat.Sections}
+	catalogURL, err := uploadCatalogFile(ctx, provider, remotePrefix, published, filepath.Base(catalogPath))
+	if err != nil {
 		return err
 	}
 
-	fmt.Println(storageURL)
+	// Print the published catalog.yaml URL (not the base --url) on stdout so it
+	// can be piped straight into `clay publish --catalog-url`.
+	fmt.Println(catalogURL)
 	return nil
 }
 
@@ -333,37 +339,51 @@ func mediaToUpload(cat *catalog.Catalog, repoDir string) ([]mediaUpload, error) 
 	return pending, nil
 }
 
-// uploadMedia uploads each pending file and rewrites its catalog entry to the
-// resulting remote URL.
-func uploadMedia(ctx context.Context, provider storage.Provider, remotePrefix string, cat *catalog.Catalog, pending []mediaUpload) error {
-	for _, m := range pending {
-		remoteURL, err := uploadFile(ctx, provider, remotePrefix, m.absPath, m.relPath, fmt.Sprintf("catalog media %q", m.key))
-		if err != nil {
-			return err
-		}
-		cat.Media[m.key] = remoteURL
+// uploadMedia uploads each pending file and returns a new media map with those
+// entries rewritten to their uploaded URLs. The input map is not modified.
+func uploadMedia(ctx context.Context, provider storage.Provider, remotePrefix string, media map[string]string, pending []mediaUpload) (map[string]string, error) {
+	resolvedMedia := make(map[string]string, len(media))
+	for k, v := range media {
+		resolvedMedia[k] = v
 	}
-	return nil
+	for _, m := range pending {
+		remoteURL, err := uploadFile(ctx, provider, remotePrefix, m.absPath, m.relPath)
+		if err != nil {
+			return nil, err
+		}
+		resolvedMedia[m.key] = remoteURL
+	}
+	return resolvedMedia, nil
 }
 
-// uploadCatalogFile uploads the catalog.yaml itself to remotePrefix/<filename>,
-// keeping it under the same prefix as the media it references.
-func uploadCatalogFile(ctx context.Context, provider storage.Provider, remotePrefix, catalogPath string) error {
-	filename := filepath.Base(catalogPath)
-	_, err := uploadFile(ctx, provider, remotePrefix, catalogPath, filename, filename)
-	return err
+// uploadCatalogFile publishes cat as filename under remotePrefix, keeping it
+// under the same prefix as the media it references, and returns the public URL
+// it was published to. The serialized catalog is staged in a temp file so the
+// repo's own catalog.yaml is never rewritten.
+func uploadCatalogFile(ctx context.Context, provider storage.Provider, remotePrefix string, cat *catalog.Catalog, filename string) (string, error) {
+	tmp, err := os.CreateTemp("", "clay-catalog-*.yaml")
+	if err != nil {
+		return "", fmt.Errorf("failed to stage catalog for upload: %w", err)
+	}
+	defer os.Remove(tmp.Name())
+	tmp.Close()
+
+	if err := cat.WriteFile(tmp.Name()); err != nil {
+		return "", err
+	}
+	return uploadFile(ctx, provider, remotePrefix, tmp.Name(), filename)
 }
 
 // uploadFile uploads localPath to remotePrefix/relPath and returns the public
-// URL it was published to. label names the item in progress output and errors.
-func uploadFile(ctx context.Context, provider storage.Provider, remotePrefix, localPath, relPath, label string) (string, error) {
+// URL it was published to. relPath identifies the item in progress output and errors.
+func uploadFile(ctx context.Context, provider storage.Provider, remotePrefix, localPath, relPath string) (string, error) {
 	remoteURL, err := url.JoinPath(storageURL, relPath)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", label, err)
+		return "", fmt.Errorf("%s: %w", relPath, err)
 	}
-	fmt.Fprintf(os.Stderr, "Uploading %s → %s...\n", label, remoteURL)
+	fmt.Fprintf(os.Stderr, "Uploading %s → %s...\n", relPath, remoteURL)
 	if err := provider.Upload(ctx, localPath, path.Join(remotePrefix, relPath)); err != nil {
-		return "", fmt.Errorf("failed to upload %s: %w", label, err)
+		return "", fmt.Errorf("failed to upload %s: %w", relPath, err)
 	}
 	return remoteURL, nil
 }

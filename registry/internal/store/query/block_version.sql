@@ -6,7 +6,7 @@ INSERT INTO
         specification,
         documentation_url,
         thumbnail_url,
-        catalog,
+        catalog_url,
         docker_image
     )
 VALUES
@@ -52,7 +52,7 @@ SELECT
     bv.docker_image,
     bv.created_at,
     bv.updated_at,
-    bv.catalog
+    bv.catalog_url
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id

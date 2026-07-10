@@ -1,8 +1,8 @@
 definitions:
   http.CreateBlockRequest:
     properties:
-      catalog:
-        type: object
+      catalog_url:
+        type: string
       docker_image:
         type: string
       documentation_url:
@@ -22,8 +22,8 @@ definitions:
     type: object
   http.CreateBlockResponse:
     properties:
-      catalog:
-        type: object
+      catalog_url:
+        type: string
       created_at:
         type: string
       docker_image:
@@ -47,8 +47,8 @@ definitions:
     type: object
   http.GetBlockByNameAndVersion:
     properties:
-      catalog:
-        type: object
+      catalog_url:
+        type: string
       created_at:
         type: string
       docker_image:

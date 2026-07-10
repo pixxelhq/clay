@@ -21,7 +21,7 @@ INSERT INTO
         specification,
         documentation_url,
         thumbnail_url,
-        catalog,
+        catalog_url,
         docker_image
     )
 VALUES
@@ -33,7 +33,7 @@ VALUES
         $5,
         $6,
         $7
-    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at, thumbnail_url, catalog
+    ) RETURNING id, version, block_id, specification, documentation_url, docker_image, created_at, updated_at, thumbnail_url, catalog_url
 `
 
 type CreateBlockVersionParams struct {
@@ -42,7 +42,7 @@ type CreateBlockVersionParams struct {
 	Specification    json.RawMessage
 	DocumentationUrl sql.NullString
 	ThumbnailUrl     sql.NullString
-	Catalog          json.RawMessage
+	CatalogUrl       sql.NullString
 	DockerImage      sql.NullString
 }
 
@@ -53,7 +53,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		arg.Specification,
 		arg.DocumentationUrl,
 		arg.ThumbnailUrl,
-		arg.Catalog,
+		arg.CatalogUrl,
 		arg.DockerImage,
 	)
 	var i BlockVersion
@@ -67,7 +67,7 @@ func (q *Queries) CreateBlockVersion(ctx context.Context, arg CreateBlockVersion
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ThumbnailUrl,
-		&i.Catalog,
+		&i.CatalogUrl,
 	)
 	return i, err
 }
@@ -154,7 +154,7 @@ SELECT
     bv.docker_image,
     bv.created_at,
     bv.updated_at,
-    bv.catalog
+    bv.catalog_url
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id
@@ -178,7 +178,7 @@ type GetBlockByNameAndVersionRow struct {
 	DockerImage      sql.NullString
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
-	Catalog          json.RawMessage
+	CatalogUrl       sql.NullString
 }
 
 func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNameAndVersionParams) (GetBlockByNameAndVersionRow, error) {
@@ -196,7 +196,7 @@ func (q *Queries) GetBlockByNameAndVersion(ctx context.Context, arg GetBlockByNa
 		&i.DockerImage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Catalog,
+		&i.CatalogUrl,
 	)
 	return i, err
 }
