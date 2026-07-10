@@ -77,11 +77,13 @@ is read from the current working directory (the command errors if none is
 found there), and each media: path is resolved relative to that directory,
 so running it from anywhere else would fail to locate the local media files.
 
-Uploads each file listed under the catalog's media: section to --url/<relPath>.
-It then uploads a copy of catalog.yaml alongside them, with each media: entry
-rewritten to point at its uploaded URL. Repo's catalog.yaml is never modified. 
+Uploads each file listed under the catalog's media: section to
+--url/<key>/<filename>, where <key> is the media entry's key and <filename>
+is the local file's name (its source directory layout is dropped). It then
+uploads a copy of catalog.yaml alongside them, with each media: entry rewritten
+to point at its uploaded URL. Repo's catalog.yaml is never modified.
 
-Bake the block/version into --url; the media relative path is appended to it.`,
+Bake the block/version into --url; the <key>/<filename> suffix is appended to it.`,
 		Example: `  clay block assets upload-catalog \
     --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/`,
 		Args: cobra.NoArgs,
@@ -258,13 +260,13 @@ func runBlockAssetsUploadCatalog(cmd *cobra.Command, args []string) error {
 }
 
 type mediaUpload struct {
-	key     string
-	relPath string
-	absPath string
+	key        string
+	remotePath string // destination suffix under --url: <key>/<filename>
+	absPath    string
 }
 
 // uploadCatalog uploads every local file declared in the catalog's media:
-// section to --url/<relPath>, then uploads a copy of catalog.yaml whose media:
+// section to --url/<key>/<filename>, then uploads a copy of catalog.yaml whose media:
 // values point at those uploaded URLs. The on-disk catalog.yaml in the repo is
 // left untouched; the rewrite happens only in the published copy.
 func uploadCatalog(ctx context.Context, provider storage.Provider, remotePrefix, repoDir string) error {
@@ -281,7 +283,9 @@ func uploadCatalog(ctx context.Context, provider storage.Provider, remotePrefix,
 		return err
 	}
 
-	publishedMedia, err := uploadMedia(ctx, provider, remotePrefix, cat.Media, pending)
+	// uploadMedia returns a new catalog with the uploaded media URLs, leaving
+	// the repo's catalog.yaml as is.
+	published, err := uploadMedia(ctx, provider, remotePrefix, cat, pending)
 	if err != nil {
 		return err
 	}
@@ -292,9 +296,6 @@ func uploadCatalog(ctx context.Context, provider storage.Provider, remotePrefix,
 		fmt.Fprintln(os.Stderr, "✓ All catalog media are already uploaded URLs")
 	}
 
-	// Publish a copy of the catalog with rewritten media, leaving the repo's
-	// catalog.yaml as is.
-	published := &catalog.Catalog{Media: publishedMedia, Sections: cat.Sections}
 	catalogURL, err := uploadCatalogFile(ctx, provider, remotePrefix, published, filepath.Base(catalogPath))
 	if err != nil {
 		return err
@@ -330,30 +331,35 @@ func mediaToUpload(cat *catalog.Catalog, repoDir string) ([]mediaUpload, error) 
 		if err != nil {
 			return nil, fmt.Errorf("catalog media %q: %w", key, err)
 		}
+		// The destination is derived from the media key and the file's name,
+		// not the source layout: <url>/<key>/<filename>. So a media entry
+		// "thumbnail: some/local/thumbnail.webp" publishes to
+		// <url>/thumbnail/thumbnail.webp regardless of where it lives locally.
 		pending = append(pending, mediaUpload{
-			key:     key,
-			relPath: filepath.ToSlash(filepath.Clean(val)),
-			absPath: abs,
+			key:        key,
+			remotePath: path.Join(key, filepath.Base(val)),
+			absPath:    abs,
 		})
 	}
 	return pending, nil
 }
 
-// uploadMedia uploads each pending file and returns a new media map with those
-// entries rewritten to their uploaded URLs. The input map is not modified.
-func uploadMedia(ctx context.Context, provider storage.Provider, remotePrefix string, media map[string]string, pending []mediaUpload) (map[string]string, error) {
-	resolvedMedia := make(map[string]string, len(media))
-	for k, v := range media {
+// uploadMedia uploads each pending file and returns a new catalog whose media
+// entries are rewritten to their uploaded URLs. The input catalog is not
+// modified.
+func uploadMedia(ctx context.Context, provider storage.Provider, remotePrefix string, cat *catalog.Catalog, pending []mediaUpload) (*catalog.Catalog, error) {
+	resolvedMedia := make(map[string]string, len(cat.Media))
+	for k, v := range cat.Media {
 		resolvedMedia[k] = v
 	}
 	for _, m := range pending {
-		remoteURL, err := uploadFile(ctx, provider, remotePrefix, m.absPath, m.relPath)
+		remoteURL, err := uploadFile(ctx, provider, remotePrefix, m.absPath, m.remotePath)
 		if err != nil {
 			return nil, err
 		}
 		resolvedMedia[m.key] = remoteURL
 	}
-	return resolvedMedia, nil
+	return &catalog.Catalog{Media: resolvedMedia, Sections: cat.Sections}, nil
 }
 
 // uploadCatalogFile publishes cat as filename under remotePrefix, keeping it
