@@ -25,8 +25,8 @@ sqlc:
 	sqlc generate
 
 mock:
-	mockgen --build_flags=--mod=mod -package mock_store -destination internal/store/mock/store.go github.com/pixxelhq/clay-framework/registry/internal/store/sqlc Store
-	mockgen --build_flags=--mod=mod -package mock_block -destination pkg/block/mock/block.go github.com/pixxelhq/clay-framework/registry/pkg/block Service
+	mockgen --build_flags=--mod=mod -package mock_store -destination internal/store/mock/store.go github.com/pixxelhq/clay/registry/internal/store/sqlc Store
+	mockgen --build_flags=--mod=mod -package mock_block -destination pkg/block/mock/block.go github.com/pixxelhq/clay/registry/pkg/block Service
 
 swag:
 	swag init -g cmd/app/registry.go --overridesFile override.swag -o api_docs

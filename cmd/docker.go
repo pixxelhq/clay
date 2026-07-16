@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/pixxelhq/clay-framework/pkg/config"
-	"github.com/pixxelhq/clay-framework/pkg/docker"
+	"github.com/pixxelhq/clay/pkg/config"
+	"github.com/pixxelhq/clay/pkg/docker"
 	"github.com/spf13/cobra"
 )
 

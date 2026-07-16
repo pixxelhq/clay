@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/pixxelhq/clay-framework/pkg/logger"
+	"github.com/pixxelhq/clay/pkg/logger"
 	"golang.org/x/mod/semver"
 )
 

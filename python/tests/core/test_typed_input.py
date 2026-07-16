@@ -3,7 +3,7 @@
 to user code, restoring the Python type declared in clay.yaml.
 
 The casting itself lives in pixxel-datatypes (see test_data.py); this test only
-verifies the wiring between clay-framework and the new typed view.
+verifies the wiring between clay and the new typed view.
 """
 
 import asyncio

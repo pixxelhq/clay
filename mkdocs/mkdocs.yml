@@ -1,8 +1,8 @@
 site_name: Clay Documentation
 site_description: Open-source framework for packaging and deploying ML models
-site_url: https://pixxelhq.github.io/clay-framework/
-repo_name: pixxelhq/clay-framework
-repo_url: https://github.com/pixxelhq/clay-framework
+site_url: https://pixxelhq.github.io/clay/
+repo_name: pixxelhq/clay
+repo_url: https://github.com/pixxelhq/clay
 edit_uri: edit/main/mkdocs/docs/
 
 theme:
@@ -121,7 +121,7 @@ markdown_extensions:
   - pymdownx.magiclink:         # Auto-link URLs
       repo_url_shorthand: true
       user: pixxelhq
-      repo: clay-framework
+      repo: clay
   - pymdownx.smartsymbols       # Smart symbols
   - pymdownx.snippets:          # Include snippets
       check_paths: true
@@ -143,7 +143,7 @@ extra:
   # Social links
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/pixxelhq/clay-framework
+      link: https://github.com/pixxelhq/clay
       name: Clay on GitHub
 
   # Analytics (optional - add your Google Analytics ID)

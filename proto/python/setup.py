@@ -14,7 +14,7 @@ setup(
     name="pixxel-datatypes",
     version=str(get_version()),
     description="Schema for supported data-types in Clay blocks.",
-    url="https://github.com/pixxelhq/clay-framework",
+    url="https://github.com/pixxelhq/clay",
     license="Apache-2.0",
     packages=find_packages(
         include=["datatypes"], exclude=["datatypes/tests", "test_*",]

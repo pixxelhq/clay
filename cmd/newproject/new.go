@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/pixxelhq/clay-framework/api/bootstrap"
+	"github.com/pixxelhq/clay/api/bootstrap"
 	"github.com/spf13/cobra"
 )
 

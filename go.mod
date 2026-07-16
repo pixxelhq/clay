@@ -1,4 +1,4 @@
-module github.com/pixxelhq/clay-framework
+module github.com/pixxelhq/clay
 
 go 1.22.0
 

@@ -1,4 +1,4 @@
-module github.com/pixxelhq/clay-framework/registry
+module github.com/pixxelhq/clay/registry
 
 go 1.22.0
 

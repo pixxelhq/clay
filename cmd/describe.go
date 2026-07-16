@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/pixxelhq/clay-framework/pkg/registry"
+	"github.com/pixxelhq/clay/pkg/registry"
 	"github.com/spf13/cobra"
 )
 

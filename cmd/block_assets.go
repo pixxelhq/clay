@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pixxelhq/clay-framework/pkg/catalog"
-	"github.com/pixxelhq/clay-framework/pkg/storage"
+	"github.com/pixxelhq/clay/pkg/catalog"
+	"github.com/pixxelhq/clay/pkg/storage"
 	"github.com/spf13/cobra"
 )
 

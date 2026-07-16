@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/pixxelhq/clay-framework/pkg/config"
-	"github.com/pixxelhq/clay-framework/pkg/docker"
-	"github.com/pixxelhq/clay-framework/pkg/registry"
+	"github.com/pixxelhq/clay/pkg/config"
+	"github.com/pixxelhq/clay/pkg/docker"
+	"github.com/pixxelhq/clay/pkg/registry"
 	"github.com/spf13/cobra"
 )
 

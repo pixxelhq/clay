@@ -5,7 +5,7 @@ order: 1
 
 # Welcome to Clay
 
-[Visit the project on Github](https://github.com/pixxelhq/clay-framework)
+[Visit the project on Github](https://github.com/pixxelhq/clay)
 
 Clay is an open-source framework that packages your model — called a *block*
 in Clay's context — into a standardized format. This enables seamless

@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/pixxelhq/clay-framework/registry/pkg/block"
-	mock_block "github.com/pixxelhq/clay-framework/registry/pkg/block/mock"
+	"github.com/pixxelhq/clay/registry/pkg/block"
+	mock_block "github.com/pixxelhq/clay/registry/pkg/block/mock"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

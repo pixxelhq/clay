@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	rerr "github.com/pixxelhq/clay-framework/registry/pkg/error"
-	"github.com/pixxelhq/clay-framework/registry/pkg/log"
+	rerr "github.com/pixxelhq/clay/registry/pkg/error"
+	"github.com/pixxelhq/clay/registry/pkg/log"
 
 	"github.com/gin-gonic/gin"
 )

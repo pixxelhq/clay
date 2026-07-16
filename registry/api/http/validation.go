@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"github.com/Masterminds/semver"
-	rerr "github.com/pixxelhq/clay-framework/registry/pkg/error"
+	rerr "github.com/pixxelhq/clay/registry/pkg/error"
 )
 
 var (

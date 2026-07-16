@@ -27,7 +27,7 @@ setup(
     name="pixxel-clay",
     version=str(get_version()),
     description="SDK for packaging ML models as deployable, declaratively-configured blocks.",
-    url="https://github.com/pixxelhq/clay-framework",
+    url="https://github.com/pixxelhq/clay",
     license="Apache-2.0",
     packages=find_packages(include=["clay", "clay.*"]),
     classifiers=[

@@ -23,7 +23,7 @@ Docker containers without ever publishing to a registry.
 - Block specification snapshots
 
 The registry is a Go HTTP service backed by PostgreSQL. Source lives under
-[`registry/`](https://github.com/pixxelhq/clay-framework/tree/main/registry).
+[`registry/`](https://github.com/pixxelhq/clay/tree/main/registry).
 
 ## Running a registry locally
 
@@ -46,7 +46,7 @@ Once the service is running, the OpenAPI/Swagger UI is available at
 `http://localhost:<port>/swagger/index.html` (port is configured via
 `app.env`).
 
-See [`registry/README.md`](https://github.com/pixxelhq/clay-framework/blob/main/registry/README.md)
+See [`registry/README.md`](https://github.com/pixxelhq/clay/blob/main/registry/README.md)
 for migration, testing, and `sqlc` code generation details.
 
 ## CLI commands that talk to a registry

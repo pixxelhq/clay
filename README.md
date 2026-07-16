@@ -2,8 +2,8 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/pixxel-clay.svg)](https://pypi.org/project/pixxel-clay/)
-[![Tests](https://github.com/pixxelhq/clay-framework/actions/workflows/test.yml/badge.svg)](https://github.com/pixxelhq/clay-framework/actions/workflows/test.yml)
-[![Docs](https://github.com/pixxelhq/clay-framework/actions/workflows/deploy-docs.yaml/badge.svg)](https://pixxelhq.github.io/clay-framework/)
+[![Tests](https://github.com/pixxelhq/clay/actions/workflows/test.yml/badge.svg)](https://github.com/pixxelhq/clay/actions/workflows/test.yml)
+[![Docs](https://github.com/pixxelhq/clay/actions/workflows/deploy-docs.yaml/badge.svg)](https://pixxelhq.github.io/clay/)
 
 **Clay** is an open-source framework for packaging ML models as deployable,
 declaratively-configured **blocks**. You describe your model — its inputs,
@@ -36,12 +36,12 @@ code.
 ### CLI (Go binary)
 
 Download the latest release for your platform from
-[GitHub Releases](https://github.com/pixxelhq/clay-framework/releases), then put the
+[GitHub Releases](https://github.com/pixxelhq/clay/releases), then put the
 binary somewhere on your `PATH`:
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/pixxelhq/clay-framework/releases/latest/download/clay-<version>-macosx-arm64 -o /usr/local/bin/clay
+curl -L https://github.com/pixxelhq/clay/releases/latest/download/clay-<version>-macosx-arm64 -o /usr/local/bin/clay
 chmod +x /usr/local/bin/clay
 ```
 
@@ -59,7 +59,7 @@ system for blocks that work with raster data.
 ### From source
 
 ```bash
-git clone https://github.com/pixxelhq/clay-framework.git
+git clone https://github.com/pixxelhq/clay.git
 cd clay
 make go-binaries       # builds the CLI into ./bin
 make package           # builds the Python sdist+wheel into python/dist
@@ -88,7 +88,7 @@ python src/test_block.py
 clay build
 ```
 
-Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay-framework/getting-started/).
+Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay/getting-started/).
 
 ## CLI overview
 
@@ -105,17 +105,17 @@ Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay-framewor
 | `clay block assets list --url <s3-url>` | List assets at a storage URL |
 | `clay block assets download --url <s3-url> -o <path>` | Download a block asset |
 
-Full reference: [**CLI Reference**](https://pixxelhq.github.io/clay-framework/cli-reference/).
+Full reference: [**CLI Reference**](https://pixxelhq.github.io/clay/cli-reference/).
 
 ## Documentation
 
-- [Overview](https://pixxelhq.github.io/clay-framework/overview/)
-- [Getting started](https://pixxelhq.github.io/clay-framework/getting-started/)
-- [Block specification](https://pixxelhq.github.io/clay-framework/spec/)
-- [Block development guide](https://pixxelhq.github.io/clay-framework/block-development/)
-- [Block assets](https://pixxelhq.github.io/clay-framework/block-assets/)
-- [Registry service](https://pixxelhq.github.io/clay-framework/registry/)
-- [CLI reference](https://pixxelhq.github.io/clay-framework/cli-reference/)
+- [Overview](https://pixxelhq.github.io/clay/overview/)
+- [Getting started](https://pixxelhq.github.io/clay/getting-started/)
+- [Block specification](https://pixxelhq.github.io/clay/spec/)
+- [Block development guide](https://pixxelhq.github.io/clay/block-development/)
+- [Block assets](https://pixxelhq.github.io/clay/block-assets/)
+- [Registry service](https://pixxelhq.github.io/clay/registry/)
+- [CLI reference](https://pixxelhq.github.io/clay/cli-reference/)
 
 ## Repository layout
 

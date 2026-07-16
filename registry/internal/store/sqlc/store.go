@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/pixxelhq/clay-framework/registry/pkg/log"
+	"github.com/pixxelhq/clay/registry/pkg/log"
 )
 
 type Store interface {
