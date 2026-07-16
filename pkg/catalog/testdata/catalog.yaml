@@ -1,5 +1,5 @@
 # The single section Clay understands. Clay uploads each file and rewrites
-# the value to a full S3 URL before sending to Dexter. Reserved keys
+# the value to a full S3 URL before sending to the catalog consumer. Reserved keys
 # (thumbnail, sample_input, sample_output) are required; others optional.
 media:
   thumbnail: catalog_readme/thumbnail.png
@@ -59,7 +59,7 @@ technical_details:
   - type: table
     headers: ["Attribute", "Value"]
     rows:
-      - ["Sensors Supported",      "Sentinel-2, Sensor-X"]
+      - ["Sensors Supported",      "Sentinel-2"]
       - ["Geographies Supported",  "All geographies"]
       - ["Max AOI Size",           "5000 sq km"]
       - ["Min AOI Size",           "No restriction"]
@@ -68,9 +68,9 @@ model_run_time:
   - type: table
     headers: ["AOI Range", "Estimated Time"]
     rows:
-      - ["0-500 sq km",     "12 minutes"]
-      - ["500-2000 sq km",  "50 minutes"]
-      - ["4500-5000 sq km", "131 minutes"]
+      - ["small AOI",   "~10 minutes"]
+      - ["medium AOI",  "~1 hour"]
+      - ["large AOI",   "~2 hours"]
 
 limitation:
   - type: text
@@ -82,5 +82,5 @@ limitation:
 accuracy:
   - type: text
     body: >
-      Accuracy varies with conditions
-      across independent test datasets.
+      Accuracy varies with water type and atmospheric conditions; validate
+      against in-situ measurements for your area of interest.

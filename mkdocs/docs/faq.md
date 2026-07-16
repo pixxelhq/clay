@@ -53,14 +53,14 @@ parameter.
 There are two reasons for taking this approach,
 
 1. Certain data points, unrelated to the block inputs but related to the particular inference run are required for reporting data back
-to Orchestrator like status, errors, time of execution among other things. Injecting these scoped data items into the pod environment _would mean
+to the orchestrator like status, errors, time of execution among other things. Injecting these scoped data items into the pod environment _would mean
 that we won't be able to support persistent pods_ should the need arise in the future. Hence adopting this methodology, gives us the flexibility and freedom to support trainsient pods now and persistent pods in the future if required.
 
 2. Another reason, is that the block is an attribute of the runner. Hence, we need a common set of arguments to pass into the block and a
 a common set of return values. The problem is that each block can have a variable number of inputs and outputs and the runner becomes aware
 of the IO specification of the block only at runtime. Hence we we pass an `InferenceCtx` object in and out of the block. Inputs and outputs
 are lists defined on the object, thus solving their variable length problem. On top this, `InferenceCtx` has inference specific data items
-that the `BlockWrapper` can use to fire callbacks to Orchestrator updating state, time metrics etc.
+that the `BlockWrapper` can use to fire callbacks to the orchestrator updating state, time metrics etc.
 
 ### Difference between `processing` and `source` blocks
 

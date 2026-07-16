@@ -109,7 +109,7 @@ func compareBlocks(a, b Blocks) bool {
 
 func TestPublishBlockRequest_CatalogURLOmitEmpty(t *testing.T) {
 	// Without a catalog URL, the field must be absent so existing publish flows
-	// (and the Dexter API) see the same shape as before.
+	// (and the registry client) see the same shape as before.
 	without, err := json.Marshal(&PublishBlockRequest{Name: "m", Version: "v1"})
 	if err != nil {
 		t.Fatal(err)

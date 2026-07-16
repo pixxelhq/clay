@@ -2,11 +2,11 @@
 # fields below to describe your block. Under `media`, you may rename the
 # "catalog_readme" folder, but keep the file names (thumbnail.png,
 # sample_input.png, sample_output.png) exactly as they are.
-
+title: "Block Title"
 media:
-  thumbnail: catalog_readme/thumbnail.png
-  sample_input: catalog_readme/sample_input.png
-  sample_output: catalog_readme/sample_output.png
+  thumbnail: thumbnail.png
+  sample_input: sample_input.png
+  sample_output: sample_output.png
 
 description:
   - type: text

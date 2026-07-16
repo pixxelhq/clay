@@ -1,5 +1,5 @@
 # type: ignore
-"""Integration test for internal-ref: BlockWrapper.infer() must surface typed `.value`
+"""Integration test: BlockWrapper.infer() must surface typed `.value`
 to user code, restoring the Python type declared in clay.yaml.
 
 The casting itself lives in pixxel-datatypes (see test_data.py); this test only
@@ -48,7 +48,7 @@ def _wrap(name: str, fmt: str, declared_type: str, value: Any) -> datatypes.Data
 
 
 def test_infer_surfaces_typed_values_from_proto(typed_config: str) -> None:
-    """The repro from internal-ref: input.value * int should multiply, not repeat strings."""
+    """Regression: input.value * int should multiply numerically, not repeat strings."""
 
     class WeightedBlock(BlockWrapper):
         def setup(self) -> None:
