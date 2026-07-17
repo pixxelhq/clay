@@ -30,5 +30,16 @@ checksum:
 snapshot:
   name_template: "{{ .Tag }}-next"
 
-# TODO: add a `brews:` section here so `brew install clay`
-
+brews:
+  - repository:
+      owner: pixxelhq
+      name: homebrew-formulae
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/pixxelhq/clay"
+    description: "CLI for packaging ML models as deployable blocks"
+    license: "Apache-2.0"
+    install: |
+      bin.install "clay"
+    test: |
+      system "#{bin}/clay", "version"

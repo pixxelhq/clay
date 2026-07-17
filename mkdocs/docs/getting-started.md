@@ -32,7 +32,14 @@ The typical workflow is: scaffold and build with the **CLI**, implement your blo
 
 Pick whichever installation method is most convenient.
 
-### Option 1 — Download a pre-built binary (recommended)
+### Option 1 — Homebrew (macOS / Linux, recommended)
+
+```shell
+brew tap pixxelhq/formulae
+brew install clay
+```
+
+### Option 2 — Download a pre-built binary
 
 Download the latest release for your platform from
 [GitHub Releases](https://github.com/pixxelhq/clay/releases) and move it onto
@@ -49,18 +56,6 @@ chmod +x /usr/local/bin/clay
 ```
 
 Binaries are published for macOS (amd64, arm64), Linux (amd64, arm64), and Windows (amd64).
-
-### Option 2 — Homebrew (macOS / Linux)
-
-> **Coming soon**
->
-> A Homebrew formula is on the roadmap. Once published, you'll be able to install Clay with:
->
-> ```shell
-> brew install clay
-> ```
->
-> Until then, please use the pre-built binaries above or build from source.
 
 ### Option 3 — Build from source
 

@@ -33,7 +33,14 @@ code.
 
 ## Installation
 
-### CLI (Go binary)
+### CLI — Homebrew (recommended)
+
+```bash
+brew tap pixxelhq/formulae
+brew install clay
+```
+
+### CLI — Pre-built binary
 
 Download the latest release for your platform from
 [GitHub Releases](https://github.com/pixxelhq/clay/releases), then put the
