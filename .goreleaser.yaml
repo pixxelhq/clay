@@ -33,7 +33,7 @@ snapshot:
 brews:
   - repository:
       owner: pixxelhq
-      name: homebrew-formulae
+      name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/pixxelhq/clay"

@@ -4,6 +4,7 @@ on: workflow_dispatch
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build-and-push-python-package:
@@ -23,12 +24,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
       - name: Install dependencies
-        run: uv pip install --system twine build
-      - name: Build and publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          python -m build ./proto/python
-          python -m twine upload proto/python/dist/* --verbose
+        run: uv pip install --system build
+      - name: Build package
+        run: python -m build ./proto/python
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: proto/python/dist/
           

@@ -54,6 +54,9 @@ jobs:
   release-python-sdk:
     needs: validate-version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,19 +72,18 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install build tooling
-        run: uv pip install --system build twine
+        run: uv pip install --system build
 
       - name: Build SDK
         run: python -m build ./python
 
       - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload python/dist/* --verbose
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist/
 
   release-cli:
-    needs: [validate-version, release-python-sdk]
+    needs: [validate-version]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
