@@ -2,6 +2,7 @@
 import json
 import os
 import pathlib
+import shutil
 import unittest
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,8 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         os.makedirs("./workingdir", exist_ok=True)
+        self.dummy_raster = pathlib.Path("./clipped.tiff")
+        self.dummy_raster.touch(exist_ok=True)
         # creating dummy inputs
         self.mock_env_vars = {
             "EXECUTION_ID": "task123",
@@ -42,6 +45,10 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             "OUTPUT_JSON_PATH": "./workingdir/clay/outputs/",
             "OUTPUT_JSON_BASE_FILE_NAME": "spec.json",
         }
+
+    def tearDown(self) -> None:
+        self.dummy_raster.unlink(missing_ok=True)
+        shutil.rmtree("./workingdir", ignore_errors=True)
 
     @mock.patch("clay.callback.http_callback.requests.Session.post")
     async def test_read_inputs(self, mock_post) -> None:
