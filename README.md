@@ -36,8 +36,8 @@ code.
 ### CLI — Homebrew (recommended)
 
 ```bash
-brew tap pixxelhq/formulae
-brew install clay
+brew tap pixxelhq/tap
+brew install clay --formula
 ```
 
 ### CLI — Pre-built binary

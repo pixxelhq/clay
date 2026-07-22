@@ -35,8 +35,8 @@ Pick whichever installation method is most convenient.
 ### Option 1 — Homebrew (macOS / Linux, recommended)
 
 ```shell
-brew tap pixxelhq/formulae
-brew install clay
+brew tap pixxelhq/tap
+brew install clay --formula
 ```
 
 ### Option 2 — Download a pre-built binary
