@@ -32,7 +32,8 @@ SELECT
     bv.thumbnail_url,
     bv.docker_image,
     bv.created_at,
-    bv.updated_at
+    bv.updated_at,
+    bv.catalog_url
 FROM public.block_versions bv
     INNER JOIN public.blocks b
     ON bv.block_id = b.id

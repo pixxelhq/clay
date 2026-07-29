@@ -149,6 +149,7 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 			DocumentationURL: b.DocumentationURL,
 			ThumbnailURL:     b.ThumbnailURL,
 			Specification:    convertFromServiceSpecification(b.Specification),
+			CatalogURL:       b.CatalogURL,
 			CreatedAt:        b.CreatedAt,
 			UpdatedAt:        b.UpdatedAt,
 		})
