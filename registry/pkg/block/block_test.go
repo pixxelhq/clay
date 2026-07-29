@@ -415,6 +415,38 @@ func TestGetBlockByNameAndVersion(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name:      "should return catalog url when resolving the latest version",
+			blockName: "Test Block",
+			version:   "latest",
+			mockSetup: func() {
+				mockStore.EXPECT().GetBlockAllVersionByName(gomock.Any(), gomock.Any()).Times(1).Return([]store.GetBlockAllVersionByNameRow{
+					{
+						ID:               sampleUUID,
+						Name:             "Test Block",
+						Version:          "1.0.0",
+						Specification:    json.RawMessage(`{"apiVersion":"1.0","title":"Test Block"}`),
+						DocumentationUrl: sql.NullString{String: "http://example.com", Valid: true},
+						DockerImage:      sql.NullString{String: "example/image", Valid: true},
+						CatalogUrl:       sql.NullString{String: "http://example.com/catalog.yaml", Valid: true},
+						CreatedAt:        sql.NullTime{Time: sampleTime},
+						UpdatedAt:        sql.NullTime{Time: sampleTime},
+					},
+				}, nil)
+			},
+			expectedBlock: &Block{
+				ID:               sampleUUID.String(),
+				Name:             "Test Block",
+				Version:          "1.0.0",
+				Specification:    &Specification{Version: "1.0", Title: "Test Block"},
+				DocumentationURL: "http://example.com",
+				DockerImage:      "example/image",
+				CatalogURL:       "http://example.com/catalog.yaml",
+				CreatedAt:        sampleTime,
+				UpdatedAt:        sampleTime,
+			},
+			expectedError: nil,
+		},
+		{
 			name:      "should return error for store error",
 			blockName: "Test Block",
 			version:   "1.0.0",
