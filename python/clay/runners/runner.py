@@ -128,8 +128,10 @@ class RunnerConfig:
             with open(tmp_path, "r") as f:
                 return f.read()
         finally:
-            import os as _os
-            _os.unlink(tmp_path)
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 class JobRunner(BaseRunner):
