@@ -50,7 +50,11 @@ class RunnerConfig:
             config_path: str = "config.yaml"
     ) -> None:
         self._execution_id = os.getenv(self._execution_id_env_key, self._execution_id)
-        self._input_json_string: str = os.getenv(os.getenv(self._input_json_env_key, "INPUT_JSON"), "[{}]")
+        input_json_uri = os.getenv("INPUT_JSON_URI")
+        if input_json_uri:
+            self._input_json_string: str = self._download_input_json(input_json_uri)
+        else:
+            self._input_json_string: str = os.getenv(os.getenv(self._input_json_env_key, "INPUT_JSON"), "[{}]")
         self._input_json: List[Dict[str, Any]] = None  # type: ignore
         self._input_json_jq_filter = os.getenv(self._input_json_jq_filter_env_key, None)
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
@@ -106,6 +110,28 @@ class RunnerConfig:
 
     def get_remote_input_path(self) -> str:
         return self._remote_input_path
+
+    @staticmethod
+    def _download_input_json(uri: str) -> str:
+        """Download input JSON from a remote URI and return as string.
+
+        Uses the clay storage provider abstraction so this works with any
+        supported storage backend (S3, Azure Blob, GCS, …) — the URI scheme
+        determines which provider is used.
+        """
+        import tempfile
+        provider = create_provider(uri)
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            provider.download(uri, tmp_path)
+            with open(tmp_path, "r") as f:
+                return f.read()
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 class JobRunner(BaseRunner):

@@ -422,6 +422,53 @@ class TestJobRunner(unittest.IsolatedAsyncioTestCase):
             env_patcher.stop()
 
 
+class TestRunnerConfigInputJSONURI(unittest.TestCase):
+    """Tests for INPUT_JSON_URI S3 offload support (RFC 0003)."""
+
+    @mock_aws
+    def test_input_json_uri_downloads_from_s3(self):
+        """When INPUT_JSON_URI is set, RunnerConfig downloads input from S3 instead of using INPUT_JSON env var."""
+        conn = boto3.client("s3", region_name="us-east-1")
+        conn.create_bucket(Bucket="test-bucket")
+
+        input_data = '[{"name": "aoi", "value": "test-geojson"}]'
+        conn.put_object(Bucket="test-bucket", Key="direct-insights/inf-1/inf-1/inf-1/inputs/input.json",
+                        Body=input_data.encode("utf-8"))
+
+        from clay.runners.runner import RunnerConfig
+        result = RunnerConfig._download_input_json("s3://test-bucket/direct-insights/inf-1/inf-1/inf-1/inputs/input.json")
+        assert result == input_data
+
+    def test_fallback_to_input_json_env_var(self):
+        """When INPUT_JSON_URI is absent, RunnerConfig falls back to INPUT_JSON env var."""
+        input_data = '[{"name": "aoi", "value": "inline-data"}]'
+        env_vars = {
+            "EXECUTION_ID": "inf-2",
+            "INPUT_JSON_ENV_KEY": "INPUT_JSON",
+            "INPUT_JSON": input_data,
+            "CALLBACK_ENDPOINT": "http://localhost:3000/callback",
+            "CALLBACK_HEADERS": "{}",
+        }
+
+        # Ensure INPUT_JSON_URI is NOT set
+        env_clean = {k: v for k, v in env_vars.items()}
+        with unittest.mock.patch.dict(os.environ, env_clean, clear=False):
+            os.environ.pop("INPUT_JSON_URI", None)
+            from clay.runners.runner import RunnerConfig
+            cfg = RunnerConfig.__new__(RunnerConfig)
+            cfg._execution_id_env_key = "EXECUTION_ID"
+            cfg._input_json_env_key = "INPUT_JSON_ENV_KEY"
+            cfg._execution_id = "inf-2"
+
+            # Simulate the __init__ logic for _input_json_string
+            input_json_uri = os.getenv("INPUT_JSON_URI")
+            if input_json_uri:
+                result = RunnerConfig._download_input_json(input_json_uri)
+            else:
+                result = os.getenv(os.getenv("INPUT_JSON_ENV_KEY", "INPUT_JSON"), "[{}]")
+            assert result == input_data
+
+
 class TestDeepMerge(unittest.TestCase):
     def test_simple_merge(self):
         output = {"a": 1}

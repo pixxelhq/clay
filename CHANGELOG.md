@@ -4,7 +4,15 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
-## Unreleased
+## v1.1.0 - 2026-08-18
+### New Features
+- `INPUT_JSON_URI` lets the runner fetch its input JSON from remote storage
+  instead of reading it inline from `INPUT_JSON`. The URI is resolved through the
+  clay storage provider abstraction, so any supported backend works and the
+  scheme selects the provider. When `INPUT_JSON_URI` is unset, the existing
+  `INPUT_JSON` behaviour is unchanged.
+
+## v1.0.0 - 2026-07-22
 ### New Features
 - Clay is now released as open source under the Apache License 2.0.
 - Added `LICENSE`, `SECURITY.md`, and GitHub issue / pull-request templates.
