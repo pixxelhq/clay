@@ -6,8 +6,6 @@ from logging import Logger
 from types import SimpleNamespace
 from typing import Any, Dict, Final, List, Optional, Type, Union
 
-import jq
-
 import datatypes
 from clay import __version__ as clay_version
 from clay import utils
@@ -23,7 +21,6 @@ class RunnerConfig:
     # Environment variable keys
     _execution_id_env_key: Final[str] = "EXECUTION_ID"
     _input_json_env_key: Final[str] = "INPUT_JSON_ENV_KEY"
-    _input_json_jq_filter_env_key: Final[str] = "INPUT_JSON_JQ_FILTER"
     _get_local_artifact_download_path_env_key: Final[str] = "LOCAL_ARTIFACT_DOWNLOAD_PATH"
     _remote_output_path_env_key: Final[str] = "REMOTE_OUTPUT_PATH"
     _remote_input_path_env_key: Final[str] = "REMOTE_INPUT_PATH"
@@ -35,7 +32,6 @@ class RunnerConfig:
     # Parameters with default values
     _execution_id: str = "default_execution_id"
     _input_json: List[Dict[str, Any]] = [{}]
-    _input_json_jq_filter: Optional[str] = None
     _get_local_artifact_download_path: str = "/tmp/inputs"
     _remote_output_path: str = "/tmp/clay/outputs"
     _remote_input_path: str = "/tmp/clay/inputs"
@@ -47,16 +43,26 @@ class RunnerConfig:
 
     def __init__(
             self,
-            config_path: str = "config.yaml"
+            config_path: str = "config.yaml",
+            input_json: Optional[str] = None,
+            input_uri: Optional[str] = None,
     ) -> None:
         self._execution_id = os.getenv(self._execution_id_env_key, self._execution_id)
-        input_json_uri = os.getenv("INPUT_JSON_URI")
-        if input_json_uri:
-            self._input_json_string: str = self._download_input_json(input_json_uri)
+
+        # Input resolution priority: explicit args > env vars
+        if input_uri:
+            self._input_json_string: str = self._download_input_json(input_uri)
+        elif input_json:
+            self._input_json_string: str = input_json
         else:
-            self._input_json_string: str = os.getenv(os.getenv(self._input_json_env_key, "INPUT_JSON"), "[{}]")
+            # Fallback to env vars for backward compatibility
+            env_input_uri = os.getenv("INPUT_JSON_URI")
+            if env_input_uri:
+                self._input_json_string: str = self._download_input_json(env_input_uri)
+            else:
+                self._input_json_string: str = os.getenv(os.getenv(self._input_json_env_key, "INPUT_JSON"), "[{}]")
+
         self._input_json: List[Dict[str, Any]] = None  # type: ignore
-        self._input_json_jq_filter = os.getenv(self._input_json_jq_filter_env_key, None)
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
                                                            "/tmp/inputs")
         self._block_config = yaml_to_namespace(config_path)
@@ -71,14 +77,7 @@ class RunnerConfig:
 
     def _process_input_json(self) -> None:
         if self._input_json is None:
-            if self._input_json_jq_filter:
-                try:
-                    self._input_json = json.loads(
-                        jq.compile(self._input_json_jq_filter).input(json.loads(self._input_json_string)).text())
-                except Exception as e:
-                    raise ValueError(f"Failed to process input JSON with jq filter '{self._input_json_jq_filter}': {e}")
-            else:
-                self._input_json = json.loads(self._input_json_string)
+            self._input_json = json.loads(self._input_json_string)
 
     def get_input_json(self) -> List[Dict[str, Any]]:
         self._process_input_json()
@@ -143,8 +142,10 @@ class JobRunner(BaseRunner):
             cfg_path: str,
             logger: Optional[Logger] = None,
             running_locally: bool = True,
+            input_json: Optional[str] = None,
+            input_uri: Optional[str] = None,
     ) -> None:
-        self._params = RunnerConfig(config_path=cfg_path)
+        self._params = RunnerConfig(config_path=cfg_path, input_json=input_json, input_uri=input_uri)
         self._block_name: str = block_name
         self._inputs: Dict[str, datatypes.DataWrapper] = {}
         self._block_class: Type[BlockWrapper] = block_class

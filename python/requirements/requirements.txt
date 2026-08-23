@@ -1,7 +1,6 @@
 pyyaml
 pydantic>=2.4.0
 boto3>=1.21.21
-jq
 nest_asyncio
 moto
 pixxel-datatypes

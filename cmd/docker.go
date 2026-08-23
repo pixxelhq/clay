@@ -19,6 +19,8 @@ var (
 	buildArgs      []string
 	platform       []string
 	envVars        []string
+	inputJSON      string
+	inputURI       string
 )
 
 // TODO: Refactor these commands into separate files with docker directory.
@@ -163,12 +165,14 @@ func runDockerImageCmd() *cobra.Command {
 			<image> is the Docker image to run. Any trailing [args...] are passed
 			through to the container's entrypoint.
 		`),
-		Example: "clay run my-block:0.1.0 -e INPUT_JSON=\"$(cat input.json)\"",
+		Example: `clay run my-block:0.1.0 --input '[{"name":"raster","value":"s3://..."}]'`,
 		RunE:    runImage,
 		Args:    cobra.MinimumNArgs(1),
 	}
 
 	cmd.Flags().StringArrayVarP(&envVars, "env", "e", []string{}, "Set environment variables (format: KEY=VALUE)")
+	cmd.Flags().StringVar(&inputJSON, "input", "", "JSON input array to pass to the block")
+	cmd.Flags().StringVar(&inputURI, "input-uri", "", "URI to input JSON (e.g. s3://bucket/path/input.json)")
 
 	return cmd
 }
@@ -186,5 +190,14 @@ func runImage(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return docker.Run(image, args[1:], envVars, cfg)
+	// Pass --input / --input-uri flags through to the container entrypoint
+	containerArgs := args[1:]
+	if inputJSON != "" {
+		containerArgs = append(containerArgs, "--input", inputJSON)
+	}
+	if inputURI != "" {
+		containerArgs = append(containerArgs, "--input-uri", inputURI)
+	}
+
+	return docker.Run(image, containerArgs, envVars, cfg)
 }
