@@ -20,7 +20,6 @@ from clay.utils import get_current_utc_time_iso, yaml_to_namespace
 class RunnerConfig:
     # Environment variable keys
     _execution_id_env_key: Final[str] = "EXECUTION_ID"
-    _input_json_env_key: Final[str] = "INPUT_JSON_ENV_KEY"
     _get_local_artifact_download_path_env_key: Final[str] = "LOCAL_ARTIFACT_DOWNLOAD_PATH"
     _remote_output_path_env_key: Final[str] = "REMOTE_OUTPUT_PATH"
     _remote_input_path_env_key: Final[str] = "REMOTE_INPUT_PATH"
@@ -60,7 +59,7 @@ class RunnerConfig:
             if env_input_uri:
                 self._input_json_string: str = self._download_input_json(env_input_uri)
             else:
-                self._input_json_string: str = os.getenv(os.getenv(self._input_json_env_key, "INPUT_JSON"), "[{}]")
+                self._input_json_string: str = os.getenv("INPUT_JSON", "[{}]")
 
         self._input_json: List[Dict[str, Any]] = None  # type: ignore
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
