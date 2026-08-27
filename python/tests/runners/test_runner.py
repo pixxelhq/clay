@@ -511,3 +511,81 @@ class TestDeepMerge(unittest.TestCase):
         expected = {}
         result = deep_merge(output, config)
         self.assertEqual(result, expected)
+
+
+# Kept byte-identical to dexter's `inputFlattenFilter`
+# (executor/argo/workflow_input_test.go). Dexter sets this as INPUT_JSON_JQ_FILTER
+# on the DAG path; if the two literals drift, every DAG task fails at input parsing.
+INPUT_FLATTEN_FILTER = "[.[] | .spec + {name: .name}]"
+
+
+def _resolved_envelope(declared_name: str, embedded_name: str, value: str):
+    """The DAG payload as it reaches the pod, i.e. after argo fills the {{...}} holes.
+
+    Dexter emits [{"name": "<declared>", "spec": {{inputs.parameters.<declared>}}}].
+    Argo resolves the reference to the producing task's output spec, so the *embedded*
+    name is the producer's output name and need not match the declared one.
+    """
+    return json.dumps([{
+        "name": declared_name,
+        "spec": {
+            "format": "raster", "type": "url", "name": embedded_name,
+            "is_artifact": True, "value": value, "version": "v2",
+        },
+    }])
+
+
+class TestInputJqFlattening(unittest.TestCase):
+    """The DAG path's {name, spec} envelope must reach the block as a flat data spec."""
+
+    @staticmethod
+    def _config(input_json_string: str, jq_filter=None):
+        from clay.runners.runner import RunnerConfig
+        cfg = RunnerConfig.__new__(RunnerConfig)
+        cfg._input_json_string = input_json_string
+        cfg._input_json = None
+        cfg._input_json_jq_filter = jq_filter
+        return cfg
+
+    def test_envelope_is_flattened_into_a_parsable_data_spec(self):
+        cfg = self._config(_resolved_envelope("raster", "raster", ""), INPUT_FLATTEN_FILTER)
+
+        flat = cfg.get_input_json()
+
+        self.assertEqual(len(flat), 1)
+        # the envelope is gone: format sits at the top level, which is the key
+        # datatypes.FromDict reads first
+        self.assertEqual(flat[0]["format"], "raster")
+        self.assertNotIn("spec", flat[0])
+        datatypes.FromDict(dict(flat[0]), wrap=True)
+
+    def test_declared_name_overrides_the_producers_output_name(self):
+        """The regression that breaks wired DAGs.
+
+        `index_block` names its output "result" while `cloud-gap-filling` declares its
+        input "raster". Clay keys inputs by name before calling preprocess(**inputs),
+        so the declared name has to win or the block is called with result= instead of
+        raster= and dies on a missing argument.
+        """
+        cfg = self._config(
+            _resolved_envelope("raster", "result", "s3://up/out.tif"), INPUT_FLATTEN_FILTER)
+
+        flat = cfg.get_input_json()
+
+        self.assertEqual(flat[0]["name"], "raster")
+        self.assertEqual(flat[0]["value"], "s3://up/out.tif")
+        self.assertEqual(datatypes.FromDict(dict(flat[0]), wrap=True).get_name(), "raster")
+
+    def test_flat_input_passes_through_when_no_filter_is_set(self):
+        """The inference path and local `clay run --input` send flat specs already."""
+        flat_in = [{"format": "string", "type": "str", "name": "index",
+                    "is_artifact": False, "value": "TVI", "version": "v2"}]
+        cfg = self._config(json.dumps(flat_in), None)
+
+        self.assertEqual(cfg.get_input_json(), flat_in)
+
+    def test_broken_filter_raises_instead_of_silently_emptying_the_inputs(self):
+        cfg = self._config(_resolved_envelope("raster", "raster", ""), "[.[] | .nope +")
+
+        with self.assertRaises(ValueError):
+            cfg.get_input_json()

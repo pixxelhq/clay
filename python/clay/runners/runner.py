@@ -6,6 +6,8 @@ from logging import Logger
 from types import SimpleNamespace
 from typing import Any, Dict, Final, List, Optional, Type, Union
 
+import jq
+
 import datatypes
 from clay import __version__ as clay_version
 from clay import utils
@@ -20,6 +22,7 @@ from clay.utils import get_current_utc_time_iso, yaml_to_namespace
 class RunnerConfig:
     # Environment variable keys
     _execution_id_env_key: Final[str] = "EXECUTION_ID"
+    _input_json_jq_filter_env_key: Final[str] = "INPUT_JSON_JQ_FILTER"
     _get_local_artifact_download_path_env_key: Final[str] = "LOCAL_ARTIFACT_DOWNLOAD_PATH"
     _remote_output_path_env_key: Final[str] = "REMOTE_OUTPUT_PATH"
     _remote_input_path_env_key: Final[str] = "REMOTE_INPUT_PATH"
@@ -31,6 +34,7 @@ class RunnerConfig:
     # Parameters with default values
     _execution_id: str = "default_execution_id"
     _input_json: List[Dict[str, Any]] = [{}]
+    _input_json_jq_filter: Optional[str] = None
     _get_local_artifact_download_path: str = "/tmp/inputs"
     _remote_output_path: str = "/tmp/clay/outputs"
     _remote_input_path: str = "/tmp/clay/inputs"
@@ -62,6 +66,7 @@ class RunnerConfig:
                 self._input_json_string: str = os.getenv("INPUT_JSON", "[{}]")
 
         self._input_json: List[Dict[str, Any]] = None  # type: ignore
+        self._input_json_jq_filter = os.getenv(self._input_json_jq_filter_env_key, None)
         self._get_local_artifact_download_path = os.getenv(self._get_local_artifact_download_path_env_key,
                                                            "/tmp/inputs")
         self._block_config = yaml_to_namespace(config_path)
@@ -76,7 +81,14 @@ class RunnerConfig:
 
     def _process_input_json(self) -> None:
         if self._input_json is None:
-            self._input_json = json.loads(self._input_json_string)
+            if self._input_json_jq_filter:
+                try:
+                    self._input_json = json.loads(
+                        jq.compile(self._input_json_jq_filter).input(json.loads(self._input_json_string)).text())
+                except Exception as e:
+                    raise ValueError(f"Failed to process input JSON with jq filter '{self._input_json_jq_filter}': {e}")
+            else:
+                self._input_json = json.loads(self._input_json_string)
 
     def get_input_json(self) -> List[Dict[str, Any]]:
         self._process_input_json()
