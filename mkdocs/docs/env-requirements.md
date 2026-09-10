@@ -19,72 +19,82 @@ This document details the environment variables used to configure and run a bloc
 ***
 
 
-## 2. `INPUT_JSON_ENV_KEY`
+## 2. Passing input: `--input` and `--input-uri`
 
-**Purpose:**
-Provides flexibility for different execution environments by specifying which environment variable contains the block's input data. This design allows Clay to work seamlessly with various orchestrators and execution contexts.
+Input no longer arrives through a configurable env var. Clay parses two CLI flags in
+`clay.Run()`, and they take precedence over every environment variable below:
 
-**How it works:**
-- Clay reads the value of `INPUT_JSON_ENV_KEY` to determine which environment variable contains the actual input data
-- If `INPUT_JSON_ENV_KEY` is not set, Clay defaults to reading from the `INPUT_JSON` environment variable
-- This two-level approach enables different executors (Kubernetes, Argo Workflows, etc.) to inject input data through their preferred environment variables
+| flag | carries |
+|------|---------|
+| `--input '<json>'` | the input array inline |
+| `--input-uri '<uri>'` | a URI Clay downloads the array from (`s3://…`, or any configured storage backend) |
 
-**Example:**
 ```bash
-# Kubernetes executor might set:
-export INPUT_JSON_ENV_KEY="K8S_BLOCK_INPUT"
-export K8S_BLOCK_INPUT='[{"name": "data", "type": "url", "value": "s3://bucket/file.tif"}]'
+# directly
+python entry.py --input '[{"format":"string","name":"index","type":"str","value":"TVI"}]'
 
-# Argo Workflows executor might set:
-export INPUT_JSON_ENV_KEY="ARGO_TEMPLATE"
-export ARGO_TEMPLATE='{"inputs": {"parameters": [...]}}'
-
-# Local execution (default):
-# If INPUT_JSON_ENV_KEY is not set, Clay reads from INPUT_JSON directly
-export INPUT_JSON='[{"name": "data", "type": "url", "value": "s3://bucket/file.tif"}]'
+# through the CLI, which forwards the flag to the container entrypoint
+clay run my-block:v1.0.0 --input '[{"name":"raster","type":"url","format":"raster","value":"s3://…"}]'
+clay run my-block:v1.0.0 --input "$(cat sample-input.json)"
 ```
+
+If neither flag is given, Clay falls back to `INPUT_JSON_URI` and then `INPUT_JSON`
+(section 4).
+
+!!! warning "`INPUT_JSON_ENV_KEY` was removed"
+    Clay used to read this to decide *which* env var held the input, which let Argo point
+    it at `ARGO_TEMPLATE`. Argo stopped injecting `ARGO_TEMPLATE` into the main container in
+    v3.6, so the indirection was dropped. Clay now always reads `INPUT_JSON`. Setting
+    `INPUT_JSON_ENV_KEY` has no effect.
 
 ***
 
 ## 3. `INPUT_JSON_JQ_FILTER`
 
-- **Purpose**: Defines a [jq](https://stedolan.github.io/jq/) filter for parsing input JSON, especially within workflows.
-- **Default Value**:
+- **Purpose**: A [jq](https://stedolan.github.io/jq/) filter applied to the input JSON before
+  Clay parses it. Set by Dexter on the **DAG/workflow** path only; never on the inference path.
+- **Current value**:
   ```bash
-  [.inputs.parameters[] | (.value | fromjson) + {name: .name}]
+  [.[] | .spec + {name: .name}]
   ```
-- **Usage**: Processes parameterized inputs in workflow scenarios by transforming, filtering, or extracting specific values needed for block consumption.
 
-**Example:**
+**Why it exists.** On the DAG path Dexter cannot emit a flat spec array. Each input value is an
+Argo reference (`{{inputs.parameters.<name>}}`) that Argo resolves to the *producing* task's
+output spec — and that spec's embedded `name` is the producer's **output** name, not the name
+this block declares. Argo substitutes plain text, so Dexter can only wrap the reference:
+
 ```bash
-# Argo Workflows template input:
-export ARGO_TEMPLATE='{
-  "inputs": {
-    "parameters": [
-      {"name": "image", "value": "{\"type\": \"url\", \"format\": \"raster\", \"value\": \"s3://bucket/image.tif\"}"},
-      {"name": "threshold", "value": "{\"type\": \"float\", \"value\": 0.5}"}
-    ]
-  }
-}'
+# what Dexter emits
+--input '[{"name":"raster","spec":{{inputs.parameters.raster}}}]'
 
-# With the default jq filter, this gets transformed to:
-# [
-#   {"name": "image", "type": "url", "format": "raster", "value": "s3://bucket/image.tif"},
-#   {"name": "threshold", "type": "float", "value": 0.5}
-# ]
+# what Argo resolves it to, e.g. from an upstream block whose output is called "result"
+[{"name":"raster","spec":{"format":"raster","type":"url","name":"result","value":"s3://…"}}]
 
-# Custom jq filter for different input structure:
-export INPUT_JSON_JQ_FILTER='[.data[] | {name: .id, type: .dataType, value: .path}]'
+# what the filter turns it into — note `+ {name: .name}` overrides "result" with "raster"
+[{"format":"raster","type":"url","name":"raster","value":"s3://…"}]
 ```
+
+Clay keys inputs by name and then calls `preprocess(**inputs)`, so without the rename the block
+would be invoked with `result=` instead of `raster=` and fail on a missing argument.
+
+!!! note "Transitional"
+    Block images ship their own copy of Clay, so this filter is what lets images built before
+    the `--input` flag keep working. Once every block is rebuilt, Dexter stops setting it, the
+    flatten moves into Clay, and the `jq` dependency is dropped.
 
 ***
 
-## 4. `INPUT_JSON`
+## 4. `INPUT_JSON` and `INPUT_JSON_URI`
 
-- **Purpose**: The default environment variable for block input data. This is used when `INPUT_JSON_ENV_KEY` is not set.
+- **Purpose**: The env-var fallback for block input data, used when neither `--input` nor
+  `--input-uri` is passed.
 - **Format**: JSON string (typically a list of dictionaries, specifying `name`, `type`, `format`, and `value`).
-- **Usage**: This is the fallback input source. When `INPUT_JSON_ENV_KEY` is not specified, Clay reads input data directly from this variable. For local runs, users can set it manually or use the test_block.py script which sets it automatically.
-- **Relationship to INPUT_JSON_ENV_KEY**: If `INPUT_JSON_ENV_KEY` is set to a value like "CUSTOM_INPUT", Clay will read from the `CUSTOM_INPUT` environment variable instead of `INPUT_JSON`.
+- **Resolution order**: `--input-uri` → `--input` → `INPUT_JSON_URI` → `INPUT_JSON`. The first one
+  set wins; an empty value reads the same as unset.
+- **`INPUT_JSON_URI`**: a URI Clay downloads the array from instead of reading it inline. Dexter
+  offloads inference inputs larger than 100KB here so the pod spec stays small.
+- **Usage**: For local runs, set `INPUT_JSON` manually or use the test_block.py script, which sets
+  it automatically. Prefer `--input` for new work.
 - **Example**:
   <details>
   <summary>Show example JSON input</summary>
