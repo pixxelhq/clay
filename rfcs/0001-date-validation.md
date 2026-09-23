@@ -84,9 +84,25 @@ Regenerate both bindings per `proto/README.md`; commit `data.pb.go`,
 
 ### 2. Reject malformed specs at publish time
 
-For each input, select the validation message matching its `format` and
-unmarshal that input's `validation` object into it with protojson. Three classes
-of author error fail as a result:
+Each input declares a `format`. Dispatch on it to the matching validation
+message, then unmarshal that input's `validation` object into it with protojson
+in strict mode:
+
+```go
+func validationMessageFor(format string) (proto.Message, error) {
+	switch format {
+	case "raster":  return &generated.RasterValidation{}, nil
+	case "vector":  return &generated.VectorValidation{}, nil
+	case "tabular": return &generated.TabularValidation{}, nil
+	case "date":    return &generated.DateValidation{}, nil
+	case "string":  return &generated.StringValidation{}, nil
+	case "number":  return &generated.NumberValidation{}, nil
+	}
+	return nil, fmt.Errorf("unknown format %q", format)
+}
+```
+
+Three classes of author error fail as a result:
 
 - **Unknown keys** — protojson rejects fields absent from the message, so
   `min_dat` fails. Rejection is the default; `proto/go/main.go:410` explicitly
@@ -95,10 +111,27 @@ of author error fail as a result:
 - **Format mismatches** — `min_date` is not a field on `StringValidation`, so
   declaring it on a string input fails as an unknown field, no special casing.
 
-Deriving the check from the proto rather than a hand-maintained key list means
-new fields are covered automatically. `validate_input` (`data.py:433-448`)
-already carries five hand-written `if "x" in validation` chains that must be
-extended by hand per field; this avoids repeating that.
+**Scope is the `validation` object, not the whole input.** Strict-checking an
+entire input against its `*Spec` message would catch more, but it would reject
+valid specs: the Spec messages have no `default` field — `optional string
+default = 9` exists only on the six Data messages (`data.proto:152-338`) — while
+real specs do declare input defaults, e.g.
+`python/tests/fixtures/blocks/dummy_block.yaml`. Confining the unmarshal to
+`validation` avoids the mismatch.
+
+The dispatch above is per-*format*: six entries, changing only if Clay gains a
+seventh data format. What it avoids is a per-*field* list of legal keys, which
+grows every time a field is added. `validate_input` (`data.py:433-448`) already
+carries five hand-written `if "x" in validation` chains that must be extended by
+hand per field; this avoids repeating that. `ValidateWithInput`
+(`proto/go/main.go:288`) is the same six-way switch, so there is precedent.
+
+The underlying problem is not hypothetical. `python/tests/runners/dummy-spec.yml`
+declares `is_artiface: true` — a typo for `is_artifact`, in this repo's own
+fixture, silently ignored for as long as it has existed. Note the lint above
+would *not* catch it, since it sits at input level rather than inside
+`validation`. Widening to whole inputs means first adding `default` to the Spec
+messages; worth doing, but out of scope here.
 
 Placement: immediately after `config.GetConfig` (`cmd/publish.go:59`), before
 `buildImage` and `docker.Push`, so authors do not sit through a build and push
@@ -138,6 +171,15 @@ The spec travels YAML → JSON → JSONB and never through protobuf, so no
 `[default = ...]` materialises for a consumer reading the registry API. An
 omitted `date_format` appears as an absent key, not `date_only`. This applies to
 every defaulted field in the schema.
+
+`is_artifact` is the existing instance of this, not a counterexample to it. It
+carries `[default = true]` on raster/vector/tabular and `[default = false]`
+elsewhere, but an author who omits it still produces JSONB with no `is_artifact`
+key. Defaults materialise only where something builds the message through
+protobuf — `DataWrapper.__init__` (`data.py:101-113`) back-fills them by walking
+the descriptor — which the registry path never does. Any consumer reading it
+correctly today is applying the default on its own side, and the only place that
+default is written down for them is a parenthetical in `mkdocs/docs/spec.md:229`.
 
 This RFC proposes documenting the defaults in `mkdocs/docs/spec.md` and having
 consumers apply them. The alternative — normalising through protobuf in
@@ -189,7 +231,9 @@ separately.
 ## Open questions
 
 1. Should publish-time rejection be an error or a warning in its first release?
-   Erroring is correct but will fail specs that publish successfully today.
+   Erroring is correct but will fail specs that publish successfully today. The
+   blast radius depends on how many published specs declare `validation` at all,
+   which we should measure against the registry before deciding.
 2. Should `DateFormat` have an explicit `unspecified = 0` member? As written,
    proto3 makes an omitted `date_format` indistinguishable from `date_only`.
 3. Should `clay publish` normalise specs through protobuf, and if so what
