@@ -531,9 +531,22 @@ message TabularValidation {
   // Currently no validation fields
 }
 
-// DateValidation defines validation rules for dates
+// DateFormat enumerates the accepted encodings for date values
+enum DateFormat {
+  date_only = 0;  // YYYY-MM-DD
+  datetime = 1;   // RFC 3339, e.g. 2024-03-01T12:00:00Z (UTC offset required)
+}
+
+// DateValidation defines validation rules for dates.
+// Bounds are inclusive and independently optional, and must use the same
+// encoding as date_format.
 message DateValidation {
-  // Currently no validation fields
+  // Earliest allowed date, inclusive
+  optional string min_date = 1;
+  // Latest allowed date, inclusive
+  optional string max_date = 2;
+  // Required encoding for the input value (defaults to date_only)
+  optional DateFormat date_format = 3 [default = date_only];
 }
 
 // StringValidation defines validation rules for strings

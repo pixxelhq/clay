@@ -8,6 +8,7 @@ import (
 
 	"github.com/pixxelhq/clay/proto/go/generated"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -628,4 +629,63 @@ func getRefToVizTypes(v generated.VizTypes) *generated.VizTypes {
 func getRefToVersion() *generated.Version {
 	v := generated.Version_v2
 	return &v
+}
+
+func dateInput(name, value string) DataWrapperInterface {
+	d := &generated.Date{Name: proto.String(name), Value: proto.String(value)}
+	return NewDataWrapper(d.ProtoReflect())
+}
+
+func TestValidateDate(t *testing.T) {
+	dt := generated.DateFormat_datetime
+	tests := []struct {
+		name      string
+		value     string
+		validator *generated.DateValidation
+		wantErr   string // substring; empty means no error
+	}{
+		{"no rules passes", "2024-06-01", &generated.DateValidation{}, ""},
+		{"within range", "2024-06-01", &generated.DateValidation{MinDate: proto.String("2024-01-01"), MaxDate: proto.String("2024-12-31")}, ""},
+		{"min bound inclusive", "2024-01-01", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, ""},
+		{"max bound inclusive", "2024-12-31", &generated.DateValidation{MaxDate: proto.String("2024-12-31")}, ""},
+		{"before min", "2023-12-31", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, "before minimum"},
+		{"after max", "2025-01-01", &generated.DateValidation{MaxDate: proto.String("2024-12-31")}, "after maximum"},
+		{"only min set, far future ok", "2099-01-01", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, ""},
+		{"malformed value", "01-03-2024", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, "not a valid date"},
+		{"datetime rejected in date_only mode", "2024-06-01T00:00:00Z", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, "not a valid date"},
+		{"empty value is unset, not invalid", "", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, ""},
+		{"malformed min_date is a spec error", "2024-06-01", &generated.DateValidation{MinDate: proto.String("yesterday")}, "invalid min_date"},
+		{"malformed max_date is a spec error", "2024-06-01", &generated.DateValidation{MaxDate: proto.String("2024-13-01")}, "invalid max_date"},
+		{"datetime mode within range", "2024-06-01T12:00:00Z", &generated.DateValidation{DateFormat: &dt, MinDate: proto.String("2024-01-01T00:00:00Z"), MaxDate: proto.String("2024-12-31T23:59:59Z")}, ""},
+		{"datetime mode compares across offsets", "2024-12-31T23:00:00-05:00", &generated.DateValidation{DateFormat: &dt, MaxDate: proto.String("2024-12-31T23:59:59Z")}, "after maximum"},
+		{"datetime mode requires offset", "2024-06-01T12:00:00", &generated.DateValidation{DateFormat: &dt}, "not a valid date"},
+		{"datetime mode rejects bare date", "2024-06-01", &generated.DateValidation{DateFormat: &dt}, "not a valid date"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateDate(dateInput("capture", tt.value), tt.validator)
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			if assert.Error(t, err) {
+				assert.Contains(t, err.Error(), tt.wantErr)
+				assert.Contains(t, err.Error(), "capture", "error should name the input")
+			}
+		})
+	}
+}
+
+func TestValidateWithInput_DispatchesDate(t *testing.T) {
+	// End-to-end through the spec wrapper, the path consumers actually use.
+	spec := &generated.DateSpec{
+		Name:       proto.String("capture"),
+		Validation: &generated.DateValidation{MinDate: proto.String("2024-01-01")},
+	}
+	sw := NewDataSpecWrapper(spec.ProtoReflect())
+	assert.NoError(t, sw.ValidateWithInput(dateInput("capture", "2024-06-01")))
+	err := sw.ValidateWithInput(dateInput("capture", "2023-06-01"))
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "before minimum")
+	}
 }

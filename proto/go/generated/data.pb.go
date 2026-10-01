@@ -203,6 +203,63 @@ func (VizTypes) EnumDescriptor() ([]byte, []int) {
 	return file_data_proto_rawDescGZIP(), []int{2}
 }
 
+// DateFormat enumerates the accepted encodings for date values
+type DateFormat int32
+
+const (
+	DateFormat_date_only DateFormat = 0 // YYYY-MM-DD
+	DateFormat_datetime  DateFormat = 1 // RFC 3339, e.g. 2024-03-01T12:00:00Z (UTC offset required)
+)
+
+// Enum value maps for DateFormat.
+var (
+	DateFormat_name = map[int32]string{
+		0: "date_only",
+		1: "datetime",
+	}
+	DateFormat_value = map[string]int32{
+		"date_only": 0,
+		"datetime":  1,
+	}
+)
+
+func (x DateFormat) Enum() *DateFormat {
+	p := new(DateFormat)
+	*p = x
+	return p
+}
+
+func (x DateFormat) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DateFormat) Descriptor() protoreflect.EnumDescriptor {
+	return file_data_proto_enumTypes[3].Descriptor()
+}
+
+func (DateFormat) Type() protoreflect.EnumType {
+	return &file_data_proto_enumTypes[3]
+}
+
+func (x DateFormat) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Do not use.
+func (x *DateFormat) UnmarshalJSON(b []byte) error {
+	num, err := protoimpl.X.UnmarshalJSONEnum(x.Descriptor(), b)
+	if err != nil {
+		return err
+	}
+	*x = DateFormat(num)
+	return nil
+}
+
+// Deprecated: Use DateFormat.Descriptor instead.
+func (DateFormat) EnumDescriptor() ([]byte, []int) {
+	return file_data_proto_rawDescGZIP(), []int{3}
+}
+
 // ListOfFloats represents a list of float values
 type ListOfFloats struct {
 	state         protoimpl.MessageState
@@ -3195,12 +3252,26 @@ func (*TabularValidation) Descriptor() ([]byte, []int) {
 	return file_data_proto_rawDescGZIP(), []int{29}
 }
 
-// DateValidation defines validation rules for dates
+// DateValidation defines validation rules for dates.
+// Bounds are inclusive and independently optional, and must use the same
+// encoding as date_format.
 type DateValidation struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
+
+	// Earliest allowed date, inclusive
+	MinDate *string `protobuf:"bytes,1,opt,name=min_date,json=minDate" json:"min_date,omitempty"`
+	// Latest allowed date, inclusive
+	MaxDate *string `protobuf:"bytes,2,opt,name=max_date,json=maxDate" json:"max_date,omitempty"`
+	// Required encoding for the input value (defaults to date_only)
+	DateFormat *DateFormat `protobuf:"varint,3,opt,name=date_format,json=dateFormat,enum=DateFormat,def=0" json:"date_format,omitempty"`
 }
+
+// Default values for DateValidation fields.
+const (
+	Default_DateValidation_DateFormat = DateFormat_date_only
+)
 
 func (x *DateValidation) Reset() {
 	*x = DateValidation{}
@@ -3230,6 +3301,27 @@ func (x *DateValidation) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DateValidation.ProtoReflect.Descriptor instead.
 func (*DateValidation) Descriptor() ([]byte, []int) {
 	return file_data_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DateValidation) GetMinDate() string {
+	if x != nil && x.MinDate != nil {
+		return *x.MinDate
+	}
+	return ""
+}
+
+func (x *DateValidation) GetMaxDate() string {
+	if x != nil && x.MaxDate != nil {
+		return *x.MaxDate
+	}
+	return ""
+}
+
+func (x *DateValidation) GetDateFormat() DateFormat {
+	if x != nil && x.DateFormat != nil {
+		return *x.DateFormat
+	}
+	return Default_DateValidation_DateFormat
 }
 
 // StringValidation defines validation rules for strings
@@ -3856,33 +3948,43 @@ var file_data_proto_rawDesc = []byte{
 	0x19, 0x0a, 0x08, 0x6d, 0x61, 0x78, 0x5f, 0x61, 0x72, 0x65, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28,
 	0x01, 0x52, 0x07, 0x6d, 0x61, 0x78, 0x41, 0x72, 0x65, 0x61, 0x22, 0x13, 0x0a, 0x11, 0x54, 0x61,
 	0x62, 0x75, 0x6c, 0x61, 0x72, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22,
-	0x10, 0x0a, 0x0e, 0x44, 0x61, 0x74, 0x65, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x22, 0x5a, 0x0a, 0x10, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x69, 0x64,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1f, 0x0a, 0x0b, 0x72, 0x65, 0x67, 0x65, 0x78, 0x5f, 0x6d,
-	0x61, 0x74, 0x63, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x72, 0x65, 0x67, 0x65,
-	0x78, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x25, 0x0a, 0x0e, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65,
-	0x64, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0d,
-	0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x22, 0x73, 0x0a,
-	0x10, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x12, 0x1b, 0x0a, 0x09, 0x6d, 0x69, 0x6e, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x01, 0x52, 0x08, 0x6d, 0x69, 0x6e, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x1b,
-	0x0a, 0x09, 0x6d, 0x61, 0x78, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x01, 0x52, 0x08, 0x6d, 0x61, 0x78, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x25, 0x0a, 0x0e, 0x61,
-	0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x03, 0x20,
-	0x03, 0x28, 0x01, 0x52, 0x0d, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x56, 0x61, 0x6c, 0x75,
-	0x65, 0x73, 0x2a, 0x11, 0x0a, 0x07, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x06, 0x0a,
-	0x02, 0x76, 0x32, 0x10, 0x00, 0x2a, 0x4f, 0x0a, 0x06, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12,
-	0x0a, 0x0a, 0x06, 0x72, 0x61, 0x73, 0x74, 0x65, 0x72, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x76,
-	0x65, 0x63, 0x74, 0x6f, 0x72, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07, 0x74, 0x61, 0x62, 0x75, 0x6c,
-	0x61, 0x72, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x10, 0x03,
-	0x12, 0x0a, 0x0a, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x10, 0x04, 0x12, 0x08, 0x0a, 0x04,
-	0x64, 0x61, 0x74, 0x65, 0x10, 0x05, 0x2a, 0x34, 0x0a, 0x08, 0x56, 0x69, 0x7a, 0x54, 0x79, 0x70,
-	0x65, 0x73, 0x12, 0x0e, 0x0a, 0x0a, 0x63, 0x6f, 0x6e, 0x74, 0x69, 0x6e, 0x75, 0x6f, 0x75, 0x73,
-	0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x10, 0x01, 0x12, 0x0c,
-	0x0a, 0x08, 0x64, 0x69, 0x73, 0x63, 0x72, 0x65, 0x74, 0x65, 0x10, 0x02, 0x42, 0x2d, 0x5a, 0x2b,
-	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x78, 0x78, 0x65,
-	0x6c, 0x68, 0x71, 0x2f, 0x63, 0x6c, 0x61, 0x79, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67,
-	0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64,
+	0x7f, 0x0a, 0x0e, 0x44, 0x61, 0x74, 0x65, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x12, 0x19, 0x0a, 0x08, 0x6d, 0x69, 0x6e, 0x5f, 0x64, 0x61, 0x74, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x69, 0x6e, 0x44, 0x61, 0x74, 0x65, 0x12, 0x19, 0x0a, 0x08,
+	0x6d, 0x61, 0x78, 0x5f, 0x64, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07,
+	0x6d, 0x61, 0x78, 0x44, 0x61, 0x74, 0x65, 0x12, 0x37, 0x0a, 0x0b, 0x64, 0x61, 0x74, 0x65, 0x5f,
+	0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0b, 0x2e, 0x44,
+	0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x3a, 0x09, 0x64, 0x61, 0x74, 0x65, 0x5f,
+	0x6f, 0x6e, 0x6c, 0x79, 0x52, 0x0a, 0x64, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74,
+	0x22, 0x5a, 0x0a, 0x10, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1f, 0x0a, 0x0b, 0x72, 0x65, 0x67, 0x65, 0x78, 0x5f, 0x6d, 0x61,
+	0x74, 0x63, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x72, 0x65, 0x67, 0x65, 0x78,
+	0x4d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x25, 0x0a, 0x0e, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64,
+	0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0d, 0x61,
+	0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x22, 0x73, 0x0a, 0x10,
+	0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x12, 0x1b, 0x0a, 0x09, 0x6d, 0x69, 0x6e, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x01, 0x52, 0x08, 0x6d, 0x69, 0x6e, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x1b, 0x0a,
+	0x09, 0x6d, 0x61, 0x78, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x01,
+	0x52, 0x08, 0x6d, 0x61, 0x78, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x25, 0x0a, 0x0e, 0x61, 0x6c,
+	0x6c, 0x6f, 0x77, 0x65, 0x64, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03,
+	0x28, 0x01, 0x52, 0x0d, 0x61, 0x6c, 0x6c, 0x6f, 0x77, 0x65, 0x64, 0x56, 0x61, 0x6c, 0x75, 0x65,
+	0x73, 0x2a, 0x11, 0x0a, 0x07, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x06, 0x0a, 0x02,
+	0x76, 0x32, 0x10, 0x00, 0x2a, 0x4f, 0x0a, 0x06, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12, 0x0a,
+	0x0a, 0x06, 0x72, 0x61, 0x73, 0x74, 0x65, 0x72, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x76, 0x65,
+	0x63, 0x74, 0x6f, 0x72, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07, 0x74, 0x61, 0x62, 0x75, 0x6c, 0x61,
+	0x72, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x10, 0x03, 0x12,
+	0x0a, 0x0a, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x10, 0x04, 0x12, 0x08, 0x0a, 0x04, 0x64,
+	0x61, 0x74, 0x65, 0x10, 0x05, 0x2a, 0x34, 0x0a, 0x08, 0x56, 0x69, 0x7a, 0x54, 0x79, 0x70, 0x65,
+	0x73, 0x12, 0x0e, 0x0a, 0x0a, 0x63, 0x6f, 0x6e, 0x74, 0x69, 0x6e, 0x75, 0x6f, 0x75, 0x73, 0x10,
+	0x00, 0x12, 0x0a, 0x0a, 0x06, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x10, 0x01, 0x12, 0x0c, 0x0a,
+	0x08, 0x64, 0x69, 0x73, 0x63, 0x72, 0x65, 0x74, 0x65, 0x10, 0x02, 0x2a, 0x29, 0x0a, 0x0a, 0x44,
+	0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12, 0x0d, 0x0a, 0x09, 0x64, 0x61, 0x74,
+	0x65, 0x5f, 0x6f, 0x6e, 0x6c, 0x79, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x64, 0x61, 0x74, 0x65,
+	0x74, 0x69, 0x6d, 0x65, 0x10, 0x01, 0x42, 0x2d, 0x5a, 0x2b, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
+	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x78, 0x78, 0x65, 0x6c, 0x68, 0x71, 0x2f, 0x63, 0x6c,
+	0x61, 0x79, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x65,
+	0x72, 0x61, 0x74, 0x65, 0x64,
 }
 
 var (
@@ -3897,139 +3999,141 @@ func file_data_proto_rawDescGZIP() []byte {
 	return file_data_proto_rawDescData
 }
 
-var file_data_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_data_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_data_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_data_proto_goTypes = []any{
 	(Version)(0),                // 0: Version
 	(Format)(0),                 // 1: Format
 	(VizTypes)(0),               // 2: VizTypes
-	(*ListOfFloats)(nil),        // 3: ListOfFloats
-	(*Range)(nil),               // 4: Range
-	(*ContinuousViz)(nil),       // 5: ContinuousViz
-	(*Bucket)(nil),              // 6: Bucket
-	(*ListOfBuckets)(nil),       // 7: ListOfBuckets
-	(*BucketViz)(nil),           // 8: BucketViz
-	(*Visualization)(nil),       // 9: Visualization
-	(*DiscretizationClass)(nil), // 10: DiscretizationClass
-	(*Discretization)(nil),      // 11: Discretization
-	(*RasterProperties)(nil),    // 12: RasterProperties
-	(*AssetSource)(nil),         // 13: AssetSource
-	(*Raster)(nil),              // 14: Raster
-	(*VectorProperties)(nil),    // 15: VectorProperties
-	(*Vector)(nil),              // 16: Vector
-	(*TabularFileSchema)(nil),   // 17: TabularFileSchema
-	(*TabularProperties)(nil),   // 18: TabularProperties
-	(*Tabular)(nil),             // 19: Tabular
-	(*DateProperties)(nil),      // 20: DateProperties
-	(*Date)(nil),                // 21: Date
-	(*String)(nil),              // 22: String
-	(*Number)(nil),              // 23: Number
-	(*RasterSpec)(nil),          // 24: RasterSpec
-	(*VectorSpec)(nil),          // 25: VectorSpec
-	(*TabularSpec)(nil),         // 26: TabularSpec
-	(*DateSpec)(nil),            // 27: DateSpec
-	(*StringSpec)(nil),          // 28: StringSpec
-	(*NumberSpec)(nil),          // 29: NumberSpec
-	(*RasterValidation)(nil),    // 30: RasterValidation
-	(*VectorValidation)(nil),    // 31: VectorValidation
-	(*TabularValidation)(nil),   // 32: TabularValidation
-	(*DateValidation)(nil),      // 33: DateValidation
-	(*StringValidation)(nil),    // 34: StringValidation
-	(*NumberValidation)(nil),    // 35: NumberValidation
-	nil,                         // 36: Visualization.DiscreteEntry
-	nil,                         // 37: Raster.MetadataEntry
-	nil,                         // 38: Vector.MetadataEntry
-	nil,                         // 39: Tabular.MetadataEntry
-	nil,                         // 40: Date.MetadataEntry
-	nil,                         // 41: String.MetadataEntry
-	nil,                         // 42: Number.MetadataEntry
-	nil,                         // 43: RasterSpec.MetadataEntry
-	nil,                         // 44: VectorSpec.MetadataEntry
-	nil,                         // 45: TabularSpec.MetadataEntry
-	nil,                         // 46: DateSpec.MetadataEntry
-	nil,                         // 47: StringSpec.MetadataEntry
-	nil,                         // 48: NumberSpec.MetadataEntry
+	(DateFormat)(0),             // 3: DateFormat
+	(*ListOfFloats)(nil),        // 4: ListOfFloats
+	(*Range)(nil),               // 5: Range
+	(*ContinuousViz)(nil),       // 6: ContinuousViz
+	(*Bucket)(nil),              // 7: Bucket
+	(*ListOfBuckets)(nil),       // 8: ListOfBuckets
+	(*BucketViz)(nil),           // 9: BucketViz
+	(*Visualization)(nil),       // 10: Visualization
+	(*DiscretizationClass)(nil), // 11: DiscretizationClass
+	(*Discretization)(nil),      // 12: Discretization
+	(*RasterProperties)(nil),    // 13: RasterProperties
+	(*AssetSource)(nil),         // 14: AssetSource
+	(*Raster)(nil),              // 15: Raster
+	(*VectorProperties)(nil),    // 16: VectorProperties
+	(*Vector)(nil),              // 17: Vector
+	(*TabularFileSchema)(nil),   // 18: TabularFileSchema
+	(*TabularProperties)(nil),   // 19: TabularProperties
+	(*Tabular)(nil),             // 20: Tabular
+	(*DateProperties)(nil),      // 21: DateProperties
+	(*Date)(nil),                // 22: Date
+	(*String)(nil),              // 23: String
+	(*Number)(nil),              // 24: Number
+	(*RasterSpec)(nil),          // 25: RasterSpec
+	(*VectorSpec)(nil),          // 26: VectorSpec
+	(*TabularSpec)(nil),         // 27: TabularSpec
+	(*DateSpec)(nil),            // 28: DateSpec
+	(*StringSpec)(nil),          // 29: StringSpec
+	(*NumberSpec)(nil),          // 30: NumberSpec
+	(*RasterValidation)(nil),    // 31: RasterValidation
+	(*VectorValidation)(nil),    // 32: VectorValidation
+	(*TabularValidation)(nil),   // 33: TabularValidation
+	(*DateValidation)(nil),      // 34: DateValidation
+	(*StringValidation)(nil),    // 35: StringValidation
+	(*NumberValidation)(nil),    // 36: NumberValidation
+	nil,                         // 37: Visualization.DiscreteEntry
+	nil,                         // 38: Raster.MetadataEntry
+	nil,                         // 39: Vector.MetadataEntry
+	nil,                         // 40: Tabular.MetadataEntry
+	nil,                         // 41: Date.MetadataEntry
+	nil,                         // 42: String.MetadataEntry
+	nil,                         // 43: Number.MetadataEntry
+	nil,                         // 44: RasterSpec.MetadataEntry
+	nil,                         // 45: VectorSpec.MetadataEntry
+	nil,                         // 46: TabularSpec.MetadataEntry
+	nil,                         // 47: DateSpec.MetadataEntry
+	nil,                         // 48: StringSpec.MetadataEntry
+	nil,                         // 49: NumberSpec.MetadataEntry
 }
 var file_data_proto_depIdxs = []int32{
-	4,  // 0: ContinuousViz.bandwise_range:type_name -> Range
-	6,  // 1: ListOfBuckets.items:type_name -> Bucket
-	7,  // 2: BucketViz.bandwise:type_name -> ListOfBuckets
+	5,  // 0: ContinuousViz.bandwise_range:type_name -> Range
+	7,  // 1: ListOfBuckets.items:type_name -> Bucket
+	8,  // 2: BucketViz.bandwise:type_name -> ListOfBuckets
 	2,  // 3: Visualization.type:type_name -> VizTypes
-	5,  // 4: Visualization.continuous:type_name -> ContinuousViz
-	8,  // 5: Visualization.bucket:type_name -> BucketViz
-	36, // 6: Visualization.discrete:type_name -> Visualization.DiscreteEntry
-	4,  // 7: DiscretizationClass.range:type_name -> Range
-	10, // 8: Discretization.classes:type_name -> DiscretizationClass
-	9,  // 9: RasterProperties.visualisation:type_name -> Visualization
-	11, // 10: RasterProperties.discretization:type_name -> Discretization
+	6,  // 4: Visualization.continuous:type_name -> ContinuousViz
+	9,  // 5: Visualization.bucket:type_name -> BucketViz
+	37, // 6: Visualization.discrete:type_name -> Visualization.DiscreteEntry
+	5,  // 7: DiscretizationClass.range:type_name -> Range
+	11, // 8: Discretization.classes:type_name -> DiscretizationClass
+	10, // 9: RasterProperties.visualisation:type_name -> Visualization
+	12, // 10: RasterProperties.discretization:type_name -> Discretization
 	1,  // 11: Raster.format:type_name -> Format
-	37, // 12: Raster.metadata:type_name -> Raster.MetadataEntry
-	13, // 13: Raster.asset_source:type_name -> AssetSource
-	12, // 14: Raster.properties:type_name -> RasterProperties
+	38, // 12: Raster.metadata:type_name -> Raster.MetadataEntry
+	14, // 13: Raster.asset_source:type_name -> AssetSource
+	13, // 14: Raster.properties:type_name -> RasterProperties
 	0,  // 15: Raster.version:type_name -> Version
 	1,  // 16: Vector.format:type_name -> Format
-	38, // 17: Vector.metadata:type_name -> Vector.MetadataEntry
-	13, // 18: Vector.asset_source:type_name -> AssetSource
-	15, // 19: Vector.properties:type_name -> VectorProperties
+	39, // 17: Vector.metadata:type_name -> Vector.MetadataEntry
+	14, // 18: Vector.asset_source:type_name -> AssetSource
+	16, // 19: Vector.properties:type_name -> VectorProperties
 	0,  // 20: Vector.version:type_name -> Version
-	17, // 21: TabularProperties.file_schema:type_name -> TabularFileSchema
+	18, // 21: TabularProperties.file_schema:type_name -> TabularFileSchema
 	1,  // 22: Tabular.format:type_name -> Format
-	39, // 23: Tabular.metadata:type_name -> Tabular.MetadataEntry
-	13, // 24: Tabular.asset_source:type_name -> AssetSource
-	18, // 25: Tabular.properties:type_name -> TabularProperties
+	40, // 23: Tabular.metadata:type_name -> Tabular.MetadataEntry
+	14, // 24: Tabular.asset_source:type_name -> AssetSource
+	19, // 25: Tabular.properties:type_name -> TabularProperties
 	0,  // 26: Tabular.version:type_name -> Version
 	1,  // 27: Date.format:type_name -> Format
-	40, // 28: Date.metadata:type_name -> Date.MetadataEntry
-	13, // 29: Date.asset_source:type_name -> AssetSource
-	20, // 30: Date.properties:type_name -> DateProperties
+	41, // 28: Date.metadata:type_name -> Date.MetadataEntry
+	14, // 29: Date.asset_source:type_name -> AssetSource
+	21, // 30: Date.properties:type_name -> DateProperties
 	0,  // 31: Date.version:type_name -> Version
 	1,  // 32: String.format:type_name -> Format
-	41, // 33: String.metadata:type_name -> String.MetadataEntry
-	13, // 34: String.asset_source:type_name -> AssetSource
+	42, // 33: String.metadata:type_name -> String.MetadataEntry
+	14, // 34: String.asset_source:type_name -> AssetSource
 	0,  // 35: String.version:type_name -> Version
 	1,  // 36: Number.format:type_name -> Format
-	42, // 37: Number.metadata:type_name -> Number.MetadataEntry
-	13, // 38: Number.asset_source:type_name -> AssetSource
+	43, // 37: Number.metadata:type_name -> Number.MetadataEntry
+	14, // 38: Number.asset_source:type_name -> AssetSource
 	0,  // 39: Number.version:type_name -> Version
 	1,  // 40: RasterSpec.format:type_name -> Format
-	43, // 41: RasterSpec.metadata:type_name -> RasterSpec.MetadataEntry
-	13, // 42: RasterSpec.asset_source:type_name -> AssetSource
-	12, // 43: RasterSpec.properties:type_name -> RasterProperties
-	30, // 44: RasterSpec.validation:type_name -> RasterValidation
+	44, // 41: RasterSpec.metadata:type_name -> RasterSpec.MetadataEntry
+	14, // 42: RasterSpec.asset_source:type_name -> AssetSource
+	13, // 43: RasterSpec.properties:type_name -> RasterProperties
+	31, // 44: RasterSpec.validation:type_name -> RasterValidation
 	0,  // 45: RasterSpec.version:type_name -> Version
 	1,  // 46: VectorSpec.format:type_name -> Format
-	44, // 47: VectorSpec.metadata:type_name -> VectorSpec.MetadataEntry
-	13, // 48: VectorSpec.asset_source:type_name -> AssetSource
-	15, // 49: VectorSpec.properties:type_name -> VectorProperties
-	31, // 50: VectorSpec.validation:type_name -> VectorValidation
+	45, // 47: VectorSpec.metadata:type_name -> VectorSpec.MetadataEntry
+	14, // 48: VectorSpec.asset_source:type_name -> AssetSource
+	16, // 49: VectorSpec.properties:type_name -> VectorProperties
+	32, // 50: VectorSpec.validation:type_name -> VectorValidation
 	0,  // 51: VectorSpec.version:type_name -> Version
 	1,  // 52: TabularSpec.format:type_name -> Format
-	45, // 53: TabularSpec.metadata:type_name -> TabularSpec.MetadataEntry
-	13, // 54: TabularSpec.asset_source:type_name -> AssetSource
-	18, // 55: TabularSpec.properties:type_name -> TabularProperties
-	32, // 56: TabularSpec.validation:type_name -> TabularValidation
+	46, // 53: TabularSpec.metadata:type_name -> TabularSpec.MetadataEntry
+	14, // 54: TabularSpec.asset_source:type_name -> AssetSource
+	19, // 55: TabularSpec.properties:type_name -> TabularProperties
+	33, // 56: TabularSpec.validation:type_name -> TabularValidation
 	0,  // 57: TabularSpec.version:type_name -> Version
 	1,  // 58: DateSpec.format:type_name -> Format
-	46, // 59: DateSpec.metadata:type_name -> DateSpec.MetadataEntry
-	13, // 60: DateSpec.asset_source:type_name -> AssetSource
-	20, // 61: DateSpec.properties:type_name -> DateProperties
-	33, // 62: DateSpec.validation:type_name -> DateValidation
+	47, // 59: DateSpec.metadata:type_name -> DateSpec.MetadataEntry
+	14, // 60: DateSpec.asset_source:type_name -> AssetSource
+	21, // 61: DateSpec.properties:type_name -> DateProperties
+	34, // 62: DateSpec.validation:type_name -> DateValidation
 	0,  // 63: DateSpec.version:type_name -> Version
 	1,  // 64: StringSpec.format:type_name -> Format
-	47, // 65: StringSpec.metadata:type_name -> StringSpec.MetadataEntry
-	13, // 66: StringSpec.asset_source:type_name -> AssetSource
-	34, // 67: StringSpec.validation:type_name -> StringValidation
+	48, // 65: StringSpec.metadata:type_name -> StringSpec.MetadataEntry
+	14, // 66: StringSpec.asset_source:type_name -> AssetSource
+	35, // 67: StringSpec.validation:type_name -> StringValidation
 	0,  // 68: StringSpec.version:type_name -> Version
 	1,  // 69: NumberSpec.format:type_name -> Format
-	48, // 70: NumberSpec.metadata:type_name -> NumberSpec.MetadataEntry
-	13, // 71: NumberSpec.asset_source:type_name -> AssetSource
-	35, // 72: NumberSpec.validation:type_name -> NumberValidation
+	49, // 70: NumberSpec.metadata:type_name -> NumberSpec.MetadataEntry
+	14, // 71: NumberSpec.asset_source:type_name -> AssetSource
+	36, // 72: NumberSpec.validation:type_name -> NumberValidation
 	0,  // 73: NumberSpec.version:type_name -> Version
-	74, // [74:74] is the sub-list for method output_type
-	74, // [74:74] is the sub-list for method input_type
-	74, // [74:74] is the sub-list for extension type_name
-	74, // [74:74] is the sub-list for extension extendee
-	0,  // [0:74] is the sub-list for field type_name
+	3,  // 74: DateValidation.date_format:type_name -> DateFormat
+	75, // [75:75] is the sub-list for method output_type
+	75, // [75:75] is the sub-list for method input_type
+	75, // [75:75] is the sub-list for extension type_name
+	75, // [75:75] is the sub-list for extension extendee
+	0,  // [0:75] is the sub-list for field type_name
 }
 
 func init() { file_data_proto_init() }
@@ -4042,7 +4146,7 @@ func file_data_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_data_proto_rawDesc,
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   0,

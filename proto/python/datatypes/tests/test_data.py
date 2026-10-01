@@ -402,3 +402,58 @@ def test_data_wrapper_typed_view_round_trip():
     assert isinstance(view.value, int)
     # The proto still stores the value as a string for wire compat.
     assert dw.get_proto().value == "5"
+
+
+# --- date validation ---
+
+def _date(value: str) -> DataWrapper:
+    return _wrapped(data.DateFromDict, {"format": "date", "name": "capture", "value": value})
+
+
+@pytest.mark.parametrize(
+    "value, validation",
+    [
+        ("2024-06-01", {}),
+        ("2024-06-01", {"min_date": "2024-01-01", "max_date": "2024-12-31"}),
+        ("2024-01-01", {"min_date": "2024-01-01"}),  # min inclusive
+        ("2024-12-31", {"max_date": "2024-12-31"}),  # max inclusive
+        ("2099-01-01", {"min_date": "2024-01-01"}),  # only min set
+        ("", {"min_date": "2024-01-01"}),  # empty is unset, not invalid
+        ("2024-06-01T12:00:00Z", {"date_format": "datetime", "min_date": "2024-01-01T00:00:00Z"}),
+        ("2024-06-01T12:00:00+05:30", {"date_format": "datetime", "max_date": "2024-12-31T23:59:59Z"}),
+    ],
+)
+def test_validate_input_date_pass(value, validation):
+    data.validate_input(_date(value), {"validation": validation})
+
+
+@pytest.mark.parametrize(
+    "value, validation, msg",
+    [
+        ("2023-12-31", {"min_date": "2024-01-01"}, "before minimum"),
+        ("2025-01-01", {"max_date": "2024-12-31"}, "after maximum"),
+        ("01-03-2024", {"min_date": "2024-01-01"}, "not a valid date"),
+        ("2024-6-1", {"min_date": "2024-01-01"}, "not a valid date"),  # must be zero-padded, as in Go
+        ("2024-06-01T00:00:00Z", {"min_date": "2024-01-01"}, "not a valid date"),  # datetime in date_only mode
+        ("2024-06-01", {"min_date": "yesterday"}, "min_date 'yesterday' is not a valid date"),
+        ("2024-06-01", {"max_date": "2024-13-01"}, "max_date '2024-13-01' is not a valid date"),
+        ("2024-12-31T23:00:00-05:00", {"date_format": "datetime", "max_date": "2024-12-31T23:59:59Z"}, "after maximum"),
+        ("2024-06-01T12:00:00", {"date_format": "datetime"}, "not a valid date"),  # naive datetime rejected
+        ("2024-06-01", {"date_format": "datetime"}, "not a valid date"),  # bare date in datetime mode
+        ("2024-06-01", {"date_format": "bogus"}, "unknown date_format"),
+    ],
+)
+def test_validate_input_date_fail(value, validation, msg):
+    with pytest.raises(data.ValidationError) as exc:
+        data.validate_input(_date(value), {"validation": validation})
+    assert msg in str(exc.value)
+    assert "capture" in str(exc.value)
+
+
+def test_date_validation_round_trips_through_proto():
+    """The new fields survive FromDict/serialize, i.e. the regenerated bindings carry them."""
+    spec = data.DateSpec()
+    spec.validation.min_date = "2024-01-01"
+    spec.validation.date_format = data.DateFormat.Value("datetime")
+    d = MessageToDict(spec, preserving_proto_field_name=True)
+    assert d["validation"] == {"min_date": "2024-01-01", "date_format": "datetime"}
