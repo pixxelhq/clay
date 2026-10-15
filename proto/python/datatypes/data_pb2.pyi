@@ -28,7 +28,7 @@ class VizTypes(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 class DateFormat(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     date_only: _ClassVar[DateFormat]
-    datetime: _ClassVar[DateFormat]
+    date_time: _ClassVar[DateFormat]
 v2: Version
 raster: Format
 vector: Format
@@ -40,7 +40,7 @@ continuous: VizTypes
 bucket: VizTypes
 discrete: VizTypes
 date_only: DateFormat
-datetime: DateFormat
+date_time: DateFormat
 
 class ListOfFloats(_message.Message):
     __slots__ = ("values",)

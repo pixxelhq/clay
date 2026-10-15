@@ -637,7 +637,7 @@ func dateInput(name, value string) DataWrapperInterface {
 }
 
 func TestValidateDate(t *testing.T) {
-	dt := generated.DateFormat_datetime
+	dt := generated.DateFormat_date_time
 	tests := []struct {
 		name      string
 		value     string
@@ -652,14 +652,14 @@ func TestValidateDate(t *testing.T) {
 		{"after max", "2025-01-01", &generated.DateValidation{MaxDate: proto.String("2024-12-31")}, "after maximum"},
 		{"only min set, far future ok", "2099-01-01", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, ""},
 		{"malformed value", "01-03-2024", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, "not a valid date"},
-		{"datetime rejected in date_only mode", "2024-06-01T00:00:00Z", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, "not a valid date"},
+		{"date_time value rejected in date_only mode", "2024-06-01T00:00:00Z", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, "not a valid date"},
 		{"empty value is unset, not invalid", "", &generated.DateValidation{MinDate: proto.String("2024-01-01")}, ""},
 		{"malformed min_date is a spec error", "2024-06-01", &generated.DateValidation{MinDate: proto.String("yesterday")}, "invalid min_date"},
 		{"malformed max_date is a spec error", "2024-06-01", &generated.DateValidation{MaxDate: proto.String("2024-13-01")}, "invalid max_date"},
-		{"datetime mode within range", "2024-06-01T12:00:00Z", &generated.DateValidation{DateFormat: &dt, MinDate: proto.String("2024-01-01T00:00:00Z"), MaxDate: proto.String("2024-12-31T23:59:59Z")}, ""},
-		{"datetime mode compares across offsets", "2024-12-31T23:00:00-05:00", &generated.DateValidation{DateFormat: &dt, MaxDate: proto.String("2024-12-31T23:59:59Z")}, "after maximum"},
-		{"datetime mode requires offset", "2024-06-01T12:00:00", &generated.DateValidation{DateFormat: &dt}, "not a valid date"},
-		{"datetime mode rejects bare date", "2024-06-01", &generated.DateValidation{DateFormat: &dt}, "not a valid date"},
+		{"date_time mode within range", "2024-06-01T12:00:00Z", &generated.DateValidation{DateFormat: &dt, MinDate: proto.String("2024-01-01T00:00:00Z"), MaxDate: proto.String("2024-12-31T23:59:59Z")}, ""},
+		{"date_time mode compares across offsets", "2024-12-31T23:00:00-05:00", &generated.DateValidation{DateFormat: &dt, MaxDate: proto.String("2024-12-31T23:59:59Z")}, "after maximum"},
+		{"date_time mode requires offset", "2024-06-01T12:00:00", &generated.DateValidation{DateFormat: &dt}, "not a valid date"},
+		{"date_time mode rejects bare date", "2024-06-01", &generated.DateValidation{DateFormat: &dt}, "not a valid date"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

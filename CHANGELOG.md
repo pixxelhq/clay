@@ -7,7 +7,7 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 ## v1.3.0 - 2026-10-01
 ### New Features
 - `DateValidation` is no longer an empty placeholder: it carries `min_date`,
-  `max_date`, and `date_format` (`date_only` or `datetime`), so blocks can bound
+  `max_date`, and `date_format` (`date_only` or `date_time`), so blocks can bound
   date inputs the way number and string inputs already are. Enforced by the Go
   validator (`ValidateDate`) and the Python `validate_input` datatypes helper.
   Design and rationale: pixxelhq/clay#11.

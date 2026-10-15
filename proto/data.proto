@@ -534,7 +534,7 @@ message TabularValidation {
 // DateFormat enumerates the accepted encodings for date values
 enum DateFormat {
   date_only = 0;  // YYYY-MM-DD
-  datetime = 1;   // RFC 3339, e.g. 2024-03-01T12:00:00Z (UTC offset required)
+  date_time = 1;  // RFC 3339, e.g. 2024-03-01T12:00:00Z (UTC offset required)
 }
 
 // DateValidation defines validation rules for dates.

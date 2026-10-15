@@ -467,7 +467,7 @@ const dateOnlyLayout = "2006-01-02"
 
 // dateLayout maps a DateFormat to the Go time layout used to parse values and bounds.
 func dateLayout(f generated.DateFormat) string {
-	if f == generated.DateFormat_datetime {
+	if f == generated.DateFormat_date_time {
 		return time.RFC3339
 	}
 	return dateOnlyLayout
@@ -475,7 +475,7 @@ func dateLayout(f generated.DateFormat) string {
 
 // dateFormatLabel is the human-readable encoding name used in error messages.
 func dateFormatLabel(f generated.DateFormat) string {
-	if f == generated.DateFormat_datetime {
+	if f == generated.DateFormat_date_time {
 		return "RFC 3339 with a UTC offset"
 	}
 	return "YYYY-MM-DD"

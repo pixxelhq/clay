@@ -446,14 +446,14 @@ inputs:
     format: date
     type: str
     validation:
-      date_format: date_only   # date_only (default) or datetime
+      date_format: date_only   # date_only (default) or date_time
       min_date: "2024-01-01"
       max_date: "2024-12-31"
 ```
 
 | Field | Description |
 |---|---|
-| `date_format` | `date_only` accepts exactly `YYYY-MM-DD`. `datetime` accepts RFC 3339 and **requires a UTC offset** (`Z` or `+05:30`), so values are always comparable. Defaults to `date_only`. |
+| `date_format` | `date_only` accepts exactly `YYYY-MM-DD`. `date_time` accepts RFC 3339 and **requires a UTC offset** (`Z` or `+05:30`), so values are always comparable. Defaults to `date_only`. |
 | `min_date` | Earliest allowed value, inclusive. Must use the same encoding as `date_format`. |
 | `max_date` | Latest allowed value, inclusive. Must use the same encoding as `date_format`. |
 

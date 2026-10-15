@@ -419,7 +419,7 @@ _DATE_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 def _parse_date(name: str, raw: str, date_only: bool, field: str) -> Union[_dt.date, _dt.datetime]:
     """Parse a date string in the encoding selected by date_format.
 
-    date_only accepts exactly YYYY-MM-DD. datetime accepts RFC 3339 and requires
+    date_only accepts exactly YYYY-MM-DD. date_time accepts RFC 3339 and requires
     a UTC offset, so values are always comparable and match the Go validator.
     """
     expected = "YYYY-MM-DD" if date_only else "RFC 3339 with a UTC offset"
@@ -517,6 +517,6 @@ def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
                 date_validation.date_format = gen_types.DateFormat.Value(validation["date_format"])
             except ValueError:
                 raise ValidationError(
-                    name, f"unknown date_format '{validation['date_format']}' (expected date_only or datetime)"
+                    name, f"unknown date_format '{validation['date_format']}' (expected date_only or date_time)"
                 )
         validate_date(name, value, date_validation)
