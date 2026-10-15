@@ -437,6 +437,22 @@ def _parse_date(name: str, raw: str, date_only: bool, field: str) -> Union[_dt.d
     return parsed
 
 
+def _bound_as_string(name: str, field: str, raw: Any) -> str:
+    """Normalise a spec bound to a string.
+
+    clay.yaml is read with yaml.safe_load, which turns an unquoted
+    ``min_date: 2024-01-01`` into a datetime.date and an unquoted timestamp into
+    a datetime.datetime. Accept those as their ISO form so authors are not forced
+    to quote; anything else is a spec error, reported as a ValidationError rather
+    than a TypeError from the proto setter.
+    """
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, (_dt.date, _dt.datetime)):
+        return raw.isoformat()
+    raise ValidationError(name, f"{field} must be a string, got {type(raw).__name__}")
+
+
 def validate_date(name: str, value: str, validation: gen_types.DateValidation) -> None:
     """Validate a date value against DateValidation rules.
 
@@ -509,9 +525,9 @@ def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
     elif fmt == FormatTypes.DATE.value:
         date_validation = gen_types.DateValidation()
         if "min_date" in validation:
-            date_validation.min_date = validation["min_date"]
+            date_validation.min_date = _bound_as_string(name, "min_date", validation["min_date"])
         if "max_date" in validation:
-            date_validation.max_date = validation["max_date"]
+            date_validation.max_date = _bound_as_string(name, "max_date", validation["max_date"])
         if "date_format" in validation:
             try:
                 date_validation.date_format = gen_types.DateFormat.Value(validation["date_format"])
