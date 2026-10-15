@@ -413,7 +413,23 @@ def validate_number(name: str, value: str, validation: gen_types.NumberValidatio
         raise ValidationError(name, f"value {num_value} is greater than maximum {validation.max_value}")
 
 
-_DATE_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# Shared with the Go validator (proto/go/main.go) so both accept exactly the same
+# strings. [0-9] rather than \d: Python's \d also matches non-ASCII digits, Go's
+# does not.
+_DATE_ONLY_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+_RFC3339_RE = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?(Z|[+-][0-9]{2}:[0-9]{2})$"
+)
+_FRACTION_RE = re.compile(r"\.([0-9]{1,9})")
+
+
+def _normalise_fraction(raw: str) -> str:
+    """Pad or trim fractional seconds to 6 digits.
+
+    datetime.fromisoformat on 3.10 only accepts 3 or 6 fractional digits, while
+    Go's RFC 3339 parser accepts 1-9. Normalising keeps the two in step.
+    """
+    return _FRACTION_RE.sub(lambda m: "." + m.group(1)[:6].ljust(6, "0"), raw, count=1)
 
 
 def _parse_date(name: str, raw: str, date_only: bool, field: str) -> Union[_dt.date, _dt.datetime]:
@@ -428,8 +444,10 @@ def _parse_date(name: str, raw: str, date_only: bool, field: str) -> Union[_dt.d
             if not _DATE_ONLY_RE.match(raw):
                 raise ValueError
             return _dt.datetime.strptime(raw, "%Y-%m-%d").date()
+        if not _RFC3339_RE.match(raw):
+            raise ValueError
         # fromisoformat only accepts a trailing "Z" from Python 3.11; Clay targets 3.10.
-        parsed = _dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        parsed = _dt.datetime.fromisoformat(_normalise_fraction(raw).replace("Z", "+00:00"))
     except ValueError:
         raise ValidationError(name, f"{field} '{raw}' is not a valid date (expected {expected})")
     if parsed.tzinfo is None:

@@ -689,3 +689,47 @@ func TestValidateWithInput_DispatchesDate(t *testing.T) {
 		assert.Contains(t, err.Error(), "before minimum")
 	}
 }
+
+// Format parity with the Python validator. This table is duplicated verbatim in
+// proto/python/datatypes/tests/test_data.py (DATE_TIME_PARITY / DATE_ONLY_PARITY);
+// keep them identical.
+func TestValidateDate_FormatParity(t *testing.T) {
+	dt := generated.DateFormat_date_time
+	do := generated.DateFormat_date_only
+	cases := []struct {
+		format generated.DateFormat
+		value  string
+		ok     bool
+	}{
+		{dt, "2024-06-01T12:00:00Z", true},
+		{dt, "2024-06-01T12:00:00+05:30", true},
+		{dt, "2024-06-01T12:00:00.5Z", true}, // 1 fractional digit
+		{dt, "2024-06-01T12:00:00.123Z", true},
+		{dt, "2024-06-01T12:00:00.123456Z", true},
+		{dt, "2024-06-01T12:00:00.123456789Z", true}, // 9 fractional digits
+		{dt, "2024-06-01 12:00:00+00:00", false},     // space separator
+		{dt, "2024-06-01T12:00+00:00", false},        // no seconds
+		{dt, "2024-06-01T12+05:30", false},           // hour only
+		{dt, "20240601T120000Z", false},              // compact form
+		{dt, "2024-06-01t12:00:00z", false},          // lowercase
+		{dt, "2024-06-01T12:00:00", false},           // naive
+		{dt, "2024-06-01T12:00:00+0530", false},      // offset without colon
+		{dt, "2024-06-01", false},                    // bare date
+		{do, "2024-06-01", true},
+		{do, "2024-6-1", false},
+		{do, "20240601", false},
+		{do, "2024-06-01T00:00:00Z", false},
+		{do, "٢٠٢٤-06-01", false}, // non-ASCII digits
+	}
+	for _, c := range cases {
+		t.Run(c.value, func(t *testing.T) {
+			f := c.format
+			err := ValidateDate(dateInput("capture", c.value), &generated.DateValidation{DateFormat: &f})
+			if c.ok {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
+}

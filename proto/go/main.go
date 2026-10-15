@@ -465,6 +465,26 @@ func ValidateTabular(_ DataWrapperInterface, _ *generated.TabularValidation) err
 
 const dateOnlyLayout = "2006-01-02"
 
+// Shared with the Python validator (proto/python/datatypes/data.py) so both
+// accept exactly the same strings; time.Parse alone is stricter than Python's
+// fromisoformat, and the two drift on fractional seconds across Python versions.
+var (
+	dateOnlyRe = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
+	rfc3339Re  = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?(Z|[+-][0-9]{2}:[0-9]{2})$`)
+)
+
+// parseDate gates s on the shape regex for the format, then parses it.
+func parseDate(f generated.DateFormat, s string) (time.Time, error) {
+	re := dateOnlyRe
+	if f == generated.DateFormat_date_time {
+		re = rfc3339Re
+	}
+	if !re.MatchString(s) {
+		return time.Time{}, fmt.Errorf("expected %s", dateFormatLabel(f))
+	}
+	return time.Parse(dateLayout(f), s)
+}
+
 // dateLayout maps a DateFormat to the Go time layout used to parse values and bounds.
 func dateLayout(f generated.DateFormat) string {
 	if f == generated.DateFormat_date_time {
@@ -503,16 +523,15 @@ func ValidateDate(input DataWrapperInterface, validator *generated.DateValidatio
 	}
 
 	format := validator.GetDateFormat()
-	layout := dateLayout(format)
 	label := dateFormatLabel(format)
 
-	value, err := time.Parse(layout, v)
+	value, err := parseDate(format, v)
 	if err != nil {
 		return fmt.Errorf("input '%s' value '%s' is not a valid date (expected %s)", name, v, label)
 	}
 
 	if validator.MinDate != nil {
-		lower, err := time.Parse(layout, *validator.MinDate)
+		lower, err := parseDate(format, *validator.MinDate)
 		if err != nil {
 			return fmt.Errorf("input '%s' has an invalid min_date '%s' (expected %s)", name, *validator.MinDate, label)
 		}
@@ -521,7 +540,7 @@ func ValidateDate(input DataWrapperInterface, validator *generated.DateValidatio
 		}
 	}
 	if validator.MaxDate != nil {
-		upper, err := time.Parse(layout, *validator.MaxDate)
+		upper, err := parseDate(format, *validator.MaxDate)
 		if err != nil {
 			return fmt.Errorf("input '%s' has an invalid max_date '%s' (expected %s)", name, *validator.MaxDate, label)
 		}

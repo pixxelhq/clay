@@ -503,3 +503,59 @@ def test_validate_input_date_non_string_bound_is_validation_error():
     with pytest.raises(data.ValidationError) as exc:
         data.validate_input(_date("2024-06-01"), {"validation": {"min_date": 20240101}})
     assert "min_date must be a string, got int" in str(exc.value)
+
+
+# Format parity with the Go validator. This table is duplicated verbatim in
+# proto/go/main_test.go (TestValidateDate_FormatParity); keep them identical.
+DATE_TIME_PARITY = [
+    ("2024-06-01T12:00:00Z", True),
+    ("2024-06-01T12:00:00+05:30", True),
+    ("2024-06-01T12:00:00.5Z", True),  # 1 fractional digit
+    ("2024-06-01T12:00:00.123Z", True),
+    ("2024-06-01T12:00:00.123456Z", True),
+    ("2024-06-01T12:00:00.123456789Z", True),  # 9 fractional digits
+    ("2024-06-01 12:00:00+00:00", False),  # space separator
+    ("2024-06-01T12:00+00:00", False),  # no seconds
+    ("2024-06-01T12+05:30", False),  # hour only
+    ("20240601T120000Z", False),  # compact form
+    ("2024-06-01t12:00:00z", False),  # lowercase
+    ("2024-06-01T12:00:00", False),  # naive
+    ("2024-06-01T12:00:00+0530", False),  # offset without colon
+    ("2024-06-01", False),  # bare date
+]
+DATE_ONLY_PARITY = [
+    ("2024-06-01", True),
+    ("2024-6-1", False),
+    ("20240601", False),
+    ("2024-06-01T00:00:00Z", False),
+    ("٢٠٢٤-06-01", False),  # non-ASCII digits
+]
+
+
+@pytest.mark.parametrize("value, ok", DATE_TIME_PARITY)
+def test_date_time_format_parity(value, ok):
+    spec = {"validation": {"date_format": "date_time"}}
+    if ok:
+        data.validate_input(_date(value), spec)
+    else:
+        with pytest.raises(data.ValidationError):
+            data.validate_input(_date(value), spec)
+
+
+@pytest.mark.parametrize("value, ok", DATE_ONLY_PARITY)
+def test_date_only_format_parity(value, ok):
+    spec = {"validation": {"date_format": "date_only"}}
+    if ok:
+        data.validate_input(_date(value), spec)
+    else:
+        with pytest.raises(data.ValidationError):
+            data.validate_input(_date(value), spec)
+
+
+def test_fraction_normalisation_matches_go_precision():
+    # 9 fractional digits are accepted and truncated to microseconds; a
+    # bound with 1 digit compares correctly against a value with 6.
+    spec = {"validation": {"date_format": "date_time", "min_date": "2024-06-01T12:00:00.5Z"}}
+    data.validate_input(_date("2024-06-01T12:00:00.500000Z"), spec)
+    with pytest.raises(data.ValidationError):
+        data.validate_input(_date("2024-06-01T12:00:00.499999999Z"), spec)
