@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"time"
 
 	generated "github.com/pixxelhq/clay/proto/go/generated"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -462,7 +463,91 @@ func ValidateTabular(_ DataWrapperInterface, _ *generated.TabularValidation) err
 	return nil
 }
 
-func ValidateDate(_ DataWrapperInterface, _ *generated.DateValidation) error {
+const dateOnlyLayout = "2006-01-02"
+
+// Shared with the Python validator (proto/python/datatypes/data.py) so both
+// accept exactly the same strings; time.Parse alone is stricter than Python's
+// fromisoformat, and the two drift on fractional seconds across Python versions.
+var (
+	dateOnlyRe = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
+	rfc3339Re  = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?(Z|[+-][0-9]{2}:[0-9]{2})$`)
+)
+
+// parseDate gates s on the shape regex for the format, then parses it.
+func parseDate(f generated.DateFormat, s string) (time.Time, error) {
+	re := dateOnlyRe
+	if f == generated.DateFormat_date_time {
+		re = rfc3339Re
+	}
+	if !re.MatchString(s) {
+		return time.Time{}, fmt.Errorf("expected %s", dateFormatLabel(f))
+	}
+	return time.Parse(dateLayout(f), s)
+}
+
+// dateLayout maps a DateFormat to the Go time layout used to parse values and bounds.
+func dateLayout(f generated.DateFormat) string {
+	if f == generated.DateFormat_date_time {
+		return time.RFC3339
+	}
+	return dateOnlyLayout
+}
+
+// dateFormatLabel is the human-readable encoding name used in error messages.
+func dateFormatLabel(f generated.DateFormat) string {
+	if f == generated.DateFormat_date_time {
+		return "RFC 3339 with a UTC offset"
+	}
+	return "YYYY-MM-DD"
+}
+
+// ValidateDate checks a date input against DateValidation rules.
+//
+// Bounds are inclusive and checked independently. Bounds and the value must use
+// the encoding selected by date_format. An empty value is treated as unset
+// rather than invalid: missing-input handling is a separate concern from range
+// checking, and a date may legitimately be derived elsewhere (see
+// DateProperties.from_aoi). A malformed bound in the spec is reported as an
+// error rather than silently skipped.
+func ValidateDate(input DataWrapperInterface, validator *generated.DateValidation) error {
+	name, err := input.GetName()
+	if err != nil {
+		return err
+	}
+	v, err := input.GetValue()
+	if err != nil {
+		return err
+	}
+	if v == "" {
+		return nil
+	}
+
+	format := validator.GetDateFormat()
+	label := dateFormatLabel(format)
+
+	value, err := parseDate(format, v)
+	if err != nil {
+		return fmt.Errorf("input '%s' value '%s' is not a valid date (expected %s)", name, v, label)
+	}
+
+	if validator.MinDate != nil {
+		lower, err := parseDate(format, *validator.MinDate)
+		if err != nil {
+			return fmt.Errorf("input '%s' has an invalid min_date '%s' (expected %s)", name, *validator.MinDate, label)
+		}
+		if value.Before(lower) {
+			return fmt.Errorf("input '%s' value %s is before minimum %s", name, v, *validator.MinDate)
+		}
+	}
+	if validator.MaxDate != nil {
+		upper, err := parseDate(format, *validator.MaxDate)
+		if err != nil {
+			return fmt.Errorf("input '%s' has an invalid max_date '%s' (expected %s)", name, *validator.MaxDate, label)
+		}
+		if value.After(upper) {
+			return fmt.Errorf("input '%s' value %s is after maximum %s", name, v, *validator.MaxDate)
+		}
+	}
 	return nil
 }
 

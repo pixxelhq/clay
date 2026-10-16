@@ -1,3 +1,4 @@
+import datetime as _dt
 import unittest
 from dataclasses import dataclass
 from typing import Any, Dict, Union
@@ -15,6 +16,7 @@ ProtoTypes = Union[
     data.String,
     data.Number,
 ]
+
 
 class TestCreateTypeFromDict(unittest.TestCase):
     @dataclass
@@ -101,8 +103,9 @@ class TestCreateTypeFromDict(unittest.TestCase):
         assert s is not None
         assert isinstance(s, data.RasterProperties)
 
+
 class Test_Defaults(unittest.TestCase):
-    @dataclass 
+    @dataclass
     class TestCase:
         name: str
         proto: data.Data
@@ -112,22 +115,22 @@ class Test_Defaults(unittest.TestCase):
         test_cases = [
             self.TestCase(name="raster", proto=data.Raster(), expected=data.Format.raster),
             self.TestCase(name="vector", proto=data.Vector(), expected=data.Format.vector),
-            self.TestCase(name="tabular", proto=data.Tabular(), expected=data.Format.tabular), 
+            self.TestCase(name="tabular", proto=data.Tabular(), expected=data.Format.tabular),
             self.TestCase(name="date", proto=data.Date(), expected=data.Format.date),
             self.TestCase(name="string", proto=data.String(), expected=data.Format.string),
-            self.TestCase(name="number", proto=data.Number(), expected=data.Format.number)
+            self.TestCase(name="number", proto=data.Number(), expected=data.Format.number),
         ]
         for ti in test_cases:
             self.assertEqual(ti.proto.format, ti.expected, f"failed for {ti.name}")
-    
+
     def test_default_is_artifact_via_direct_access(self):
         test_cases = [
             self.TestCase(name="raster", proto=data.Raster(), expected=True),
             self.TestCase(name="vector", proto=data.Vector(), expected=True),
             self.TestCase(name="tabular", proto=data.Tabular(), expected=True),
-            self.TestCase(name="date", proto=data.Date(), expected=False), 
+            self.TestCase(name="date", proto=data.Date(), expected=False),
             self.TestCase(name="string", proto=data.String(), expected=False),
-            self.TestCase(name="number", proto=data.Number(), expected=False)
+            self.TestCase(name="number", proto=data.Number(), expected=False),
         ]
         for ti in test_cases:
             self.assertEqual(ti.proto.is_artifact, ti.expected, f"failed for {ti.name}")
@@ -138,13 +141,13 @@ class Test_Defaults(unittest.TestCase):
             self.TestCase(name="vector", proto=data.Vector(), expected=data.Format.vector),
             self.TestCase(name="tabular", proto=data.Tabular(), expected=data.Format.tabular),
             self.TestCase(name="date", proto=data.Date(), expected=data.Format.date),
-            self.TestCase(name="string", proto=data.String(), expected=data.Format.string), 
-            self.TestCase(name="number", proto=data.Number(), expected=data.Format.number)
+            self.TestCase(name="string", proto=data.String(), expected=data.Format.string),
+            self.TestCase(name="number", proto=data.Number(), expected=data.Format.number),
         ]
         for tc in test_cases:
             dw = data.DataWrapper(tc.proto)
             self.assertEqual(dw.get_field("format"), tc.expected, f"failed for: {tc.name}")
-    
+
     def test_default_is_artifact_via_get_field(self):
         test_cases = [
             self.TestCase(name="raster", proto=data.Raster(), expected=True),
@@ -152,18 +155,19 @@ class Test_Defaults(unittest.TestCase):
             self.TestCase(name="tabular", proto=data.Tabular(), expected=True),
             self.TestCase(name="date", proto=data.Date(), expected=False),
             self.TestCase(name="string", proto=data.String(), expected=False),
-            self.TestCase(name="number", proto=data.Number(), expected=False)
+            self.TestCase(name="number", proto=data.Number(), expected=False),
         ]
         for tc in test_cases:
             dw = data.DataWrapper(tc.proto)
             self.assertEqual(dw.get_field("is_artifact"), tc.expected, f"failed for: {tc.name}")
-    
+
     def test_default_if_field_and_default_unset(self):
         v = data.Vector()
         self.assertEqual(v.value, "")
-        
+
         dw = data.DataWrapper(v)
-        self.assertEqual(dw.get_name(), '')
+        self.assertEqual(dw.get_name(), "")
+
 
 def test__convert_legacy_value_primittives_to_string():
     v = data._convert_legacy_value_primitives_to_string_(1)
@@ -175,6 +179,7 @@ def test__convert_legacy_value_primittives_to_string():
 
 
 # --- Roundtrip tests: proto type -> MessageToDict -> FromDict -> MessageToDict ---
+
 
 def _roundtrip(obj, from_dict_fn):
     dumped = MessageToDict(obj, preserving_proto_field_name=True)
@@ -294,6 +299,7 @@ def test_raster_roundtrip_with_nested_properties():
 
 # --- validate_input tests ---
 
+
 def _wrapped(from_dict_fn, d) -> DataWrapper:
     """Call *FromDict with wrap=True and narrow the union return type to DataWrapper."""
     dw = from_dict_fn(d, wrap=True)
@@ -402,3 +408,154 @@ def test_data_wrapper_typed_view_round_trip():
     assert isinstance(view.value, int)
     # The proto still stores the value as a string for wire compat.
     assert dw.get_proto().value == "5"
+
+
+# --- date validation ---
+
+
+def _date(value: str) -> DataWrapper:
+    return _wrapped(data.DateFromDict, {"format": "date", "name": "capture", "value": value})
+
+
+@pytest.mark.parametrize(
+    "value, validation",
+    [
+        ("2024-06-01", {}),
+        ("2024-06-01", {"min_date": "2024-01-01", "max_date": "2024-12-31"}),
+        ("2024-01-01", {"min_date": "2024-01-01"}),  # min inclusive
+        ("2024-12-31", {"max_date": "2024-12-31"}),  # max inclusive
+        ("2099-01-01", {"min_date": "2024-01-01"}),  # only min set
+        ("", {"min_date": "2024-01-01"}),  # empty is unset, not invalid
+        ("2024-06-01T12:00:00Z", {"date_format": "date_time", "min_date": "2024-01-01T00:00:00Z"}),
+        ("2024-06-01T12:00:00+05:30", {"date_format": "date_time", "max_date": "2024-12-31T23:59:59Z"}),
+    ],
+)
+def test_validate_input_date_pass(value, validation):
+    data.validate_input(_date(value), {"validation": validation})
+
+
+@pytest.mark.parametrize(
+    "value, validation, msg",
+    [
+        ("2023-12-31", {"min_date": "2024-01-01"}, "before minimum"),
+        ("2025-01-01", {"max_date": "2024-12-31"}, "after maximum"),
+        ("01-03-2024", {"min_date": "2024-01-01"}, "not a valid date"),
+        ("2024-6-1", {"min_date": "2024-01-01"}, "not a valid date"),  # must be zero-padded, as in Go
+        ("2024-06-01T00:00:00Z", {"min_date": "2024-01-01"}, "not a valid date"),  # date_time value in date_only mode
+        ("2024-06-01", {"min_date": "yesterday"}, "min_date 'yesterday' is not a valid date"),
+        ("2024-06-01", {"max_date": "2024-13-01"}, "max_date '2024-13-01' is not a valid date"),
+        (
+            "2024-12-31T23:00:00-05:00",
+            {"date_format": "date_time", "max_date": "2024-12-31T23:59:59Z"},
+            "after maximum",
+        ),
+        (
+            "2024-06-01T12:00:00",
+            {"date_format": "date_time"},
+            "not a valid date",
+        ),  # naive value rejected in date_time mode
+        ("2024-06-01", {"date_format": "date_time"}, "not a valid date"),  # bare date in date_time mode
+        ("2024-06-01", {"date_format": "bogus"}, "unknown date_format"),
+    ],
+)
+def test_validate_input_date_fail(value, validation, msg):
+    with pytest.raises(data.ValidationError) as exc:
+        data.validate_input(_date(value), {"validation": validation})
+    assert msg in str(exc.value)
+    assert "capture" in str(exc.value)
+
+
+def test_date_validation_round_trips_through_proto():
+    """The new fields survive FromDict/serialize, i.e. the regenerated bindings carry them."""
+    spec = data.DateSpec()
+    spec.validation.min_date = "2024-01-01"
+    spec.validation.date_format = data.DateFormat.Value("date_time")
+    d = MessageToDict(spec, preserving_proto_field_name=True)
+    assert d["validation"] == {"min_date": "2024-01-01", "date_format": "date_time"}
+
+
+# yaml.safe_load turns unquoted bounds into date/datetime objects; the proto
+# string setter would raise a bare TypeError on those. (Objects are built
+# directly here so the datatypes tests do not depend on pyyaml.)
+def test_validate_input_date_accepts_unquoted_yaml_date_bounds():
+    bounds = {"min_date": _dt.date(2024, 1, 1), "max_date": _dt.date(2024, 12, 31)}
+    data.validate_input(_date("2024-06-01"), {"validation": bounds})
+    with pytest.raises(data.ValidationError) as exc:
+        data.validate_input(_date("2023-06-01"), {"validation": bounds})
+    assert "before minimum 2024-01-01" in str(exc.value)
+
+
+def test_validate_input_date_accepts_unquoted_yaml_datetime_bound():
+    lower = _dt.datetime(2024, 1, 1, tzinfo=_dt.timezone.utc)
+    data.validate_input(_date("2024-06-01T12:00:00Z"), {"validation": {"date_format": "date_time", "min_date": lower}})
+
+
+def test_validate_input_date_unquoted_naive_datetime_bound_is_rejected_in_date_time_mode():
+    naive = _dt.datetime(2024, 1, 1)  # isoformat() carries no offset
+    with pytest.raises(data.ValidationError) as exc:
+        data.validate_input(
+            _date("2024-06-01T12:00:00Z"), {"validation": {"date_format": "date_time", "min_date": naive}}
+        )
+    assert "min_date" in str(exc.value) and "not a valid date" in str(exc.value)
+
+
+def test_validate_input_date_non_string_bound_is_validation_error():
+    with pytest.raises(data.ValidationError) as exc:
+        data.validate_input(_date("2024-06-01"), {"validation": {"min_date": 20240101}})
+    assert "min_date must be a string, got int" in str(exc.value)
+
+
+# Format parity with the Go validator. This table is duplicated verbatim in
+# proto/go/main_test.go (TestValidateDate_FormatParity); keep them identical.
+DATE_TIME_PARITY = [
+    ("2024-06-01T12:00:00Z", True),
+    ("2024-06-01T12:00:00+05:30", True),
+    ("2024-06-01T12:00:00.5Z", True),  # 1 fractional digit
+    ("2024-06-01T12:00:00.123Z", True),
+    ("2024-06-01T12:00:00.123456Z", True),
+    ("2024-06-01T12:00:00.123456789Z", True),  # 9 fractional digits
+    ("2024-06-01 12:00:00+00:00", False),  # space separator
+    ("2024-06-01T12:00+00:00", False),  # no seconds
+    ("2024-06-01T12+05:30", False),  # hour only
+    ("20240601T120000Z", False),  # compact form
+    ("2024-06-01t12:00:00z", False),  # lowercase
+    ("2024-06-01T12:00:00", False),  # naive
+    ("2024-06-01T12:00:00+0530", False),  # offset without colon
+    ("2024-06-01", False),  # bare date
+]
+DATE_ONLY_PARITY = [
+    ("2024-06-01", True),
+    ("2024-6-1", False),
+    ("20240601", False),
+    ("2024-06-01T00:00:00Z", False),
+    ("٢٠٢٤-06-01", False),  # non-ASCII digits
+]
+
+
+@pytest.mark.parametrize("value, ok", DATE_TIME_PARITY)
+def test_date_time_format_parity(value, ok):
+    spec = {"validation": {"date_format": "date_time"}}
+    if ok:
+        data.validate_input(_date(value), spec)
+    else:
+        with pytest.raises(data.ValidationError):
+            data.validate_input(_date(value), spec)
+
+
+@pytest.mark.parametrize("value, ok", DATE_ONLY_PARITY)
+def test_date_only_format_parity(value, ok):
+    spec = {"validation": {"date_format": "date_only"}}
+    if ok:
+        data.validate_input(_date(value), spec)
+    else:
+        with pytest.raises(data.ValidationError):
+            data.validate_input(_date(value), spec)
+
+
+def test_fraction_normalisation_matches_go_precision():
+    # 9 fractional digits are accepted and truncated to microseconds; a
+    # bound with 1 digit compares correctly against a value with 6.
+    spec = {"validation": {"date_format": "date_time", "min_date": "2024-06-01T12:00:00.5Z"}}
+    data.validate_input(_date("2024-06-01T12:00:00.500000Z"), spec)
+    with pytest.raises(data.ValidationError):
+        data.validate_input(_date("2024-06-01T12:00:00.499999999Z"), spec)
