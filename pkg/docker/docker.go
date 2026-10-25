@@ -1,12 +1,15 @@
 package docker
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/pixxelhq/clay/pkg/config"
@@ -94,6 +97,14 @@ type BuildFlags struct {
 }
 
 func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
+	buildCmd := buildCommand(buildtag, dockerfilePath, bf)
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Stderr = os.Stderr
+
+	return buildCmd.Run()
+}
+
+func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {
 	args := []string{}
 	args = append(args, "build", "-t", buildtag, "-f", dockerfilePath, ".")
 
@@ -113,14 +124,39 @@ func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
 		args = append(args, "--platform", p)
 	}
 
-	env := append(os.Environ(), "DOCKER_BUILDKIT=1")
+	buildCmd := exec.Command("docker", args...)
+	buildCmd.Env = append(os.Environ(), "DOCKER_BUILDKIT=1")
 
-	buildCmd := exec.Command("sudo", append([]string{"-E", "docker"}, args...)...)
-	buildCmd.Env = env
-	buildCmd.Stdout = os.Stdout
-	buildCmd.Stderr = os.Stderr
+	return buildCmd
+}
 
-	return buildCmd.Run()
+const (
+	hintStartDocker = "make sure Docker is installed and running (start Docker Desktop, or the docker service on Linux)"
+	hintDockerGroup = "on Linux, add your user to the docker group: https://docs.docker.com/engine/install/linux-postinstall/"
+)
+
+// CheckDaemon verifies that the current user can reach the Docker daemon. On
+// failure it returns ErrDaemonUnavailable with Docker's message and a hint.
+func CheckDaemon() error {
+	var stderr bytes.Buffer
+	cmd := exec.Command("docker", "version")
+	cmd.Stdout = io.Discard
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		return nil
+	}
+
+	cause := strings.TrimSpace(stderr.String())
+	if cause == "" {
+		cause = err.Error()
+	}
+	hint := hintStartDocker
+	if runtime.GOOS == "linux" && strings.Contains(strings.ToLower(cause), "permission denied") {
+		hint = hintDockerGroup
+	}
+	return fmt.Errorf("%w: %s\nhint: %s", ErrDaemonUnavailable, cause, hint)
 }
 
 func Push(buildtag string) error {
