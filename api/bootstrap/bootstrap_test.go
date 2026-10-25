@@ -123,8 +123,11 @@ func TestCreateProject_EmptyExistingProjectDir(t *testing.T) {
 	}
 }
 
-func TestCreateProject_OutputDirContainingSrc(t *testing.T) {
-	outDir := filepath.Join(t.TempDir(), "srcbug", "src", "work")
+func TestCreateProject_OutputDirContainingSrcTwice(t *testing.T) {
+	// "src" appears twice in the output path; only the template's own src/
+	// may be renamed, and nothing may be created outside the project dir.
+	base := t.TempDir()
+	outDir := filepath.Join(base, "src", "projects", "src", "work")
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -138,5 +141,30 @@ func TestCreateProject_OutputDirContainingSrc(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(projectRoot, rel)); err != nil {
 			t.Errorf("expected %q under the requested output dir: %v", rel, err)
 		}
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "src")); !os.IsNotExist(err) {
+		t.Errorf("expected template src/ to be renamed, stat err: %v", err)
+	}
+
+	// everything under base must be the project itself or one of the
+	// directories created during setup
+	setupDirs := map[string]bool{base: true}
+	for dir := outDir; dir != base; dir = filepath.Dir(dir) {
+		setupDirs[dir] = true
+	}
+	err := filepath.WalkDir(base, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if path == projectRoot {
+			return filepath.SkipDir
+		}
+		if !setupDirs[path] {
+			t.Errorf("unexpected path created outside the project dir: %s", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking %s: %v", base, err)
 	}
 }
