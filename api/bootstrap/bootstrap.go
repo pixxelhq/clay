@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -18,9 +19,11 @@ var fullTemplate embed.FS
 
 const fullTemplateRoot = "templates/full"
 
+var ErrProjectDirNotEmpty = errors.New("already exists and is not empty")
+
 // Bootstraps a project in `outputDir` with `blockName` as a filler
 // in appropriate locations in code and configuration
-func CreateProject(outputDir, blockName string) error {
+func CreateProject(outputDir, blockName string, force bool) error {
 	err := verifyBlockName(blockName)
 	if err != nil {
 		return err
@@ -29,8 +32,15 @@ func CreateProject(outputDir, blockName string) error {
 	specblockName := strcase.ToSnake(blockName)
 	data := getTemplateData(titleblockName)
 	outputDir = filepath.Join(outputDir, specblockName)
-	fmt.Printf("Cleaning up %s ...\n-----------------\n", outputDir)
-	deleteDir(outputDir)
+	if !force {
+		entries, err := os.ReadDir(outputDir)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		if len(entries) > 0 {
+			return fmt.Errorf("%s %w", outputDir, ErrProjectDirNotEmpty)
+		}
+	}
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		fmt.Println(err)
@@ -42,10 +52,15 @@ func CreateProject(outputDir, blockName string) error {
 			return err
 		}
 		relPath, _ := filepath.Rel(fullTemplateRoot, path)
-		outPath := filepath.Join(outputDir, relPath)
-		outPath = strings.Replace(outPath, "src", specblockName, 1)
+		// rename the template's top-level src/ to the block package; only the
+		// template-relative path is touched, never the user's outputDir
+		outRel := relPath
+		if outRel == "src" || strings.HasPrefix(outRel, "src"+string(filepath.Separator)) {
+			outRel = specblockName + strings.TrimPrefix(outRel, "src")
+		}
+		outPath := filepath.Join(outputDir, outRel)
 		if d.IsDir() {
-			if err := os.Mkdir(outPath, 0755); err != nil {
+			if err := os.MkdirAll(outPath, 0755); err != nil {
 				fmt.Println(outPath, err)
 			}
 			fmt.Println("Created:", outPath)

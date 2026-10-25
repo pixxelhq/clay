@@ -36,13 +36,19 @@ Commands for creating, building, and running blocks.
 Scaffold a new block project at the given path.
 
 ```shell
-clay new <path> <name>
+clay new <path> <name> [flags]
 ```
 
 | Argument | Description |
 |----------|-------------|
 | `path` | Directory where project files will be created |
 | `name` | Name of the block |
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-f, --force` | Write the template into an existing non-empty project directory | `false` |
+
+The project is created in `<path>/<name in snake_case>`. If that directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
 
 ### Build
 
