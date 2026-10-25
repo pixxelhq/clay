@@ -4,6 +4,13 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
+## Unreleased
+### Bug Fixes
+- The Clay registry no longer logs the database connection string, which
+  included the user name and password, when it cannot reach Postgres on
+  startup. The error now shows only the database name and host. A missing or
+  wrong `DB_MIGRATION_PATH` is reported as a migrations error instead.
+
 ## v1.3.0 - 2026-10-01
 ### New Features
 - `DateValidation` is no longer an empty placeholder: it carries `min_date`,
