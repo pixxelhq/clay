@@ -131,3 +131,52 @@ func TestPublishBlockRequest_CatalogURLOmitEmpty(t *testing.T) {
 		t.Errorf("catalog_url should be set: %s", with)
 	}
 }
+
+func TestVersionExists(t *testing.T) {
+	tests := []struct {
+		name          string
+		serverStatus  int
+		serverBody    string
+		expected      bool
+		expectedError string
+	}{
+		{name: "version exists", serverStatus: http.StatusOK, serverBody: `{"data":{}}`, expected: true},
+		{name: "version does not exist", serverStatus: http.StatusNotFound, serverBody: `{"error":"block with the given name and version does not exists"}`, expected: false},
+		{
+			name:          "registry error",
+			serverStatus:  http.StatusInternalServerError,
+			serverBody:    `{"error":"something went wrong"}`,
+			expectedError: "failed to check block myblock version 0.0.1 in the registry: something went wrong, httpStatusCode: 500",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotPath string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.Method + " " + r.URL.Path
+				w.WriteHeader(tt.serverStatus)
+				w.Write([]byte(tt.serverBody))
+			}))
+			defer server.Close()
+
+			exists, err := New(server.URL, 2*time.Second).VersionExists("myblock", "0.0.1")
+
+			if gotPath != "GET /v1/blocks/myblock/versions/0.0.1" {
+				t.Errorf("unexpected request: %s", gotPath)
+			}
+			if tt.expectedError != "" {
+				if err == nil || err.Error() != tt.expectedError {
+					t.Fatalf("expected error: %v, got: %v", tt.expectedError, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if exists != tt.expected {
+				t.Errorf("expected exists=%v, got %v", tt.expected, exists)
+			}
+		})
+	}
+}

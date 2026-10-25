@@ -200,3 +200,28 @@ func (r *Registry) GetBlockByNameAndVersion(name, version string) (*Block, error
 
 	return &respData.Data, nil
 }
+
+func (r *Registry) VersionExists(name, version string) (bool, error) {
+	url := r.host + fmt.Sprintf("/v1/blocks/%s/versions/%s", name, version)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to create HTTP request for block %s version %s: %w", name, version, err)
+	}
+
+	resp, err := r.httpClient.Do(httpReq)
+	if err != nil {
+		return false, fmt.Errorf("failed to check block %s version %s in the registry: %w", name, version, err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	}
+
+	var respData RegistryResponse[any]
+	_ = json.NewDecoder(resp.Body).Decode(&respData)
+	return false, fmt.Errorf("failed to check block %s version %s in the registry: %s, httpStatusCode: %v", name, version, respData.Error, resp.StatusCode)
+}

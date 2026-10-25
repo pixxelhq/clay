@@ -62,6 +62,18 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	r := registry.New(clayRegistry, 5*time.Second)
+
+	// Check the registry first: building and pushing an already published
+	// version would overwrite its image tag before the registry rejects it.
+	exists, err := r.VersionExists(cfg.Name, cfg.Version)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("%s %s is already published\nhint: bump `version` in clay.yaml", cfg.Name, cfg.Version)
+	}
+
 	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
 
 	// Build the docker image. Pass the fully-qualified image (including the
@@ -77,8 +89,6 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to push image %s: %w", builtTag, err)
 	}
 	fmt.Printf("🎉 docker image %s has been pushed to the registry\n", builtTag)
-
-	r := registry.New(clayRegistry, 5*time.Second)
 
 	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, catalogURL, builtTag)
 	if err != nil {

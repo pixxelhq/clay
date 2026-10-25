@@ -4,6 +4,13 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
+## Unreleased
+### Bug Fixes
+- `clay publish` checks the Clay registry before it builds and pushes. If the
+  version in `clay.yaml` is already published, it stops with an error and a
+  hint to bump `version`, instead of overwriting the published image tag and
+  then being rejected by the registry.
+
 ## v1.3.0 - 2026-10-01
 ### New Features
 - `DateValidation` is no longer an empty placeholder: it carries `min_date`,
