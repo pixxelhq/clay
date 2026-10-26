@@ -439,34 +439,19 @@ class TestRunnerConfigInputJSONURI(unittest.TestCase):
         result = RunnerConfig._download_input_json("s3://test-bucket/direct-insights/inf-1/inf-1/inf-1/inputs/input.json")
         assert result == input_data
 
-    def test_fallback_to_input_json_env_var(self):
-        """When INPUT_JSON_URI is absent, RunnerConfig falls back to INPUT_JSON env var."""
-        input_data = '[{"name": "aoi", "value": "inline-data"}]'
-        env_vars = {
-            "EXECUTION_ID": "inf-2",
-            "INPUT_JSON_ENV_KEY": "INPUT_JSON",
-            "INPUT_JSON": input_data,
-            "CALLBACK_ENDPOINT": "http://localhost:3000/callback",
-            "CALLBACK_HEADERS": "{}",
-        }
+    @mock_aws
+    def test_input_json_uri_env_var_is_downloaded_through_the_constructor(self):
+        """The env-var path end to end, rather than calling the downloader directly."""
+        conn = boto3.client("s3", region_name="us-east-1")
+        conn.create_bucket(Bucket="test-bucket")
+        input_data = '[{"name": "aoi", "type": "str", "format": "string", "value": "test-geojson"}]'
+        conn.put_object(Bucket="test-bucket", Key="inputs/input.json", Body=input_data.encode("utf-8"))
 
-        # Ensure INPUT_JSON_URI is NOT set
-        env_clean = {k: v for k, v in env_vars.items()}
-        with unittest.mock.patch.dict(os.environ, env_clean, clear=False):
-            os.environ.pop("INPUT_JSON_URI", None)
-            from clay.runners.runner import RunnerConfig
-            cfg = RunnerConfig.__new__(RunnerConfig)
-            cfg._execution_id_env_key = "EXECUTION_ID"
-            cfg._input_json_env_key = "INPUT_JSON_ENV_KEY"
-            cfg._execution_id = "inf-2"
+        from clay.runners.runner import RunnerConfig
+        with mock.patch.dict(os.environ, {"INPUT_JSON_URI": "s3://test-bucket/inputs/input.json"}):
+            cfg = RunnerConfig(config_path=DUMMY_SPEC_PATH)
 
-            # Simulate the __init__ logic for _input_json_string
-            input_json_uri = os.getenv("INPUT_JSON_URI")
-            if input_json_uri:
-                result = RunnerConfig._download_input_json(input_json_uri)
-            else:
-                result = os.getenv(os.getenv("INPUT_JSON_ENV_KEY", "INPUT_JSON"), "[{}]")
-            assert result == input_data
+            self.assertEqual(cfg.get_input_json(), json.loads(input_data))
 
 
 class TestDeepMerge(unittest.TestCase):
@@ -511,3 +496,226 @@ class TestDeepMerge(unittest.TestCase):
         expected = {}
         result = deep_merge(output, config)
         self.assertEqual(result, expected)
+
+
+# Kept byte-identical to dexter's `inputFlattenFilter`
+# (executor/argo/workflow_input_test.go). Dexter sets this as INPUT_JSON_JQ_FILTER
+# on the DAG path; if the two literals drift, every DAG task fails at input parsing.
+INPUT_FLATTEN_FILTER = "[.[] | .spec + {name: .name}]"
+
+
+def _resolved_envelope(declared_name: str, embedded_name: str, value: str):
+    """The DAG payload as it reaches the pod, i.e. after argo fills the {{...}} holes.
+
+    Dexter emits [{"name": "<declared>", "spec": {{inputs.parameters.<declared>}}}].
+    Argo resolves the reference to the producing task's output spec, so the *embedded*
+    name is the producer's output name and need not match the declared one.
+    """
+    return json.dumps([{
+        "name": declared_name,
+        "spec": {
+            "format": "raster", "type": "url", "name": embedded_name,
+            "is_artifact": True, "value": value, "version": "v2",
+        },
+    }])
+
+
+class TestInputJqFlattening(unittest.TestCase):
+    """The DAG path's {name, spec} envelope must reach the block as a flat data spec."""
+
+    @staticmethod
+    def _config(input_json_string: str, jq_filter=None):
+        from clay.runners.runner import RunnerConfig
+        cfg = RunnerConfig.__new__(RunnerConfig)
+        cfg._input_json_string = input_json_string
+        cfg._input_json = None
+        cfg._input_json_jq_filter = jq_filter
+        return cfg
+
+    def test_envelope_is_flattened_into_a_parsable_data_spec(self):
+        cfg = self._config(_resolved_envelope("raster", "raster", ""), INPUT_FLATTEN_FILTER)
+
+        flat = cfg.get_input_json()
+
+        self.assertEqual(len(flat), 1)
+        # the envelope is gone: format sits at the top level, which is the key
+        # datatypes.FromDict reads first
+        self.assertEqual(flat[0]["format"], "raster")
+        self.assertNotIn("spec", flat[0])
+        datatypes.FromDict(dict(flat[0]), wrap=True)
+
+    def test_declared_name_overrides_the_producers_output_name(self):
+        """The regression that breaks wired DAGs.
+
+        `index_block` names its output "result" while `cloud-gap-filling` declares its
+        input "raster". Clay keys inputs by name before calling preprocess(**inputs),
+        so the declared name has to win or the block is called with result= instead of
+        raster= and dies on a missing argument.
+        """
+        cfg = self._config(
+            _resolved_envelope("raster", "result", "s3://up/out.tif"), INPUT_FLATTEN_FILTER)
+
+        flat = cfg.get_input_json()
+
+        self.assertEqual(flat[0]["name"], "raster")
+        self.assertEqual(flat[0]["value"], "s3://up/out.tif")
+        self.assertEqual(datatypes.FromDict(dict(flat[0]), wrap=True).get_name(), "raster")
+
+    def test_flat_input_passes_through_when_no_filter_is_set(self):
+        """The inference path and local `clay run --input` send flat specs already."""
+        flat_in = [{"format": "string", "type": "str", "name": "index",
+                    "is_artifact": False, "value": "TVI", "version": "v2"}]
+        cfg = self._config(json.dumps(flat_in), None)
+
+        self.assertEqual(cfg.get_input_json(), flat_in)
+
+    def test_broken_filter_raises_instead_of_silently_emptying_the_inputs(self):
+        cfg = self._config(_resolved_envelope("raster", "raster", ""), "[.[] | .nope +")
+
+        with self.assertRaises(ValueError):
+            cfg.get_input_json()
+
+
+FLAT_SPEC = '[{"name": "index", "type": "str", "format": "string", "value": "TVI"}]'
+OTHER_SPEC = '[{"name": "index", "type": "str", "format": "string", "value": "NDVI"}]'
+
+
+class TestRunnerConfigInputResolution(unittest.TestCase):
+    """One test per carrier, pinning `--input-uri` > `--input` > INPUT_JSON_URI > INPUT_JSON."""
+
+    def _config(self, **kwargs):
+        from clay.runners.runner import RunnerConfig
+        return RunnerConfig(config_path=DUMMY_SPEC_PATH, **kwargs)
+
+    def setUp(self) -> None:
+        # every carrier starts unset so each test only declares the one it exercises
+        for key in ("INPUT_JSON", "INPUT_JSON_URI", "INPUT_JSON_JQ_FILTER"):
+            patcher = mock.patch.dict(os.environ, {}, clear=False)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+            os.environ.pop(key, None)
+        download = mock.patch(
+            "clay.runners.runner.RunnerConfig._download_input_json", return_value=FLAT_SPEC)
+        self.download = download.start()
+        self.addCleanup(download.stop)
+
+    def test_input_json_arg_wins_over_input_json_env(self):
+        os.environ["INPUT_JSON"] = OTHER_SPEC
+
+        cfg = self._config(input_json=FLAT_SPEC)
+
+        self.assertEqual(cfg.get_input_json()[0]["value"], "TVI")
+
+    def test_input_uri_arg_is_downloaded_and_beats_every_env_carrier(self):
+        os.environ["INPUT_JSON"] = OTHER_SPEC
+        os.environ["INPUT_JSON_URI"] = "s3://bucket/other.json"
+
+        cfg = self._config(input_uri="s3://bucket/wanted.json")
+
+        self.assertEqual(cfg.get_input_json()[0]["value"], "TVI")
+        self.download.assert_called_once_with("s3://bucket/wanted.json")
+
+    def test_input_uri_arg_outranks_input_json_arg(self):
+        """Documented order: the URI carrier is resolved first (env-requirements.md §4)."""
+        cfg = self._config(input_json=OTHER_SPEC, input_uri="s3://bucket/wanted.json")
+
+        self.assertEqual(cfg.get_input_json()[0]["value"], "TVI")
+
+    def test_input_json_uri_env_is_used_when_no_args_are_given(self):
+        os.environ["INPUT_JSON"] = OTHER_SPEC
+        os.environ["INPUT_JSON_URI"] = "s3://bucket/env.json"
+
+        cfg = self._config()
+
+        self.assertEqual(cfg.get_input_json()[0]["value"], "TVI")
+        self.download.assert_called_once_with("s3://bucket/env.json")
+
+    def test_input_json_env_is_the_last_resort(self):
+        os.environ["INPUT_JSON"] = OTHER_SPEC
+
+        cfg = self._config()
+
+        self.assertEqual(cfg.get_input_json()[0]["value"], "NDVI")
+        self.download.assert_not_called()
+
+    def test_empty_carrier_reads_as_unset(self):
+        """Argo injects empty strings for unset parameters, so "" must not win."""
+        os.environ["INPUT_JSON"] = OTHER_SPEC
+
+        cfg = self._config(input_json="", input_uri="")
+
+        self.assertEqual(cfg.get_input_json()[0]["value"], "NDVI")
+
+    def test_defaults_to_an_empty_spec_when_nothing_is_set(self):
+        self.assertEqual(self._config().get_input_json(), [{}])
+
+
+class TestParseInputArgs(unittest.TestCase):
+    """`Run()` parses sys.argv for every block, so it must not hijack a block's own flags."""
+
+    @staticmethod
+    def _parse(argv):
+        from clay.run import _parse_input_args
+        with mock.patch("sys.argv", ["block.py"] + argv):
+            return _parse_input_args()
+
+    def test_parses_both_flags(self):
+        args = self._parse(["--input", FLAT_SPEC, "--input-uri", "s3://b/i.json"])
+
+        self.assertEqual(args.input_json, FLAT_SPEC)
+        self.assertEqual(args.input_uri, "s3://b/i.json")
+
+    def test_absent_flags_are_none(self):
+        args = self._parse([])
+
+        self.assertIsNone(args.input_json)
+        self.assertIsNone(args.input_uri)
+
+    def test_a_blocks_own_flags_are_left_alone(self):
+        args = self._parse(["--threshold", "0.4", "--verbose"])
+
+        self.assertIsNone(args.input_json)
+        self.assertIsNone(args.input_uri)
+
+    def test_an_ambiguous_prefix_does_not_exit(self):
+        """With allow_abbrev on, `--inp` is ambiguous between the two flags and argparse
+        calls sys.exit(2) — a block owning such a flag would crash inside Run()."""
+        args = self._parse(["--inp", "0.4"])
+
+        self.assertIsNone(args.input_json)
+        self.assertIsNone(args.input_uri)
+
+    def test_an_abbreviation_is_not_treated_as_a_clay_flag(self):
+        args = self._parse(["--input-u", "s3://b/i.json"])
+
+        self.assertIsNone(args.input_uri)
+
+
+class TestRunFlagPrecedence(unittest.TestCase):
+    """A CLI flag must outrank the programmatic argument for *either* carrier."""
+
+    def _run_kwargs(self, argv, **kwargs):
+        from clay import run as run_mod
+        with mock.patch.object(run_mod, "JobRunner") as runner, \
+                mock.patch("sys.argv", ["block.py"] + argv):
+            run_mod.Run(BlockWrapper, "block", DUMMY_SPEC_PATH, **kwargs)
+        return runner.call_args.kwargs
+
+    def test_cli_input_flag_overrides_a_programmatic_input_uri(self):
+        """The URI carrier is resolved first downstream, so a stale programmatic
+        `input_uri` would otherwise silently beat an explicit `--input`."""
+        kwargs = self._run_kwargs(["--input", FLAT_SPEC], input_uri="s3://b/stale.json")
+
+        self.assertEqual(kwargs["input_json"], FLAT_SPEC)
+        self.assertIsNone(kwargs["input_uri"])
+
+    def test_cli_input_uri_flag_overrides_a_programmatic_input_json(self):
+        kwargs = self._run_kwargs(["--input-uri", "s3://b/i.json"], input_json=OTHER_SPEC)
+
+        self.assertEqual(kwargs["input_uri"], "s3://b/i.json")
+        self.assertIsNone(kwargs["input_json"])
+
+    def test_programmatic_args_are_used_when_no_flags_are_passed(self):
+        kwargs = self._run_kwargs([], input_json=OTHER_SPEC)
+
+        self.assertEqual(kwargs["input_json"], OTHER_SPEC)

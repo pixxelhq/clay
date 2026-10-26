@@ -11,4 +11,6 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Configuration file not found at: {specification_path}")
 
     print(f"Using configuration located at: {specification_path}")
+    # --input and --input-uri flags are parsed automatically by clay.Run()
     clay.Run(block={{.BlockName}}, name="{{.BlockName}}", cfg_path=str(specification_path))
+

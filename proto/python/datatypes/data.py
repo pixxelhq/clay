@@ -1,4 +1,5 @@
 import abc
+import datetime as _dt
 import re
 import typing
 from enum import Enum
@@ -412,6 +413,97 @@ def validate_number(name: str, value: str, validation: gen_types.NumberValidatio
         raise ValidationError(name, f"value {num_value} is greater than maximum {validation.max_value}")
 
 
+# Shared with the Go validator (proto/go/main.go) so both accept exactly the same
+# strings. [0-9] rather than \d: Python's \d also matches non-ASCII digits, Go's
+# does not.
+_DATE_ONLY_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+_RFC3339_RE = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?(Z|[+-][0-9]{2}:[0-9]{2})$"
+)
+_FRACTION_RE = re.compile(r"\.([0-9]{1,9})")
+
+
+def _normalise_fraction(raw: str) -> str:
+    """Pad or trim fractional seconds to 6 digits.
+
+    datetime.fromisoformat on 3.10 only accepts 3 or 6 fractional digits, while
+    Go's RFC 3339 parser accepts 1-9. Normalising keeps the two in step.
+    """
+    return _FRACTION_RE.sub(lambda m: "." + m.group(1)[:6].ljust(6, "0"), raw, count=1)
+
+
+def _parse_date(name: str, raw: str, date_only: bool, field: str) -> Union[_dt.date, _dt.datetime]:
+    """Parse a date string in the encoding selected by date_format.
+
+    date_only accepts exactly YYYY-MM-DD. date_time accepts RFC 3339 and requires
+    a UTC offset, so values are always comparable and match the Go validator.
+    """
+    expected = "YYYY-MM-DD" if date_only else "RFC 3339 with a UTC offset"
+    try:
+        if date_only:
+            if not _DATE_ONLY_RE.match(raw):
+                raise ValueError
+            return _dt.datetime.strptime(raw, "%Y-%m-%d").date()
+        if not _RFC3339_RE.match(raw):
+            raise ValueError
+        # fromisoformat only accepts a trailing "Z" from Python 3.11; Clay targets 3.10.
+        parsed = _dt.datetime.fromisoformat(_normalise_fraction(raw).replace("Z", "+00:00"))
+    except ValueError:
+        raise ValidationError(name, f"{field} '{raw}' is not a valid date (expected {expected})")
+    if parsed.tzinfo is None:
+        raise ValidationError(name, f"{field} '{raw}' is not a valid date (expected {expected})")
+    return parsed
+
+
+def _bound_as_string(name: str, field: str, raw: Any) -> str:
+    """Normalise a spec bound to a string.
+
+    clay.yaml is read with yaml.safe_load, which turns an unquoted
+    ``min_date: 2024-01-01`` into a datetime.date and an unquoted timestamp into
+    a datetime.datetime. Accept those as their ISO form so authors are not forced
+    to quote; anything else is a spec error, reported as a ValidationError rather
+    than a TypeError from the proto setter.
+    """
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, (_dt.date, _dt.datetime)):
+        return raw.isoformat()
+    raise ValidationError(name, f"{field} must be a string, got {type(raw).__name__}")
+
+
+def validate_date(name: str, value: str, validation: gen_types.DateValidation) -> None:
+    """Validate a date value against DateValidation rules.
+
+    Bounds are inclusive and checked independently, and must use the same
+    encoding as date_format. An empty value is treated as unset rather than
+    invalid: missing-input handling is a separate concern from range checking,
+    and a date may be derived elsewhere (see DateProperties.from_aoi). A
+    malformed bound in the spec is reported as an error, not silently skipped.
+
+    Args:
+        name: The input field name
+        value: The date value as a string
+        validation: The DateValidation proto message
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    if value == "":
+        return
+
+    date_only = validation.date_format == gen_types.DateFormat.Value("date_only")
+    parsed = _parse_date(name, value, date_only, "value")
+
+    if validation.HasField("min_date"):
+        lower = _parse_date(name, validation.min_date, date_only, "min_date")
+        if parsed < lower:
+            raise ValidationError(name, f"value {value} is before minimum {validation.min_date}")
+    if validation.HasField("max_date"):
+        upper = _parse_date(name, validation.max_date, date_only, "max_date")
+        if parsed > upper:
+            raise ValidationError(name, f"value {value} is after maximum {validation.max_date}")
+
+
 def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
     """Validate input data against specification.
 
@@ -447,3 +539,18 @@ def validate_input(input_data: DataWrapper, spec: Dict[str, Any]) -> None:
         if "allowed_values" in validation:
             number_validation.allowed_values.extend(validation["allowed_values"])
         validate_number(name, value, number_validation)
+
+    elif fmt == FormatTypes.DATE.value:
+        date_validation = gen_types.DateValidation()
+        if "min_date" in validation:
+            date_validation.min_date = _bound_as_string(name, "min_date", validation["min_date"])
+        if "max_date" in validation:
+            date_validation.max_date = _bound_as_string(name, "max_date", validation["max_date"])
+        if "date_format" in validation:
+            try:
+                date_validation.date_format = gen_types.DateFormat.Value(validation["date_format"])
+            except ValueError:
+                raise ValidationError(
+                    name, f"unknown date_format '{validation['date_format']}' (expected date_only or date_time)"
+                )
+        validate_date(name, value, date_validation)

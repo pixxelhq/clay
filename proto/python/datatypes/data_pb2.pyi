@@ -24,6 +24,11 @@ class VizTypes(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     continuous: _ClassVar[VizTypes]
     bucket: _ClassVar[VizTypes]
     discrete: _ClassVar[VizTypes]
+
+class DateFormat(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    date_only: _ClassVar[DateFormat]
+    date_time: _ClassVar[DateFormat]
 v2: Version
 raster: Format
 vector: Format
@@ -34,6 +39,8 @@ date: Format
 continuous: VizTypes
 bucket: VizTypes
 discrete: VizTypes
+date_only: DateFormat
+date_time: DateFormat
 
 class ListOfFloats(_message.Message):
     __slots__ = ("values",)
@@ -637,8 +644,14 @@ class TabularValidation(_message.Message):
     def __init__(self) -> None: ...
 
 class DateValidation(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("min_date", "max_date", "date_format")
+    MIN_DATE_FIELD_NUMBER: _ClassVar[int]
+    MAX_DATE_FIELD_NUMBER: _ClassVar[int]
+    DATE_FORMAT_FIELD_NUMBER: _ClassVar[int]
+    min_date: str
+    max_date: str
+    date_format: DateFormat
+    def __init__(self, min_date: _Optional[str] = ..., max_date: _Optional[str] = ..., date_format: _Optional[_Union[DateFormat, str]] = ...) -> None: ...
 
 class StringValidation(_message.Message):
     __slots__ = ("regex_match", "allowed_values")

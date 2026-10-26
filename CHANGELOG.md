@@ -4,6 +4,15 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
+## v1.3.0 - 2026-10-01
+### New Features
+- `DateValidation` is no longer an empty placeholder: it carries `min_date`,
+  `max_date`, and `date_format` (`date_only` or `date_time`), so blocks can bound
+  date inputs the way number and string inputs already are. Enforced by the Go
+  validator (`ValidateDate`) and the Python `validate_input` datatypes helper.
+  Design and rationale: pixxelhq/clay#11.
+- `pixxel-datatypes` bumped to 1.1.0 with the regenerated bindings.
+
 ## v1.1.0 - 2026-08-18
 ### New Features
 - `INPUT_JSON_URI` lets the runner fetch its input JSON from remote storage
