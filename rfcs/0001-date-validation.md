@@ -1,6 +1,6 @@
 # RFC 0001: Date validation in the block specification
 
-- **Status:** Draft
+- **Status:** Implemented (clay v1.3.0, #12)
 - **Date:** 2026-09-18
 - **Author:** shubhranil@pixxel.co.in
 
@@ -59,7 +59,7 @@ nothing rejects a malformed validation block.
 ```protobuf
 enum DateFormat {
   date_only = 0;  // YYYY-MM-DD
-  datetime  = 1;  // RFC 3339, e.g. 2024-03-01T12:00:00Z
+  date_time = 1;  // RFC 3339, e.g. 2024-03-01T12:00:00Z
 }
 
 message DateValidation {
@@ -159,7 +159,7 @@ this; a stricter check would mean widening the interface.
 Python needs two things Go does not: `datetime.fromisoformat` rejects a `Z`
 suffix before 3.11 and Clay targets 3.10, so the suffix needs normalising; and
 comparing naive against aware datetimes raises `TypeError` rather than
-`ValidationError`, so `datetime` mode must require an offset or normalise to UTC.
+`ValidationError`, so `date_time` mode must require an offset or normalise to UTC.
 
 No Go validator has tests today — `ValidateString`, `ValidateNumber`,
 `ValidateRaster`, `ValidateVector` are all untested. `TestValidateDate` would be
@@ -250,3 +250,22 @@ separately.
 
 Steps 1-3 deliver the contract and the author-facing feedback loop. Step 4 is
 independent and can land separately.
+
+## Outcome
+
+Shipped in clay `v1.3.0` (#12) and enforced on dexter's create-inference path
+(pixxelhq/dexter#504). Deviations from the plan above:
+
+- The enum value `datetime` was renamed `date_time` in review: protobuf emits
+  enum values as module-level constants and `datatypes` has no `__all__`, so
+  the original name shadowed the stdlib module for star-importers.
+- Both validators gate on one shared RFC 3339 regex before parsing, so the
+  accepted set is identical by construction rather than by two parsers
+  agreeing. Python normalises fractional seconds to six digits for 3.10.
+- Unquoted YAML date bounds (which `yaml.safe_load` turns into date objects)
+  are coerced via `isoformat()` instead of raising `TypeError`.
+- Step 3 (publish-time lint in `clay publish`) was deferred. Review steered
+  enforcement to inference time on the execution side, which the existing
+  `ValidateWithInput` call already provides, and blocks reach that side
+  through its own API rather than `clay publish`. Open question 1 therefore
+  stays open; the lint remains available as OSS hygiene.
