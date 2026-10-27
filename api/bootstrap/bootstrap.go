@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/pixxelhq/clay/pkg/blockname"
 )
 
 // Embedding Templates in final build
@@ -24,14 +24,11 @@ var ErrProjectDirNotEmpty = errors.New("already exists and is not empty")
 // Bootstraps a project in `outputDir` with `blockName` as a filler
 // in appropriate locations in code and configuration
 func CreateProject(outputDir, blockName string, force bool) error {
-	err := verifyBlockName(blockName)
+	names, err := blockname.Parse(blockName)
 	if err != nil {
 		return err
 	}
-	titleblockName := strcase.ToCamel(blockName)
-	specblockName := strcase.ToSnake(blockName)
-	data := getTemplateData(titleblockName)
-	outputDir = filepath.Join(outputDir, specblockName)
+	outputDir = filepath.Join(outputDir, names.Slug)
 	if !force {
 		entries, err := os.ReadDir(outputDir)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -61,7 +58,7 @@ func CreateProject(outputDir, blockName string, force bool) error {
 		// template-relative path is touched, never the user's outputDir
 		outRel := relPath
 		if outRel == "src" || strings.HasPrefix(outRel, "src/") {
-			outRel = specblockName + strings.TrimPrefix(outRel, "src")
+			outRel = names.Module + strings.TrimPrefix(outRel, "src")
 		}
 		outPath := filepath.Join(outputDir, filepath.FromSlash(outRel))
 		_, statErr := os.Stat(outPath)
@@ -76,8 +73,8 @@ func CreateProject(outputDir, blockName string, force bool) error {
 			return nil
 		}
 
-		if _data, ok := data[relPath]; ok {
-			if err := writeTemplateToFile(templateFS, relPath, outPath, _data); err != nil {
+		if templatedFiles[relPath] {
+			if err := writeTemplateToFile(templateFS, relPath, outPath, names); err != nil {
 				return err
 			}
 		} else if err := Copy(templateFS, relPath, outPath); err != nil {

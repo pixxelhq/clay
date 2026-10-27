@@ -23,11 +23,11 @@ func TestNewCmd_Metadata(t *testing.T) {
 func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 	outDir := t.TempDir()
 
-	if err := runNew([]string{outDir, "WeatherForecaster"}); err != nil {
+	if err := runNew([]string{outDir, "weather-forecaster"}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 
-	projectRoot := filepath.Join(outDir, "weather_forecaster")
+	projectRoot := filepath.Join(outDir, "weather-forecaster")
 	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
 		t.Errorf("expected generated clay.yaml: %v", err)
 	}
@@ -39,15 +39,15 @@ func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 func TestNewCmd_RunEPropagatesInvalidName(t *testing.T) {
 	outDir := t.TempDir()
 
-	err := runNew([]string{outDir, "bad_name_123"})
+	err := runNew([]string{outDir, "bad name"})
 	if err == nil {
-		t.Fatal("expected error for non-alpha block name, got nil")
+		t.Fatal("expected error for invalid block name, got nil")
 	}
 }
 
 func TestNewCmd_RunERejectsNonEmptyDirWithHint(t *testing.T) {
 	outDir := t.TempDir()
-	projectRoot := filepath.Join(outDir, "weather_forecaster")
+	projectRoot := filepath.Join(outDir, "weather-forecaster")
 	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestNewCmd_RunERejectsNonEmptyDirWithHint(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	err := runNew([]string{outDir, "WeatherForecaster"})
+	err := runNew([]string{outDir, "weather-forecaster"})
 	if err == nil {
 		t.Fatal("expected error for non-empty project dir, got nil")
 	}
@@ -69,7 +69,7 @@ func TestNewCmd_RunERejectsNonEmptyDirWithHint(t *testing.T) {
 
 func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 	outDir := t.TempDir()
-	projectRoot := filepath.Join(outDir, "weather_forecaster")
+	projectRoot := filepath.Join(outDir, "weather-forecaster")
 	notes := filepath.Join(projectRoot, "notes.txt")
 	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
@@ -83,7 +83,7 @@ func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 		t.Fatalf("setting --force: %v", err)
 	}
 
-	if err := cmd.RunE(cmd, []string{outDir, "WeatherForecaster"}); err != nil {
+	if err := cmd.RunE(cmd, []string{outDir, "weather-forecaster"}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 	if _, err := os.Stat(notes); err != nil {

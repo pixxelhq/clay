@@ -12,13 +12,13 @@ import (
 
 func TestCreateProject_GeneratesExpectedLayout(t *testing.T) {
 	outDir := t.TempDir()
-	blockName := "AwesomeBlock"
+	blockName := "awesome-block"
 
 	if err := CreateProject(outDir, blockName, false); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 
-	projectRoot := filepath.Join(outDir, "awesome_block")
+	projectRoot := filepath.Join(outDir, "awesome-block")
 
 	expectedFiles := []string{
 		"Makefile",
@@ -53,18 +53,46 @@ func TestCreateProject_GeneratesExpectedLayout(t *testing.T) {
 	}
 }
 
-func TestCreateProject_RejectsNonAlphaBlockName(t *testing.T) {
+func TestCreateProject_RejectsInvalidBlockName(t *testing.T) {
 	outDir := t.TempDir()
-	err := CreateProject(outDir, "bad_block_name_123", false)
+	err := CreateProject(outDir, "1bad block", false)
 	if err == nil {
-		t.Fatal("expected error for non-alpha block name, got nil")
+		t.Fatal("expected error for invalid block name, got nil")
 	}
 }
 
-// writeLeftover creates <outDir>/awesome_block/leftover.txt and returns its path.
+// "awesome-block" and "awesome_block" must render the same files.
+func TestCreateProject_UsesCanonicalNames(t *testing.T) {
+	want := map[string]string{
+		"clay.yaml": "name: awesome-block\n",
+		"README.md": "# AwesomeBlock",
+		filepath.Join("awesome_block", "block.py"): "class AwesomeBlock(BlockWrapper)",
+		filepath.Join("awesome_block", "entry.py"): "from block import AwesomeBlock",
+		filepath.Join("tests", "test_block.py"):    "from awesome_block.block import AwesomeBlock",
+	}
+	for _, input := range []string{"awesome-block", "awesome_block"} {
+		t.Run(input, func(t *testing.T) {
+			outDir := t.TempDir()
+			if err := CreateProject(outDir, input, false); err != nil {
+				t.Fatalf("CreateProject returned error: %v", err)
+			}
+			for rel, snippet := range want {
+				data, err := os.ReadFile(filepath.Join(outDir, "awesome-block", rel))
+				if err != nil {
+					t.Fatalf("reading %s: %v", rel, err)
+				}
+				if !strings.Contains(string(data), snippet) {
+					t.Errorf("%s does not contain %q", rel, snippet)
+				}
+			}
+		})
+	}
+}
+
+// writeLeftover creates <outDir>/awesome-block/leftover.txt and returns its path.
 func writeLeftover(t *testing.T, outDir string) string {
 	t.Helper()
-	existing := filepath.Join(outDir, "awesome_block", "leftover.txt")
+	existing := filepath.Join(outDir, "awesome-block", "leftover.txt")
 	if err := os.MkdirAll(filepath.Dir(existing), 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -78,7 +106,7 @@ func TestCreateProject_RejectsNonEmptyProjectDir(t *testing.T) {
 	outDir := t.TempDir()
 	existing := writeLeftover(t, outDir)
 
-	err := CreateProject(outDir, "AwesomeBlock", false)
+	err := CreateProject(outDir, "awesome-block", false)
 	if !errors.Is(err, ErrProjectDirNotEmpty) {
 		t.Fatalf("expected ErrProjectDirNotEmpty, got: %v", err)
 	}
@@ -99,29 +127,29 @@ func TestCreateProject_ForceKeepsNonTemplateFiles(t *testing.T) {
 	outDir := t.TempDir()
 	existing := writeLeftover(t, outDir)
 
-	if err := CreateProject(outDir, "AwesomeBlock", true); err != nil {
+	if err := CreateProject(outDir, "awesome-block", true); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 
 	if data, err := os.ReadFile(existing); err != nil || string(data) != "keep me" {
 		t.Errorf("expected leftover file to be kept, got %q (err: %v)", data, err)
 	}
-	if _, err := os.Stat(filepath.Join(outDir, "awesome_block", "clay.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(outDir, "awesome-block", "clay.yaml")); err != nil {
 		t.Errorf("expected generated clay.yaml: %v", err)
 	}
 }
 
 func TestCreateProject_EmptyExistingProjectDir(t *testing.T) {
 	outDir := t.TempDir()
-	if err := os.Mkdir(filepath.Join(outDir, "awesome_block"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(outDir, "awesome-block"), 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
-	if err := CreateProject(outDir, "AwesomeBlock", false); err != nil {
+	if err := CreateProject(outDir, "awesome-block", false); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(outDir, "awesome_block", "clay.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(outDir, "awesome-block", "clay.yaml")); err != nil {
 		t.Errorf("expected generated clay.yaml: %v", err)
 	}
 }
@@ -135,11 +163,11 @@ func TestCreateProject_OutputDirContainingSrcTwice(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	if err := CreateProject(outDir, "AwesomeBlock", false); err != nil {
+	if err := CreateProject(outDir, "awesome-block", false); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 
-	projectRoot := filepath.Join(outDir, "awesome_block")
+	projectRoot := filepath.Join(outDir, "awesome-block")
 	for _, rel := range []string{"clay.yaml", filepath.Join("awesome_block", "block.py")} {
 		if _, err := os.Stat(filepath.Join(projectRoot, rel)); err != nil {
 			t.Errorf("expected %q under the requested output dir: %v", rel, err)
@@ -196,7 +224,7 @@ func TestCreateProject_ReturnsTemplateWriteError(t *testing.T) {
 		t.Skip("root can write read-only files")
 	}
 	outDir := t.TempDir()
-	projectRoot := filepath.Join(outDir, "awesome_block")
+	projectRoot := filepath.Join(outDir, "awesome-block")
 	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -205,7 +233,7 @@ func TestCreateProject_ReturnsTemplateWriteError(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	err := CreateProject(outDir, "AwesomeBlock", true)
+	err := CreateProject(outDir, "awesome-block", true)
 	if !errors.Is(err, fs.ErrPermission) {
 		t.Fatalf("expected a permission error, got: %v", err)
 	}
@@ -213,7 +241,7 @@ func TestCreateProject_ReturnsTemplateWriteError(t *testing.T) {
 
 func TestCreateProject_ReturnsMkdirError(t *testing.T) {
 	outDir := t.TempDir()
-	projectRoot := filepath.Join(outDir, "awesome_block")
+	projectRoot := filepath.Join(outDir, "awesome-block")
 	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -223,7 +251,7 @@ func TestCreateProject_ReturnsMkdirError(t *testing.T) {
 	}
 
 	var err error
-	out := captureStdout(t, func() { err = CreateProject(outDir, "AwesomeBlock", true) })
+	out := captureStdout(t, func() { err = CreateProject(outDir, "awesome-block", true) })
 	if err == nil {
 		t.Fatal("expected an error, got nil")
 	}
@@ -234,7 +262,7 @@ func TestCreateProject_ReturnsMkdirError(t *testing.T) {
 
 func TestCreateProject_ReportsOverwrittenFiles(t *testing.T) {
 	outDir := t.TempDir()
-	projectRoot := filepath.Join(outDir, "awesome_block")
+	projectRoot := filepath.Join(outDir, "awesome-block")
 	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -243,7 +271,7 @@ func TestCreateProject_ReportsOverwrittenFiles(t *testing.T) {
 	}
 
 	var err error
-	out := captureStdout(t, func() { err = CreateProject(outDir, "AwesomeBlock", true) })
+	out := captureStdout(t, func() { err = CreateProject(outDir, "awesome-block", true) })
 	if err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
@@ -259,10 +287,10 @@ func TestCreateProject_ReportsOverwrittenFiles(t *testing.T) {
 // paths once made the lookups miss and left the placeholders in the files.
 func TestCreateProject_RendersAllTemplates(t *testing.T) {
 	outDir := t.TempDir()
-	if err := CreateProject(outDir, "AwesomeBlock", false); err != nil {
+	if err := CreateProject(outDir, "awesome-block", false); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
-	err := filepath.WalkDir(filepath.Join(outDir, "awesome_block"), func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(filepath.Join(outDir, "awesome-block"), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}

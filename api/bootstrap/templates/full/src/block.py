@@ -4,7 +4,7 @@ import datatypes as T
 from clay.core import BlockWrapper
 
 
-class {{.BlockName}}(BlockWrapper):
+class {{.Class}}(BlockWrapper):
     """Your block implementation.
 
     The Clay block lifecycle has four stages:

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from block import {{.BlockName}}
+from block import {{.Class}}
 
 import clay
 
@@ -12,5 +12,5 @@ if __name__ == "__main__":
 
     print(f"Using configuration located at: {specification_path}")
     # --input and --input-uri flags are parsed automatically by clay.Run()
-    clay.Run(block={{.BlockName}}, name="{{.BlockName}}", cfg_path=str(specification_path))
+    clay.Run(block={{.Class}}, name="{{.Class}}", cfg_path=str(specification_path))
 

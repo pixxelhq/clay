@@ -42,13 +42,23 @@ clay new <path> <name> [flags]
 | Argument | Description |
 |----------|-------------|
 | `path` | Directory where project files will be created |
-| `name` | Name of the block |
+| `name` | Name of the block: letters, digits, `-` and `_` |
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-f, --force` | Write the template into an existing non-empty project directory | `false` |
 
-The project is created in `<path>/<name in snake_case>`. If that directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+The project is created in `<path>/<name in kebab-case>`, for example `./my-block`. If that directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+
+Clay derives every name from `<name>`. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
+
+| Used for | Rule | `my-block` / `my_block` | `MyBlock` |
+|----------|------|-------------------------|-----------|
+| `clay.yaml` name, image and project folder | `_` becomes `-`, lower case | `my-block` | `myblock` |
+| Python package folder | `-` becomes `_`, lower case | `my_block` | `myblock` |
+
+`clay build` finds the package folder from the `clay.yaml` name, so the project folder can have any name.
+| Python class | each word starts with a capital | `MyBlock` | `MyBlock` |
 
 ### Build
 

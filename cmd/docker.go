@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pixxelhq/clay/pkg/blockname"
 	"github.com/pixxelhq/clay/pkg/config"
 	"github.com/pixxelhq/clay/pkg/docker"
 	"github.com/spf13/cobra"
@@ -72,8 +73,7 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 
 	if dockerfilePath == "" {
 		var err error
-		srcCodeDir := filepath.Base(projectDir)
-		dockerfilePath, err = getOrCreateDockerfile(srcCodeDir, cfg)
+		dockerfilePath, err = getOrCreateDockerfile(packageDir(projectDir, cfg), cfg)
 		if err != nil {
 			return "", err
 		}
@@ -143,6 +143,20 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("🎉 docker image %s has been pushed to specified registry\n", image)
 	return nil
+}
+
+// packageDir returns the folder of the block package, relative to projectDir.
+// It is the module form of the clay.yaml name, so the name of the project
+// folder has no effect. Projects made before this rule have a clay.yaml name
+// that does not match their package folder; for them, fall back to the name
+// of the project folder, as before.
+func packageDir(projectDir string, cfg *config.Config) string {
+	if names, err := blockname.Parse(cfg.Name); err == nil {
+		if info, err := os.Stat(filepath.Join(projectDir, names.Module)); err == nil && info.IsDir() {
+			return names.Module
+		}
+	}
+	return filepath.Base(projectDir)
 }
 
 func getOrCreateDockerfile(srcCodeDir string, cfg *config.Config) (string, error) {
