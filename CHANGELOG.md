@@ -5,6 +5,15 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+### New Features
+- `clay new <path>` creates the project in `<path>` and takes the block name
+  from the last part of the path, so `clay new my-block` creates `./my-block`.
+  The older form `clay new <path> <name>` still works and prints a deprecation
+  warning; it will be removed in a future release.
+- `clay init` makes the current directory a block project, named after the
+  directory. Like `clay new`, it stops if the directory is not empty, unless
+  you pass `--force`.
+
 ### Bug Fixes
 - `clay new` no longer deletes an existing project directory. If the directory
   exists and is not empty, it stops with an error and a hint about the new
@@ -17,8 +26,8 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay new` accepts block names with `-`, `_` and digits, so the
   `clay new --help` example runs. Names are derived from the given name:
   `my-block`, `my_block` and `MyBlock` all give `my-block` for the `clay.yaml`
-  name, the image and the project folder, `my_block` for the Python package,
-  and `MyBlock` for the class.
+  name and the image, `my_block` for the Python package, and `MyBlock` for the
+  class.
   The generated `tests/test_block.py` now imports the right module; it failed
   with `ModuleNotFoundError` for names such as `MyBlock`.
 - `clay build` no longer depends on the name of the project folder. When it

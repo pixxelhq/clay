@@ -22,13 +22,13 @@ const fullTemplateRoot = "templates/full"
 var ErrProjectDirNotEmpty = errors.New("already exists and is not empty")
 
 // Bootstraps a project in `outputDir` with `blockName` as a filler
-// in appropriate locations in code and configuration
+// in appropriate locations in code and configuration. `outputDir` is the
+// project folder itself.
 func CreateProject(outputDir, blockName string, force bool) error {
 	names, err := blockname.Parse(blockName)
 	if err != nil {
 		return err
 	}
-	outputDir = filepath.Join(outputDir, names.Slug)
 	if !force {
 		entries, err := os.ReadDir(outputDir)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {

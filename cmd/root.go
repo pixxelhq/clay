@@ -34,6 +34,7 @@ func Execute() {
 
 func init() {
 	RootCmd.AddCommand(newproject.NewCmd())
+	RootCmd.AddCommand(newproject.InitCmd())
 	RootCmd.AddCommand(VersionCmd())
 	RootCmd.AddCommand(buildDockerImageCmd())
 	RootCmd.AddCommand(pushToDockerRegistryCmd())

@@ -80,9 +80,9 @@ The repository is organized as follows:
 ## Common Workflows
 
 ### Creating a New Block
-1. `clay new <outputDir> <BlockName>` - Generate project template
+1. `clay new <path>` (or `clay init` in an existing folder) - Generate project template; the block name is the last part of the path
 2. Edit `clay.yaml` - Define inputs, outputs, and runtime
-3. Implement block logic in `src/block.py`
+3. Implement block logic in `<block_name>/block.py`
 4. Test locally with `python tests/test_block.py`
 5. Package and run with `clay build` then `clay run`
 
