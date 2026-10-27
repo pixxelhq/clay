@@ -8,21 +8,22 @@ import (
 )
 
 func TestNewCmd_Metadata(t *testing.T) {
-	if NewCmd.Use == "" {
-		t.Error("NewCmd.Use should not be empty")
+	cmd := NewCmd()
+	if cmd.Use == "" {
+		t.Error("NewCmd().Use should not be empty")
 	}
-	if NewCmd.Short == "" {
-		t.Error("NewCmd.Short should not be empty")
+	if cmd.Short == "" {
+		t.Error("NewCmd().Short should not be empty")
 	}
-	if NewCmd.RunE == nil {
-		t.Fatal("NewCmd.RunE should not be nil")
+	if cmd.RunE == nil {
+		t.Fatal("NewCmd().RunE should not be nil")
 	}
 }
 
 func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 	outDir := t.TempDir()
 
-	if err := NewCmd.RunE(NewCmd, []string{outDir, "WeatherForecaster"}); err != nil {
+	if err := runNew([]string{outDir, "WeatherForecaster"}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 
@@ -38,7 +39,7 @@ func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 func TestNewCmd_RunEPropagatesInvalidName(t *testing.T) {
 	outDir := t.TempDir()
 
-	err := NewCmd.RunE(NewCmd, []string{outDir, "bad_name_123"})
+	err := runNew([]string{outDir, "bad_name_123"})
 	if err == nil {
 		t.Fatal("expected error for non-alpha block name, got nil")
 	}
@@ -54,7 +55,7 @@ func TestNewCmd_RunERejectsNonEmptyDirWithHint(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	err := NewCmd.RunE(NewCmd, []string{outDir, "WeatherForecaster"})
+	err := runNew([]string{outDir, "WeatherForecaster"})
 	if err == nil {
 		t.Fatal("expected error for non-empty project dir, got nil")
 	}
@@ -77,12 +78,12 @@ func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	if err := NewCmd.Flags().Set("force", "true"); err != nil {
+	cmd := NewCmd()
+	if err := cmd.Flags().Set("force", "true"); err != nil {
 		t.Fatalf("setting --force: %v", err)
 	}
-	t.Cleanup(func() { _ = NewCmd.Flags().Set("force", "false") })
 
-	if err := NewCmd.RunE(NewCmd, []string{outDir, "WeatherForecaster"}); err != nil {
+	if err := cmd.RunE(cmd, []string{outDir, "WeatherForecaster"}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 	if _, err := os.Stat(notes); err != nil {
@@ -91,4 +92,10 @@ func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
 		t.Errorf("expected generated clay.yaml: %v", err)
 	}
+}
+
+// runNew runs a new `clay new` command with args.
+func runNew(args []string) error {
+	cmd := NewCmd()
+	return cmd.RunE(cmd, args)
 }
