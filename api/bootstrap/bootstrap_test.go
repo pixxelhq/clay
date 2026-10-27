@@ -2,8 +2,11 @@ package bootstrap
 
 import (
 	"errors"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -166,5 +169,113 @@ func TestCreateProject_OutputDirContainingSrcTwice(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("walking %s: %v", base, err)
+	}
+}
+
+// captureStdout returns what fn prints to stdout.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+	fn()
+	w.Close()
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("reading stdout: %v", err)
+	}
+	return string(out)
+}
+
+func TestCreateProject_ReturnsTemplateWriteError(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can write read-only files")
+	}
+	outDir := t.TempDir()
+	projectRoot := filepath.Join(outDir, "awesome_block")
+	if err := os.MkdirAll(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	clayYAML := filepath.Join(projectRoot, "clay.yaml")
+	if err := os.WriteFile(clayYAML, []byte("mine"), 0444); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	err := CreateProject(outDir, "AwesomeBlock", true)
+	if !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("expected a permission error, got: %v", err)
+	}
+}
+
+func TestCreateProject_ReturnsMkdirError(t *testing.T) {
+	outDir := t.TempDir()
+	projectRoot := filepath.Join(outDir, "awesome_block")
+	if err := os.MkdirAll(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	// "tests" is a file, so the template's tests/ folder cannot be created
+	if err := os.WriteFile(filepath.Join(projectRoot, "tests"), []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	var err error
+	out := captureStdout(t, func() { err = CreateProject(outDir, "AwesomeBlock", true) })
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	if strings.Contains(out, "Created: "+filepath.Join(projectRoot, "tests")+"\n") {
+		t.Errorf("printed Created: for a folder that was not created:\n%s", out)
+	}
+}
+
+func TestCreateProject_ReportsOverwrittenFiles(t *testing.T) {
+	outDir := t.TempDir()
+	projectRoot := filepath.Join(outDir, "awesome_block")
+	if err := os.MkdirAll(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "clay.yaml"), []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	var err error
+	out := captureStdout(t, func() { err = CreateProject(outDir, "AwesomeBlock", true) })
+	if err != nil {
+		t.Fatalf("CreateProject returned error: %v", err)
+	}
+	if !strings.Contains(out, "Overwrote: "+filepath.Join(projectRoot, "clay.yaml")+"\n") {
+		t.Errorf("expected Overwrote: for clay.yaml, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Created: "+filepath.Join(projectRoot, "README.md")+"\n") {
+		t.Errorf("expected Created: for README.md, got:\n%s", out)
+	}
+}
+
+// Template files must be rendered on every OS; on Windows, OS-style template
+// paths once made the lookups miss and left the placeholders in the files.
+func TestCreateProject_RendersAllTemplates(t *testing.T) {
+	outDir := t.TempDir()
+	if err := CreateProject(outDir, "AwesomeBlock", false); err != nil {
+		t.Fatalf("CreateProject returned error: %v", err)
+	}
+	err := filepath.WalkDir(filepath.Join(outDir, "awesome_block"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(data), "{{") {
+			t.Errorf("%s still has template placeholders", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking project: %v", err)
 	}
 }

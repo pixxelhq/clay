@@ -43,40 +43,51 @@ func CreateProject(outputDir, blockName string, force bool) error {
 	}
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		fmt.Println(err)
+		return err
 	}
 
-	// Walk through the project template directory
-	err = fs.WalkDir(fullTemplate, fullTemplateRoot, func(path string, d fs.DirEntry, err error) error {
+	// Walk through the project template directory. Template paths are
+	// slash-separated on every OS (io/fs rules); they are converted to OS
+	// paths only when joined to outputDir.
+	templateFS, err := fs.Sub(fullTemplate, fullTemplateRoot)
+	if err != nil {
+		return err
+	}
+	err = fs.WalkDir(templateFS, ".", func(relPath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		relPath, _ := filepath.Rel(fullTemplateRoot, path)
 		// rename the template's top-level src/ to the block package; only the
 		// template-relative path is touched, never the user's outputDir
 		outRel := relPath
-		if outRel == "src" || strings.HasPrefix(outRel, "src"+string(filepath.Separator)) {
+		if outRel == "src" || strings.HasPrefix(outRel, "src/") {
 			outRel = specblockName + strings.TrimPrefix(outRel, "src")
 		}
-		outPath := filepath.Join(outputDir, outRel)
+		outPath := filepath.Join(outputDir, filepath.FromSlash(outRel))
+		_, statErr := os.Stat(outPath)
+		existed := statErr == nil
 		if d.IsDir() {
 			if err := os.MkdirAll(outPath, 0755); err != nil {
-				fmt.Println(outPath, err)
+				return err
 			}
-			fmt.Println("Created:", outPath)
+			if !existed {
+				fmt.Println("Created:", outPath)
+			}
 			return nil
 		}
 
-		_data, ok := data[relPath]
-		if ok {
-			writeTemplateToFile(fullTemplate, path, outPath, _data)
-		} else {
-			err = Copy(fullTemplate, path, outPath)
-			if err != nil {
+		if _data, ok := data[relPath]; ok {
+			if err := writeTemplateToFile(templateFS, relPath, outPath, _data); err != nil {
 				return err
 			}
+		} else if err := Copy(templateFS, relPath, outPath); err != nil {
+			return err
 		}
-		fmt.Println("Created:", outPath)
+		if existed {
+			fmt.Println("Overwrote:", outPath)
+		} else {
+			fmt.Println("Created:", outPath)
+		}
 		return nil
 	})
 
