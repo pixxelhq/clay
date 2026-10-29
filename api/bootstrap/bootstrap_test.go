@@ -70,7 +70,7 @@ func TestCreateProject_UsesCanonicalNames(t *testing.T) {
 		filepath.Join("awesome_block", "entry.py"): "from block import AwesomeBlock",
 		filepath.Join("tests", "test_block.py"):    "from awesome_block.block import AwesomeBlock",
 	}
-	for _, input := range []string{"awesome-block", "awesome_block"} {
+	for _, input := range []string{"awesome-block", "awesome_block", "AwesomeBlock"} {
 		t.Run(input, func(t *testing.T) {
 			outDir := t.TempDir()
 			if err := CreateProject(outDir, input, false); err != nil {

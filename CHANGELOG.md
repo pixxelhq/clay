@@ -16,15 +16,16 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   Previously it failed.
 - `clay new` accepts block names with `-`, `_` and digits, so the
   `clay new --help` example runs. Names are derived from the given name:
-  `my-block` and `my_block` both give `my-block` for the `clay.yaml` name, the
-  image and the project folder, `my_block` for the Python package, and
-  `MyBlock` for the class.
+  `my-block`, `my_block` and `MyBlock` all give `my-block` for the `clay.yaml`
+  name, the image and the project folder, `my_block` for the Python package,
+  and `MyBlock` for the class.
   The generated `tests/test_block.py` now imports the right module; it failed
   with `ModuleNotFoundError` for names such as `MyBlock`.
-- `clay build` no longer depends on the name of the project folder. It finds
-  the block package from the `clay.yaml` name, so a project cloned into a
-  folder with another name builds. Projects whose `clay.yaml` name does not
-  match their package folder build as before, from the project folder name.
+- `clay build` no longer depends on the name of the project folder. When it
+  generates a Dockerfile, it uses the folder that holds `entry.py`, named after
+  the `clay.yaml` name or, for older projects, after the project folder. A
+  project cloned into a folder with another name builds. If neither folder
+  exists, it stops with a clear error before Docker runs.
 
 ## v1.3.0 - 2026-10-01
 ### New Features

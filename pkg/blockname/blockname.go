@@ -15,16 +15,22 @@ type Names struct {
 	Class  string // CamelCase: Python class
 }
 
-var validName = regexp.MustCompile(`^[A-Za-z]([A-Za-z0-9_-]*[A-Za-z0-9])?$`)
+var (
+	validName     = regexp.MustCompile(`^[A-Za-z]([A-Za-z0-9_-]*[A-Za-z0-9])?$`)
+	camelBoundary = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+)
 
-// Parse returns the forms of name: "my-block", "my_block" and "My-Block"
-// give {my-block, my_block, MyBlock}, and "MyBlock" gives {myblock, myblock, MyBlock}.
+// Parse returns the forms of name: "my-block", "my_block" and "MyBlock" all
+// give {my-block, my_block, MyBlock}. A name with no separator or capital,
+// such as "myblock", is one word: {myblock, myblock, Myblock}.
 func Parse(name string) (Names, error) {
 	if !validName.MatchString(name) {
 		return Names{}, fmt.Errorf(
 			"invalid block name %q: start with a letter, end with a letter or digit, "+
 				"and use only letters, digits, '-' and '_'", name)
 	}
+
+	name = camelBoundary.ReplaceAllString(name, "${1}-${2}") // MyBlock -> My-Block
 
 	var class strings.Builder
 	for _, word := range strings.FieldsFunc(name, func(r rune) bool { return r == '-' || r == '_' }) {

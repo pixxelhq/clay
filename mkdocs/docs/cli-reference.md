@@ -52,13 +52,17 @@ The project is created in `<path>/<name in kebab-case>`, for example `./my-block
 
 Clay derives every name from `<name>`. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
 
-| Used for | Rule | `my-block` / `my_block` | `MyBlock` |
-|----------|------|-------------------------|-----------|
-| `clay.yaml` name, image and project folder | `_` becomes `-`, lower case | `my-block` | `myblock` |
-| Python package folder | `-` becomes `_`, lower case | `my_block` | `myblock` |
+Words are separated by `-`, `_` or a capital letter, so `my-block`, `my_block` and `MyBlock` all give the same names:
 
-`clay build` finds the package folder from the `clay.yaml` name, so the project folder can have any name.
-| Python class | each word starts with a capital | `MyBlock` | `MyBlock` |
+| Used for | Rule | Result |
+|----------|------|--------|
+| `clay.yaml` name, image and project folder | words joined with `-`, lower case | `my-block` |
+| Python package folder | words joined with `_`, lower case | `my_block` |
+| Python class | each word starts with a capital | `MyBlock` |
+
+A name with no separator or capital, such as `myblock`, is one word.
+
+`clay build` finds the package folder from the `clay.yaml` name, so the project folder can have any name. If you change `name` after the project is created, keep the project folder name equal to the package folder name, or rename the package folder to match.
 
 ### Build
 

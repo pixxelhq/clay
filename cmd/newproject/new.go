@@ -23,8 +23,8 @@ func NewCmd() *cobra.Command {
 			Scaffold a new block project at the given path.
 
 			<path> is the output directory where the project files will be created.
-			<name> is the block name: letters, digits, '-' and '_'. Both my-block and
-			my_block give:
+			<name> is the block name: letters, digits, '-' and '_'. my-block, my_block
+			and MyBlock all give:
 
 			  clay.yaml name, image, project folder   my-block
 			  Python package folder                   my_block

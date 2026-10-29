@@ -73,7 +73,7 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 
 	if dockerfilePath == "" {
 		var err error
-		dockerfilePath, err = getOrCreateDockerfile(packageDir(projectDir, cfg), cfg)
+		dockerfilePath, err = getOrCreateDockerfile(projectDir, cfg)
 		if err != nil {
 			return "", err
 		}
@@ -145,25 +145,30 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// packageDir returns the folder of the block package, relative to projectDir.
-// It is the module form of the clay.yaml name, so the name of the project
-// folder has no effect. Projects made before this rule have a clay.yaml name
-// that does not match their package folder; for them, fall back to the name
-// of the project folder, as before.
-func packageDir(projectDir string, cfg *config.Config) string {
+func packageDir(projectDir string, cfg *config.Config) (string, error) {
+	candidates := []string{filepath.Base(projectDir)}
 	if names, err := blockname.Parse(cfg.Name); err == nil {
-		if info, err := os.Stat(filepath.Join(projectDir, names.Module)); err == nil && info.IsDir() {
-			return names.Module
+		candidates = append([]string{names.Module}, candidates...)
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(projectDir, c, "entry.py")); err == nil {
+			return c, nil
 		}
 	}
-	return filepath.Base(projectDir)
+	return "", fmt.Errorf("no block package in %s: expected %s/entry.py", projectDir, candidates[0])
 }
 
-func getOrCreateDockerfile(srcCodeDir string, cfg *config.Config) (string, error) {
+func getOrCreateDockerfile(projectDir string, cfg *config.Config) (string, error) {
 	dockerfilePath, err := docker.GetDockerFile()
 	if err == docker.ErrDoesNotExists {
+		// Only a new Dockerfile needs the package folder; an existing one is
+		// used as is.
+		srcCodeDir, err := packageDir(projectDir, cfg)
+		if err != nil {
+			return "", err
+		}
 		fmt.Printf("dockerfile does not exists in the %s. Creating one... \n ", srcCodeDir)
-		dockerfilePath, err = docker.CreateDockerFile(srcCodeDir, ".", cfg)
+		return docker.CreateDockerFile(srcCodeDir, ".", cfg)
 	}
 
 	return dockerfilePath, err
