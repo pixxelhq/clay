@@ -1,6 +1,7 @@
 package http
 
 import (
+	"net/url"
 	"path/filepath"
 	"testing"
 
@@ -33,7 +34,7 @@ func newUnreachableDBServer(t *testing.T) *Server {
 	}
 }
 
-const wantConnErr = `cannot connect to database "clay_test_db" on host "127.0.0.1"`
+const wantConnErr = `cannot connect to database "clay_test_db" on host "127.0.0.1": connect: connection refused`
 
 func assertNoCredentials(t *testing.T, err error) {
 	t.Helper()
@@ -64,4 +65,14 @@ func TestRunMigrationBadMigrationPathIsNotAConnectionError(t *testing.T) {
 	assertNoCredentials(t, err)
 	assert.Contains(t, err.Error(), "failed to load migrations from "+svr.Cfg.DBMigrationPath)
 	assert.NotContains(t, err.Error(), "cannot connect to database")
+}
+
+func TestDBConnErrorDropsUnknownErrors(t *testing.T) {
+	svr := newUnreachableDBServer(t)
+	_, parseErr := url.Parse("postgres://" + testDBUser + ":" + testDBPassword + "@" + testDBHost + ":bad/" + testDBName)
+	require.Error(t, parseErr)
+
+	err := svr.dbConnError(parseErr)
+	assertNoCredentials(t, err)
+	assert.EqualError(t, err, `cannot connect to database "clay_test_db" on host "127.0.0.1": unknown error`)
 }

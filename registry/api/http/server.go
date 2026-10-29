@@ -2,8 +2,10 @@ package http
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	llog "log"
+	"net"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -18,6 +20,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/lib/pq"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -68,19 +71,30 @@ func (svr *Server) dsn() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", svr.Cfg.DBUserName, svr.Cfg.DBPassword, svr.Cfg.DBHost, svr.Cfg.DBPort, svr.Cfg.DBName)
 }
 
-func (svr *Server) errDBConnection() error {
-	return fmt.Errorf("cannot connect to database %q on host %q", svr.Cfg.DBName, svr.Cfg.DBHost)
+func (svr *Server) dbConnError(err error) error {
+	var (
+		opErr *net.OpError
+		pqErr *pq.Error
+	)
+	reason := "unknown error"
+	switch {
+	case errors.As(err, &pqErr):
+		reason = pqErr.Code.Name()
+	case errors.As(err, &opErr):
+		reason = opErr.Err.Error()
+	}
+	return fmt.Errorf("cannot connect to database %q on host %q: %s", svr.Cfg.DBName, svr.Cfg.DBHost, reason)
 }
 
 func (svr *Server) ConfigureStore() error {
 	conn, err := sql.Open("postgres", svr.dsn())
 	if err != nil {
-		return svr.errDBConnection()
+		return svr.dbConnError(err)
 	}
 
 	err = conn.Ping()
 	if err != nil {
-		return svr.errDBConnection()
+		return svr.dbConnError(err)
 	}
 
 	svr.Store = store.NewStore(conn)
@@ -95,7 +109,7 @@ func (svr *Server) RunMigration() error {
 
 	m, err := migrate.NewWithSourceInstance("file", src, svr.dsn())
 	if err != nil {
-		return svr.errDBConnection()
+		return svr.dbConnError(err)
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
