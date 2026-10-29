@@ -45,7 +45,7 @@ clay block assets upload block.pkl \
 
 ### Upload catalog media with `upload-catalog`
 
-`clay block assets upload-catalog` publishes the media declared in the `catalog.yaml` in the current working directory (run it from the model repo root). It takes no path argument — only `--url`. Clay:
+`clay block assets upload-catalog` publishes the media declared in the `catalog.yaml` in the current working directory (run it from the model repo root). It takes no path argument — only `--url`. To start a `catalog.yaml`, create the project with `clay new <path> --with catalog`. Clay:
 
 1. reads the `media:` section (which maps keys to relative file paths),
 2. uploads each declared file to `<your --url>/<relative-path>`,

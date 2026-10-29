@@ -13,6 +13,23 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay init` makes the current directory a block project, named after the
   directory. Like `clay new`, it stops if the directory is not empty, unless
   you pass `--force`.
+- `clay new` splits dependencies into `requirements.txt` (runtime only, pins
+  the Clay version, installed in the image) and `requirements-dev.txt`
+  (`-r requirements.txt` plus ruff, pyright and pytest, never installed in
+  the image). It also writes a `.dockerignore` that keeps
+  `.venv`, `__pycache__`, `tests` and `.git` out of the image.
+- `clay new` and `clay init` create a minimal project by default: `clay.yaml`,
+  the requirements files, the block package, `tests/`, `README.md`,
+  `pyproject.toml`, `.gitignore` and `.dockerignore`. The generated README
+  explains how to set up, test, build and run the block. Add optional files
+  with `--with catalog`, `--with conda` (also sets `clay.yaml` to build with
+  conda) and `--with pre-commit`.
+
+### Breaking Changes
+- New projects no longer get a `Makefile`, `catalog.yaml`, `conda.yaml` or
+  `.pre-commit-config.yaml` unless you ask for them with `--with`. `clay new`
+  no longer suggests `curl | sh` or `make setup`, and the optional pre-commit
+  config no longer installs a commit message hook.
 
 ### Bug Fixes
 - `clay new` no longer deletes an existing project directory. If the directory

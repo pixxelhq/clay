@@ -46,10 +46,21 @@ clay new <path> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-f, --force` | Write the template into an existing non-empty project directory | `false` |
+| `--with` | Add optional files: `catalog`, `conda`, `pre-commit`. Repeat the flag or separate values with commas | — |
 
 For example, `clay new my-block` creates `./my-block`, and `clay new .` makes the current directory a project. The older form `clay new <path> <name>` still works: it creates `<path>/<name in kebab-case>` and prints a deprecation warning. It will be removed in a future release.
 
 If the project directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+
+The project contains only the files every block needs: `clay.yaml`, `requirements.txt`, `requirements-dev.txt`, the block package, `tests/`, `README.md`, `pyproject.toml`, `.gitignore` and `.dockerignore`. `clay new` does not run `git init`, install git hooks or download tools. Use `--with` to add more files:
+
+| Option | Adds |
+|--------|------|
+| `catalog` | `catalog.yaml`, to describe the block in a catalog (see [Block Assets](block-assets.md)) |
+| `conda` | `conda.yaml`, and sets `build.conda: true` and `build.requirements: conda.yaml` in `clay.yaml` |
+| `pre-commit` | `.pre-commit-config.yaml` with ruff hooks, and `pre-commit` in `requirements-dev.txt`. Run `pre-commit install` to install the hooks |
+
+For example, `clay new my-block --with catalog,conda`.
 
 Clay derives every name from the block name. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
 
@@ -76,6 +87,7 @@ clay init [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-f, --force` | Write the template into the current directory when it is not empty | `false` |
+| `--with` | Add optional files: `catalog`, `conda`, `pre-commit`, as with `clay new` | — |
 
 `clay init` follows the same rules as `clay new`: it stops with an error if the directory is not empty, unless you pass `--force`.
 

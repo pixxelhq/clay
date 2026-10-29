@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/pixxelhq/clay/api/bootstrap"
@@ -19,6 +20,7 @@ import (
 // given directory.
 func NewCmd() *cobra.Command {
 	var force bool
+	var with []string
 	cmd := &cobra.Command{
 		Use:   "new <path>",
 		Short: "Scaffold a new block project",
@@ -36,10 +38,18 @@ func NewCmd() *cobra.Command {
 			If the directory is not empty, clay new stops with an error. Use --force
 			to write the template files into it anyway; files that are not part of
 			the template are kept.
+
+			The project contains only the files every block needs. Use --with to
+			add more:
+
+			  catalog      catalog.yaml, to describe the block in a catalog
+			  conda        conda.yaml, and clay.yaml set to build with conda
+			  pre-commit   .pre-commit-config.yaml, and pre-commit in requirements-dev.txt
 		`),
 		Example: heredoc.Doc(`
-			clay new my-block                # creates ./my-block
-			clay new ~/blocks/weather-model  # creates ~/blocks/weather-model
+			clay new my-block                     # creates ./my-block
+			clay new ~/blocks/weather-model       # creates ~/blocks/weather-model
+			clay new my-block --with catalog,conda
 		`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -61,10 +71,10 @@ func NewCmd() *cobra.Command {
 					"warning: 'clay new <path> <name>' is deprecated and will be removed in a future release; use 'clay new %s'\n",
 					projectDir)
 			}
-			return createProject(projectDir, blockName, force)
+			return createProject(projectDir, blockName, force, with)
 		},
 	}
-	addForceFlag(cmd, &force)
+	addFlags(cmd, &force, &with)
 	return cmd
 }
 
@@ -72,6 +82,7 @@ func NewCmd() *cobra.Command {
 // current directory.
 func InitCmd() *cobra.Command {
 	var force bool
+	var with []string
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Scaffold a new block project in the current directory",
@@ -82,6 +93,8 @@ func InitCmd() *cobra.Command {
 			If the directory is not empty, clay init stops with an error. Use --force
 			to write the template files into it anyway; files that are not part of
 			the template are kept.
+
+			Use --with to add optional files, as with clay new.
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -89,19 +102,21 @@ func InitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return createProject(cwd, filepath.Base(cwd), force)
+			return createProject(cwd, filepath.Base(cwd), force, with)
 		},
 	}
-	addForceFlag(cmd, &force)
+	addFlags(cmd, &force, &with)
 	return cmd
 }
 
-func addForceFlag(cmd *cobra.Command, force *bool) {
+func addFlags(cmd *cobra.Command, force *bool, with *[]string) {
 	cmd.Flags().BoolVarP(force, "force", "f", false, "write the template into an existing non-empty directory")
+	cmd.Flags().StringSliceVar(with, "with", nil,
+		"add optional files: "+strings.Join(bootstrap.Options, ", ")+" (repeat or separate with commas)")
 }
 
-func createProject(projectDir, blockName string, force bool) error {
-	err := bootstrap.CreateProject(projectDir, blockName, force)
+func createProject(projectDir, blockName string, force bool, with []string) error {
+	err := bootstrap.CreateProject(projectDir, blockName, force, with)
 	if errors.Is(err, bootstrap.ErrProjectDirNotEmpty) {
 		return fmt.Errorf("%w\nhint: use --force to write the template into it anyway", err)
 	}

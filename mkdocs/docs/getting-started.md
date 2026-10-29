@@ -92,7 +92,7 @@ cd my-block
 
 ### Understanding the Generated Project Structure
 
-Clay generates a complete project scaffolding with everything you need to develop, test, and deploy your block. Here's what each file and directory does:
+Clay generates a minimal project with the files every block needs to develop, test, and deploy it. Here's what each file and directory does:
 
 ```
 my-block/
@@ -102,14 +102,27 @@ my-block/
 ├── tests/
 │   ├── test_block.py            # Local testing script
 │   └── sample_block_inputs.json # Example inputs for testing
-├── catalog.yaml                 # Marketplace documentation (media + content sections)
 ├── clay.yaml                    # Clay configuration
-├── requirements.txt / conda.yaml # Python dependencies — pip (default) or conda (recommended for GPU blocks)
-├── Makefile                     # Common commands
+├── requirements.txt             # Runtime dependencies, installed in the image
+├── requirements-dev.txt         # Development tools (ruff, pytest, ...); never installed in the image
 ├── pyproject.toml               # Python project configuration
-├── .pre-commit-config.yaml      # Pre-commit hooks
 ├── .gitignore                   # Git ignore rules
-└── README.md                    # Project README
+├── .dockerignore                # Files kept out of the image (.venv, __pycache__, tests, .git)
+└── README.md                    # How to set up, test, build and run the block
+```
+
+Add optional files with `--with` (see [CLI Reference](cli-reference.md#new)):
+
+* `--with catalog` — `catalog.yaml`, to describe the block in a catalog
+* `--with conda` — `conda.yaml`, and `clay.yaml` set to build with conda (recommended for GPU blocks)
+* `--with pre-commit` — `.pre-commit-config.yaml` with ruff hooks
+
+Set up a virtual environment and install the development tools:
+
+```shell
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
 ```
 
 #### Key Files Explained
@@ -184,18 +197,6 @@ gpu: false   # Set to true for GPU blocks
 </details>
 
 <details markdown="1">
-<summary><strong>Makefile</strong> — common commands</summary>
-
-Shortcuts for frequent operations:
-
-```makefile
-make setup          # Initialize project
-make format         # Format code
-```
-
-</details>
-
-<details markdown="1">
 <summary><strong>README.md</strong> — block documentation</summary>
 
 User-facing documentation for your block. Provide a complete overview, including:
@@ -209,14 +210,13 @@ User-facing documentation for your block. Provide a complete overview, including
 
 **Where to start:**
 
-1. **Edit `src/block.py`** — Implement your block logic
+1. **Edit `my_block/block.py`** — Implement your block logic
 2. **Update `clay.yaml`** — Define inputs, outputs, and requirements
 3. **Modify `sample_block_inputs.json`** — Add realistic test data
-4. **Update `catalog.yaml`** — Document your block for the marketplace
 
 **Files you won't need to modify:**
 
-* `src/entry.py` — Clay's block entry point
+* `my_block/entry.py` — Clay's block entry point
 
 <!-- ### Python Environment Setup (Optional but Recommended)
 
@@ -249,6 +249,8 @@ Now that your project is set up, let's build and test it locally.
 * **Configure Dependencies**
 
     Update the `build.requirements` field in `clay.yaml` to specify your dependency manager file. By default, it is set to `requirements.txt`. If you use a different file like `conda.yaml`, update `build.requirements` accordingly.
+
+    Put only what the block needs at runtime in `requirements.txt`; it is installed in the image and pins the Clay version. Development tools go in `requirements-dev.txt`, which starts with `-r requirements.txt` and is never installed in the image. For local development, run `pip install -r requirements-dev.txt`.
 
     > **GPU Blocks**
     >
