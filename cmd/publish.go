@@ -24,7 +24,7 @@ func publishBlockToRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "publish",
 		Short:   "Publish the block to the Clay registry",
-		Long:    "Build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
+		Long:    "Check that the version is not already in the Clay registry, build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
 		Example: "clay publish --docker-registry registry.example.com --clay-registry https://clay.example.com",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if dockerRegistry == "" {

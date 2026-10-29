@@ -143,6 +143,12 @@ func TestVersionExists(t *testing.T) {
 		{name: "version exists", serverStatus: http.StatusOK, serverBody: `{"data":{}}`, expected: true},
 		{name: "version does not exist", serverStatus: http.StatusNotFound, serverBody: `{"error":"block with the given name and version does not exists"}`, expected: false},
 		{
+			name:          "404 from a non-registry route",
+			serverStatus:  http.StatusNotFound,
+			serverBody:    "404 page not found",
+			expectedError: "unexpected 404 from {{host}}/v1/blocks/myblock/versions/0.0.1: is --clay-registry correct?",
+		},
+		{
 			name:          "registry error",
 			serverStatus:  http.StatusInternalServerError,
 			serverBody:    `{"error":"something went wrong"}`,
@@ -166,8 +172,9 @@ func TestVersionExists(t *testing.T) {
 				t.Errorf("unexpected request: %s", gotPath)
 			}
 			if tt.expectedError != "" {
-				if err == nil || err.Error() != tt.expectedError {
-					t.Fatalf("expected error: %v, got: %v", tt.expectedError, err)
+				wantErr := strings.ReplaceAll(tt.expectedError, "{{host}}", server.URL)
+				if err == nil || err.Error() != wantErr {
+					t.Fatalf("expected error: %v, got: %v", wantErr, err)
 				}
 				return
 			}

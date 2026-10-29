@@ -29,7 +29,11 @@ func newFakeRegistry(t *testing.T, versionStatus int) (*fakeRegistry, *httptest.
 
 		if r.Method == http.MethodGet {
 			w.WriteHeader(versionStatus)
-			_, _ = w.Write([]byte(`{"data":{}}`))
+			body := `{"data":{}}`
+			if versionStatus == http.StatusNotFound {
+				body = `{"error":"block with the given name and version does not exists"}`
+			}
+			_, _ = w.Write([]byte(body))
 			return
 		}
 		w.WriteHeader(http.StatusCreated)

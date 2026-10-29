@@ -218,6 +218,10 @@ func (r *Registry) VersionExists(name, version string) (bool, error) {
 	case http.StatusOK:
 		return true, nil
 	case http.StatusNotFound:
+		var notFound RegistryResponse[any]
+		if err := json.NewDecoder(resp.Body).Decode(&notFound); err != nil || notFound.Error == "" {
+			return false, fmt.Errorf("unexpected 404 from %s: is --clay-registry correct?", url)
+		}
 		return false, nil
 	}
 
