@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"fmt"
 	"html/template"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/pixxelhq/clay/pkg/config"
 )
@@ -129,6 +131,7 @@ func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {
 
 	return buildCmd
 }
+var daemonCheckTimeout = 10 * time.Second
 
 const (
 	hintStartDocker = "make sure Docker is installed and running (start Docker Desktop, or the docker service on Linux)"
@@ -138,8 +141,11 @@ const (
 // CheckDaemon verifies that the current user can reach the Docker daemon. On
 // failure it returns ErrDaemonUnavailable with Docker's message and a hint.
 func CheckDaemon() error {
+	ctx, cancel := context.WithTimeout(context.Background(), daemonCheckTimeout)
+	defer cancel()
+
 	var stderr bytes.Buffer
-	cmd := exec.Command("docker", "version")
+	cmd := exec.CommandContext(ctx, "docker", "version")
 	cmd.Stdout = io.Discard
 	cmd.Stderr = &stderr
 
@@ -149,7 +155,9 @@ func CheckDaemon() error {
 	}
 
 	cause := strings.TrimSpace(stderr.String())
-	if cause == "" {
+	if ctx.Err() == context.DeadlineExceeded {
+		cause = fmt.Sprintf("docker did not respond within %s", daemonCheckTimeout)
+	} else if cause == "" {
 		cause = err.Error()
 	}
 	hint := hintStartDocker
@@ -207,6 +215,9 @@ func Run(image string, args []string, envVars []string, cfg *config.Config) erro
 	err := ImageExists(image)
 	if err == ErrDoesNotExists {
 		return fmt.Errorf("oops image %s does not exist. First build the image using `clay build` command to build this image", image)
+	}
+	if err != nil {
+		return fmt.Errorf("error while searching image %s: %w", image, err)
 	}
 
 	runArgs := buildDockerRunArgs(image, envVars, cfg)

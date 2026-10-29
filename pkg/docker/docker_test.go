@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pixxelhq/clay/pkg/config"
 	"github.com/stretchr/testify/assert"
@@ -149,6 +150,21 @@ func TestCheckDaemon_PermissionDenied(t *testing.T) {
 		wantHint = hintDockerGroup
 	}
 	assert.Contains(t, err.Error(), "hint: "+wantHint)
+}
+
+func TestCheckDaemon_Timeout(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "docker"), []byte("#!/bin/sh\nexec /bin/sleep 5\n"), 0755))
+	t.Setenv("PATH", dir)
+
+	old := daemonCheckTimeout
+	daemonCheckTimeout = 100 * time.Millisecond
+	t.Cleanup(func() { daemonCheckTimeout = old })
+
+	err := CheckDaemon()
+	require.ErrorIs(t, err, ErrDaemonUnavailable)
+	assert.Contains(t, err.Error(), "docker did not respond within 100ms")
+	assert.Contains(t, err.Error(), "hint: "+hintStartDocker)
 }
 
 func TestBuildCommand_RunsDockerWithoutSudo(t *testing.T) {
