@@ -1,6 +1,2 @@
-pixxel-clay
+pixxel-clay=={{.ClayVersion}}
 pixxel-datatypes
-ruff
-pyright
-pytest
-pre-commit

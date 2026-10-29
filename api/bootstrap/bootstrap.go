@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pixxelhq/clay/pkg/blockname"
@@ -21,13 +22,46 @@ const fullTemplateRoot = "templates/full"
 
 var ErrProjectDirNotEmpty = errors.New("already exists and is not empty")
 
+var ClayVersion string
+
+var Options = []string{"catalog", "conda", "pre-commit"}
+
+var optionalFiles = map[string]string{
+	"catalog.yaml":            "catalog",
+	"conda.yaml":              "conda",
+	".pre-commit-config.yaml": "pre-commit",
+}
+
+type templateData struct {
+	blockname.Names
+	ClayVersion   string
+	WithCatalog   bool
+	WithConda     bool
+	WithPreCommit bool
+}
+
 // Bootstraps a project in `outputDir` with `blockName` as a filler
 // in appropriate locations in code and configuration. `outputDir` is the
-// project folder itself.
-func CreateProject(outputDir, blockName string, force bool) error {
+// project folder itself. `with` selects the optional parts of the template
+// (see Options).
+func CreateProject(outputDir, blockName string, force bool, with []string) error {
 	names, err := blockname.Parse(blockName)
 	if err != nil {
 		return err
+	}
+	selected := map[string]bool{}
+	for _, opt := range with {
+		if !slices.Contains(Options, opt) {
+			return fmt.Errorf("unknown option %q: valid options are %s", opt, strings.Join(Options, ", "))
+		}
+		selected[opt] = true
+	}
+	data := templateData{
+		Names:         names,
+		ClayVersion:   ClayVersion,
+		WithCatalog:   selected["catalog"],
+		WithConda:     selected["conda"],
+		WithPreCommit: selected["pre-commit"],
 	}
 	if !force {
 		entries, err := os.ReadDir(outputDir)
@@ -54,6 +88,9 @@ func CreateProject(outputDir, blockName string, force bool) error {
 		if err != nil {
 			return err
 		}
+		if opt, ok := optionalFiles[relPath]; ok && !selected[opt] {
+			return nil
+		}
 		// rename the template's top-level src/ to the block package; only the
 		// template-relative path is touched, never the user's outputDir
 		outRel := relPath
@@ -74,7 +111,7 @@ func CreateProject(outputDir, blockName string, force bool) error {
 		}
 
 		if templatedFiles[relPath] {
-			if err := writeTemplateToFile(templateFS, relPath, outPath, names); err != nil {
+			if err := writeTemplateToFile(templateFS, relPath, outPath, data); err != nil {
 				return err
 			}
 		} else if err := Copy(templateFS, relPath, outPath); err != nil {
@@ -92,15 +129,17 @@ func CreateProject(outputDir, blockName string, force bool) error {
 		return err
 	}
 
-	fmt.Printf("\n[IMPORTANT] To begin, navigate to your project directory in your terminal:\n1. Based on your requirement, create a python or conda env\n\n")
-	fmt.Printf("	Use the below command to create a python virtual env:\n")
-	fmt.Print("			curl -LsSf https://astral.sh/uv/install.sh | sh\n")
-	fmt.Print("			uv venv\n")
-	fmt.Print("			source .venv/bin/activate\n\n")
-	fmt.Printf("	Use the below command to create a conda env:\n")
-	fmt.Print("			conda create -n envName python=3.9\n")
-	fmt.Print("			conda activate envName\n\n")
-	fmt.Print("2. Run `make setup` in your project directory")
+	fmt.Println("\nNext steps:")
+	cwd, cwdErr := os.Getwd()
+	absDir, absErr := filepath.Abs(outputDir)
+	if cwdErr != nil || absErr != nil || absDir != cwd {
+		fmt.Printf("  cd %s\n", outputDir)
+	}
+	fmt.Println("  python3 -m venv .venv && source .venv/bin/activate")
+	fmt.Println("  pip install -r requirements-dev.txt")
+	fmt.Println("  python tests/test_block.py   # run the block locally")
+	fmt.Println("  clay build                   # build the image")
+	fmt.Println("See README.md for more.")
 
 	return nil
 }
