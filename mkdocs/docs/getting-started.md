@@ -77,15 +77,17 @@ clay --version
 
 ### Create Project Structure
 
-Let's create a project for a block named `MyBlock`. The following command creates the project in the current directory by default. You can specify a different directory path instead of `.`
+Let's create a project for a block named `my-block`. The following command creates the project in the directory `./my-block`, and uses the last part of the path as the block name:
 
 ```shell
-clay new . MyBlock
+clay new my-block
 ```
+
+To make the current directory a block project instead, run `clay init` in it.
 
 Navigate into the project directory:
 ```shell
-cd MyBlock
+cd my-block
 ```
 
 ### Understanding the Generated Project Structure
@@ -93,8 +95,8 @@ cd MyBlock
 Clay generates a complete project scaffolding with everything you need to develop, test, and deploy your block. Here's what each file and directory does:
 
 ```
-MyBlock/
-├── src/                         # Main source code directory
+my-block/
+├── my_block/                    # Block package (the block name in snake_case)
 │   ├── block.py                 # Your block implementation (BlockWrapper)
 │   └── entry.py                 # Block entry point (don't modify)
 ├── tests/
@@ -154,7 +156,7 @@ class MyBlock(BlockWrapper):
 Defines your block's grammar and dependency requirements:
 
 ```yaml
-name: myblock
+name: my-block
 version: v0.0.1
 
 parameters:  # Setup parameters
@@ -257,7 +259,7 @@ Now that your project is set up, let's build and test it locally.
     ```shell
     clay build
     ```
-    This will create a Dockerfile if it does not exist and then build an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `myblock` and the `version` is `0.0.1`, a docker image named `myblock:0.0.1` will be created.
+    This will create a Dockerfile if it does not exist and then build an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `my-block` and the `version` is `v0.0.1`, a docker image named `my-block:v0.0.1` will be created.
 
      **Available Flags:**
 
@@ -269,7 +271,7 @@ Now that your project is set up, let's build and test it locally.
 * **Run Locally**
 
     ```shell
-    clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" myblock:0.0.1
+    clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" my-block:v0.0.1
     ```
 
     Expected output:

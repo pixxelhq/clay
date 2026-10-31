@@ -1,10 +1,14 @@
 package newproject
 
 import (
+	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/pixxelhq/clay/api/bootstrap"
 )
 
 func TestNewCmd_Metadata(t *testing.T) {
@@ -23,11 +27,11 @@ func TestNewCmd_Metadata(t *testing.T) {
 func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 	outDir := t.TempDir()
 
-	if err := runNew([]string{outDir, "weather-forecaster"}); err != nil {
+	projectRoot := filepath.Join(outDir, "weather-forecaster")
+	if err := runNew([]string{projectRoot}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 
-	projectRoot := filepath.Join(outDir, "weather-forecaster")
 	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
 		t.Errorf("expected generated clay.yaml: %v", err)
 	}
@@ -39,7 +43,7 @@ func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 func TestNewCmd_RunEPropagatesInvalidName(t *testing.T) {
 	outDir := t.TempDir()
 
-	err := runNew([]string{outDir, "bad name"})
+	err := runNew([]string{filepath.Join(outDir, "bad name")})
 	if err == nil {
 		t.Fatal("expected error for invalid block name, got nil")
 	}
@@ -55,7 +59,7 @@ func TestNewCmd_RunERejectsNonEmptyDirWithHint(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	err := runNew([]string{outDir, "weather-forecaster"})
+	err := runNew([]string{projectRoot})
 	if err == nil {
 		t.Fatal("expected error for non-empty project dir, got nil")
 	}
@@ -83,7 +87,7 @@ func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 		t.Fatalf("setting --force: %v", err)
 	}
 
-	if err := cmd.RunE(cmd, []string{outDir, "weather-forecaster"}); err != nil {
+	if err := cmd.RunE(cmd, []string{projectRoot}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 	if _, err := os.Stat(notes); err != nil {
@@ -94,8 +98,95 @@ func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 	}
 }
 
+func TestNewCmd_DeprecatedTwoArgForm(t *testing.T) {
+	outDir := t.TempDir()
+	var stderr bytes.Buffer
+	cmd := NewCmd()
+	cmd.SetErr(&stderr)
+
+	if err := cmd.RunE(cmd, []string{outDir, "WeatherForecaster"}); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(outDir, "weather-forecaster", "clay.yaml")); err != nil {
+		t.Errorf("expected project in <path>/<slug>: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "deprecated") {
+		t.Errorf("expected a deprecation warning, got %q", stderr.String())
+	}
+}
+
+func TestNewCmd_CurrentDir(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	if err := runNew([]string{"."}); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(projectRoot, "clay.yaml"))
+	if err != nil || !strings.Contains(string(data), "name: weather-forecaster") {
+		t.Errorf("expected clay.yaml named after the directory, got %q (err: %v)", data, err)
+	}
+}
+
+func TestInitCmd_ScaffoldsCurrentDir(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather_forecaster")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	if err := runInit(); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(projectRoot, "clay.yaml"))
+	if err != nil || !strings.Contains(string(data), "name: weather-forecaster") {
+		t.Errorf("expected clay.yaml named after the directory, got %q (err: %v)", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "weather_forecaster", "block.py")); err != nil {
+		t.Errorf("expected generated block.py: %v", err)
+	}
+}
+
+func TestInitCmd_RejectsNonEmptyDir(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "notes.txt"), []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	err := runInit()
+	if !errors.Is(err, bootstrap.ErrProjectDirNotEmpty) {
+		t.Fatalf("expected ErrProjectDirNotEmpty, got: %v", err)
+	}
+}
+
+// chdir changes the working directory for the rest of the test.
+func chdir(t *testing.T, dir string) {
+	t.Helper()
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(old) })
+}
+
 // runNew runs a new `clay new` command with args.
 func runNew(args []string) error {
 	cmd := NewCmd()
 	return cmd.RunE(cmd, args)
+}
+
+// runInit runs a new `clay init` command.
+func runInit() error {
+	cmd := InitCmd()
+	return cmd.RunE(cmd, nil)
 }

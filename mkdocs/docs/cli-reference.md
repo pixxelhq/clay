@@ -33,36 +33,51 @@ Commands for creating, building, and running blocks.
 
 ### New
 
-Scaffold a new block project at the given path.
+Scaffold a new block project in the directory `<path>`.
 
 ```shell
-clay new <path> <name> [flags]
+clay new <path> [flags]
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `path` | Directory where project files will be created |
-| `name` | Name of the block: letters, digits, `-` and `_` |
+| `path` | Project directory. Its last part is the block name: letters, digits, `-` and `_` |
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-f, --force` | Write the template into an existing non-empty project directory | `false` |
 
-The project is created in `<path>/<name in kebab-case>`, for example `./my-block`. If that directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+For example, `clay new my-block` creates `./my-block`, and `clay new .` makes the current directory a project. The older form `clay new <path> <name>` still works: it creates `<path>/<name in kebab-case>` and prints a deprecation warning. It will be removed in a future release.
 
-Clay derives every name from `<name>`. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
+If the project directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+
+Clay derives every name from the block name. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
 
 Words are separated by `-`, `_` or a capital letter, so `my-block`, `my_block` and `MyBlock` all give the same names:
 
 | Used for | Rule | Result |
 |----------|------|--------|
-| `clay.yaml` name, image and project folder | words joined with `-`, lower case | `my-block` |
+| `clay.yaml` name and image | words joined with `-`, lower case | `my-block` |
 | Python package folder | words joined with `_`, lower case | `my_block` |
 | Python class | each word starts with a capital | `MyBlock` |
 
 A name with no separator or capital, such as `myblock`, is one word.
 
 `clay build` finds the package folder from the `clay.yaml` name, so the project folder can have any name. If you change `name` after the project is created, keep the project folder name equal to the package folder name, or rename the package folder to match.
+
+### Init
+
+Scaffold a new block project in the current directory. The block name is the name of the current directory.
+
+```shell
+clay init [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-f, --force` | Write the template into the current directory when it is not empty | `false` |
+
+`clay init` follows the same rules as `clay new`: it stops with an error if the directory is not empty, unless you pass `--force`.
 
 ### Build
 

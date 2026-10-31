@@ -76,20 +76,20 @@ make package           # builds the Python sdist+wheel into python/dist
 
 ```bash
 # 1. Scaffold a new block
-clay new ./my-block MyBlock
+clay new my-block
 
-cd ./my-block
+cd my-block
 
 # 2. Set up a Python environment and install dependencies
 uv venv && source .venv/bin/activate
 uv pip install pixxel-clay
 
 # 3. Edit the generated spec and block code
-#    - specifications/block_specification_dev.yaml : inputs, outputs, resources
-#    - src/block.py                                : setup/preprocess/inference/postprocess
+#    - clay.yaml          : inputs, outputs, resources
+#    - my_block/block.py  : setup/preprocess/inference/postprocess
 
 # 4. Test locally
-python src/test_block.py
+python tests/test_block.py
 
 # 5. Package into a container
 clay build
@@ -101,7 +101,8 @@ Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay/getting-
 
 | Command | What it does |
 |---|---|
-| `clay new <path> <name>` | Scaffold a new block project |
+| `clay new <path>` | Scaffold a new block project in `<path>` |
+| `clay init` | Scaffold a new block project in the current directory |
 | `clay build` | Build a Docker image from `clay.yaml` (generates a `Dockerfile` if needed) |
 | `clay run <image>` | Run a block image locally |
 | `clay push <image>` | Push a block image to a Docker registry |
