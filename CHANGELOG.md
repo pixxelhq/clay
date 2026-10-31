@@ -21,6 +21,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   Docker daemon is reachable first. If it is not, they show Docker's error and
   a hint (install Docker, start it, or on Linux join the `docker` group)
   instead of `exit status 1`.
+- The Clay registry no longer logs the database connection string, which
+  included the user name and password, when it cannot reach Postgres on
+  startup. The error now shows only the database name and host. A missing or
+  wrong `DB_MIGRATION_PATH` is reported as a migrations error instead.
 
 ## v1.3.0 - 2026-10-01
 ### New Features
