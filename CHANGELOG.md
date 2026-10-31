@@ -14,6 +14,17 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   contains `src` (for example `~/src/projects`). Only the template's own `src/`
   folder is renamed to the block name; the output path is no longer searched.
   Previously it failed.
+- `clay build` no longer runs `sudo docker build`. It runs `docker` as the
+  current user, like `clay push` and `clay run`, so it works in CI and other
+  non-interactive shells and no longer leaves root-owned files in `~/.docker`.
+- `clay build`, `clay publish`, `clay push` and `clay run` check that the
+  Docker daemon is reachable first. If it is not, they show Docker's error and
+  a hint (install Docker, start it, or on Linux join the `docker` group)
+  instead of `exit status 1`.
+- The Clay registry no longer logs the database connection string, which
+  included the user name and password, when it cannot reach Postgres on
+  startup. The error now shows only the database name and host. A missing or
+  wrong `DB_MIGRATION_PATH` is reported as a migrations error instead.
 - `clay new` accepts block names with `-`, `_` and digits, so the
   `clay new --help` example runs. Names are derived from the given name:
   `my-block`, `my_block` and `MyBlock` all give `my-block` for the `clay.yaml`
