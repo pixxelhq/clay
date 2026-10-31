@@ -4,6 +4,17 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
+## Unreleased
+### Bug Fixes
+- `clay new` no longer deletes an existing project directory. If the directory
+  exists and is not empty, it stops with an error and a hint about the new
+  `--force` flag. `--force` writes the template over the directory and keeps
+  files that are not part of the template.
+- `clay new` now writes the project to the requested directory when its path
+  contains `src` (for example `~/src/projects`). Only the template's own `src/`
+  folder is renamed to the block name; the output path is no longer searched.
+  Previously it failed.
+
 ## v1.3.0 - 2026-10-01
 ### New Features
 - `DateValidation` is no longer an empty placeholder: it carries `min_date`,
