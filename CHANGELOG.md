@@ -25,6 +25,18 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   included the user name and password, when it cannot reach Postgres on
   startup. The error now shows only the database name and host. A missing or
   wrong `DB_MIGRATION_PATH` is reported as a migrations error instead.
+- `clay new` accepts block names with `-`, `_` and digits, so the
+  `clay new --help` example runs. Names are derived from the given name:
+  `my-block`, `my_block` and `MyBlock` all give `my-block` for the `clay.yaml`
+  name, the image and the project folder, `my_block` for the Python package,
+  and `MyBlock` for the class.
+  The generated `tests/test_block.py` now imports the right module; it failed
+  with `ModuleNotFoundError` for names such as `MyBlock`.
+- `clay build` no longer depends on the name of the project folder. When it
+  generates a Dockerfile, it uses the folder that holds `entry.py`, named after
+  the `clay.yaml` name or, for older projects, after the project folder. A
+  project cloned into a folder with another name builds. If neither folder
+  exists, it stops with a clear error before Docker runs.
 
 ## v1.3.0 - 2026-10-01
 ### New Features

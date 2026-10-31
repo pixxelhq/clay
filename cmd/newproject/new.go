@@ -23,7 +23,12 @@ func NewCmd() *cobra.Command {
 			Scaffold a new block project at the given path.
 
 			<path> is the output directory where the project files will be created.
-			<name> is the block name, used in clay.yaml and module scaffolding.
+			<name> is the block name: letters, digits, '-' and '_'. my-block, my_block
+			and MyBlock all give:
+
+			  clay.yaml name, image, project folder   my-block
+			  Python package folder                   my_block
+			  Python class                            MyBlock
 
 			If the project directory already exists and is not empty, clay new stops
 			with an error. Use --force to write the template files into it anyway;
