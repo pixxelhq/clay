@@ -7,7 +7,6 @@ toolchain go1.22.8
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/aws/aws-sdk-go v1.45.14
-	github.com/iancoleman/strcase v0.3.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/mod v0.17.0

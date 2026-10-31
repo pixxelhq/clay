@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pixxelhq/clay/pkg/blockname"
 	"github.com/pixxelhq/clay/pkg/config"
 	"github.com/pixxelhq/clay/pkg/docker"
 	"github.com/spf13/cobra"
@@ -76,8 +77,7 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 
 	if dockerfilePath == "" {
 		var err error
-		srcCodeDir := filepath.Base(projectDir)
-		dockerfilePath, err = getOrCreateDockerfile(srcCodeDir, cfg)
+		dockerfilePath, err = getOrCreateDockerfile(projectDir, cfg)
 		if err != nil {
 			return "", err
 		}
@@ -153,11 +153,30 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getOrCreateDockerfile(srcCodeDir string, cfg *config.Config) (string, error) {
+func packageDir(projectDir string, cfg *config.Config) (string, error) {
+	candidates := []string{filepath.Base(projectDir)}
+	if names, err := blockname.Parse(cfg.Name); err == nil {
+		candidates = append([]string{names.Module}, candidates...)
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(projectDir, c, "entry.py")); err == nil {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf("no block package in %s: expected %s/entry.py", projectDir, candidates[0])
+}
+
+func getOrCreateDockerfile(projectDir string, cfg *config.Config) (string, error) {
 	dockerfilePath, err := docker.GetDockerFile()
 	if err == docker.ErrDoesNotExists {
+		// Only a new Dockerfile needs the package folder; an existing one is
+		// used as is.
+		srcCodeDir, err := packageDir(projectDir, cfg)
+		if err != nil {
+			return "", err
+		}
 		fmt.Printf("dockerfile does not exists in the %s. Creating one... \n ", srcCodeDir)
-		dockerfilePath, err = docker.CreateDockerFile(srcCodeDir, ".", cfg)
+		return docker.CreateDockerFile(srcCodeDir, ".", cfg)
 	}
 
 	return dockerfilePath, err

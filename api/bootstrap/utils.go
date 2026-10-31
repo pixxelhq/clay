@@ -1,55 +1,20 @@
 package bootstrap
 
 import (
-	"errors"
 	"io/fs"
 	"os"
-	"strings"
 	"text/template"
-	"unicode"
-
-	"github.com/iancoleman/strcase"
 )
 
-type TemplateData interface{}
-
-type Config struct {
-	Name string
-}
-
-type Readme struct {
-	Name string
-}
-
-type BlockSpecification Readme
-
-type Entry struct {
-	BlockName string
-}
-
-type Block Entry
-
-type TestBlock Entry
-
-type Makefile Entry
-
-type PyProject Entry
-
-func isAlpha(s string) bool {
-	for _, r := range s {
-		if !unicode.IsLetter(r) {
-			return false
-		}
-	}
-	return true
-}
-
-func verifyBlockName(blockName string) error {
-	if !isAlpha(blockName) {
-		err := errors.New("Block name can only contain alphabets")
-		return err
-	}
-	return nil
+// templatedFiles are the template files rendered with the block names;
+// all other files are copied as they are.
+var templatedFiles = map[string]bool{
+	"src/block.py":        true,
+	"src/entry.py":        true,
+	"README.md":           true,
+	"tests/test_block.py": true,
+	"pyproject.toml":      true,
+	"clay.yaml":           true,
 }
 
 // Copies a file from src to dst
@@ -77,12 +42,7 @@ func readFileToString(filesystem fs.FS, filepath string) (string, error) {
 }
 
 func createTemplate(name, t string) *template.Template {
-	funcMap := template.FuncMap{
-		"ToUpper": strings.ToUpper,
-		"ToLower": strings.ToLower,
-		"ToSnake": strcase.ToSnake,
-	}
-	return template.Must(template.New(name).Funcs(funcMap).Parse(t))
+	return template.Must(template.New(name).Parse(t))
 }
 
 func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath string, data interface{}) error {
@@ -101,18 +61,4 @@ func writeTemplateToFile(filesystem fs.FS, templatePath string, outputPath strin
 		return err
 	}
 	return nil
-}
-
-func getTemplateData(titleBlockName string) map[string]TemplateData {
-	data := map[string]TemplateData{
-		"src/block.py":        Block{BlockName: titleBlockName},
-		"src/entry.py":        Entry{BlockName: titleBlockName},
-		"README.md":           Readme{Name: titleBlockName},
-		"tests/test_block.py": TestBlock{BlockName: titleBlockName},
-		"Makefile":            Makefile{BlockName: titleBlockName},
-		"tests/test_main.py":  TestBlock{BlockName: titleBlockName},
-		"pyproject.toml":      PyProject{BlockName: titleBlockName},
-		"clay.yaml":           Config{Name: titleBlockName},
-	}
-	return data
 }

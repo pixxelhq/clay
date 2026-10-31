@@ -16,10 +16,10 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pyright]
-include = ["{{.BlockName | ToSnake}}"]
+include = ["{{.Module}}"]
 exclude = ["**/node_modules", "**/.*", "*env", "**/__pycache__", "tests", "build", "dist"]
 
 [tool.pytest.ini_options]
 pythonpath = [
-  ".", "{{.BlockName | ToSnake}}"
+  ".", "{{.Module}}"
 ]

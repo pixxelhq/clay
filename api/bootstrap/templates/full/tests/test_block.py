@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from clay.runners.runner import JobRunner # noqa: E402
 
-from {{.BlockName | ToLower}}.block import {{.BlockName}} # noqa: E402
+from {{.Module}}.block import {{.Class}} # noqa: E402
 
 def main() -> None:
     specification_path = Path(__file__).parent / "../clay.yaml"
@@ -18,8 +18,8 @@ def main() -> None:
         request = f.read()
         os.environ["INPUT_JSON"] = request
     server = JobRunner(
-        "{{.BlockName}}",
-        {{.BlockName}},
+        "{{.Class}}",
+        {{.Class}},
         block_args={"config": specification_path},
         cfg_path=str(specification_path),
     )
