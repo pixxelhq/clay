@@ -52,11 +52,6 @@ func verifyBlockName(blockName string) error {
 	return nil
 }
 
-// Recursively deletes an entire directory
-func deleteDir(path string) {
-	_ = os.RemoveAll(path)
-}
-
 // Copies a file from src to dst
 func Copy(filesystem fs.FS, src string, dst string) error {
 	// Read all content of src to data, may cause OOM for a large file.

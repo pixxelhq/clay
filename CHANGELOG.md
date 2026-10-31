@@ -6,6 +6,21 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 
 ## Unreleased
 ### Bug Fixes
+- `clay new` no longer deletes an existing project directory. If the directory
+  exists and is not empty, it stops with an error and a hint about the new
+  `--force` flag. `--force` writes the template over the directory and keeps
+  files that are not part of the template.
+- `clay new` now writes the project to the requested directory when its path
+  contains `src` (for example `~/src/projects`). Only the template's own `src/`
+  folder is renamed to the block name; the output path is no longer searched.
+  Previously it failed.
+- `clay build` no longer runs `sudo docker build`. It runs `docker` as the
+  current user, like `clay push` and `clay run`, so it works in CI and other
+  non-interactive shells and no longer leaves root-owned files in `~/.docker`.
+- `clay build`, `clay publish`, `clay push` and `clay run` check that the
+  Docker daemon is reachable first. If it is not, they show Docker's error and
+  a hint (install Docker, start it, or on Linux join the `docker` group)
+  instead of `exit status 1`.
 - `clay publish` checks the Clay registry before it builds and pushes. If the
   version in `clay.yaml` is already published, it stops with an error and a
   hint to bump `version`, instead of overwriting the published image tag and
