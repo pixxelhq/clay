@@ -37,6 +37,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   the `clay.yaml` name or, for older projects, after the project folder. A
   project cloned into a folder with another name builds. If neither folder
   exists, it stops with a clear error before Docker runs.
+- `clay publish` checks the Clay registry before it builds and pushes. If the
+  version in `clay.yaml` is already published, it stops with an error and a
+  hint to bump `version`, instead of overwriting the published image tag and
+  then being rejected by the registry.
 
 ## v1.3.0 - 2026-10-01
 ### New Features
