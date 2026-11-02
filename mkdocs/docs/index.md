@@ -33,7 +33,7 @@ Clay lets you focus on defining your block while abstracting away all the engine
 
 * **Write your block** using any ML framework (PyTorch, TensorFlow, scikit-learn, etc.)
 * **Define a specification** in `clay.yaml` with inputs, outputs, and runtime requirements
-* **Build the container image** using `clay build` (a `Dockerfile` is generated automatically when none exists)
+* **Build the container image** using `clay build` (the `Dockerfile` is generated from `clay.yaml` on each build)
 * **Publish** the image and registry entry with `clay publish`
 * **Deploy anywhere** — Clay handles the runtime execution and storage abstraction
 

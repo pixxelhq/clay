@@ -102,7 +102,8 @@ Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay/getting-
 | Command | What it does |
 |---|---|
 | `clay new <path> <name>` | Scaffold a new block project |
-| `clay build` | Build a Docker image from `clay.yaml` (generates a `Dockerfile` if needed) |
+| `clay build` | Build a Docker image from `clay.yaml` (generates the `Dockerfile` on each build) |
+| `clay dockerfile` | Print the `Dockerfile` that `clay build` generates |
 | `clay run <image>` | Run a block image locally |
 | `clay push <image>` | Push a block image to a Docker registry |
 | `clay publish` | Build, push, and register a block in one command |
