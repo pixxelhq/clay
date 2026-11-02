@@ -15,9 +15,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 
 ### Bug Fixes
 - `clay build` and `clay publish` generate the Dockerfile from `clay.yaml` on
-  each build, in a temporary folder. Previously the first build wrote a `Dockerfile` into the
-  project and later builds reused it, so changes to `build:` (for example the
-  Python version or `apt-get` packages) did not reach the image. A `Dockerfile`
+  each build, in a temporary folder. Previously the first build wrote a
+  `Dockerfile` into the project and later builds reused it, so changes to
+  `build:` (for example the Python version or `apt-get` packages) did not
+  reach the image. A `Dockerfile`
   left in the project by an older Clay version is ignored with a warning; pass
   `-f Dockerfile` to build with it.
 - `clay build` writes values from `clay.yaml` into the Dockerfile as they are.
