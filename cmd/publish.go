@@ -23,8 +23,8 @@ var (
 func publishBlockToRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "publish",
-		Short:   "Publish the block to the Clay registry",
-		Long:    "Check that the version is not already in the Clay registry, build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
+		Short:   "Build, push and register the block in the Clay registry",
+		Long:    "Check that the version is not already in the Clay registry, build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.\nOf the build flags, only -f/--file is accepted; use `clay build` for --no-cache, --secret, --build-arg and --platform.",
 		Example: "clay publish --docker-registry registry.example.com --clay-registry https://clay.example.com",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if dockerRegistry == "" {

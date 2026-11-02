@@ -12,6 +12,8 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay publish` accepts `-f, --file` to build with your own Dockerfile, like
   `clay build`.
 - `clay build` and `clay publish` print the image tag before the build starts.
+- `clay build --help` and `clay publish --help` say that `build` only makes a
+  local image and `publish` also pushes it and registers the block.
 
 ### Bug Fixes
 - `clay build` and `clay publish` generate the Dockerfile from `clay.yaml` on

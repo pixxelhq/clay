@@ -66,7 +66,7 @@ A name with no separator or capital, such as `myblock`, is one word.
 
 ### Build
 
-Build a Docker image from `clay.yaml`. Clay generates the Dockerfile from `clay.yaml` on each build, so a change to `build:` changes the next image. The generated file is not written into the project.
+Build a Docker image locally from `clay.yaml`. The image stays on this machine; to push it and register the block, use [`clay publish`](#publish). Clay generates the Dockerfile from `clay.yaml` on each build, so a change to `build:` changes the next image. The generated file is not written into the project.
 
 ```shell
 clay build [flags]
@@ -124,7 +124,7 @@ clay run [IMAGE NAME] [ARG...] [flags]
 
 ### Publish
 
-Build, push image, and publish to Clay registry in one command.
+Build the image, push it to a Docker registry, and register the block in the Clay registry in one command. The image is tagged `<docker-registry>/<name>:<version>`. Of the build flags, only `-f, --file` is accepted; use `clay build` for `--no-cache`, `--secret`, `--build-arg` and `--platform`.
 
 ```shell
 clay publish [flags]
