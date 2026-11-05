@@ -26,10 +26,27 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay build` writes values from `clay.yaml` into the Dockerfile as they are.
   Previously characters such as `+` and `&` were HTML-escaped, so
   `apt-get: [g++]` gave `g&#43;&#43;` and the build failed.
+
+## v1.4.0 - 2026-11-05
+### Upgrading
+- If you ran `sudo clay build` with an earlier version, `~/.docker` may contain
+  files owned by root. Give them back to your user:
+  `sudo chown -R "$(id -u):$(id -g)" ~/.docker`.
+- `clay new` stops if the target directory exists and is not empty. Pass
+  `--force` to write the template into it.
+- `clay new` derives the `clay.yaml` name, image, project folder, Python package
+  and class from one name. See the `clay new` entry under Bug Fixes.
+- The registry fix below takes effect when you redeploy the registry. This
+  release does not publish a registry image.
+
+### New Features
+- `clay new --force` writes the template over an existing, non-empty directory
+  and keeps files that are not part of the template.
+
+### Bug Fixes
 - `clay new` no longer deletes an existing project directory. If the directory
   exists and is not empty, it stops with an error and a hint about the new
-  `--force` flag. `--force` writes the template over the directory and keeps
-  files that are not part of the template.
+  `--force` flag.
 - `clay new` now writes the project to the requested directory when its path
   contains `src` (for example `~/src/projects`). Only the template's own `src/`
   folder is renamed to the block name; the output path is no longer searched.
@@ -62,7 +79,7 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   hint to bump `version`, instead of overwriting the published image tag and
   then being rejected by the registry.
 
-## v1.3.0 - 2026-10-01
+## v1.3.0 - 2026-10-16
 ### New Features
 - `DateValidation` is no longer an empty placeholder: it carries `min_date`,
   `max_date`, and `date_format` (`date_only` or `date_time`), so blocks can bound
