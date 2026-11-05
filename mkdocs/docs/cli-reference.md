@@ -83,6 +83,8 @@ clay build [flags]
 
 If the project has a `Dockerfile` from an older Clay version, `clay build` and `clay publish` ignore it and show a warning. Delete it, or pass `-f Dockerfile` to use it.
 
+The base image depends on `build.python-version`, `build.gdal` and `build.cuda`; see [Base image](spec.md#base-image). Clay stops with an error if `python-version` is not `"3.10"`, `"3.11"` or `"3.12"`. It shows a warning, and builds, if `build.conda` is set (deprecated; use `build.cuda`) or if `gdal: true` is used with Python `"3.11"` (the image has no GDAL).
+
 ### Dockerfile
 
 Print the Dockerfile that `clay build` generates from `clay.yaml`.
@@ -121,6 +123,8 @@ clay run [IMAGE NAME] [ARG...] [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-e, --env` | Set environment variables (`KEY=VALUE` format) | — |
+
+If `gpu: true` is set in `clay.yaml`, the container runs with `--gpus all`. This needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 ### Publish
 

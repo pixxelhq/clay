@@ -1,15 +1,17 @@
-FROM mambaorg/micromamba:1-focal-cuda-11.3.1
+FROM mambaorg/micromamba:1.5.9-focal-cuda-11.3.1
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:{{ .UvVersion }} /uv /uvx /usr/local/bin/
 
-ENV PYTHONBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
 COPY {{ .DependencyFile }} .
 
-# Create the new environment named 'env' from the conda.yaml file
-RUN micromamba create --prefix /opt/conda/envs/env --file {{ .DependencyFile }} -y
+# Create the new environment named 'env' from the conda file, with the
+# Python version from clay.yaml{{ if .UseGdal }} and GDAL{{ end }}
+RUN micromamba create --prefix /opt/conda/envs/env --file {{ .DependencyFile }} -y \
+    "python={{ .PythonVersion }}"{{ if .UseGdal }} gdal{{ end }}
 
 # Set the 'env' environment as the default environment for the rest of the Dockerfile
 ENV CONDA_PREFIX=/opt/conda/envs/env
@@ -19,18 +21,22 @@ USER root
 
 RUN uv pip install --system --no-cache \
     pixxel-clay=={{ .ClayVersion }}
-    
-RUN apt-get update && \
-    apt-get install -y libgl1
 
-ENV LD_LIBRARY_PATH /usr/local/lib:/usr/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgl1{{ if .AptGetPkgs }} {{ .AptGetPkgs | join }}{{ end }} && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
 
 # NVIDIA-GPU SPECIFIC SETTINGS
 LABEL com.nvidia.volumes.needed="nvidia_driver"
-ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
 COPY {{ .SrcCodeDir }} /app
 COPY clay.yaml /
+
+# The non-root user of the micromamba image.
+USER $MAMBA_USER
 
 ENTRYPOINT ["python3", "entry.py"]
