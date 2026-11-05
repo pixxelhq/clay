@@ -250,7 +250,7 @@ Now that your project is set up, let's build and test it locally.
 
     > **GPU Blocks**
     >
-    > If your block uses GPU, update the `gpu` field to `true` in `clay.yaml`. For GPU blocks, it's recommended to use `conda.yaml` for handling dependencies. Clay utilizes conda for blocks with GPU support and ensures NVIDIA drivers are installed to enable GPU execution.
+    > If your block uses GPU, set `gpu: true` in `clay.yaml`, so that the block runs with GPUs. To build on the CUDA base image, also set `build.cuda: true` and point `build.requirements` to a `conda.yaml`; Clay creates a conda environment from it. See [build](spec.md#build).
 
 * **Build the Docker Image**
 

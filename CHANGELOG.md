@@ -14,8 +14,46 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay build` and `clay publish` print the image tag before the build starts.
 - `clay build --help` and `clay publish --help` say that `build` only makes a
   local image and `publish` also pushes it and registers the block.
+- `cuda: true` in `clay.yaml` selects the CUDA base image. The conda
+  environment is created with `python=<python-version>` (default `"3.10"`),
+  and with `gdal` if `gdal: true`. A Python version in the conda file must
+  match `python-version`. Packages in `apt-get` are now installed in the CUDA
+  image too; previously they were ignored.
+
+### Deprecations
+- `conda: true` in `clay.yaml` is an alias for `cuda: true` and prints a
+  warning. It will be removed in the next minor release.
 
 ### Bug Fixes
+- `clay build` supports `python-version` `"3.10"`, `"3.11"` and `"3.12"`, and
+  packages and the entrypoint use that Python. Previously the image was
+  Ubuntu 22.04: `"3.12"` failed, and `"3.11"` installed packages for Python
+  3.10. Other versions now stop with an error before the build starts. If
+  `python-version` is not set, Clay uses `"3.10"`.
+- The base image follows `clay.yaml`. With `gdal: false` it is the official
+  `python:<version>-slim` image. With `gdal: true` it is the OSGeo GDAL image,
+  which has GDAL and its Python bindings (`osgeo`): GDAL 3.8.5 for `"3.10"`
+  and GDAL 3.12.4 for `"3.12"`. There is no OSGeo image with Python 3.11, so
+  `gdal: true` with `"3.11"` prints a warning and uses the
+  `python:3.11-slim` image without GDAL. Previously `gdal` was
+  ignored and every image used GDAL 3.6.3. Blocks that import `osgeo` must
+  now set `gdal: true`. The `rasterio` and `fiona` wheels include their own
+  GDAL; on a `python:<version>-slim` image they need `libexpat1` in
+  `apt-get`. In the OSGeo images, `osgeo.gdal_array` (`ReadAsArray`,
+  `WriteArray`) needs `numpy<2` in `requirements`.
+- The `python:*-slim` and OSGeo images have no C compiler. If a package in
+  `requirements` must be compiled, add `build-essential` to `apt-get`.
+- The block runs as a non-root user (UID `10001`, or `mambauser` with
+  `cuda: true`). It can write to `/tmp` and its home directory, but not to
+  `/app`.
+- The image sets `PYTHONUNBUFFERED=1`, so log lines appear immediately.
+  Previously it set the misspelled `PYTHONBUFFERED`.
+- All base images and the `uv` image have pinned versions.
+- `apt-get` packages are installed without recommended packages, and the apt
+  package lists are removed in the same layer.
+- `clay run` with `gpu: true` uses only `--gpus all`. Previously it also passed
+  `--runtime nvidia`, which fails on hosts that have only the current NVIDIA
+  Container Toolkit.
 - `clay build` and `clay publish` generate the Dockerfile from `clay.yaml` on
   each build, in a temporary folder. Previously the first build wrote a
   `Dockerfile` into the project and later builds reused it, so changes to
