@@ -1,14 +1,22 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3
+FROM {{ .BaseImage }}
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:{{ .UvVersion }} /uv /uvx /usr/local/bin/
+
+ENV PYTHONUNBUFFERED=1
+{{- if .UseGdal }}
+# The Python in the GDAL image is managed by apt. Packages from requirements
+# are installed next to it, in /usr/local.
+ENV UV_BREAK_SYSTEM_PACKAGES=1
+{{- end }}
+
+RUN useradd --create-home --uid 10001 clay
 
 WORKDIR /app
-
+{{ if .AptGetPkgs }}
 RUN apt-get update && \
-    apt-get install -y python{{ .PythonVersion }} python3-pip {{ .AptGetPkgs | join }}
-
-ENV PYTHONBUFFERED 1
-
+    apt-get install -y --no-install-recommends {{ .AptGetPkgs | join }} && \
+    rm -rf /var/lib/apt/lists/*
+{{ end }}
 COPY {{ .DependencyFile }} .
 
 RUN uv pip install --system --no-cache \
@@ -17,5 +25,7 @@ RUN uv pip install --system --no-cache \
 
 COPY {{ .SrcCodeDir }} /app
 COPY clay.yaml /
+
+USER 10001
 
 ENTRYPOINT ["python3", "entry.py"]

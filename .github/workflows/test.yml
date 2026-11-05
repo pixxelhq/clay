@@ -30,6 +30,48 @@ jobs:
       - name: Test
         run: make test-go
 
+  ci-docker-build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { python-version: "3.10", gdal: true }
+          - { python-version: "3.11", gdal: false }
+          - { python-version: "3.12", gdal: true }
+          - { python-version: "3.12", gdal: false }
+    env:
+      IMAGE: example:${{ matrix.python-version }}-gdal-${{ matrix.gdal }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.22.2
+      - name: Build the CLI
+        run: go build -o clay .
+      - name: Build the example block with Python ${{ matrix.python-version }}, gdal ${{ matrix.gdal }}
+        working-directory: ./examples/raster_vector_clipper
+        run: |
+          sed -i -e 's/python-version: .*/python-version: "${{ matrix.python-version }}"/' \
+                 -e 's/gdal: .*/gdal: ${{ matrix.gdal }}/' clay.yaml
+          ../../clay build -t "$IMAGE"
+      - name: Check the user, the Python version and the imports
+        run: |
+          uid=$(docker run --rm --entrypoint id "$IMAGE" -u)
+          [[ "$uid" != "0" ]]
+          version=$(docker run --rm --entrypoint python "$IMAGE" --version)
+          echo "$version"
+          [[ "$version" == "Python ${{ matrix.python-version }}."* ]]
+          docker run --rm --entrypoint python "$IMAGE" \
+            -c "import block, clay, datatypes, rasterio"
+      - name: Check the GDAL Python bindings
+        if: matrix.gdal
+        run: |
+          docker run --rm --entrypoint python "$IMAGE" \
+            -c "from osgeo import gdal; gdal.Translate('/tmp/out.tif', gdal.GetDriverByName('MEM').Create('', 2, 2)); print(gdal.__version__)"
+      - name: Report the image size
+        run: docker image inspect "$IMAGE" --format '{{.Size}}' | numfmt --to=si
+
   ci-python-test:
     runs-on: ubuntu-22.04
     strategy:

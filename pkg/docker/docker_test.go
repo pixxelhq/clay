@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
@@ -20,7 +21,7 @@ func TestCreateDockerFileForPip(t *testing.T) {
 	// Setup
 	outputDir := t.TempDir()
 	build := &config.Build{
-		PythonVersion:  "3.8",
+		PythonVersion:  "3.11",
 		DependencyFile: "requirements.txt",
 		AptGetPkgs:     []string{"libgl1", "wget"},
 	}
@@ -38,17 +39,27 @@ func TestCreateDockerFileForPip(t *testing.T) {
 	content, err := os.ReadFile(dockerfilePath)
 	require.NoError(t, err)
 
-	targetStr := "COPY requirements.txt ."
+	targetStr := "FROM python:3.11.18-slim-trixie"
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
 
-	targetStr = "apt-get install -y python3.8 python3-pip libgl1 wget"
+	targetStr = "COPY requirements.txt ."
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
 
-	targetStr = "COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/"
+	targetStr = `ENTRYPOINT ["python3", "entry.py"]`
+	if !strings.Contains(string(content), targetStr) {
+		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
+	}
+
+	targetStr = "apt-get install -y --no-install-recommends libgl1 wget"
+	if !strings.Contains(string(content), targetStr) {
+		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
+	}
+
+	targetStr = "COPY --from=ghcr.io/astral-sh/uv:" + uvVersion + " /uv /uvx /usr/local/bin/"
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
@@ -63,10 +74,10 @@ func TestCreateDockerFileForConda(t *testing.T) {
 	// Setup
 	outputDir := t.TempDir()
 	build := &config.Build{
-		PythonVersion:  "3.8",
+		PythonVersion:  "3.11",
 		DependencyFile: "conda.yaml",
 		AptGetPkgs:     []string{"libgl1"},
-		Conda:          true,
+		Cuda:           true,
 	}
 	cfg := &config.Config{
 		Name:  "test-app",
@@ -82,7 +93,7 @@ func TestCreateDockerFileForConda(t *testing.T) {
 	content, err := os.ReadFile(dockerfilePath)
 	require.NoError(t, err)
 
-	targetStr := "FROM mambaorg/micromamba:1-focal-cuda-11.3.1"
+	targetStr := "FROM mambaorg/micromamba:1.5.9-focal-cuda-11.3.1"
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
@@ -92,7 +103,7 @@ func TestCreateDockerFileForConda(t *testing.T) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
 
-	targetStr = "COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/"
+	targetStr = "COPY --from=ghcr.io/astral-sh/uv:" + uvVersion + " /uv /uvx /usr/local/bin/"
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
@@ -187,7 +198,7 @@ func TestRenderDockerfile_WritesValuesAsIs(t *testing.T) {
 	var buf bytes.Buffer
 	require.NoError(t, RenderDockerfile(&buf, "src", cfg))
 
-	assert.Contains(t, buf.String(), `python3-pip g++ a&b <x> "quoted" 'single'`)
+	assert.Contains(t, buf.String(), `install -y --no-install-recommends g++ a&b <x> "quoted" 'single'`)
 }
 
 func TestRenderDockerfile_NoBuildSection(t *testing.T) {
@@ -195,4 +206,135 @@ func TestRenderDockerfile_NoBuildSection(t *testing.T) {
 	err := RenderDockerfile(&buf, "src", &config.Config{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no `build` section")
+}
+
+func TestRenderDockerfile_PythonVersion(t *testing.T) {
+	tests := []struct {
+		version  string
+		wantFrom string
+		wantErr  bool
+	}{
+		{version: "3.10", wantFrom: "FROM python:3.10.22-slim-trixie"},
+		{version: "3.11", wantFrom: "FROM python:3.11.18-slim-trixie"},
+		{version: "3.12", wantFrom: "FROM python:3.12.16-slim-trixie"},
+		{version: "", wantFrom: "FROM python:3.10.22-slim-trixie"},
+		{version: "3.9", wantErr: true},
+		{version: "3.13", wantErr: true},
+		{version: "3.10.14", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			cfg := &config.Config{Bulid: &config.Build{PythonVersion: tt.version, DependencyFile: "requirements.txt"}}
+
+			var buf bytes.Buffer
+			err := RenderDockerfile(&buf, "src", cfg)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "build.python-version")
+				assert.Contains(t, err.Error(), "3.10, 3.11, 3.12")
+				assert.Empty(t, buf.String())
+				return
+			}
+			require.NoError(t, err)
+			assert.True(t, strings.HasPrefix(buf.String(), tt.wantFrom+"\n"), buf.String())
+		})
+	}
+}
+
+func renderBuild(t *testing.T, build *config.Build) (string, error) {
+	t.Helper()
+	build.DependencyFile = "requirements.txt"
+	var buf bytes.Buffer
+	err := RenderDockerfile(&buf, "src", &config.Config{Bulid: build})
+	return buf.String(), err
+}
+
+func TestRenderDockerfile_Gdal(t *testing.T) {
+	tests := []struct {
+		version  string
+		wantFrom string
+	}{
+		{version: "3.10", wantFrom: "FROM ghcr.io/osgeo/gdal:ubuntu-small-3.8.5"},
+		{version: "3.12", wantFrom: "FROM ghcr.io/osgeo/gdal:ubuntu-small-3.12.4"},
+		{version: "", wantFrom: "FROM ghcr.io/osgeo/gdal:ubuntu-small-3.8.5"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			out, err := renderBuild(t, &config.Build{PythonVersion: tt.version, Gdal: true})
+			require.NoError(t, err)
+			assert.True(t, strings.HasPrefix(out, tt.wantFrom+"\n"), out)
+			assert.Contains(t, out, "UV_BREAK_SYSTEM_PACKAGES=1")
+			assert.NotContains(t, out, "apt-get")
+		})
+	}
+
+	out, err := renderBuild(t, &config.Build{PythonVersion: "3.12"})
+	require.NoError(t, err)
+	assert.NotContains(t, out, "osgeo")
+	assert.NotContains(t, out, "UV_")
+}
+
+func TestRenderDockerfile_GdalPython311(t *testing.T) {
+	var warnings bytes.Buffer
+	warnOut = &warnings
+	t.Cleanup(func() { warnOut = os.Stderr })
+
+	out, err := renderBuild(t, &config.Build{PythonVersion: "3.11", Gdal: true})
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(out, "FROM python:3.11.18-slim-trixie\n"), out)
+	assert.NotContains(t, out, "UV_")
+	assert.Contains(t, warnings.String(), "no OSGeo GDAL image has Python 3.11")
+}
+
+func TestRenderDockerfile_CudaPythonAndGdal(t *testing.T) {
+	out, err := renderBuild(t, &config.Build{PythonVersion: "3.12", Cuda: true})
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(out, "FROM mambaorg/micromamba:"), out)
+	assert.Contains(t, out, "--file requirements.txt -y \\\n    \"python=3.12\"\n")
+
+	out, err = renderBuild(t, &config.Build{PythonVersion: "3.11", Cuda: true, Gdal: true})
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(out, "FROM mambaorg/micromamba:"), out)
+	assert.Contains(t, out, "--file requirements.txt -y \\\n    \"python=3.11\" gdal\n")
+	assert.NotContains(t, out, "UV_BREAK_SYSTEM_PACKAGES")
+
+	out, err = renderBuild(t, &config.Build{Cuda: true, AptGetPkgs: []string{"wget", "g++"}})
+	require.NoError(t, err)
+	assert.Contains(t, out, "apt-get install -y --no-install-recommends libgl1 wget g++ &&")
+}
+
+func TestRenderDockerfile_NonRoot(t *testing.T) {
+	for _, build := range []*config.Build{{}, {Gdal: true}, {Cuda: true}} {
+		out, err := renderBuild(t, build)
+		require.NoError(t, err)
+		users := regexp.MustCompile(`(?m)^USER .*$`).FindAllString(out, -1)
+		require.NotEmpty(t, users, out)
+		assert.NotEqual(t, "USER root", users[len(users)-1], out)
+		assert.Contains(t, out, "ENV PYTHONUNBUFFERED=1")
+	}
+}
+
+func TestRenderDockerfile_Cuda(t *testing.T) {
+	var warnings bytes.Buffer
+	warnOut = &warnings
+	t.Cleanup(func() { warnOut = os.Stderr })
+
+	out, err := renderBuild(t, &config.Build{Cuda: true})
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(out, "FROM mambaorg/micromamba:"), out)
+	assert.Empty(t, warnings.String())
+
+	conda, err := renderBuild(t, &config.Build{Conda: true})
+	require.NoError(t, err)
+	assert.Equal(t, out, conda)
+	assert.Contains(t, warnings.String(), "build.conda is deprecated")
+	assert.Contains(t, warnings.String(), "use build.cuda instead")
+}
+
+func TestBuildDockerRunArgs_Gpu(t *testing.T) {
+	args := buildDockerRunArgs("demo:test", nil, &config.Config{Gpu: true})
+	assert.Equal(t, []string{"run", "--rm", "--gpus", "all", "demo:test"}, args)
+
+	args = buildDockerRunArgs("demo:test", nil, &config.Config{})
+	assert.Equal(t, []string{"run", "--rm", "demo:test"}, args)
 }
