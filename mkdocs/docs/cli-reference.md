@@ -66,7 +66,7 @@ A name with no separator or capital, such as `myblock`, is one word.
 
 ### Build
 
-Build a Docker image from `clay.yaml`.
+Build a Docker image locally from `clay.yaml`. The image stays on this machine; to push it and register the block, use [`clay publish`](#publish). Clay generates the Dockerfile from `clay.yaml` on each build, so a change to `build:` changes the next image. The generated file is not written into the project.
 
 ```shell
 clay build [flags]
@@ -74,12 +74,29 @@ clay build [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-t, --tag` | Build tag (format: `repository:tag`) | — |
-| `-f, --file` | Dockerfile path | — |
+| `-t, --tag` | Build tag (format: `repository:tag`) | `<name>:<version>` from `clay.yaml` |
+| `-f, --file` | Dockerfile path. Use your own Dockerfile instead of the generated one | — |
 | `--no-cache` | Disable Docker layer caching | `false` |
 | `--secret` | Secret to expose to build | — |
 | `--build-arg` | Build-time variables | — |
 | `--platform` | Target platform for build | — |
+
+If the project has a `Dockerfile` from an older Clay version, `clay build` and `clay publish` ignore it and show a warning. Delete it, or pass `-f Dockerfile` to use it.
+
+### Dockerfile
+
+Print the Dockerfile that `clay build` generates from `clay.yaml`.
+
+```shell
+clay dockerfile
+```
+
+To customize the Dockerfile, save it and build with `-f`:
+
+```shell
+clay dockerfile > Dockerfile
+clay build -f Dockerfile
+```
 
 ### Push
 
@@ -107,7 +124,7 @@ clay run [IMAGE NAME] [ARG...] [flags]
 
 ### Publish
 
-Build, push image, and publish to Clay registry in one command.
+Build the image, push it to a Docker registry, and register the block in the Clay registry in one command. The image is tagged `<docker-registry>/<name>:<version>`. Of the build flags, only `-f, --file` is accepted; use `clay build` for `--no-cache`, `--secret`, `--build-arg` and `--platform`.
 
 ```shell
 clay publish [flags]
@@ -117,6 +134,7 @@ clay publish [flags]
 |------|-------------|---------|
 | `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
 | `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `-f, --file` | Dockerfile path. Use your own Dockerfile instead of the generated one | — |
 | `--documentation-url` | Block documentation URL | — |
 | `--thumbnail-url` | Block thumbnail URL | — |
 

@@ -257,12 +257,12 @@ Now that your project is set up, let's build and test it locally.
     ```shell
     clay build
     ```
-    This will create a Dockerfile if it does not exist and then build an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `myblock` and the `version` is `0.0.1`, a docker image named `myblock:0.0.1` will be created.
+    This generates a Dockerfile from `clay.yaml` and builds an image using the `name` and `version` specified in `clay.yaml`. For example, if the `name` is `myblock` and the `version` is `0.0.1`, a docker image named `myblock:0.0.1` will be created.
 
      **Available Flags:**
 
-    - `--tag`: Provide the build tag in the format 'repository:tag'. (Default: name:tag, `name` and `tag` mentioned in the clay.yaml config)
-    - `--file`: Provide the Dockerfile path. If not provided, Clay will create one using the configuration from clay.yaml.
+    - `--tag`: Provide the build tag in the format 'repository:tag'. (Default: `<name>:<version>` from `clay.yaml`)
+    - `--file`: Provide the Dockerfile path. If not provided, Clay generates one from clay.yaml on each build. To customize it, run `clay dockerfile > Dockerfile`, edit it, and build with `clay build -f Dockerfile`.
 
 
 

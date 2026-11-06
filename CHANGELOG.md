@@ -5,6 +5,27 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+### Features
+- `clay dockerfile` prints the Dockerfile that `clay build` generates from
+  `clay.yaml`. To customize it, run `clay dockerfile > Dockerfile` and build
+  with `clay build -f Dockerfile`.
+- `clay publish` accepts `-f, --file` to build with your own Dockerfile, like
+  `clay build`.
+- `clay build` and `clay publish` print the image tag before the build starts.
+- `clay build --help` and `clay publish --help` say that `build` only makes a
+  local image and `publish` also pushes it and registers the block.
+
+### Bug Fixes
+- `clay build` and `clay publish` generate the Dockerfile from `clay.yaml` on
+  each build, in a temporary folder. Previously the first build wrote a
+  `Dockerfile` into the project and later builds reused it, so changes to
+  `build:` (for example the Python version or `apt-get` packages) did not
+  reach the image. A `Dockerfile`
+  left in the project by an older Clay version is ignored with a warning; pass
+  `-f Dockerfile` to build with it.
+- `clay build` writes values from `clay.yaml` into the Dockerfile as they are.
+  Previously characters such as `+` and `&` were HTML-escaped, so
+  `apt-get: [g++]` gave `g&#43;&#43;` and the build failed.
 
 ## v1.4.0 - 2026-11-05
 ### Upgrading

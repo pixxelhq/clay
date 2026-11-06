@@ -23,8 +23,8 @@ var (
 func publishBlockToRegistryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "publish",
-		Short:   "Publish the block to the Clay registry",
-		Long:    "Check that the version is not already in the Clay registry, build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.",
+		Short:   "Build, push and register the block in the Clay registry",
+		Long:    "Check that the version is not already in the Clay registry, build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.\nOf the build flags, only -f/--file is accepted; use `clay build` for --no-cache, --secret, --build-arg and --platform.",
 		Example: "clay publish --docker-registry registry.example.com --clay-registry https://clay.example.com",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if dockerRegistry == "" {
@@ -44,6 +44,7 @@ func publishBlockToRegistryCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&dockerRegistry, "docker-registry", "", "Docker image registry URL (env: CLAY_DOCKER_REGISTRY)")
 	cmd.Flags().StringVar(&clayRegistry, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
+	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay generates one from clay.yaml (see 'clay dockerfile').")
 	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "URL for block documentation")
 	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "URL for block thumbnail")
 	cmd.Flags().StringVar(&catalogURL, "catalog-url", "", "URL of the published catalog.yaml (see 'clay block assets upload-catalog')")
