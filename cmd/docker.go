@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ func buildDockerImageCmd() *cobra.Command {
 		RunE:    buildCmd,
 	}
 
-	cmd.Flags().StringVarP(&buildTag, "tag", "t", "", "Provide the build tag in the format 'repository:tag'. (Default: `<name>:<version>` from clay.yaml)")
+	cmd.Flags().StringVarP(&buildTag, "tag", "t", "", "Provide the build tag in the format 'repository:tag'. (Default: '<name>:<version>' from clay.yaml)")
 	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay generates one from clay.yaml on each build (see 'clay dockerfile').")
 	cmd.Flags().BoolVar(&buildNoCache, "no-cache", false, "When set to true, caching will not be used when building the image. (Default: false)")
 	cmd.Flags().StringArrayVar(&buildSecrets, "secret", []string{}, `Secret to expose to the build (format:"id=mysecret[,src=/local/secret]")`)
@@ -55,17 +56,18 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = buildImage(cwd, cfg, buildTag)
+	_, err = buildImage(cwd, cfg, buildTag, dockerfilePath)
 	return err
 }
 
 // buildImage builds the block's docker image and returns the resolved tag
 // (either the tag argument, or a "<name>:<version>" default derived from the
-// project config). Callers pass in the desired tag explicitly — the function
-// does not read or mutate the `buildTag` package-level variable — so that
-// both CLI (`clay build`) and programmatic callers (`clay publish`) behave
-// predictably.
-func buildImage(projectDir string, cfg *config.Config, tag string) (string, error) {
+// project config). dockerfilePath is the Dockerfile to build with; when empty,
+// one is generated from clay.yaml. Callers pass in the tag and Dockerfile
+// explicitly — the function does not read or mutate the `buildTag` or
+// `dockerfilePath` package-level variables — so that both CLI (`clay build`)
+// and programmatic callers (`clay publish`) behave predictably.
+func buildImage(projectDir string, cfg *config.Config, tag, dockerfilePath string) (string, error) {
 	if err := docker.CheckDaemon(); err != nil {
 		return "", err
 	}
@@ -77,7 +79,9 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 
 	dockerfile := dockerfilePath
 	if dockerfile == "" {
-		warnLegacyDockerfile(projectDir)
+		if err := checkLegacyDockerfile(projectDir); err != nil {
+			return "", err
+		}
 
 		tmpDir, err := os.MkdirTemp("", "clay-build-")
 		if err != nil {
@@ -110,14 +114,15 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 	return tag, nil
 }
 
-// warnLegacyDockerfile warns when the project has a Dockerfile that an older
-// Clay version wrote. clay build and clay publish no longer read it unless
-// -f names it.
-func warnLegacyDockerfile(projectDir string) {
+// checkLegacyDockerfile returns an error when the project has a Dockerfile,
+// for example one an older Clay version wrote and the user then edited.
+// clay build and clay publish no longer read it unless -f names it, and
+// silently building without it could publish an image that lacks its steps.
+func checkLegacyDockerfile(projectDir string) error {
 	if _, err := os.Stat(filepath.Join(projectDir, "Dockerfile")); err != nil {
-		return
+		return nil
 	}
-	fmt.Fprintln(os.Stderr, "warning: ./Dockerfile is not used. Clay generates the Dockerfile from clay.yaml on each build.\n"+
+	return errors.New("./Dockerfile is not used: Clay generates the Dockerfile from clay.yaml on each build.\n" +
 		"To build with your Dockerfile, pass `-f Dockerfile`. Otherwise, delete it.")
 }
 

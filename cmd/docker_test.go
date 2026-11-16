@@ -131,3 +131,21 @@ func TestPrintDockerfile_MatchesBuild(t *testing.T) {
 		t.Errorf("clay dockerfile output differs from the build Dockerfile\n got:\n%s\nwant:\n%s", out.String(), want)
 	}
 }
+
+func TestCheckLegacyDockerfile(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := checkLegacyDockerfile(projectDir); err != nil {
+		t.Fatalf("no Dockerfile: got error %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(projectDir, "Dockerfile"), []byte("FROM scratch\n"), 0o644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	err := checkLegacyDockerfile(projectDir)
+	if err == nil {
+		t.Fatal("leftover Dockerfile: expected an error")
+	}
+	if !strings.Contains(err.Error(), "-f Dockerfile") {
+		t.Errorf("error does not tell the user to pass -f Dockerfile: %v", err)
+	}
+}

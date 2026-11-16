@@ -81,7 +81,7 @@ clay build [flags]
 | `--build-arg` | Build-time variables | — |
 | `--platform` | Target platform for build | — |
 
-If the project has a `Dockerfile` from an older Clay version, `clay build` and `clay publish` ignore it and show a warning. Delete it, or pass `-f Dockerfile` to use it.
+If the project has a `Dockerfile` (for example from an older Clay version) and `-f` is not given, `clay build` and `clay publish` stop with an error. Pass `-f Dockerfile` to use it, or delete it to use the generated one.
 
 ### Dockerfile
 

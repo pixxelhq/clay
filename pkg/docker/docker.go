@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -61,7 +62,7 @@ func CreateDockerFile(projectDir, outputDir string, cfg *config.Config) (path st
 // clay.yaml are written as is, without escaping.
 func RenderDockerfile(w io.Writer, projectDir string, cfg *config.Config) error {
 	if cfg.Bulid == nil {
-		return fmt.Errorf("clay.yaml has no `build` section")
+		return errors.New("clay.yaml has no `build` section")
 	}
 
 	dc := &dockerFileConfig{

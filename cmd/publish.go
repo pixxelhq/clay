@@ -80,7 +80,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	// Build the docker image. Pass the fully-qualified image (including the
 	// docker registry host) as the tag so the build output is directly
 	// pushable without re-tagging.
-	builtTag, err := buildImage(cwd, cfg, image)
+	builtTag, err := buildImage(cwd, cfg, image, dockerfilePath)
 	if err != nil {
 		return err
 	}
