@@ -25,7 +25,7 @@ The typical workflow is: scaffold and build with the **CLI**, implement your blo
 
 ## Prerequisite
 * **macOS or Linux**: `clay` CLI is supported in macOS and Linux.
-* **Docker**: Docker should be [installed](https://docs.docker.com/get-docker/) in your system. It will be used to build image and create container.
+* **Docker**: Docker should be [installed](https://docs.docker.com/get-docker/) in your system. It will be used to build image and create container. `clay` runs `docker` as your user, so Docker must work without `sudo`. This is the default with Docker Desktop and rootless Docker; on Linux, add your user to the `docker` group ([post-install steps](https://docs.docker.com/engine/install/linux-postinstall/)).
 * **python**: You should have python >=3.10 installed in your system
 
 ## Install clay CLI

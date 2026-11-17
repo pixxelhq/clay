@@ -1,13 +1,18 @@
 package docker
 
 import (
+	"bytes"
+	"context"
 	_ "embed"
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/pixxelhq/clay/pkg/config"
 )
@@ -94,6 +99,14 @@ type BuildFlags struct {
 }
 
 func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
+	buildCmd := buildCommand(buildtag, dockerfilePath, bf)
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Stderr = os.Stderr
+
+	return buildCmd.Run()
+}
+
+func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {
 	args := []string{}
 	args = append(args, "build", "-t", buildtag, "-f", dockerfilePath, ".")
 
@@ -113,14 +126,45 @@ func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
 		args = append(args, "--platform", p)
 	}
 
-	env := append(os.Environ(), "DOCKER_BUILDKIT=1")
+	buildCmd := exec.Command("docker", args...)
+	buildCmd.Env = append(os.Environ(), "DOCKER_BUILDKIT=1")
 
-	buildCmd := exec.Command("sudo", append([]string{"-E", "docker"}, args...)...)
-	buildCmd.Env = env
-	buildCmd.Stdout = os.Stdout
-	buildCmd.Stderr = os.Stderr
+	return buildCmd
+}
+var daemonCheckTimeout = 10 * time.Second
 
-	return buildCmd.Run()
+const (
+	hintStartDocker = "make sure Docker is installed and running (start Docker Desktop, or the docker service on Linux)"
+	hintDockerGroup = "on Linux, add your user to the docker group: https://docs.docker.com/engine/install/linux-postinstall/"
+)
+
+// CheckDaemon verifies that the current user can reach the Docker daemon. On
+// failure it returns ErrDaemonUnavailable with Docker's message and a hint.
+func CheckDaemon() error {
+	ctx, cancel := context.WithTimeout(context.Background(), daemonCheckTimeout)
+	defer cancel()
+
+	var stderr bytes.Buffer
+	cmd := exec.CommandContext(ctx, "docker", "version")
+	cmd.Stdout = io.Discard
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		return nil
+	}
+
+	cause := strings.TrimSpace(stderr.String())
+	if ctx.Err() == context.DeadlineExceeded {
+		cause = fmt.Sprintf("docker did not respond within %s", daemonCheckTimeout)
+	} else if cause == "" {
+		cause = err.Error()
+	}
+	hint := hintStartDocker
+	if runtime.GOOS == "linux" && strings.Contains(strings.ToLower(cause), "permission denied") {
+		hint = hintDockerGroup
+	}
+	return fmt.Errorf("%w: %s\nhint: %s", ErrDaemonUnavailable, cause, hint)
 }
 
 func Push(buildtag string) error {
@@ -171,6 +215,9 @@ func Run(image string, args []string, envVars []string, cfg *config.Config) erro
 	err := ImageExists(image)
 	if err == ErrDoesNotExists {
 		return fmt.Errorf("oops image %s does not exist. First build the image using `clay build` command to build this image", image)
+	}
+	if err != nil {
+		return fmt.Errorf("error while searching image %s: %w", image, err)
 	}
 
 	runArgs := buildDockerRunArgs(image, envVars, cfg)
