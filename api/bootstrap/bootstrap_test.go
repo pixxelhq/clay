@@ -63,7 +63,7 @@ func TestCreateProject_WithOptionsAddsFiles(t *testing.T) {
 		{[]string{"catalog"}, []string{"catalog.yaml"}},
 		{[]string{"conda"}, []string{"conda.yaml"}},
 		{[]string{"pre-commit"}, []string{".pre-commit-config.yaml"}},
-		{Options, []string{"catalog.yaml", "conda.yaml", ".pre-commit-config.yaml"}},
+		{Options(), []string{"catalog.yaml", "conda.yaml", ".pre-commit-config.yaml"}},
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.with, ","), func(t *testing.T) {
@@ -155,12 +155,15 @@ func TestCreateProject_RejectsUnknownOption(t *testing.T) {
 	}
 }
 
+func TestOptions_ReturnsCopy(t *testing.T) {
+	Options()[0] = "changed"
+	if Options()[0] != "catalog" {
+		t.Error("changing the result of Options() changed the --with values")
+	}
+}
+
 // Development tools must not be in requirements.txt, which goes into the image.
 func TestCreateProject_SplitsRuntimeAndDevRequirements(t *testing.T) {
-	old := ClayVersion
-	ClayVersion = "9.8.7"
-	t.Cleanup(func() { ClayVersion = old })
-
 	projectRoot := filepath.Join(t.TempDir(), "awesome-block")
 	if err := CreateProject(projectRoot, "awesome-block", false, nil); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
@@ -175,8 +178,8 @@ func TestCreateProject_SplitsRuntimeAndDevRequirements(t *testing.T) {
 	}
 
 	runtime := read("requirements.txt")
-	if !strings.Contains(runtime, "pixxel-clay==9.8.7\n") {
-		t.Errorf("requirements.txt does not pin pixxel-clay==9.8.7:\n%s", runtime)
+	if !strings.Contains(runtime, "pixxel-clay\n") {
+		t.Errorf("requirements.txt does not list pixxel-clay without a version:\n%s", runtime)
 	}
 	for _, tool := range []string{"ruff", "pyright", "pytest", "pre-commit"} {
 		if strings.Contains(runtime, tool) {
@@ -467,7 +470,7 @@ func TestCreateProject_ReportsOverwrittenFiles(t *testing.T) {
 // paths once made the lookups miss and left the placeholders in the files.
 func TestCreateProject_RendersAllTemplates(t *testing.T) {
 	outDir := t.TempDir()
-	if err := CreateProject(filepath.Join(outDir, "awesome-block"), "awesome-block", false, Options); err != nil {
+	if err := CreateProject(filepath.Join(outDir, "awesome-block"), "awesome-block", false, Options()); err != nil {
 		t.Fatalf("CreateProject returned error: %v", err)
 	}
 	err := filepath.WalkDir(filepath.Join(outDir, "awesome-block"), func(path string, d fs.DirEntry, err error) error {

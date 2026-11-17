@@ -25,10 +25,12 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   root, the home directory, and `~/Desktop`, `~/Documents` and `~/Downloads`.
 - `clay new` and `clay init` take `--name` to set the block name when the
   directory name is not a valid block name or should not be used.
-- `clay new` splits dependencies into `requirements.txt` (runtime only, pins
-  the Clay version, installed in the image) and `requirements-dev.txt`
-  (`-r requirements.txt` plus ruff, pyright and pytest, never installed in
-  the image). It also writes a `.dockerignore` that keeps
+- `clay new` splits dependencies into `requirements.txt` (runtime only,
+  installed in the image) and `requirements-dev.txt` (`-r requirements.txt`
+  plus ruff, pyright and pytest; never installed in the image).
+  `requirements.txt` lists `pixxel-clay` without a version, so the image gets
+  the version of the CLI that builds it and a project still builds after a CLI
+  upgrade. It also writes a `.dockerignore` that keeps
   `.venv`, `__pycache__`, `tests` and `.git` out of the image.
 - `clay new` and `clay init` create a minimal project by default: `clay.yaml`,
   the requirements files, the block package, `tests/`, `README.md`,
@@ -42,6 +44,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   `.pre-commit-config.yaml` unless you ask for them with `--with`. `clay new`
   no longer suggests `curl | sh` or `make setup`, and the optional pre-commit
   config no longer installs a commit message hook.
+- If your project has a `Makefile` from an older `clay new`, delete it. Its
+  `make setup` runs `pre-commit install`, and `pre-commit` is no longer in the
+  requirements files. `clay init --force` keeps it, as it is not a template
+  file.
 
 ## v1.4.0 - 2026-11-05
 ### Upgrading

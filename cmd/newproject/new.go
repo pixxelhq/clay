@@ -132,7 +132,7 @@ func InitCmd() *cobra.Command {
 
 func addWithFlag(cmd *cobra.Command, with *[]string) {
 	cmd.Flags().StringSliceVar(with, "with", nil,
-		"add optional files: "+strings.Join(bootstrap.Options, ", ")+" (repeat or separate with commas)")
+		"add optional files: "+strings.Join(bootstrap.Options(), ", ")+" (repeat or separate with commas)")
 }
 
 func addNameFlag(cmd *cobra.Command, name *string) {

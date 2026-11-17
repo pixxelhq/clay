@@ -7,8 +7,7 @@ import (
 )
 
 // templatedFiles are the template files rendered with templateData (block
-// names, Clay version and --with options); all other files are copied as
-// they are.
+// names and --with options); all other files are copied as they are.
 var templatedFiles = map[string]bool{
 	"src/block.py":         true,
 	"src/entry.py":         true,
@@ -16,7 +15,6 @@ var templatedFiles = map[string]bool{
 	"tests/test_block.py":  true,
 	"pyproject.toml":       true,
 	"clay.yaml":            true,
-	"requirements.txt":     true,
 	"requirements-dev.txt": true,
 }
 

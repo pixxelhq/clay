@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"regexp"
 
-	"github.com/pixxelhq/clay/api/bootstrap"
 	"github.com/pixxelhq/clay/cmd"
 	"github.com/pixxelhq/clay/pkg/docker"
 )
@@ -22,6 +21,5 @@ func getSetVersion() {
 	match := re.FindStringSubmatch(versionString)
 	Version := match[1]
 	docker.ClayVersion = Version
-	bootstrap.ClayVersion = Version
 	cmd.Version = Version
 }

@@ -49,3 +49,8 @@ clay run {{.Slug}}:v0.0.1 --input "$(cat tests/sample_block_inputs.json)"
 {{- end}}
 - `requirements-dev.txt`: development tools. They are never installed in the
   image.
+
+`pixxel-clay` has no version in `requirements.txt`: the image gets the version
+of the `clay` CLI that builds it. Do not add a version there, or the build
+fails after a CLI upgrade. To use the same version locally, run
+`pip install pixxel-clay==<version>` with the version from `clay --version`.

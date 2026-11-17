@@ -1,2 +1,2 @@
-pixxel-clay=={{.ClayVersion}}
+pixxel-clay
 pixxel-datatypes

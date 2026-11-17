@@ -22,9 +22,10 @@ const fullTemplateRoot = "templates/full"
 
 var ErrProjectExists = errors.New("is already a block project (it has a clay.yaml)")
 
-var ClayVersion string
+var options = []string{"catalog", "conda", "pre-commit"}
 
-var Options = []string{"catalog", "conda", "pre-commit"}
+// Options returns the values accepted by --with.
+func Options() []string { return slices.Clone(options) }
 
 var optionalFiles = map[string]string{
 	"catalog.yaml":            "catalog",
@@ -34,7 +35,6 @@ var optionalFiles = map[string]string{
 
 type templateData struct {
 	bname.Names
-	ClayVersion   string
 	WithCatalog   bool
 	WithConda     bool
 	WithPreCommit bool
@@ -51,14 +51,13 @@ func CreateProject(outputDir, blockName string, force bool, with []string) error
 	}
 	selected := map[string]bool{}
 	for _, opt := range with {
-		if !slices.Contains(Options, opt) {
-			return fmt.Errorf("unknown option %q: valid options are %s", opt, strings.Join(Options, ", "))
+		if !slices.Contains(options, opt) {
+			return fmt.Errorf("unknown option %q: valid options are %s", opt, strings.Join(options, ", "))
 		}
 		selected[opt] = true
 	}
 	data := templateData{
 		Names:         names,
-		ClayVersion:   ClayVersion,
 		WithCatalog:   selected["catalog"],
 		WithConda:     selected["conda"],
 		WithPreCommit: selected["pre-commit"],
@@ -137,7 +136,7 @@ func CreateProject(outputDir, blockName string, force bool, with []string) error
 	cwd, cwdErr := os.Getwd()
 	absDir, absErr := filepath.Abs(outputDir)
 	if cwdErr != nil || absErr != nil || absDir != cwd {
-		fmt.Printf("  cd %s\n", outputDir)
+		fmt.Printf("  cd %q\n", outputDir)
 	}
 	fmt.Println("  python3 -m venv .venv && source .venv/bin/activate")
 	fmt.Println("  pip install -r requirements-dev.txt")

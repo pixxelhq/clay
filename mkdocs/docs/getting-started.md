@@ -250,7 +250,7 @@ Now that your project is set up, let's build and test it locally.
 
     Update the `build.requirements` field in `clay.yaml` to specify your dependency manager file. By default, it is set to `requirements.txt`. If you use a different file like `conda.yaml`, update `build.requirements` accordingly.
 
-    Put only what the block needs at runtime in `requirements.txt`; it is installed in the image and pins the Clay version. Development tools go in `requirements-dev.txt`, which starts with `-r requirements.txt` and is never installed in the image. For local development, run `pip install -r requirements-dev.txt`.
+    Put only what the block needs at runtime in `requirements.txt`; it is installed in the image. It lists `pixxel-clay` without a version, because the image gets the version of the `clay` CLI that builds it. Do not add a version there, or the build fails after a CLI upgrade. To use the same version locally, run `pip install pixxel-clay==<version>` with the version from `clay --version`. Development tools go in `requirements-dev.txt`, which starts with `-r requirements.txt` and is never installed in the image. For local development, run `pip install -r requirements-dev.txt`.
 
     > **GPU Blocks**
     >
