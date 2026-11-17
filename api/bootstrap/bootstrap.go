@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pixxelhq/clay/pkg/blockname"
+	bname "github.com/pixxelhq/clay/pkg/blockname"
 )
 
 // Embedding Templates in final build
@@ -25,7 +25,7 @@ var ErrProjectExists = errors.New("is already a block project (it has a clay.yam
 // in appropriate locations in code and configuration. `outputDir` is the
 // project folder itself.
 func CreateProject(outputDir, blockName string, force bool) error {
-	names, err := blockname.Parse(blockName)
+	names, err := bname.Parse(blockName)
 	if err != nil {
 		return err
 	}
