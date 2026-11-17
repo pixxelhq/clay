@@ -33,7 +33,7 @@ Commands for creating, building, and running blocks.
 
 ### New
 
-Scaffold a new block project in the directory `<path>`.
+Scaffold a new block project in the directory `<path>`. `<path>` must not exist or must be empty; to make a directory that already holds files a block project, use [`clay init`](#init).
 
 ```shell
 clay new <path> [flags]
@@ -41,15 +41,15 @@ clay new <path> [flags]
 
 | Argument | Description |
 |----------|-------------|
-| `path` | Project directory. Its last part is the block name: letters, digits, `-` and `_` |
+| `path` | Project directory. Its last part is the block name, unless `--name` is given |
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-f, --force` | Write the template into an existing non-empty project directory | `false` |
+| `--name` | Block name: letters, digits, `-` and `_` | last part of `path` |
 
-For example, `clay new my-block` creates `./my-block`, and `clay new .` makes the current directory a project. The older form `clay new <path> <name>` still works: it creates `<path>/<name in kebab-case>` and prints a deprecation warning. It will be removed in a future release.
+For example, `clay new my-block` creates `./my-block`, and `clay new .` makes the current directory a project when it is empty. Use `--name` when the directory name is not a valid block name, or to keep capitals that the folder name loses: `clay new resnet.v2 --name resnet-v2`. The older form `clay new <path> <name>` still works: it creates `<path>/<name in kebab-case>` and prints a deprecation warning. It will be removed in a future release.
 
-If the project directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+If the project directory already exists and holds files, `clay new` stops with an error and changes nothing. The error suggests `clay init`. `clay new` never overwrites or deletes anything.
 
 Clay derives every name from the block name. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
 
@@ -67,7 +67,7 @@ A name with no separator or capital, such as `myblock`, is one word.
 
 ### Init
 
-Scaffold a new block project in the current directory. The block name is the name of the current directory.
+Make the current directory a block project. The directory may already hold files, such as a repository with your model code. The block name is the name of the current directory, unless `--name` is given.
 
 ```shell
 clay init [flags]
@@ -75,9 +75,16 @@ clay init [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-f, --force` | Write the template into the current directory when it is not empty | `false` |
+| `--name` | Block name: letters, digits, `-` and `_` | name of the current directory |
+| `-f, --force` | Overwrite existing files with the template | `false` |
 
-`clay init` follows the same rules as `clay new`: it stops with an error if the directory is not empty, unless you pass `--force`.
+`clay init` keeps files that already exist. A file with the same name as a template file, such as `README.md` or `requirements.txt`, is not changed, and `clay init` prints `Skipped:` for it so you can merge it by hand.
+
+If the directory already has a `clay.yaml`, `clay init` stops with an error and changes nothing. With `--force`, it writes the template anyway and overwrites files with the same name as a template file. Other files, such as model weights, are always kept, and `clay init` never deletes anything.
+
+`clay init` refuses to run in the filesystem root, in your home directory, and in the `Desktop`, `Documents` and `Downloads` folders directly in it, even with `--force`. Create a folder for the project instead, for example with `clay new my-block`. Folders inside them, such as `~/Documents/my-model`, work as usual.
+
+The block name follows the same rules as in [`clay new`](#new).
 
 ### Build
 

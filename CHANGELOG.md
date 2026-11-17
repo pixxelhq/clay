@@ -11,14 +11,18 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   The older form `clay new <path> <name>` still works and prints a deprecation
   warning; it will be removed in a future release.
 - `clay init` makes the current directory a block project, named after the
-  directory. Like `clay new`, it stops if the directory is not empty, unless
-  you pass `--force`.
+  directory. The directory may already hold files: files with the same name as
+  a template file are kept and reported as `Skipped:`. It stops if the
+  directory already has a `clay.yaml`; `--force` overwrites the template files
+  in that case and keeps all other files. It refuses to run in the filesystem
+  root, the home directory, and `~/Desktop`, `~/Documents` and `~/Downloads`.
+- `clay new` and `clay init` take `--name` to set the block name when the
+  directory name is not a valid block name or should not be used.
 
 ### Bug Fixes
 - `clay new` no longer deletes an existing project directory. If the directory
-  exists and is not empty, it stops with an error and a hint about the new
-  `--force` flag. `--force` writes the template over the directory and keeps
-  files that are not part of the template.
+  already holds files, it stops with an error, changes nothing and suggests
+  `clay init`.
 - `clay new` now writes the project to the requested directory when its path
   contains `src` (for example `~/src/projects`). Only the template's own `src/`
   folder is renamed to the block name; the output path is no longer searched.

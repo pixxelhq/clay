@@ -77,13 +77,13 @@ clay --version
 
 ### Create Project Structure
 
-Let's create a project for a block named `my-block`. The following command creates the project in the directory `./my-block`, and uses the last part of the path as the block name:
+Let's create a project for a block named `my-block`. The following command creates the project in the directory `./my-block`, and uses the last part of the path as the block name (pass `--name` to choose another):
 
 ```shell
 clay new my-block
 ```
 
-To make the current directory a block project instead, run `clay init` in it.
+To make a directory that already holds files, such as a repository with your model code, a block project, run `clay init` in it instead. It keeps the files that are already there.
 
 Navigate into the project directory:
 ```shell
