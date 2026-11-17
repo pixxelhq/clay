@@ -66,6 +66,10 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 // both CLI (`clay build`) and programmatic callers (`clay publish`) behave
 // predictably.
 func buildImage(projectDir string, cfg *config.Config, tag string) (string, error) {
+	if err := docker.CheckDaemon(); err != nil {
+		return "", err
+	}
+
 	if tag == "" {
 		tag = fmt.Sprintf("%s:%s", cfg.Name, cfg.Version)
 		fmt.Printf("No build tag provided. Using `name` and `version` from clay.yaml as the build tag: %s\n", tag)
@@ -122,6 +126,10 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 	}
 	if image == "" {
 		return fmt.Errorf("no image name was provided in the arguments, and neither `name` nor `version` is set in the clay.yaml file. Please specify an image name or ensure the configuration is complete in clay.yaml")
+	}
+
+	if err := docker.CheckDaemon(); err != nil {
+		return err
 	}
 
 	fmt.Printf("🧐 Serching image %s \n", image)
@@ -206,6 +214,10 @@ func runImage(cmd *cobra.Command, args []string) error {
 
 	cfg, err := config.GetConfig(cwd)
 	if err != nil {
+		return err
+	}
+
+	if err := docker.CheckDaemon(); err != nil {
 		return err
 	}
 

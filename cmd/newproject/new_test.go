@@ -52,28 +52,6 @@ func TestNewCmd_RunEPropagatesInvalidName(t *testing.T) {
 func TestNewCmd_RunERejectsNonEmptyDirWithHint(t *testing.T) {
 	outDir := t.TempDir()
 	projectRoot := filepath.Join(outDir, "weather-forecaster")
-	if err := os.MkdirAll(projectRoot, 0755); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "notes.txt"), []byte("mine"), 0644); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-
-	err := runNew([]string{projectRoot})
-	if err == nil {
-		t.Fatal("expected error for non-empty project dir, got nil")
-	}
-	if !strings.Contains(err.Error(), "already exists and is not empty") || !strings.Contains(err.Error(), "--force") {
-		t.Errorf("expected not-empty error with --force hint, got: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); !os.IsNotExist(err) {
-		t.Errorf("expected no template files to be written, stat err: %v", err)
-	}
-}
-
-func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
-	outDir := t.TempDir()
-	projectRoot := filepath.Join(outDir, "weather-forecaster")
 	notes := filepath.Join(projectRoot, "notes.txt")
 	if err := os.MkdirAll(projectRoot, 0755); err != nil {
 		t.Fatalf("setup: %v", err)
@@ -82,53 +60,36 @@ func TestNewCmd_ForceFlagWritesIntoNonEmptyDir(t *testing.T) {
 		t.Fatalf("setup: %v", err)
 	}
 
-	cmd := NewCmd()
-	if err := cmd.Flags().Set("force", "true"); err != nil {
-		t.Fatalf("setting --force: %v", err)
+	err := runNew([]string{projectRoot})
+	if !errors.Is(err, errDirNotEmpty) || !strings.Contains(err.Error(), "clay init") {
+		t.Errorf("expected errDirNotEmpty with a clay init hint, got: %v", err)
+	}
+	entries, err := os.ReadDir(projectRoot)
+	if err != nil {
+		t.Fatalf("reading project dir: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("expected project dir to be unchanged, got %d entries", len(entries))
+	}
+}
+
+func TestNewCmd_EmptyExistingDir(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
 
-	if err := cmd.RunE(cmd, []string{projectRoot}); err != nil {
+	if err := runNew([]string{projectRoot}); err != nil {
 		t.Fatalf("RunE returned error: %v", err)
-	}
-	if _, err := os.Stat(notes); err != nil {
-		t.Errorf("expected notes.txt to be kept: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
 		t.Errorf("expected generated clay.yaml: %v", err)
 	}
 }
 
-func TestNewCmd_WithFlag(t *testing.T) {
-	for _, values := range [][]string{{"catalog,pre-commit"}, {"catalog", "pre-commit"}} {
-		projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
-		cmd := NewCmd()
-		for _, v := range values {
-			if err := cmd.Flags().Set("with", v); err != nil {
-				t.Fatalf("setting --with %s: %v", v, err)
-			}
-		}
-		if err := cmd.RunE(cmd, []string{projectRoot}); err != nil {
-			t.Fatalf("--with %v: RunE returned error: %v", values, err)
-		}
-		for _, rel := range []string{"catalog.yaml", ".pre-commit-config.yaml"} {
-			if _, err := os.Stat(filepath.Join(projectRoot, rel)); err != nil {
-				t.Errorf("--with %v: expected %s: %v", values, rel, err)
-			}
-		}
-		if _, err := os.Stat(filepath.Join(projectRoot, "conda.yaml")); !os.IsNotExist(err) {
-			t.Errorf("--with %v: expected no conda.yaml, stat err: %v", values, err)
-		}
-	}
-}
-
-func TestNewCmd_WithFlagRejectsUnknownOption(t *testing.T) {
-	cmd := NewCmd()
-	if err := cmd.Flags().Set("with", "makefile"); err != nil {
-		t.Fatalf("setting --with: %v", err)
-	}
-	err := cmd.RunE(cmd, []string{filepath.Join(t.TempDir(), "weather-forecaster")})
-	if err == nil || !strings.Contains(err.Error(), "makefile") {
-		t.Fatalf("expected an unknown option error, got: %v", err)
+func TestNewCmd_HasNoForceFlag(t *testing.T) {
+	if NewCmd().Flags().Lookup("force") != nil {
+		t.Error("clay new must not have --force; clay init handles existing directories")
 	}
 }
 
@@ -184,6 +145,228 @@ func TestInitCmd_ScaffoldsCurrentDir(t *testing.T) {
 	}
 }
 
+func TestInitCmd_ScaffoldsNonEmptyDir(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+	readme := filepath.Join(projectRoot, "README.md")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.WriteFile(readme, []byte("my readme"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	if err := runInit(); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	if data, err := os.ReadFile(readme); err != nil || string(data) != "my readme" {
+		t.Errorf("expected README.md to be kept, got %q (err: %v)", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
+		t.Errorf("expected generated clay.yaml: %v", err)
+	}
+}
+
+func TestInitCmd_ForceFlagOverwritesExistingProject(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+	notes := filepath.Join(projectRoot, "notes.txt")
+	clayYAML := filepath.Join(projectRoot, "clay.yaml")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.WriteFile(notes, []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.WriteFile(clayYAML, []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	cmd := InitCmd()
+	if err := cmd.Flags().Set("force", "true"); err != nil {
+		t.Fatalf("setting --force: %v", err)
+	}
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	if _, err := os.Stat(notes); err != nil {
+		t.Errorf("expected notes.txt to be kept: %v", err)
+	}
+	if data, err := os.ReadFile(clayYAML); err != nil || !strings.Contains(string(data), "name: weather-forecaster") {
+		t.Errorf("expected clay.yaml to be overwritten, got %q (err: %v)", data, err)
+	}
+}
+
+func TestInitCmd_RejectsExistingProject(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "clay.yaml"), []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	err := runInit()
+	if !errors.Is(err, bootstrap.ErrProjectExists) || !strings.Contains(err.Error(), "--force") {
+		t.Fatalf("expected ErrProjectExists with --force hint, got: %v", err)
+	}
+}
+
+func TestNewCmd_NameFlag(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "resnet.v2")
+	cmd := NewCmd()
+	if err := cmd.Flags().Set("name", "HTTPServer"); err != nil {
+		t.Fatalf("setting --name: %v", err)
+	}
+
+	if err := cmd.RunE(cmd, []string{projectRoot}); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(projectRoot, "clay.yaml"))
+	if err != nil || !strings.Contains(string(data), "name: httpserver") {
+		t.Errorf("expected clay.yaml named after --name, got %q (err: %v)", data, err)
+	}
+}
+
+func TestNewCmd_InvalidDirNameSuggestsNameFlag(t *testing.T) {
+	err := runNew([]string{filepath.Join(t.TempDir(), "resnet.v2")})
+	if err == nil || !strings.Contains(err.Error(), `directory name "resnet.v2"`) || !strings.Contains(err.Error(), "--name") {
+		t.Errorf("expected error naming the directory and --name, got: %v", err)
+	}
+}
+
+func TestNewCmd_DeprecatedFormWarningKeepsName(t *testing.T) {
+	outDir := t.TempDir()
+	var stderr bytes.Buffer
+	cmd := NewCmd()
+	cmd.SetErr(&stderr)
+
+	if err := cmd.RunE(cmd, []string{outDir, "HTTPServer"}); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	want := "use 'clay new " + filepath.Join(outDir, "httpserver") + " --name HTTPServer'"
+	if !strings.Contains(stderr.String(), want) {
+		t.Errorf("expected warning to contain %q, got %q", want, stderr.String())
+	}
+}
+
+func TestNewCmd_DeprecatedFormRejectsNameFlag(t *testing.T) {
+	cmd := NewCmd()
+	if err := cmd.Flags().Set("name", "other"); err != nil {
+		t.Fatalf("setting --name: %v", err)
+	}
+	if err := cmd.RunE(cmd, []string{t.TempDir(), "my-block"}); err == nil {
+		t.Fatal("expected error for --name with the deprecated form, got nil")
+	}
+}
+
+func TestInitCmd_NameFlag(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "resnet.v2")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+	cmd := InitCmd()
+	if err := cmd.Flags().Set("name", "resnet-v2"); err != nil {
+		t.Fatalf("setting --name: %v", err)
+	}
+
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "resnet_v2", "block.py")); err != nil {
+		t.Errorf("expected generated block.py: %v", err)
+	}
+}
+
+func TestInitCmd_RefusesHomeAndStandardFolders(t *testing.T) {
+	home := t.TempDir()
+	setHomeDir(t, home)
+
+	for _, dir := range []string{home, filepath.Join(home, "Desktop"), filepath.Join(home, "Documents"), filepath.Join(home, "Downloads")} {
+		t.Run(filepath.Base(dir), func(t *testing.T) {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				t.Fatalf("setup: %v", err)
+			}
+			chdir(t, dir)
+			cmd := InitCmd()
+			if err := cmd.Flags().Set("force", "true"); err != nil {
+				t.Fatalf("setting --force: %v", err)
+			}
+
+			err := cmd.RunE(cmd, nil)
+			if err == nil || !strings.Contains(err.Error(), "clay init does not use") || !strings.Contains(err.Error(), "clay new") {
+				t.Errorf("expected a refusal with a clay new hint, got: %v", err)
+			}
+			if _, err := os.Stat(filepath.Join(dir, "clay.yaml")); !os.IsNotExist(err) {
+				t.Errorf("expected no template files to be written, stat err: %v", err)
+			}
+		})
+	}
+}
+
+func TestInitCmd_AllowsFolderInsideStandardFolder(t *testing.T) {
+	home := t.TempDir()
+	setHomeDir(t, home)
+	projectRoot := filepath.Join(home, "Documents", "my-model")
+	if err := os.MkdirAll(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	if err := runInit(); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
+		t.Errorf("expected generated clay.yaml: %v", err)
+	}
+}
+
+func TestEnsureNotPersonalFolder_RefusesFilesystemRoot(t *testing.T) {
+	root, err := filepath.Abs(string(filepath.Separator))
+	if err != nil {
+		t.Fatalf("abs: %v", err)
+	}
+	if err := ensureNotPersonalFolder(root); err == nil || !strings.Contains(err.Error(), "filesystem root") {
+		t.Errorf("expected a refusal for %s, got: %v", root, err)
+	}
+}
+
+func TestNewCmd_WithFlag(t *testing.T) {
+	for _, values := range [][]string{{"catalog,pre-commit"}, {"catalog", "pre-commit"}} {
+		projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+		cmd := NewCmd()
+		for _, v := range values {
+			if err := cmd.Flags().Set("with", v); err != nil {
+				t.Fatalf("setting --with %s: %v", v, err)
+			}
+		}
+		if err := cmd.RunE(cmd, []string{projectRoot}); err != nil {
+			t.Fatalf("--with %v: RunE returned error: %v", values, err)
+		}
+		for _, rel := range []string{"catalog.yaml", ".pre-commit-config.yaml"} {
+			if _, err := os.Stat(filepath.Join(projectRoot, rel)); err != nil {
+				t.Errorf("--with %v: expected %s: %v", values, rel, err)
+			}
+		}
+		if _, err := os.Stat(filepath.Join(projectRoot, "conda.yaml")); !os.IsNotExist(err) {
+			t.Errorf("--with %v: expected no conda.yaml, stat err: %v", values, err)
+		}
+	}
+}
+
+func TestNewCmd_WithFlagRejectsUnknownOption(t *testing.T) {
+	cmd := NewCmd()
+	if err := cmd.Flags().Set("with", "makefile"); err != nil {
+		t.Fatalf("setting --with: %v", err)
+	}
+	err := cmd.RunE(cmd, []string{filepath.Join(t.TempDir(), "weather-forecaster")})
+	if err == nil || !strings.Contains(err.Error(), "makefile") {
+		t.Fatalf("expected an unknown option error, got: %v", err)
+	}
+}
+
 func TestInitCmd_WithFlag(t *testing.T) {
 	projectRoot := filepath.Join(t.TempDir(), "weather_forecaster")
 	if err := os.Mkdir(projectRoot, 0755); err != nil {
@@ -203,20 +386,10 @@ func TestInitCmd_WithFlag(t *testing.T) {
 	}
 }
 
-func TestInitCmd_RejectsNonEmptyDir(t *testing.T) {
-	projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
-	if err := os.Mkdir(projectRoot, 0755); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "notes.txt"), []byte("mine"), 0644); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-	chdir(t, projectRoot)
-
-	err := runInit()
-	if !errors.Is(err, bootstrap.ErrProjectDirNotEmpty) {
-		t.Fatalf("expected ErrProjectDirNotEmpty, got: %v", err)
-	}
+func setHomeDir(t *testing.T, home string) {
+	t.Helper()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 }
 
 // chdir changes the working directory for the rest of the test.

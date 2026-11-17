@@ -5,14 +5,26 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+### Upgrading
+- `clay new` no longer has `--force`, and it stops if the target directory
+  already holds files. To make an existing directory a block project, run
+  `clay init` in it; `clay init --force` replaces `clay new <dir> --force`.
+- `clay new <path> <name>` is deprecated. Use `clay new <path>/<name>`, or
+  `clay new <path> --name <name>`; the warning prints the exact command.
+
 ### New Features
 - `clay new <path>` creates the project in `<path>` and takes the block name
   from the last part of the path, so `clay new my-block` creates `./my-block`.
   The older form `clay new <path> <name>` still works and prints a deprecation
   warning; it will be removed in a future release.
 - `clay init` makes the current directory a block project, named after the
-  directory. Like `clay new`, it stops if the directory is not empty, unless
-  you pass `--force`.
+  directory. The directory may already hold files: files with the same name as
+  a template file are kept and reported as `Skipped:`. It stops if the
+  directory already has a `clay.yaml`; `--force` overwrites the template files
+  in that case and keeps all other files. It refuses to run in the filesystem
+  root, the home directory, and `~/Desktop`, `~/Documents` and `~/Downloads`.
+- `clay new` and `clay init` take `--name` to set the block name when the
+  directory name is not a valid block name or should not be used.
 - `clay new` splits dependencies into `requirements.txt` (runtime only, pins
   the Clay version, installed in the image) and `requirements-dev.txt`
   (`-r requirements.txt` plus ruff, pyright and pytest, never installed in
@@ -31,20 +43,46 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   no longer suggests `curl | sh` or `make setup`, and the optional pre-commit
   config no longer installs a commit message hook.
 
+## v1.4.0 - 2026-11-05
+### Upgrading
+- If you ran `sudo clay build` with an earlier version, `~/.docker` may contain
+  files owned by root. Give them back to your user:
+  `sudo chown -R "$(id -u):$(id -g)" ~/.docker`.
+- `clay new` stops if the target directory exists and is not empty. Pass
+  `--force` to write the template into it.
+- `clay new` derives the `clay.yaml` name, image, project folder, Python package
+  and class from one name. See the `clay new` entry under Bug Fixes.
+- The registry fix below takes effect when you redeploy the registry. This
+  release does not publish a registry image.
+
+### New Features
+- `clay new --force` writes the template over an existing, non-empty directory
+  and keeps files that are not part of the template.
+
 ### Bug Fixes
 - `clay new` no longer deletes an existing project directory. If the directory
   exists and is not empty, it stops with an error and a hint about the new
-  `--force` flag. `--force` writes the template over the directory and keeps
-  files that are not part of the template.
+  `--force` flag.
 - `clay new` now writes the project to the requested directory when its path
   contains `src` (for example `~/src/projects`). Only the template's own `src/`
   folder is renamed to the block name; the output path is no longer searched.
   Previously it failed.
+- `clay build` no longer runs `sudo docker build`. It runs `docker` as the
+  current user, like `clay push` and `clay run`, so it works in CI and other
+  non-interactive shells and no longer leaves root-owned files in `~/.docker`.
+- `clay build`, `clay publish`, `clay push` and `clay run` check that the
+  Docker daemon is reachable first. If it is not, they show Docker's error and
+  a hint (install Docker, start it, or on Linux join the `docker` group)
+  instead of `exit status 1`.
+- The Clay registry no longer logs the database connection string, which
+  included the user name and password, when it cannot reach Postgres on
+  startup. The error now shows only the database name and host. A missing or
+  wrong `DB_MIGRATION_PATH` is reported as a migrations error instead.
 - `clay new` accepts block names with `-`, `_` and digits, so the
   `clay new --help` example runs. Names are derived from the given name:
   `my-block`, `my_block` and `MyBlock` all give `my-block` for the `clay.yaml`
-  name and the image, `my_block` for the Python package, and `MyBlock` for the
-  class.
+  name, the image and the project folder, `my_block` for the Python package,
+  and `MyBlock` for the class.
   The generated `tests/test_block.py` now imports the right module; it failed
   with `ModuleNotFoundError` for names such as `MyBlock`.
 - `clay build` no longer depends on the name of the project folder. When it
@@ -52,8 +90,12 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   the `clay.yaml` name or, for older projects, after the project folder. A
   project cloned into a folder with another name builds. If neither folder
   exists, it stops with a clear error before Docker runs.
+- `clay publish` checks the Clay registry before it builds and pushes. If the
+  version in `clay.yaml` is already published, it stops with an error and a
+  hint to bump `version`, instead of overwriting the published image tag and
+  then being rejected by the registry.
 
-## v1.3.0 - 2026-10-01
+## v1.3.0 - 2026-10-16
 ### New Features
 - `DateValidation` is no longer an empty placeholder: it carries `min_date`,
   `max_date`, and `date_format` (`date_only` or `date_time`), so blocks can bound

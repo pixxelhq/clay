@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pixxelhq/clay/pkg/blockname"
+	bname "github.com/pixxelhq/clay/pkg/blockname"
 )
 
 // Embedding Templates in final build
@@ -20,7 +20,7 @@ var fullTemplate embed.FS
 
 const fullTemplateRoot = "templates/full"
 
-var ErrProjectDirNotEmpty = errors.New("already exists and is not empty")
+var ErrProjectExists = errors.New("is already a block project (it has a clay.yaml)")
 
 var ClayVersion string
 
@@ -33,7 +33,7 @@ var optionalFiles = map[string]string{
 }
 
 type templateData struct {
-	blockname.Names
+	bname.Names
 	ClayVersion   string
 	WithCatalog   bool
 	WithConda     bool
@@ -45,7 +45,7 @@ type templateData struct {
 // project folder itself. `with` selects the optional parts of the template
 // (see Options).
 func CreateProject(outputDir, blockName string, force bool, with []string) error {
-	names, err := blockname.Parse(blockName)
+	names, err := bname.Parse(blockName)
 	if err != nil {
 		return err
 	}
@@ -64,12 +64,12 @@ func CreateProject(outputDir, blockName string, force bool, with []string) error
 		WithPreCommit: selected["pre-commit"],
 	}
 	if !force {
-		entries, err := os.ReadDir(outputDir)
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return err
+		_, err := os.Stat(filepath.Join(outputDir, "clay.yaml"))
+		if err == nil {
+			return fmt.Errorf("%s %w", outputDir, ErrProjectExists)
 		}
-		if len(entries) > 0 {
-			return fmt.Errorf("%s %w", outputDir, ErrProjectDirNotEmpty)
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
 		}
 	}
 	// Create the output directory if it doesn't exist
@@ -107,6 +107,10 @@ func CreateProject(outputDir, blockName string, force bool, with []string) error
 			if !existed {
 				fmt.Println("Created:", outPath)
 			}
+			return nil
+		}
+		if existed && !force {
+			fmt.Println("Skipped:", outPath, "(already exists)")
 			return nil
 		}
 

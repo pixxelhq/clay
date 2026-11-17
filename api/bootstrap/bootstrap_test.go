@@ -251,24 +251,55 @@ func writeLeftover(t *testing.T, outDir string) string {
 	return existing
 }
 
-func TestCreateProject_RejectsNonEmptyProjectDir(t *testing.T) {
+func TestCreateProject_KeepsExistingFilesInNonEmptyDir(t *testing.T) {
 	outDir := t.TempDir()
 	existing := writeLeftover(t, outDir)
-
-	err := CreateProject(filepath.Join(outDir, "awesome-block"), "awesome-block", false, nil)
-	if !errors.Is(err, ErrProjectDirNotEmpty) {
-		t.Fatalf("expected ErrProjectDirNotEmpty, got: %v", err)
+	projectRoot := filepath.Join(outDir, "awesome-block")
+	readme := filepath.Join(projectRoot, "README.md")
+	if err := os.WriteFile(readme, []byte("my readme"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
 	}
 
-	entries, err := os.ReadDir(filepath.Dir(existing))
+	var err error
+	out := captureStdout(t, func() { err = CreateProject(projectRoot, "awesome-block", false, nil) })
+	if err != nil {
+		t.Fatalf("CreateProject returned error: %v", err)
+	}
+	if data, err := os.ReadFile(existing); err != nil || string(data) != "keep me" {
+		t.Errorf("expected leftover file to be kept, got %q (err: %v)", data, err)
+	}
+	if data, err := os.ReadFile(readme); err != nil || string(data) != "my readme" {
+		t.Errorf("expected README.md to be kept, got %q (err: %v)", data, err)
+	}
+	if !strings.Contains(out, "Skipped: "+readme+" (already exists)\n") {
+		t.Errorf("expected Skipped: for README.md, got:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
+		t.Errorf("expected generated clay.yaml: %v", err)
+	}
+}
+
+func TestCreateProject_RejectsExistingProject(t *testing.T) {
+	outDir := t.TempDir()
+	projectRoot := filepath.Join(outDir, "awesome-block")
+	if err := os.MkdirAll(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	clayYAML := filepath.Join(projectRoot, "clay.yaml")
+	if err := os.WriteFile(clayYAML, []byte("mine"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	err := CreateProject(projectRoot, "awesome-block", false, nil)
+	if !errors.Is(err, ErrProjectExists) {
+		t.Fatalf("expected ErrProjectExists, got: %v", err)
+	}
+	entries, err := os.ReadDir(projectRoot)
 	if err != nil {
 		t.Fatalf("reading project dir: %v", err)
 	}
-	if len(entries) != 1 || entries[0].Name() != "leftover.txt" {
+	if len(entries) != 1 {
 		t.Errorf("expected project dir to be unchanged, got %d entries", len(entries))
-	}
-	if data, err := os.ReadFile(existing); err != nil || string(data) != "keep me" {
-		t.Errorf("expected leftover file to be unchanged, got %q (err: %v)", data, err)
 	}
 }
 

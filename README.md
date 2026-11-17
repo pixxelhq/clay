@@ -101,8 +101,8 @@ Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay/getting-
 
 | Command | What it does |
 |---|---|
-| `clay new <path>` | Scaffold a new block project in `<path>` |
-| `clay init` | Scaffold a new block project in the current directory |
+| `clay new <path>` | Scaffold a new block project in `<path>`, which must not exist or be empty |
+| `clay init` | Make the current directory a block project, keeping the files already in it |
 | `clay build` | Build a Docker image from `clay.yaml` (generates a `Dockerfile` if needed) |
 | `clay run <image>` | Run a block image locally |
 | `clay push <image>` | Push a block image to a Docker registry |

@@ -2,8 +2,10 @@ package http
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	llog "log"
+	"net"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -16,7 +18,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/lib/pq"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -63,18 +67,34 @@ func (svr *Server) InitLogger() error {
 	return log.InitLogger(svr.Cfg.LogLevel)
 }
 
+func (svr *Server) dsn() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", svr.Cfg.DBUserName, svr.Cfg.DBPassword, svr.Cfg.DBHost, svr.Cfg.DBPort, svr.Cfg.DBName)
+}
+
+func (svr *Server) dbConnError(err error) error {
+	var (
+		opErr *net.OpError
+		pqErr *pq.Error
+	)
+	reason := "unknown error"
+	switch {
+	case errors.As(err, &pqErr):
+		reason = pqErr.Code.Name()
+	case errors.As(err, &opErr):
+		reason = opErr.Err.Error()
+	}
+	return fmt.Errorf("cannot connect to database %q on host %q: %s", svr.Cfg.DBName, svr.Cfg.DBHost, reason)
+}
+
 func (svr *Server) ConfigureStore() error {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", svr.Cfg.DBUserName, svr.Cfg.DBPassword, svr.Cfg.DBHost, svr.Cfg.DBPort, svr.Cfg.DBName)
-	conn, err := sql.Open("postgres", dsn)
+	conn, err := sql.Open("postgres", svr.dsn())
 	if err != nil {
-		log.Error("error connecting to database")
-		return err
+		return svr.dbConnError(err)
 	}
 
 	err = conn.Ping()
 	if err != nil {
-		log.Error(err)
-		return err
+		return svr.dbConnError(err)
 	}
 
 	svr.Store = store.NewStore(conn)
@@ -82,10 +102,14 @@ func (svr *Server) ConfigureStore() error {
 }
 
 func (svr *Server) RunMigration() error {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", svr.Cfg.DBUserName, svr.Cfg.DBPassword, svr.Cfg.DBHost, svr.Cfg.DBPort, svr.Cfg.DBName)
-	m, err := migrate.New(svr.Cfg.DBMigrationPath, dsn)
+	src, err := source.Open(svr.Cfg.DBMigrationPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load migrations from %s: %w", svr.Cfg.DBMigrationPath, err)
+	}
+
+	m, err := migrate.NewWithSourceInstance("file", src, svr.dsn())
+	if err != nil {
+		return svr.dbConnError(err)
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
