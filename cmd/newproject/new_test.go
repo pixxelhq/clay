@@ -333,6 +333,59 @@ func TestEnsureNotPersonalFolder_RefusesFilesystemRoot(t *testing.T) {
 	}
 }
 
+func TestNewCmd_WithFlag(t *testing.T) {
+	for _, values := range [][]string{{"catalog,pre-commit"}, {"catalog", "pre-commit"}} {
+		projectRoot := filepath.Join(t.TempDir(), "weather-forecaster")
+		cmd := NewCmd()
+		for _, v := range values {
+			if err := cmd.Flags().Set("with", v); err != nil {
+				t.Fatalf("setting --with %s: %v", v, err)
+			}
+		}
+		if err := cmd.RunE(cmd, []string{projectRoot}); err != nil {
+			t.Fatalf("--with %v: RunE returned error: %v", values, err)
+		}
+		for _, rel := range []string{"catalog.yaml", ".pre-commit-config.yaml"} {
+			if _, err := os.Stat(filepath.Join(projectRoot, rel)); err != nil {
+				t.Errorf("--with %v: expected %s: %v", values, rel, err)
+			}
+		}
+		if _, err := os.Stat(filepath.Join(projectRoot, "conda.yaml")); !os.IsNotExist(err) {
+			t.Errorf("--with %v: expected no conda.yaml, stat err: %v", values, err)
+		}
+	}
+}
+
+func TestNewCmd_WithFlagRejectsUnknownOption(t *testing.T) {
+	cmd := NewCmd()
+	if err := cmd.Flags().Set("with", "makefile"); err != nil {
+		t.Fatalf("setting --with: %v", err)
+	}
+	err := cmd.RunE(cmd, []string{filepath.Join(t.TempDir(), "weather-forecaster")})
+	if err == nil || !strings.Contains(err.Error(), "makefile") {
+		t.Fatalf("expected an unknown option error, got: %v", err)
+	}
+}
+
+func TestInitCmd_WithFlag(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "weather_forecaster")
+	if err := os.Mkdir(projectRoot, 0755); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	chdir(t, projectRoot)
+
+	cmd := InitCmd()
+	if err := cmd.Flags().Set("with", "conda"); err != nil {
+		t.Fatalf("setting --with: %v", err)
+	}
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("RunE returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "conda.yaml")); err != nil {
+		t.Errorf("expected conda.yaml: %v", err)
+	}
+}
+
 func setHomeDir(t *testing.T, home string) {
 	t.Helper()
 	t.Setenv("HOME", home)

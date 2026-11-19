@@ -82,7 +82,7 @@ cd my-block
 
 # 2. Set up a Python environment and install dependencies
 uv venv && source .venv/bin/activate
-uv pip install pixxel-clay
+uv pip install -r requirements-dev.txt
 
 # 3. Edit the generated spec and block code
 #    - clay.yaml          : inputs, outputs, resources

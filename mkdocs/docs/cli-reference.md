@@ -46,10 +46,21 @@ clay new <path> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--name` | Block name: letters, digits, `-` and `_` | last part of `path` |
+| `--with` | Add optional files: `catalog`, `conda`, `pre-commit`. Repeat the flag or separate values with commas | — |
 
 For example, `clay new my-block` creates `./my-block`, and `clay new .` makes the current directory a project when it is empty. Use `--name` when the directory name is not a valid block name, or to keep capitals that the folder name loses: `clay new resnet.v2 --name resnet-v2`. The older form `clay new <path> <name>` still works: it creates `<path>/<name in kebab-case>` and prints a deprecation warning. It will be removed in a future release.
 
 If the project directory already exists and holds files, `clay new` stops with an error and changes nothing. The error suggests `clay init`. `clay new` never overwrites or deletes anything.
+
+The project contains only the files every block needs: `clay.yaml`, `requirements.txt`, `requirements-dev.txt`, the block package, `tests/`, `README.md`, `pyproject.toml`, `.gitignore` and `.dockerignore`. `clay new` does not run `git init`, install git hooks or download tools. Use `--with` to add more files:
+
+| Option | Adds |
+|--------|------|
+| `catalog` | `catalog.yaml`, to describe the block in a catalog (see [Block Assets](block-assets.md)) |
+| `conda` | `conda.yaml`, and sets `build.conda: true` and `build.requirements: conda.yaml` in `clay.yaml` |
+| `pre-commit` | `.pre-commit-config.yaml` with ruff hooks, and `pre-commit` in `requirements-dev.txt`. Run `pre-commit install` to install the hooks |
+
+For example, `clay new my-block --with catalog,conda`.
 
 Clay derives every name from the block name. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
 
@@ -76,6 +87,7 @@ clay init [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--name` | Block name: letters, digits, `-` and `_` | name of the current directory |
+| `--with` | Add optional files: `catalog`, `conda`, `pre-commit`, as with `clay new` | — |
 | `-f, --force` | Overwrite existing files with the template | `false` |
 
 `clay init` keeps files that already exist. A file with the same name as a template file, such as `README.md` or `requirements.txt`, is not changed, and `clay init` prints `Skipped:` for it so you can merge it by hand.

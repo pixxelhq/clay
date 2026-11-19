@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/pixxelhq/clay/api/bootstrap"
@@ -24,6 +25,7 @@ var personalHomeFolders = []string{"Desktop", "Documents", "Downloads"}
 // empty directory.
 func NewCmd() *cobra.Command {
 	var name string
+	var with []string
 	cmd := &cobra.Command{
 		Use:   "new <path>",
 		Short: "Scaffold a new block project",
@@ -41,11 +43,19 @@ func NewCmd() *cobra.Command {
 			The directory must not exist or must be empty. If it already holds files,
 			clay new stops with an error and changes nothing; run clay init in the
 			directory to make it a block project.
+
+			The project contains only the files every block needs. Use --with to
+			add more:
+
+			  catalog      catalog.yaml, to describe the block in a catalog
+			  conda        conda.yaml, and clay.yaml set to build with conda
+			  pre-commit   .pre-commit-config.yaml, and pre-commit in requirements-dev.txt
 		`),
 		Example: heredoc.Doc(`
 			clay new my-block                # creates ./my-block
 			clay new ~/blocks/weather-model  # creates ~/blocks/weather-model
 			clay new resnet.v2 --name resnet-v2
+			clay new my-block --with catalog,conda
 		`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -53,7 +63,7 @@ func NewCmd() *cobra.Command {
 				if name != "" {
 					return errors.New("--name cannot be used with the deprecated form 'clay new <path> <name>'")
 				}
-				return newProjectFromDeprecatedForm(cmd, args[0], args[1])
+				return newProjectFromDeprecatedForm(cmd, args[0], args[1], with)
 			}
 			absDir, err := filepath.Abs(args[0])
 			if err != nil {
@@ -63,10 +73,11 @@ func NewCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return newProject(args[0], blockName)
+			return newProject(args[0], blockName, with)
 		},
 	}
 	addNameFlag(cmd, &name)
+	addWithFlag(cmd, &with)
 	return cmd
 }
 
@@ -75,6 +86,7 @@ func NewCmd() *cobra.Command {
 func InitCmd() *cobra.Command {
 	var force bool
 	var name string
+	var with []string
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Make the current directory a block project",
@@ -89,6 +101,8 @@ func InitCmd() *cobra.Command {
 
 			clay init does not run in the filesystem root, the home folder, or the
 			Desktop, Documents and Downloads folders in it, even with --force.
+
+			Use --with to add optional files, as with clay new.
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -103,7 +117,7 @@ func InitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = bootstrap.CreateProject(cwd, blockName, force)
+			err = bootstrap.CreateProject(cwd, blockName, force, with)
 			if errors.Is(err, bootstrap.ErrProjectExists) {
 				return fmt.Errorf("%w\nhint: use --force to overwrite its files with the template", err)
 			}
@@ -112,14 +126,20 @@ func InitCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "overwrite existing files with the template")
 	addNameFlag(cmd, &name)
+	addWithFlag(cmd, &with)
 	return cmd
+}
+
+func addWithFlag(cmd *cobra.Command, with *[]string) {
+	cmd.Flags().StringSliceVar(with, "with", nil,
+		"add optional files: "+strings.Join(bootstrap.Options(), ", ")+" (repeat or separate with commas)")
 }
 
 func addNameFlag(cmd *cobra.Command, name *string) {
 	cmd.Flags().StringVar(name, "name", "", "block name (default: the name of the project directory)")
 }
 
-func newProjectFromDeprecatedForm(cmd *cobra.Command, parentDir, blockName string) error {
+func newProjectFromDeprecatedForm(cmd *cobra.Command, parentDir, blockName string, with []string) error {
 	names, err := bname.Parse(blockName)
 	if err != nil {
 		return err
@@ -132,10 +152,10 @@ func newProjectFromDeprecatedForm(cmd *cobra.Command, parentDir, blockName strin
 	fmt.Fprintf(cmd.ErrOrStderr(),
 		"warning: 'clay new <path> <name>' is deprecated and will be removed in a future release; use '%s'\n",
 		replacementCommand)
-	return newProject(projectDir, blockName)
+	return newProject(projectDir, blockName, with)
 }
 
-func newProject(projectDir, blockName string) error {
+func newProject(projectDir, blockName string, with []string) error {
 	entries, err := os.ReadDir(projectDir)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
@@ -143,7 +163,7 @@ func newProject(projectDir, blockName string) error {
 	if len(entries) > 0 {
 		return fmt.Errorf("%s %w\nhint: to make it a block project, run 'clay init' in it", projectDir, errDirNotEmpty)
 	}
-	return bootstrap.CreateProject(projectDir, blockName, false)
+	return bootstrap.CreateProject(projectDir, blockName, false, with)
 }
 
 func resolveBlockName(dir, nameFlag string) (string, error) {
