@@ -5,6 +5,26 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+### Upgrading
+- `clay new` no longer has `--force`, and it stops if the target directory
+  already holds files. To make an existing directory a block project, run
+  `clay init` in it; `clay init --force` replaces `clay new <dir> --force`.
+- `clay new <path> <name>` is deprecated. Use `clay new <path>/<name>`, or
+  `clay new <path> --name <name>`; the warning prints the exact command.
+
+### New Features
+- `clay new <path>` creates the project in `<path>` and takes the block name
+  from the last part of the path, so `clay new my-block` creates `./my-block`.
+  The older form `clay new <path> <name>` still works and prints a deprecation
+  warning; it will be removed in a future release.
+- `clay init` makes the current directory a block project, named after the
+  directory. The directory may already hold files: files with the same name as
+  a template file are kept and reported as `Skipped:`. It stops if the
+  directory already has a `clay.yaml`; `--force` overwrites the template files
+  in that case and keeps all other files. It refuses to run in the filesystem
+  root, the home directory, and `~/Desktop`, `~/Documents` and `~/Downloads`.
+- `clay new` and `clay init` take `--name` to set the block name when the
+  directory name is not a valid block name or should not be used.
 
 ## v1.4.0 - 2026-11-05
 ### Upgrading
