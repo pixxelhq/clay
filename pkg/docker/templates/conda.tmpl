@@ -30,7 +30,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends libgl1{{ if .AptGetPkgs }} {{ .AptGetPkgs | join }}{{ end }} && \
     rm -rf /var/lib/apt/lists/*
 
-ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/usr/lib/x86_64-linux-gnu
 
 # NVIDIA-GPU SPECIFIC SETTINGS
 LABEL com.nvidia.volumes.needed="nvidia_driver"
