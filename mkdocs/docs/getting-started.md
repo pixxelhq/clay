@@ -250,7 +250,7 @@ Now that your project is set up, let's build and test it locally.
 
     > **GPU Blocks**
     >
-    > If your block uses GPU, set `gpu: true` in `clay.yaml`, so that the block runs with GPUs. To build on the CUDA base image, also set `build.cuda: true` and point `build.requirements` to a `conda.yaml`; Clay creates a conda environment from it. See [build](spec.md#build).
+    > If your block uses GPU, set `gpu: true` in `clay.yaml`, so that the block runs with GPUs. To install packages with conda instead of pip, set `build.conda: true` and point `build.requirements` to a `conda.yaml`; Clay creates a conda environment from it. See [build](spec.md#build).
 
 * **Build the Docker Image**
 

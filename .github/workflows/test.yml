@@ -59,6 +59,7 @@ jobs:
         run: |
           uid=$(docker run --rm --entrypoint id "$IMAGE" -u)
           [[ "$uid" != "0" ]]
+          docker run --rm --entrypoint sh "$IMAGE" -c "mkdir -p /app/model/models && touch /app/model/models/x"
           version=$(docker run --rm --entrypoint python "$IMAGE" --version)
           echo "$version"
           [[ "$version" == "Python ${{ matrix.python-version }}."* ]]

@@ -83,7 +83,7 @@ clay build [flags]
 
 If `-f` is not given and the project has a `Dockerfile` (for example from an older Clay version), `clay build` and `clay publish` build with it. Changes to `build:` in `clay.yaml` do not apply to it; delete it to use the generated one.
 
-The base image depends on `build.python-version`, `build.gdal` and `build.cuda`; see [Base image](spec.md#base-image). Clay stops with an error if `python-version` is not `"3.10"`, `"3.11"` or `"3.12"`. It shows a warning, and builds, if `build.conda` is set (deprecated; use `build.cuda`) or if `gdal: true` is used with Python `"3.11"` (the image has no GDAL).
+The base image depends on `build.python-version`, `build.gdal` and `build.conda`; see [Base image](spec.md#base-image). Clay stops with an error if `python-version` is not `"3.10"`, `"3.11"` or `"3.12"`, or if `gdal: true` is used with Python `"3.11"` without `conda: true` (there is no OSGeo GDAL image for it; the error lists the fixes).
 
 ### Dockerfile
 

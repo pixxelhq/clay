@@ -14,15 +14,15 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay build` and `clay publish` print the image tag before the build starts.
 - `clay build --help` and `clay publish --help` say that `build` only makes a
   local image and `publish` also pushes it and registers the block.
-- `cuda: true` in `clay.yaml` selects the CUDA base image. The conda
-  environment is created with `python=<python-version>` (default `"3.10"`),
-  and with `gdal` if `gdal: true`. A Python version in the conda file must
-  match `python-version`. Packages in `apt-get` are now installed in the CUDA
+- With `conda: true` in `clay.yaml`, the conda environment is created with
+  `python=<python-version>` (default `"3.10"`), and with `gdal` if
+  `gdal: true`. A Python version in the conda file must match
+  `python-version`. Packages in `apt-get` are now installed in the conda
   image too; previously they were ignored.
-
-### Deprecations
-- `conda: true` in `clay.yaml` is an alias for `cuda: true` and prints a
-  warning. It will be removed in the next minor release.
+- The conda base image is `mambaorg/micromamba:1.5.9` (Debian 12), without
+  CUDA. Previously it was the CUDA 11.3 image. Blocks that need CUDA install
+  it from conda (for example `pytorch-cuda`); `gpu: true` runs the block with
+  GPUs.
 
 ### Bug Fixes
 - `clay build` supports `python-version` `"3.10"`, `"3.11"` and `"3.12"`, and
@@ -34,8 +34,8 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   `python:<version>-slim` image. With `gdal: true` it is the OSGeo GDAL image,
   which has GDAL and its Python bindings (`osgeo`): GDAL 3.8.5 for `"3.10"`
   and GDAL 3.12.4 for `"3.12"`. There is no OSGeo image with Python 3.11, so
-  `gdal: true` with `"3.11"` prints a warning and uses the
-  `python:3.11-slim` image without GDAL. Previously `gdal` was
+  `gdal: true` with `"3.11"` stops with an error before the build;
+  set `conda: true` to get GDAL from conda with Python 3.11. Previously `gdal` was
   ignored and every image used GDAL 3.6.3. Blocks that import `osgeo` must
   now set `gdal: true`. The `rasterio` and `fiona` wheels include their own
   GDAL; on a `python:<version>-slim` image they need `libexpat1` in
@@ -44,8 +44,8 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - The `python:*-slim` and OSGeo images have no C compiler. If a package in
   `requirements` must be compiled, add `build-essential` to `apt-get`.
 - The block runs as a non-root user (UID `10001`, or `mambauser` with
-  `cuda: true`). It can write to `/tmp` and its home directory, but not to
-  `/app`.
+  `conda: true`). It owns `/app`, so it can write there, in `/tmp` and in
+  its home directory.
 - The image sets `PYTHONUNBUFFERED=1`, so log lines appear immediately.
   Previously it set the misspelled `PYTHONBUFFERED`.
 - All base images and the `uv` image have pinned versions.

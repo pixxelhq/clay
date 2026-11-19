@@ -9,7 +9,8 @@ ENV PYTHONUNBUFFERED=1
 ENV UV_BREAK_SYSTEM_PACKAGES=1
 {{- end }}
 
-RUN useradd --create-home --uid 10001 clay
+RUN useradd --create-home --uid 10001 clay && \
+    install -d -o clay -g clay /app
 
 WORKDIR /app
 {{ if .AptGetPkgs }}
@@ -23,7 +24,7 @@ RUN uv pip install --system --no-cache \
     pixxel-clay=={{ .ClayVersion }} \
     -r {{ .DependencyFile }}
 
-COPY {{ .SrcCodeDir }} /app
+COPY --chown=10001:10001 {{ .SrcCodeDir }} /app
 COPY clay.yaml /
 
 USER 10001

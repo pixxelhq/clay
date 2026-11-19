@@ -29,7 +29,7 @@ outputs:
 
 build:
   python-version: "3.10"
-  cuda: false
+  conda: false
   gdal: true
   apt-get:
     - wget

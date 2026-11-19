@@ -56,13 +56,11 @@ var pythonImages = map[string]string{
 // gdalImages are the base images for each build.python-version when gdal is
 // true. The GDAL Python bindings in an OSGeo image are built for the system
 // Python of its Ubuntu release, so each image has one Python version. No
-// OSGeo Ubuntu image has Python 3.11, so 3.11 uses pythonImages.
+// OSGeo Ubuntu image has Python 3.11, so gdal does not work with 3.11.
 var gdalImages = map[string]string{
 	"3.10": "ghcr.io/osgeo/gdal:ubuntu-small-3.8.5",  // Ubuntu 22.04
 	"3.12": "ghcr.io/osgeo/gdal:ubuntu-small-3.12.4", // Ubuntu 24.04
 }
-
-var warnOut io.Writer = os.Stderr
 
 func pythonVersion(v string) (string, error) {
 	if v == "" {
@@ -107,11 +105,6 @@ func RenderDockerfile(w io.Writer, projectDir string, cfg *config.Config) error 
 		return err
 	}
 
-	if cfg.Bulid.Conda {
-		fmt.Fprintln(warnOut, "warning: clay.yaml: build.conda is deprecated and will be removed in the next minor release; use build.cuda instead.")
-	}
-	useCuda := cfg.Bulid.Cuda || cfg.Bulid.Conda
-
 	dc := &dockerFileConfig{
 		BaseImage:      pythonImages[pyVersion],
 		PythonVersion:  pyVersion,
@@ -123,20 +116,22 @@ func RenderDockerfile(w io.Writer, projectDir string, cfg *config.Config) error 
 		UseGdal:        cfg.Bulid.Gdal,
 	}
 
-	// With cuda, the conda environment gets python and gdal (see conda.tmpl),
+	// With conda, the conda environment gets python and gdal (see conda.tmpl),
 	// so the base image does not change.
-	if dc.UseGdal && !useCuda {
-		if image, ok := gdalImages[pyVersion]; ok {
-			dc.BaseImage = image
-		} else {
-			fmt.Fprintf(warnOut, "warning: clay.yaml: build.gdal is ignored, because no OSGeo GDAL image has Python %s. The image is %s, without GDAL.\n"+
-				"To get GDAL, set build.python-version to \"3.10\" or \"3.12\".\n", pyVersion, dc.BaseImage)
-			dc.UseGdal = false
+	if dc.UseGdal && !cfg.Bulid.Conda {
+		image, ok := gdalImages[pyVersion]
+		if !ok {
+			return fmt.Errorf("clay.yaml: build.gdal is not supported with build.python-version %q, because no OSGeo GDAL image has Python %s.\n"+
+				"To fix it, do one of these:\n"+
+				"  - set build.conda: true (recommended) to install GDAL from conda for Python %s\n"+
+				"  - set build.python-version to \"3.10\" or \"3.12\"\n"+
+				"  - set build.gdal: false if the block does not import osgeo", pyVersion, pyVersion, pyVersion)
 		}
+		dc.BaseImage = image
 	}
 
 	dockerTemplate := pipTemplate
-	if useCuda {
+	if cfg.Bulid.Conda {
 		dockerTemplate = condaTemplate
 	}
 

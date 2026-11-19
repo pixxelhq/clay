@@ -13,8 +13,7 @@ const configFileName = "clay.yaml"
 
 type Build struct {
 	PythonVersion  string   `yaml:"python-version" json:"python-version"`
-	Cuda           bool     `yaml:"cuda" json:"cuda"`
-	Conda          bool     `yaml:"conda" json:"conda"` // Deprecated: an alias for Cuda.
+	Conda          bool     `yaml:"conda" json:"conda"`
 	Gdal           bool     `yaml:"gdal" json:"gdal"`
 	AptGetPkgs     []string `yaml:"apt-get" json:"apt-get"`
 	DependencyFile string   `yaml:"requirements" json:"requirements"`

@@ -1,8 +1,12 @@
-FROM mambaorg/micromamba:1.5.9-focal-cuda-11.3.1
+FROM mambaorg/micromamba:1.5.9
 
 COPY --from=ghcr.io/astral-sh/uv:{{ .UvVersion }} /uv /uvx /usr/local/bin/
 
 ENV PYTHONUNBUFFERED=1
+
+USER root
+RUN install -d -o $MAMBA_USER -g $MAMBA_USER /app
+USER $MAMBA_USER
 
 WORKDIR /app
 
@@ -33,7 +37,7 @@ LABEL com.nvidia.volumes.needed="nvidia_driver"
 ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
-COPY {{ .SrcCodeDir }} /app
+COPY --chown=$MAMBA_USER:$MAMBA_USER {{ .SrcCodeDir }} /app
 COPY clay.yaml /
 
 # The non-root user of the micromamba image.

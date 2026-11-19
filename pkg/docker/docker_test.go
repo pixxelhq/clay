@@ -77,7 +77,7 @@ func TestCreateDockerFileForConda(t *testing.T) {
 		PythonVersion:  "3.11",
 		DependencyFile: "conda.yaml",
 		AptGetPkgs:     []string{"libgl1"},
-		Cuda:           true,
+		Conda:          true,
 	}
 	cfg := &config.Config{
 		Name:  "test-app",
@@ -93,7 +93,7 @@ func TestCreateDockerFileForConda(t *testing.T) {
 	content, err := os.ReadFile(dockerfilePath)
 	require.NoError(t, err)
 
-	targetStr := "FROM mambaorg/micromamba:1.5.9-focal-cuda-11.3.1"
+	targetStr := "FROM mambaorg/micromamba:1.5.9\n"
 	if !strings.Contains(string(content), targetStr) {
 		t.Errorf("Dockerfile does not contain expected line: %s", targetStr)
 	}
@@ -275,60 +275,41 @@ func TestRenderDockerfile_Gdal(t *testing.T) {
 }
 
 func TestRenderDockerfile_GdalPython311(t *testing.T) {
-	var warnings bytes.Buffer
-	warnOut = &warnings
-	t.Cleanup(func() { warnOut = os.Stderr })
-
-	out, err := renderBuild(t, &config.Build{PythonVersion: "3.11", Gdal: true})
-	require.NoError(t, err)
-	assert.True(t, strings.HasPrefix(out, "FROM python:3.11.18-slim-trixie\n"), out)
-	assert.NotContains(t, out, "UV_")
-	assert.Contains(t, warnings.String(), "no OSGeo GDAL image has Python 3.11")
+	_, err := renderBuild(t, &config.Build{PythonVersion: "3.11", Gdal: true})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no OSGeo GDAL image has Python 3.11")
+	assert.Contains(t, err.Error(), "set build.conda: true")
+	assert.Contains(t, err.Error(), "set build.gdal: false")
 }
 
-func TestRenderDockerfile_CudaPythonAndGdal(t *testing.T) {
-	out, err := renderBuild(t, &config.Build{PythonVersion: "3.12", Cuda: true})
+func TestRenderDockerfile_CondaPythonAndGdal(t *testing.T) {
+	out, err := renderBuild(t, &config.Build{PythonVersion: "3.12", Conda: true})
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(out, "FROM mambaorg/micromamba:"), out)
 	assert.Contains(t, out, "--file requirements.txt -y \\\n    \"python=3.12\"\n")
 
-	out, err = renderBuild(t, &config.Build{PythonVersion: "3.11", Cuda: true, Gdal: true})
+	out, err = renderBuild(t, &config.Build{PythonVersion: "3.11", Conda: true, Gdal: true})
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(out, "FROM mambaorg/micromamba:"), out)
 	assert.Contains(t, out, "--file requirements.txt -y \\\n    \"python=3.11\" gdal\n")
 	assert.NotContains(t, out, "UV_BREAK_SYSTEM_PACKAGES")
 
-	out, err = renderBuild(t, &config.Build{Cuda: true, AptGetPkgs: []string{"wget", "g++"}})
+	out, err = renderBuild(t, &config.Build{Conda: true, AptGetPkgs: []string{"wget", "g++"}})
 	require.NoError(t, err)
 	assert.Contains(t, out, "apt-get install -y --no-install-recommends libgl1 wget g++ &&")
 }
 
 func TestRenderDockerfile_NonRoot(t *testing.T) {
-	for _, build := range []*config.Build{{}, {Gdal: true}, {Cuda: true}} {
+	for _, build := range []*config.Build{{}, {Gdal: true}, {Conda: true}} {
 		out, err := renderBuild(t, build)
 		require.NoError(t, err)
 		users := regexp.MustCompile(`(?m)^USER .*$`).FindAllString(out, -1)
 		require.NotEmpty(t, users, out)
 		assert.NotEqual(t, "USER root", users[len(users)-1], out)
+		assert.Regexp(t, `install -d -o \S+ -g \S+ /app\n`, out)
+		assert.Regexp(t, `COPY --chown=\S+ src /app\n`, out)
 		assert.Contains(t, out, "ENV PYTHONUNBUFFERED=1")
 	}
-}
-
-func TestRenderDockerfile_Cuda(t *testing.T) {
-	var warnings bytes.Buffer
-	warnOut = &warnings
-	t.Cleanup(func() { warnOut = os.Stderr })
-
-	out, err := renderBuild(t, &config.Build{Cuda: true})
-	require.NoError(t, err)
-	assert.True(t, strings.HasPrefix(out, "FROM mambaorg/micromamba:"), out)
-	assert.Empty(t, warnings.String())
-
-	conda, err := renderBuild(t, &config.Build{Conda: true})
-	require.NoError(t, err)
-	assert.Equal(t, out, conda)
-	assert.Contains(t, warnings.String(), "build.conda is deprecated")
-	assert.Contains(t, warnings.String(), "use build.cuda instead")
 }
 
 func TestBuildDockerRunArgs_Gpu(t *testing.T) {
