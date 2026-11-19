@@ -5,13 +5,6 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
-### Upgrading
-- `clay build` and `clay publish` no longer read `./Dockerfile` on their own.
-  If the project has one (an older Clay version wrote it on the first build),
-  they stop with an error. Pass `-f Dockerfile` to keep building with it, for
-  example if you edited it, or delete it to use the Dockerfile generated from
-  `clay.yaml`. Update CI jobs that run `clay publish` without `-f`.
-
 ### Features
 - `clay dockerfile` prints the Dockerfile that `clay build` generates from
   `clay.yaml`. To customize it, run `clay dockerfile > Dockerfile` and build
@@ -27,7 +20,9 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   each build, in a temporary folder. Previously the first build wrote a
   `Dockerfile` into the project and later builds reused it, so changes to
   `build:` (for example the Python version or `apt-get` packages) did not
-  reach the image. See Upgrading for projects that still have a `Dockerfile`.
+  reach the image. A project that already has a `Dockerfile`, for example
+  from an older Clay version, still builds with it; delete it to use the
+  generated one.
 - `clay build` writes values from `clay.yaml` into the Dockerfile as they are.
   Previously characters such as `+` and `&` were HTML-escaped, so
   `apt-get: [g++]` gave `g&#43;&#43;` and the build failed.

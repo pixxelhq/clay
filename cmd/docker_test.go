@@ -132,20 +132,17 @@ func TestPrintDockerfile_MatchesBuild(t *testing.T) {
 	}
 }
 
-func TestCheckLegacyDockerfile(t *testing.T) {
+func TestExistingDockerfile(t *testing.T) {
 	projectDir := t.TempDir()
-	if err := checkLegacyDockerfile(projectDir); err != nil {
-		t.Fatalf("no Dockerfile: got error %v", err)
+	if got := existingDockerfile(projectDir); got != "" {
+		t.Fatalf("no Dockerfile: got %q, want \"\"", got)
 	}
 
-	if err := os.WriteFile(filepath.Join(projectDir, "Dockerfile"), []byte("FROM scratch\n"), 0o644); err != nil {
+	want := filepath.Join(projectDir, "Dockerfile")
+	if err := os.WriteFile(want, []byte("FROM scratch\n"), 0o644); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	err := checkLegacyDockerfile(projectDir)
-	if err == nil {
-		t.Fatal("leftover Dockerfile: expected an error")
-	}
-	if !strings.Contains(err.Error(), "-f Dockerfile") {
-		t.Errorf("error does not tell the user to pass -f Dockerfile: %v", err)
+	if got := existingDockerfile(projectDir); got != want {
+		t.Errorf("existing Dockerfile: got %q, want %q", got, want)
 	}
 }

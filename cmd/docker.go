@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,7 +35,7 @@ func buildDockerImageCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&buildTag, "tag", "t", "", "Provide the build tag in the format 'repository:tag'. (Default: '<name>:<version>' from clay.yaml)")
-	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay generates one from clay.yaml on each build (see 'clay dockerfile').")
+	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay uses ./Dockerfile if it exists, or generates one from clay.yaml on each build (see 'clay dockerfile').")
 	cmd.Flags().BoolVar(&buildNoCache, "no-cache", false, "When set to true, caching will not be used when building the image. (Default: false)")
 	cmd.Flags().StringArrayVar(&buildSecrets, "secret", []string{}, `Secret to expose to the build (format:"id=mysecret[,src=/local/secret]")`)
 	cmd.Flags().StringArrayVar(&buildArgs, "build-arg", []string{}, `Set build-time variables`)
@@ -79,10 +78,10 @@ func buildImage(projectDir string, cfg *config.Config, tag, dockerfilePath strin
 
 	dockerfile := dockerfilePath
 	if dockerfile == "" {
-		if err := checkLegacyDockerfile(projectDir); err != nil {
-			return "", err
-		}
-
+		dockerfile = existingDockerfile(projectDir)
+	}
+	generated := dockerfile == ""
+	if generated {
 		tmpDir, err := os.MkdirTemp("", "clay-build-")
 		if err != nil {
 			return "", err
@@ -106,24 +105,23 @@ func buildImage(projectDir string, cfg *config.Config, tag, dockerfilePath strin
 		return "", err
 	}
 
-	if dockerfilePath == "" {
+	if generated {
 		fmt.Printf("🎉 docker image %s has been built using a Dockerfile generated from clay.yaml\n", tag)
 	} else {
-		fmt.Printf("🎉 docker image %s has been built using %s\n", tag, dockerfilePath)
+		fmt.Printf("🎉 docker image %s has been built using %s\n", tag, dockerfile)
 	}
 	return tag, nil
 }
 
-// checkLegacyDockerfile returns an error when the project has a Dockerfile,
-// for example one an older Clay version wrote and the user then edited.
-// clay build and clay publish no longer read it unless -f names it, and
-// silently building without it could publish an image that lacks its steps.
-func checkLegacyDockerfile(projectDir string) error {
-	if _, err := os.Stat(filepath.Join(projectDir, "Dockerfile")); err != nil {
-		return nil
+// existingDockerfile returns the path of the project's Dockerfile, or "" if it
+// has none. Older Clay versions wrote one on the first build, and blocks may
+// have edited it, so it is used as is to keep their images unchanged.
+func existingDockerfile(projectDir string) string {
+	path := filepath.Join(projectDir, "Dockerfile")
+	if _, err := os.Stat(path); err != nil {
+		return ""
 	}
-	return errors.New("./Dockerfile is not used: Clay generates the Dockerfile from clay.yaml on each build.\n" +
-		"To build with your Dockerfile, pass `-f Dockerfile`. Otherwise, delete it.")
+	return path
 }
 
 func pushToDockerRegistryCmd() *cobra.Command {

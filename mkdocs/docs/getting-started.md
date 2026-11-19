@@ -262,7 +262,7 @@ Now that your project is set up, let's build and test it locally.
      **Available Flags:**
 
     - `--tag`: Provide the build tag in the format 'repository:tag'. (Default: `<name>:<version>` from `clay.yaml`)
-    - `--file`: Provide the Dockerfile path. If not provided, Clay generates one from clay.yaml on each build. To customize it, run `clay dockerfile > Dockerfile`, edit it, and build with `clay build -f Dockerfile`.
+    - `--file`: Provide the Dockerfile path. If not provided, Clay uses `./Dockerfile` if it exists, or generates one from clay.yaml on each build. To customize it, run `clay dockerfile > Dockerfile`, edit it, and build with `clay build -f Dockerfile`.
 
 
 
