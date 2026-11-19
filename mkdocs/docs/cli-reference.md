@@ -33,36 +33,70 @@ Commands for creating, building, and running blocks.
 
 ### New
 
-Scaffold a new block project at the given path.
+Scaffold a new block project in the directory `<path>`. `<path>` must not exist or must be empty; to make a directory that already holds files a block project, use [`clay init`](#init).
 
 ```shell
-clay new <path> <name> [flags]
+clay new <path> [flags]
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `path` | Directory where project files will be created |
-| `name` | Name of the block: letters, digits, `-` and `_` |
+| `path` | Project directory. Its last part is the block name, unless `--name` is given |
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-f, --force` | Write the template into an existing non-empty project directory | `false` |
+| `--name` | Block name: letters, digits, `-` and `_` | last part of `path` |
+| `--with` | Add optional files: `catalog`, `conda`, `pre-commit`. Repeat the flag or separate values with commas | — |
 
-The project is created in `<path>/<name in kebab-case>`, for example `./my-block`. If that directory already exists and is not empty, `clay new` stops with an error and changes nothing. With `--force`, the template files are written into it: files with the same name as a template file are overwritten, and all other files are kept. `clay new` never deletes a directory.
+For example, `clay new my-block` creates `./my-block`, and `clay new .` makes the current directory a project when it is empty. Use `--name` when the directory name is not a valid block name, or to keep capitals that the folder name loses: `clay new resnet.v2 --name resnet-v2`. The older form `clay new <path> <name>` still works: it creates `<path>/<name in kebab-case>` and prints a deprecation warning. It will be removed in a future release.
 
-Clay derives every name from `<name>`. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
+If the project directory already exists and holds files, `clay new` stops with an error and changes nothing. The error suggests `clay init`. `clay new` never overwrites or deletes anything.
+
+The project contains only the files every block needs: `clay.yaml`, `requirements.txt`, `requirements-dev.txt`, the block package, `tests/`, `README.md`, `pyproject.toml`, `.gitignore` and `.dockerignore`. `clay new` does not run `git init`, install git hooks or download tools. Use `--with` to add more files:
+
+| Option | Adds |
+|--------|------|
+| `catalog` | `catalog.yaml`, to describe the block in a catalog (see [Block Assets](block-assets.md)) |
+| `conda` | `conda.yaml`, and sets `build.conda: true` and `build.requirements: conda.yaml` in `clay.yaml` |
+| `pre-commit` | `.pre-commit-config.yaml` with ruff hooks, and `pre-commit` in `requirements-dev.txt`. Run `pre-commit install` to install the hooks |
+
+For example, `clay new my-block --with catalog,conda`.
+
+Clay derives every name from the block name. A name starts with a letter, ends with a letter or digit, and contains letters, digits, `-` and `_`.
 
 Words are separated by `-`, `_` or a capital letter, so `my-block`, `my_block` and `MyBlock` all give the same names:
 
 | Used for | Rule | Result |
 |----------|------|--------|
-| `clay.yaml` name, image and project folder | words joined with `-`, lower case | `my-block` |
+| `clay.yaml` name and image | words joined with `-`, lower case | `my-block` |
 | Python package folder | words joined with `_`, lower case | `my_block` |
 | Python class | each word starts with a capital | `MyBlock` |
 
 A name with no separator or capital, such as `myblock`, is one word.
 
 `clay build` finds the package folder from the `clay.yaml` name, so the project folder can have any name. If you change `name` after the project is created, keep the project folder name equal to the package folder name, or rename the package folder to match.
+
+### Init
+
+Make the current directory a block project. The directory may already hold files, such as a repository with your model code. The block name is the name of the current directory, unless `--name` is given.
+
+```shell
+clay init [flags]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Block name: letters, digits, `-` and `_` | name of the current directory |
+| `--with` | Add optional files: `catalog`, `conda`, `pre-commit`, as with `clay new` | — |
+| `-f, --force` | Overwrite existing files with the template | `false` |
+
+`clay init` keeps files that already exist. A file with the same name as a template file, such as `README.md` or `requirements.txt`, is not changed, and `clay init` prints `Skipped:` for it so you can merge it by hand.
+
+If the directory already has a `clay.yaml`, `clay init` stops with an error and changes nothing. With `--force`, it writes the template anyway and overwrites files with the same name as a template file. Other files, such as model weights, are always kept, and `clay init` never deletes anything.
+
+`clay init` refuses to run in the filesystem root, in your home directory, and in the `Desktop`, `Documents` and `Downloads` folders directly in it, even with `--force`. Create a folder for the project instead, for example with `clay new my-block`. Folders inside them, such as `~/Documents/my-model`, work as usual.
+
+The block name follows the same rules as in [`clay new`](#new).
 
 ### Build
 

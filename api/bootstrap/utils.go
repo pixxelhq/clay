@@ -6,15 +6,16 @@ import (
 	"text/template"
 )
 
-// templatedFiles are the template files rendered with the block names;
-// all other files are copied as they are.
+// templatedFiles are the template files rendered with templateData (block
+// names and --with options); all other files are copied as they are.
 var templatedFiles = map[string]bool{
-	"src/block.py":        true,
-	"src/entry.py":        true,
-	"README.md":           true,
-	"tests/test_block.py": true,
-	"pyproject.toml":      true,
-	"clay.yaml":           true,
+	"src/block.py":         true,
+	"src/entry.py":         true,
+	"README.md":            true,
+	"tests/test_block.py":  true,
+	"pyproject.toml":       true,
+	"clay.yaml":            true,
+	"requirements-dev.txt": true,
 }
 
 // Copies a file from src to dst
