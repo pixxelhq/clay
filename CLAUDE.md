@@ -52,7 +52,7 @@ The repository is organized as follows:
 ## Architecture
 
 ### Block Execution Flow
-1. Blocks are packaged with `clay build` (a `Dockerfile` is generated from the spec when one doesn't already exist)
+1. Blocks are packaged with `clay build` (the `Dockerfile` is generated from the spec on each build; `clay dockerfile` prints it)
 2. The Python clay library provides the `BlockWrapper` base class with `setup()`, `preprocess()`, `inference()`, `postprocess()` methods
 3. Blocks run via the unified runner in `python/clay/runners/runner.py` (HTTP server or batch job mode)
 4. Storage abstraction handles S3-compatible / local file operations

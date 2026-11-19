@@ -28,14 +28,14 @@ var (
 func buildDockerImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "build",
-		Short:   "Build a Docker image from clay.yaml",
-		Long:    "Build a Docker image from clay.yaml.\nIf --tag is not provided, the image is tagged as `<name>:<version>` using the values from clay.yaml.",
+		Short:   "Build a Docker image locally from clay.yaml",
+		Long:    "Build a Docker image locally from clay.yaml.\nIf --tag is not provided, the image is tagged as `<name>:<version>` using the values from clay.yaml.\nThe image stays on this machine. To push it and register the block, use `clay publish`.",
 		Example: "clay build --tag my-block:0.1.0 --file ./Dockerfile",
 		RunE:    buildCmd,
 	}
 
-	cmd.Flags().StringVarP(&buildTag, "tag", "t", "", "Provide the build tag in the format 'repository:tag'. (Default: name:tag, `name` and `tag` mentioned in the clay.yaml config).")
-	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay will create one using the configuration from clay.yaml.")
+	cmd.Flags().StringVarP(&buildTag, "tag", "t", "", "Provide the build tag in the format 'repository:tag'. (Default: '<name>:<version>' from clay.yaml)")
+	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay uses ./Dockerfile if it exists, or generates one from clay.yaml on each build (see 'clay dockerfile').")
 	cmd.Flags().BoolVar(&buildNoCache, "no-cache", false, "When set to true, caching will not be used when building the image. (Default: false)")
 	cmd.Flags().StringArrayVar(&buildSecrets, "secret", []string{}, `Secret to expose to the build (format:"id=mysecret[,src=/local/secret]")`)
 	cmd.Flags().StringArrayVar(&buildArgs, "build-arg", []string{}, `Set build-time variables`)
@@ -55,17 +55,18 @@ func buildCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = buildImage(cwd, cfg, buildTag)
+	_, err = buildImage(cwd, cfg, buildTag, dockerfilePath)
 	return err
 }
 
 // buildImage builds the block's docker image and returns the resolved tag
 // (either the tag argument, or a "<name>:<version>" default derived from the
-// project config). Callers pass in the desired tag explicitly — the function
-// does not read or mutate the `buildTag` package-level variable — so that
-// both CLI (`clay build`) and programmatic callers (`clay publish`) behave
-// predictably.
-func buildImage(projectDir string, cfg *config.Config, tag string) (string, error) {
+// project config). dockerfilePath is the Dockerfile to build with; when empty,
+// one is generated from clay.yaml. Callers pass in the tag and Dockerfile
+// explicitly — the function does not read or mutate the `buildTag` or
+// `dockerfilePath` package-level variables — so that both CLI (`clay build`)
+// and programmatic callers (`clay publish`) behave predictably.
+func buildImage(projectDir string, cfg *config.Config, tag, dockerfilePath string) (string, error) {
 	if err := docker.CheckDaemon(); err != nil {
 		return "", err
 	}
@@ -75,9 +76,19 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 		fmt.Printf("No build tag provided. Using `name` and `version` from clay.yaml as the build tag: %s\n", tag)
 	}
 
-	if dockerfilePath == "" {
-		var err error
-		dockerfilePath, err = getOrCreateDockerfile(projectDir, cfg)
+	dockerfile := dockerfilePath
+	if dockerfile == "" {
+		dockerfile = existingDockerfile(projectDir)
+	}
+	generated := dockerfile == ""
+	if generated {
+		tmpDir, err := os.MkdirTemp("", "clay-build-")
+		if err != nil {
+			return "", err
+		}
+		defer os.RemoveAll(tmpDir)
+
+		dockerfile, err = generateDockerfile(projectDir, tmpDir, cfg)
 		if err != nil {
 			return "", err
 		}
@@ -89,12 +100,28 @@ func buildImage(projectDir string, cfg *config.Config, tag string) (string, erro
 		NoCache:   buildNoCache,
 		Platforms: platform,
 	}
-	if err := docker.Build(tag, dockerfilePath, bf); err != nil {
+	fmt.Printf("🔨 Building docker image %s\n", tag)
+	if err := docker.Build(tag, dockerfile, bf); err != nil {
 		return "", err
 	}
 
-	fmt.Printf("🎉 docker image %s has been built using %s \n", tag, dockerfilePath)
+	if generated {
+		fmt.Printf("🎉 docker image %s has been built using a Dockerfile generated from clay.yaml\n", tag)
+	} else {
+		fmt.Printf("🎉 docker image %s has been built using %s\n", tag, dockerfile)
+	}
 	return tag, nil
+}
+
+// existingDockerfile returns the path of the project's Dockerfile, or "" if it
+// has none. Older Clay versions wrote one on the first build, and blocks may
+// have edited it, so it is used as is to keep their images unchanged.
+func existingDockerfile(projectDir string) string {
+	path := filepath.Join(projectDir, "Dockerfile")
+	if _, err := os.Stat(path); err != nil {
+		return ""
+	}
+	return path
 }
 
 func pushToDockerRegistryCmd() *cobra.Command {
@@ -166,20 +193,50 @@ func packageDir(projectDir string, cfg *config.Config) (string, error) {
 	return "", fmt.Errorf("no block package in %s: expected %s/entry.py", projectDir, candidates[0])
 }
 
-func getOrCreateDockerfile(projectDir string, cfg *config.Config) (string, error) {
-	dockerfilePath, err := docker.GetDockerFile()
-	if err == docker.ErrDoesNotExists {
-		// Only a new Dockerfile needs the package folder; an existing one is
-		// used as is.
-		srcCodeDir, err := packageDir(projectDir, cfg)
-		if err != nil {
-			return "", err
-		}
-		fmt.Printf("dockerfile does not exists in the %s. Creating one... \n ", srcCodeDir)
-		return docker.CreateDockerFile(srcCodeDir, ".", cfg)
+// generateDockerfile writes the Dockerfile generated from clay.yaml to
+// outputDir and returns its path.
+func generateDockerfile(projectDir, outputDir string, cfg *config.Config) (string, error) {
+	srcCodeDir, err := packageDir(projectDir, cfg)
+	if err != nil {
+		return "", err
+	}
+	return docker.CreateDockerFile(srcCodeDir, outputDir, cfg)
+}
+
+func printDockerfileCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "dockerfile",
+		Short: "Print the Dockerfile that clay build generates",
+		Long: heredoc.Doc(`
+			Print the Dockerfile that clay build generates from clay.yaml.
+
+			To customize it, save the output and build with -f.
+		`),
+		Example: heredoc.Doc(`
+			clay dockerfile > Dockerfile
+			clay build -f Dockerfile
+		`),
+		Args: cobra.NoArgs,
+		RunE: printDockerfile,
+	}
+}
+
+func printDockerfile(cmd *cobra.Command, args []string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
 	}
 
-	return dockerfilePath, err
+	cfg, err := config.GetConfig(cwd)
+	if err != nil {
+		return err
+	}
+
+	srcCodeDir, err := packageDir(cwd, cfg)
+	if err != nil {
+		return err
+	}
+	return docker.RenderDockerfile(cmd.OutOrStdout(), srcCodeDir, cfg)
 }
 
 func runDockerImageCmd() *cobra.Command {

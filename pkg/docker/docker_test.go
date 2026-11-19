@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -172,4 +173,26 @@ func TestBuildCommand_RunsDockerWithoutSudo(t *testing.T) {
 
 	assert.Equal(t, []string{"docker", "build", "-t", "demo:test", "-f", "Dockerfile", ".", "--no-cache"}, cmd.Args)
 	assert.True(t, slices.Contains(cmd.Env, "DOCKER_BUILDKIT=1"), "DOCKER_BUILDKIT=1 should be set")
+}
+
+func TestRenderDockerfile_WritesValuesAsIs(t *testing.T) {
+	cfg := &config.Config{
+		Bulid: &config.Build{
+			PythonVersion:  "3.10",
+			DependencyFile: "requirements.txt",
+			AptGetPkgs:     []string{"g++", "a&b", "<x>", `"quoted"`, "'single'"},
+		},
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, RenderDockerfile(&buf, "src", cfg))
+
+	assert.Contains(t, buf.String(), `python3-pip g++ a&b <x> "quoted" 'single'`)
+}
+
+func TestRenderDockerfile_NoBuildSection(t *testing.T) {
+	var buf bytes.Buffer
+	err := RenderDockerfile(&buf, "src", &config.Config{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no `build` section")
 }

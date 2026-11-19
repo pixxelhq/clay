@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/pixxelhq/clay/pkg/config"
@@ -37,7 +38,33 @@ type dockerFileConfig struct {
 	UseCuda        bool
 }
 
-func CreateDockerFile(projectDir, outputDir string, cfg *config.Config) (string, error) {
+// CreateDockerFile writes the Dockerfile generated from cfg to
+// outputDir/Dockerfile and returns its path.
+func CreateDockerFile(projectDir, outputDir string, cfg *config.Config) (path string, err error) {
+	path = filepath.Join(outputDir, "Dockerfile")
+	f, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if cerr := f.Close(); err == nil && cerr != nil {
+			err = cerr
+		}
+	}()
+
+	if err := RenderDockerfile(f, projectDir, cfg); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// RenderDockerfile writes the Dockerfile generated from cfg to w. Values from
+// clay.yaml are written as is, without escaping.
+func RenderDockerfile(w io.Writer, projectDir string, cfg *config.Config) error {
+	if cfg.Bulid == nil {
+		return errors.New("clay.yaml has no `build` section")
+	}
+
 	dc := &dockerFileConfig{
 		PythonVersion:  cfg.Bulid.PythonVersion,
 		ClayVersion:    ClayVersion,
@@ -58,39 +85,11 @@ func CreateDockerFile(projectDir, outputDir string, cfg *config.Config) (string,
 		},
 	}
 
-	dockerfilePath := filepath.Join(outputDir, "Dockerfile")
-	dockerfile, err := os.Create(dockerfilePath)
-	if err != nil {
-		return "", err
-	}
-
 	tmpl, err := template.New("Dockerfile").Funcs(funcMap).Parse(dockerTemplate)
 	if err != nil {
-		return "", err
+		return err
 	}
-	fmt.Printf("creating dockerfile in %s\n", outputDir)
-	if err := tmpl.Execute(dockerfile, dc); err != nil {
-		return "", err
-	}
-
-	return dockerfilePath, nil
-}
-
-func GetDockerFile() (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	dockerfilePath := filepath.Join(cwd, "Dockerfile")
-	_, err = os.Stat(dockerfilePath)
-	if os.IsNotExist(err) {
-		return "", ErrDoesNotExists
-	}
-	if err != nil {
-		return "", err
-	}
-
-	return dockerfilePath, nil
+	return tmpl.Execute(w, dc)
 }
 
 type BuildFlags struct {

@@ -38,6 +38,26 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   explains how to set up, test, build and run the block. Add optional files
   with `--with catalog`, `--with conda` (also sets `clay.yaml` to build with
   conda) and `--with pre-commit`.
+- `clay dockerfile` prints the Dockerfile that `clay build` generates from
+  `clay.yaml`. To customize it, run `clay dockerfile > Dockerfile` and build
+  with `clay build -f Dockerfile`.
+- `clay publish` accepts `-f, --file` to build with your own Dockerfile, like
+  `clay build`.
+- `clay build` and `clay publish` print the image tag before the build starts.
+- `clay build --help` and `clay publish --help` say that `build` only makes a
+  local image and `publish` also pushes it and registers the block.
+
+### Bug Fixes
+- `clay build` and `clay publish` generate the Dockerfile from `clay.yaml` on
+  each build, in a temporary folder. Previously the first build wrote a
+  `Dockerfile` into the project and later builds reused it, so changes to
+  `build:` (for example the Python version or `apt-get` packages) did not
+  reach the image. A project that already has a `Dockerfile`, for example
+  from an older Clay version, still builds with it; delete it to use the
+  generated one.
+- `clay build` writes values from `clay.yaml` into the Dockerfile as they are.
+  Previously characters such as `+` and `&` were HTML-escaped, so
+  `apt-get: [g++]` gave `g&#43;&#43;` and the build failed.
 
 ### Breaking Changes
 - New projects no longer get a `Makefile`, `catalog.yaml`, `conda.yaml` or
