@@ -5,6 +5,8 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+
+## v1.5.0 - 2026-11-19
 ### Upgrading
 - `clay new` no longer has `--force`, and it stops if the target directory
   already holds files. To make an existing directory a block project, run
