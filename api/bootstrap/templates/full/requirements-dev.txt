@@ -1,0 +1,7 @@
+-r requirements.txt
+ruff
+pyright
+pytest
+{{- if .WithPreCommit}}
+pre-commit
+{{- end}}

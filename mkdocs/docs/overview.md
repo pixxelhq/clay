@@ -76,9 +76,10 @@ Command-line tool for block development:
 * Publish to registry
 
 ```bash
-clay new ./myblock MyBlock
+clay new my-block
+cd my-block
 clay build
-clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" myblock:0.0.1
+clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" my-block:v0.0.1
 ```
 For complete reference, see [Command Reference](cli-reference.md)
 
