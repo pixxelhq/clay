@@ -62,6 +62,7 @@ build:
   gdal: true
   apt-get:
     - wget
+    - libexpat1 # needed by the rasterio and fiona wheels when gdal is false
   requirements: requirements.txt
 
 gpu: false

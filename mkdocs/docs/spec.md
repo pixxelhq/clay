@@ -321,26 +321,49 @@ Build-time configuration for the Docker image.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `python-version` | string | `"3.10"` | Python version for the Docker image |
-| `conda` | bool | `false` | Use conda as the environment manager |
-| `gdal` | bool | `false` | Install GDAL at the OS level |
-| `apt-get` | list[string] | `[]` | Additional OS packages to install |
-| `requirements` | string | - | Path to requirements.txt or conda.yaml |
+| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value, because YAML reads `3.10` as the number `3.1` |
+| `gdal` | bool | `false` | Install GDAL and its Python bindings (`osgeo`). See [Base image](#base-image) |
+| `conda` | bool | `false` | Create a conda environment from the conda file in `requirements`. It does not add CUDA; to run on GPUs, set `gpu: true`. See [Base image](#base-image) |
+| `apt-get` | list[string] | `[]` | Additional OS packages, installed without recommended packages. The `python:<version>-slim` and OSGeo images have no C compiler; add `build-essential` if a package in `requirements` must be compiled |
+| `requirements` | string | - | Path to the `requirements.txt` file, or to the conda file if `conda` is `true` |
 
 **Example:**
 ```yaml
 build:
   python-version: "3.10"
-  conda: false
   gdal: true
+  conda: false
   apt-get:
     - wget
-    - libgl1-mesa-glx
+    - libgl1
   requirements: requirements.txt
 ```
 
+#### Base image
+
+Clay chooses the base image from `python-version`, `gdal` and `conda`. All base images have pinned versions.
+
+| `conda` | `gdal` | `python-version` | Base image | Packages from `requirements` |
+|---------|--------|------------------|------------|------------------------------|
+| `false` | `false` | any | `python:<version>-slim` (Debian) | Installed with `uv pip` |
+| `false` | `true` | `"3.10"` | [OSGeo GDAL](https://github.com/OSGeo/gdal/pkgs/container/gdal) `ubuntu-small-3.8.5` (Ubuntu 22.04, GDAL 3.8.5) | Installed with `uv pip`, next to the image's GDAL bindings |
+| `false` | `true` | `"3.12"` | OSGeo GDAL `ubuntu-small-3.12.4` (Ubuntu 24.04, GDAL 3.12.4) | Installed with `uv pip`, next to the image's GDAL bindings |
+| `false` | `true` | `"3.11"` | None: Clay stops with an error, because there is no OSGeo image with Python 3.11. Set `conda: true` to get GDAL from conda, use `"3.10"` or `"3.12"`, or set `gdal: false` if the block does not import `osgeo` | - |
+| `true` | any | any | `mambaorg/micromamba` (Debian 12), without CUDA | Conda environment created from the conda file, with `python=<python-version>`, and `gdal` if `gdal` is `true` |
+
 !!! tip
-    If your block requires geospatial libraries like `rasterio` or `geopandas`, set `gdal: true` to ensure GDAL is available.
+    Set `gdal: true` only if your block imports `osgeo`. The `rasterio`, `fiona` and `pyogrio` wheels include their own GDAL. On a `python:<version>-slim` image they need `libexpat1` in `apt-get`.
+
+!!! note
+    The GDAL Python bindings in the OSGeo images are built against NumPy 1.x. `from osgeo import gdal` works with NumPy 2, but `osgeo.gdal_array` and the calls that use it, such as `ReadAsArray` and `WriteArray`, need `numpy<2` in `requirements`.
+
+!!! note
+    With `conda: true`, a Python version in the conda file must match `python-version`. For example, `python=3.10.14` in the conda file works with `python-version: "3.10"`, but not with `"3.12"`: the conda environment cannot be solved and the build fails.
+
+The block runs as a non-root user: UID `10001`, or `mambauser` if `conda` is `true`. The user owns `/app`, so the block can write there, in `/tmp` and in its home directory.
+
+!!! tip
+    For GPU blocks, set `gpu: true`. PyTorch wheels include CUDA; with `conda: true`, install CUDA from conda (for example `pytorch-cuda`).
 
 ---
 
@@ -352,7 +375,7 @@ build:
 | **Type** | `bool` |
 | **Default** | `false` |
 
-Whether the block requires GPU acceleration. When set to `true`, the block will be scheduled on GPU-enabled infrastructure.
+Whether the block requires GPU acceleration. When set to `true`, the block will be scheduled on GPU-enabled infrastructure, and `clay run` starts the container with `--gpus all`. This needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host.
 
 ```yaml
 gpu: true

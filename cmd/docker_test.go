@@ -94,13 +94,13 @@ func TestGenerateDockerfile_FollowsClayYaml(t *testing.T) {
 	projectDir := newBlockProject(t, "3.10")
 
 	first := readGeneratedDockerfile(t, projectDir)
-	if !strings.Contains(first, "python3.10") {
-		t.Fatalf("Dockerfile does not use python3.10:\n%s", first)
+	if !strings.Contains(first, "FROM python:3.10.") {
+		t.Fatalf("Dockerfile does not use Python 3.10:\n%s", first)
 	}
 
 	writeClayYaml(t, projectDir, "3.12")
 	second := readGeneratedDockerfile(t, projectDir)
-	if !strings.Contains(second, "python3.12") {
+	if !strings.Contains(second, "FROM python:3.12.") {
 		t.Errorf("Dockerfile does not follow the changed python-version:\n%s", second)
 	}
 

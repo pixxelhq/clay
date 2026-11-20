@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -30,12 +31,46 @@ var (
 )
 
 type dockerFileConfig struct {
+	BaseImage      string
 	PythonVersion  string
+	UvVersion      string
 	SrcCodeDir     string
 	ClayVersion    string
 	DependencyFile string
 	AptGetPkgs     []string
-	UseCuda        bool
+	UseGdal        bool
+}
+
+var supportedPythonVersions = []string{"3.10", "3.11", "3.12"}
+
+const defaultPythonVersion = "3.10"
+
+const uvVersion = "0.13.7"
+
+var pythonImages = map[string]string{
+	"3.10": "python:3.10.22-slim-trixie",
+	"3.11": "python:3.11.18-slim-trixie",
+	"3.12": "python:3.12.16-slim-trixie",
+}
+
+// gdalImages are the base images for each build.python-version when gdal is
+// true. The GDAL Python bindings in an OSGeo image are built for the system
+// Python of its Ubuntu release, so each image has one Python version. No
+// OSGeo Ubuntu image has Python 3.11, so gdal does not work with 3.11.
+var gdalImages = map[string]string{
+	"3.10": "ghcr.io/osgeo/gdal:ubuntu-small-3.8.5",  // Ubuntu 22.04
+	"3.12": "ghcr.io/osgeo/gdal:ubuntu-small-3.12.4", // Ubuntu 24.04
+}
+
+func pythonVersion(v string) (string, error) {
+	if v == "" {
+		return defaultPythonVersion, nil
+	}
+	if !slices.Contains(supportedPythonVersions, v) {
+		return "", fmt.Errorf("clay.yaml: build.python-version %q is not supported; use one of %s",
+			v, strings.Join(supportedPythonVersions, ", "))
+	}
+	return v, nil
 }
 
 // CreateDockerFile writes the Dockerfile generated from cfg to
@@ -65,17 +100,38 @@ func RenderDockerfile(w io.Writer, projectDir string, cfg *config.Config) error 
 		return errors.New("clay.yaml has no `build` section")
 	}
 
+	pyVersion, err := pythonVersion(cfg.Bulid.PythonVersion)
+	if err != nil {
+		return err
+	}
+
 	dc := &dockerFileConfig{
-		PythonVersion:  cfg.Bulid.PythonVersion,
+		BaseImage:      pythonImages[pyVersion],
+		PythonVersion:  pyVersion,
+		UvVersion:      uvVersion,
 		ClayVersion:    ClayVersion,
 		SrcCodeDir:     projectDir,
 		DependencyFile: cfg.Bulid.DependencyFile,
 		AptGetPkgs:     cfg.Bulid.AptGetPkgs,
-		UseCuda:        cfg.Bulid.Conda,
+		UseGdal:        cfg.Bulid.Gdal,
+	}
+
+	// With conda, the conda environment gets python and gdal (see conda.tmpl),
+	// so the base image does not change.
+	if dc.UseGdal && !cfg.Bulid.Conda {
+		image, ok := gdalImages[pyVersion]
+		if !ok {
+			return fmt.Errorf("clay.yaml: build.gdal is not supported with build.python-version %q, because no OSGeo GDAL image has Python %s.\n"+
+				"To fix it, do one of these:\n"+
+				"  - set build.conda: true (recommended) to install GDAL from conda for Python %s\n"+
+				"  - set build.python-version to \"3.10\" or \"3.12\"\n"+
+				"  - set build.gdal: false if the block does not import osgeo", pyVersion, pyVersion, pyVersion)
+		}
+		dc.BaseImage = image
 	}
 
 	dockerTemplate := pipTemplate
-	if dc.UseCuda {
+	if cfg.Bulid.Conda {
 		dockerTemplate = condaTemplate
 	}
 
@@ -130,6 +186,7 @@ func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {
 
 	return buildCmd
 }
+
 var daemonCheckTimeout = 10 * time.Second
 
 const (
@@ -230,7 +287,7 @@ func Run(image string, args []string, envVars []string, cfg *config.Config) erro
 func buildDockerRunArgs(image string, envVars []string, cfg *config.Config) []string {
 	args := []string{"run", "--rm"}
 	if cfg.Gpu {
-		args = append(args, "--runtime", "nvidia", "--gpus", "all")
+		args = append(args, "--gpus", "all")
 	}
 	for _, env := range envVars {
 		args = append(args, "-e", env)

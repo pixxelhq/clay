@@ -30,7 +30,7 @@ services:
   block:
     build:
       context: "../../"
-      dockerfile: examples/raster_vector_clipper/Dockerfile
+      dockerfile: examples/raster_vector_clipper/compose.Dockerfile
     image: raster-vector-clipper:latest
     container_name: raster-vector-clipper
     env_file:
