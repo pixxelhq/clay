@@ -98,6 +98,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay build` writes values from `clay.yaml` into the Dockerfile as they are.
   Previously characters such as `+` and `&` were HTML-escaped, so
   `apt-get: [g++]` gave `g&#43;&#43;` and the build failed.
+- A new project passes `ruff check`, `ruff format --check` and `pyright` with
+  the settings in its `pyproject.toml`, and `pytest` runs
+  `tests/test_block.py`. Previously the generated `entry.py` and
+  `test_block.py` had lint and format errors, and `pytest` found no tests.
 
 ### Breaking Changes
 - New projects no longer get a `Makefile`, `catalog.yaml`, `conda.yaml` or

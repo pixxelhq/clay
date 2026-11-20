@@ -30,6 +30,8 @@ Run the block locally with the inputs in `tests/sample_block_inputs.json`:
 python tests/test_block.py
 ```
 
+`pytest` runs the same test.
+
 ## Build and run
 
 ```shell
