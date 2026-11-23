@@ -17,10 +17,10 @@ INSTRUCTIONS
 2. To embed an image use the following template:
    ![]({{ addUrl "example.png" }})
 
-3. Once you've written this document, upload it with the Clay CLI:
+3. Marketplace content is published from catalog.yaml, not this file:
    - Ensure you are at the root of your model folder
-   - Run: clay block assets upload ./docs --name <name> --bucket <bucket> --region <region> --readme
-   - The command returns a URL. Update the catalog_content_url in your model spec file.
+   - Run: clay block assets upload-catalog --url <storage-url>
+   - Pass the returned catalog URL to: clay publish --catalog-url <catalog-url>
 
 Fill in the details in the section below.
 -->

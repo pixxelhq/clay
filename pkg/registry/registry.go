@@ -45,15 +45,13 @@ type Specification struct {
 }
 
 type PublishBlockRequest struct {
-	Name             string          `json:"name"`
-	Kind             string          `json:"kind"`
-	Type             string          `json:"type"`
-	Version          string          `json:"version"`
-	DockerImage      string          `json:"docker_image"`
-	DocumentationURL string          `json:"documentation_url"`
-	ThumbnailURL     string          `json:"thumbnail_url"`
-	Specification    *Specification  `json:"specification"`
-	CatalogURL       string          `json:"catalog_url,omitempty"`
+	Name          string         `json:"name"`
+	Kind          string         `json:"kind"`
+	Type          string         `json:"type"`
+	Version       string         `json:"version"`
+	DockerImage   string         `json:"docker_image"`
+	Specification *Specification `json:"specification"`
+	CatalogURL    string         `json:"catalog_url,omitempty"`
 }
 
 type Data interface {
@@ -68,16 +66,14 @@ type RegistryResponse[T Data] struct {
 }
 
 type Block struct {
-	ID               string         `json:"id"`
-	Name             string         `json:"name"`
-	Kind             string         `json:"kind"`
-	Type             string         `json:"type"`
-	Version          string         `json:"version"`
-	DockerImage      string         `json:"docker_image"`
-	DocumentationURL string         `json:"documentation_url"`
-	ThumbnailURL     string         `json:"thumbnail_url"`
-	CatalogURL       string         `json:"catalog_url,omitempty"`
-	Specification    *Specification `json:"specification,omitempty"`
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Kind          string         `json:"kind"`
+	Type          string         `json:"type"`
+	Version       string         `json:"version"`
+	DockerImage   string         `json:"docker_image"`
+	CatalogURL    string         `json:"catalog_url,omitempty"`
+	Specification *Specification `json:"specification,omitempty"`
 }
 
 type Blocks []*Block
