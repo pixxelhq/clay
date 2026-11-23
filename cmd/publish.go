@@ -13,11 +13,9 @@ import (
 )
 
 var (
-	clayRegistry     string
-	dockerRegistry   string
-	documentationURL string
-	thumbnailURL     string
-	catalogURL       string
+	clayRegistry   string
+	dockerRegistry string
+	catalogURL     string
 )
 
 func publishBlockToRegistryCmd() *cobra.Command {
@@ -45,8 +43,6 @@ func publishBlockToRegistryCmd() *cobra.Command {
 	cmd.Flags().StringVar(&dockerRegistry, "docker-registry", "", "Docker image registry URL (env: CLAY_DOCKER_REGISTRY)")
 	cmd.Flags().StringVar(&clayRegistry, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
 	cmd.Flags().StringVarP(&dockerfilePath, "file", "f", "", "Provide the Dockerfile path. If not provided, Clay uses ./Dockerfile if it exists, or generates one from clay.yaml (see 'clay dockerfile').")
-	cmd.Flags().StringVar(&documentationURL, "documentation-url", "", "URL for block documentation")
-	cmd.Flags().StringVar(&thumbnailURL, "thumbnail-url", "", "URL for block thumbnail")
 	cmd.Flags().StringVar(&catalogURL, "catalog-url", "", "URL of the published catalog.yaml (see 'clay block assets upload-catalog')")
 
 	return cmd
@@ -91,7 +87,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("🎉 docker image %s has been pushed to the registry\n", builtTag)
 
-	req, err := buildPublishBlockRequest(cfg, documentationURL, thumbnailURL, catalogURL, builtTag)
+	req, err := buildPublishBlockRequest(cfg, catalogURL, builtTag)
 	if err != nil {
 		return err
 	}
@@ -109,20 +105,18 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func buildPublishBlockRequest(cfg *config.Config, documentationURL, thumbnailURL, catalogURL, dockerImage string) (*registry.PublishBlockRequest, error) {
+func buildPublishBlockRequest(cfg *config.Config, catalogURL, dockerImage string) (*registry.PublishBlockRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
 		return nil, fmt.Errorf("error while marshalling build json: %w", err)
 	}
 
 	req := &registry.PublishBlockRequest{
-		Name:             cfg.Name,
-		Kind:             cfg.Kind,
-		Type:             cfg.Type,
-		Version:          cfg.Version,
-		DockerImage:      dockerImage,
-		DocumentationURL: documentationURL,
-		ThumbnailURL:     thumbnailURL,
+		Name:        cfg.Name,
+		Kind:        cfg.Kind,
+		Type:        cfg.Type,
+		Version:     cfg.Version,
+		DockerImage: dockerImage,
 		Specification: &registry.Specification{
 			APIVersion: cfg.APIVersion,
 			Title:      cfg.Name,
