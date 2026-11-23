@@ -329,8 +329,6 @@ one.
 
     - `--docker-registry` *(required unless `CLAY_DOCKER_REGISTRY` is set)* - Docker image registry to push to
     - `--clay-registry` *(required unless `CLAY_REGISTRY_HOST` is set)* - Clay block registry URL
-    - `--documentation-url` *(optional)* - URL for block documentation
-    - `--thumbnail-url` *(optional)* - URL for block thumbnail image
     - `--catalog-url` *(optional)* - URL of the published `catalog.yaml` (see `clay block assets upload-catalog`)
     - `-f, --file` *(optional)* - Dockerfile to build with, as in `clay build`
 
@@ -355,9 +353,7 @@ one.
         "kind": "block",
         "type": "processing",
         "version": "v1.0.0",
-        "docker_image": "registry-url/my-block:v1.0.0",
-        "documentation_url": "https://...",
-        "thumbnail_url": "https://..."
+        "docker_image": "registry-url/my-block:v1.0.0"
       },
       {
         "id": "another-uuid",
@@ -365,9 +361,7 @@ one.
         "kind": "block",
         "type": "processing",
         "version": "v0.2.0",
-        "docker_image": "registry-url/another-block:v0.2.0",
-        "documentation_url": "https://...",
-        "thumbnail_url": ""
+        "docker_image": "registry-url/another-block:v0.2.0"
       }
     ]
     ```
@@ -387,8 +381,6 @@ one.
       "type": "processing",
       "version": "v1.0.0",
       "docker_image": "registry-url/my-block:v1.0.0",
-      "documentation_url": "https://...",
-      "thumbnail_url": "https://...",
       "specification": {
         "inputs": [ /* ... */ ],
         "outputs": [ /* ... */ ],

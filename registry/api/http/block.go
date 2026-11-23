@@ -56,17 +56,15 @@ func (bh *blockHandler) Create(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, &RegistryResponse[CreateBlockResponse]{
 		Data: CreateBlockResponse{
-			ID:               blk.ID,
-			Name:             blk.Name,
-			Type:             blk.Type,
-			Version:          blk.Version,
-			DocumentationURL: blk.DocumentationURL,
-			ThumbnailURL:     blk.ThumbnailURL,
-			CatalogURL:       blk.CatalogURL,
-			DockerImage:      blk.DockerImage,
-			CreatedAt:        blk.CreatedAt,
-			UpdatedAt:        blk.UpdatedAt,
-			Specification:    convertFromServiceSpecification(blk.Specification),
+			ID:            blk.ID,
+			Name:          blk.Name,
+			Type:          blk.Type,
+			Version:       blk.Version,
+			CatalogURL:    blk.CatalogURL,
+			DockerImage:   blk.DockerImage,
+			CreatedAt:     blk.CreatedAt,
+			UpdatedAt:     blk.UpdatedAt,
+			Specification: convertFromServiceSpecification(blk.Specification),
 		},
 	})
 }
@@ -92,16 +90,14 @@ func (bh *blockHandler) GetBlocksWithLatestVersion(ctx *gin.Context) {
 	blocks := make([]*GetLatestBlock, 0, len(bwlv))
 	for _, b := range bwlv {
 		blocks = append(blocks, &GetLatestBlock{
-			ID:               b.ID,
-			Name:             b.Name,
-			Type:             b.Type,
-			Kind:             b.Kind,
-			Version:          b.Version,
-			CreatedAt:        b.CreatedAt,
-			DockerImage:      b.DockerImage,
-			DocumentationURL: b.DocumentationURL,
-			ThumbnailURL:     b.ThumbnailURL,
-			UpdatedAt:        b.UpdatedAt,
+			ID:          b.ID,
+			Name:        b.Name,
+			Type:        b.Type,
+			Kind:        b.Kind,
+			Version:     b.Version,
+			CreatedAt:   b.CreatedAt,
+			DockerImage: b.DockerImage,
+			UpdatedAt:   b.UpdatedAt,
 		})
 	}
 
@@ -140,18 +136,16 @@ func (bh *blockHandler) GetBlockByName(ctx *gin.Context) {
 	blocks := make([]*GetBlockByNameAndVersion, 0, len(blockVersions))
 	for _, b := range blockVersions {
 		blocks = append(blocks, &GetBlockByNameAndVersion{
-			ID:               b.ID,
-			Name:             b.Name,
-			Type:             b.Type,
-			Kind:             b.Kind,
-			Version:          b.Version,
-			DockerImage:      b.DockerImage,
-			DocumentationURL: b.DocumentationURL,
-			ThumbnailURL:     b.ThumbnailURL,
-			Specification:    convertFromServiceSpecification(b.Specification),
-			CatalogURL:       b.CatalogURL,
-			CreatedAt:        b.CreatedAt,
-			UpdatedAt:        b.UpdatedAt,
+			ID:            b.ID,
+			Name:          b.Name,
+			Type:          b.Type,
+			Kind:          b.Kind,
+			Version:       b.Version,
+			DockerImage:   b.DockerImage,
+			Specification: convertFromServiceSpecification(b.Specification),
+			CatalogURL:    b.CatalogURL,
+			CreatedAt:     b.CreatedAt,
+			UpdatedAt:     b.UpdatedAt,
 		})
 	}
 
@@ -198,18 +192,16 @@ func (bh *blockHandler) GetBlockByNameAndVersion(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, &RegistryResponse[*GetBlockByNameAndVersion]{
 		Data: &GetBlockByNameAndVersion{
-			ID:               b.ID,
-			Name:             b.Name,
-			Kind:             b.Kind,
-			Type:             b.Type,
-			Version:          b.Version,
-			DockerImage:      b.DockerImage,
-			DocumentationURL: b.DocumentationURL,
-			ThumbnailURL:     b.ThumbnailURL,
-			Specification:    convertFromServiceSpecification(b.Specification),
-			CatalogURL:       b.CatalogURL,
-			CreatedAt:        b.CreatedAt,
-			UpdatedAt:        b.UpdatedAt,
+			ID:            b.ID,
+			Name:          b.Name,
+			Kind:          b.Kind,
+			Type:          b.Type,
+			Version:       b.Version,
+			DockerImage:   b.DockerImage,
+			Specification: convertFromServiceSpecification(b.Specification),
+			CatalogURL:    b.CatalogURL,
+			CreatedAt:     b.CreatedAt,
+			UpdatedAt:     b.UpdatedAt,
 		},
 	})
 }
@@ -244,14 +236,12 @@ func convertToServiceSpecification(s *Specification) *block.Specification {
 
 func convertToServiceBlock(req CreateBlockRequest) *block.Block {
 	return &block.Block{
-		Name:             req.Name,
-		Kind:             req.Kind,
-		Type:             req.Type,
-		Version:          req.Version,
-		DocumentationURL: req.DocumentationURL,
-		ThumbnailURL:     req.ThumbnailURL,
-		CatalogURL:       req.CatalogURL,
-		DockerImage:      req.DockerImage,
-		Specification:    convertToServiceSpecification(req.Specification),
+		Name:          req.Name,
+		Kind:          req.Kind,
+		Type:          req.Type,
+		Version:       req.Version,
+		CatalogURL:    req.CatalogURL,
+		DockerImage:   req.DockerImage,
+		Specification: convertToServiceSpecification(req.Specification),
 	}
 }

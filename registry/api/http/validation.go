@@ -32,9 +32,9 @@ func (s *Specification) Validate() error {
 }
 
 func (bcr *CreateBlockRequest) Validate() error {
-	if bcr.Name == "" || bcr.Version == "" || bcr.DocumentationURL == "" || bcr.DockerImage == "" {
+	if bcr.Name == "" || bcr.Version == "" || bcr.DockerImage == "" {
 		return &rerr.RegistryError{
-			Message: "name, version, docker_image and documentation_url can not be empty",
+			Message: "name, version and docker_image can not be empty",
 			Code:    rerr.ErrBadRequest,
 		}
 	}
