@@ -4,7 +4,7 @@ order: 9
 ---
 
 # Block Development
-Welcome to our tutorial on creating an NDVI block for Landsat imagery using Clay.
+Welcome to our tutorial on creating an NDVI block for Sentinel-2 imagery using Clay.
 
 ## Prerequisite
 
@@ -38,27 +38,27 @@ def setup(self, bands: List[str]) -> None:  # type: ignore
 ### 2. Define `preprocess()` method.
 
 1. This method takes a raster as input, which is of type Raster defined in the types.
-2. It validates whether the given raster is from Landsat Sentinel.
-3. If the validation fails, it calls Clay.failure(), which returns an error message for the end user.
+2. It checks that the raster is from the Sentinel-2 collection `sentinel-s2-l2a-cogs`.
+3. If the check fails, it calls `clay.failure()`. This raises a `FailedExecutionException`, which stops the run and reports the message as the failure reason.
 
 ```python
-     async def preprocess(  # type: ignore
-        self,
-        raster: datatypes.Raster
-    ) -> Dict[str, Any]:
-        self.logger.warning(
-            "In pre-process. Use self.logger for all logging. Avoid print statements"
-        )
-       
-        if raster.Properties == None or raster.Properties.Collection != "sentinel-s2-l2a-cogs":
-            clay.failure(f"unsupported collection: {raster.Properties.Collection}")
-        self.logger.info("preprocess has been completed, moving on to inference")
-        return {"raster": raster}
+async def preprocess(  # type: ignore
+    self,
+    raster: datatypes.Raster
+) -> Dict[str, Any]:
+    self.logger.warning(
+        "In pre-process. Use self.logger for all logging. Avoid print statements"
+    )
+   
+    if raster.properties.collection != "sentinel-s2-l2a-cogs":
+        clay.failure(f"unsupported collection: {raster.properties.collection!r}")
+    self.logger.info("preprocess has been completed, moving on to inference")
+    return {"raster": raster}
 ```
 
 ### 3. Define `inference()` method.
 
-This method will take the return value of `preprocess` as input. In this method we will define the actual algorithm for block development and return the expected output, here will return the calculated ndvi and the meta value of raster.
+This method will take the return value of `preprocess` as input. In this method we will define the actual algorithm for block development and return the expected output, here will return the calculated ndvi and the meta value of raster. rasterio band indexes start at 1, so the code reads band `idx + 1`. The bands are converted to `float32` before the division.
 
 ```python
     async def inference(self, raster: datatypes.Raster) -> Dict[str, Any]:  # type: ignore
@@ -66,8 +66,8 @@ This method will take the return value of `preprocess` as input. In this method 
         required_bands = {}
         for bi in self.bands:
             self.logger.info(f"looking for band {bi} in raster band-list")
-            idx = raster.Properties.Bands.index(bi)
-            required_bands[bi] = raster_value.read(idx)
+            idx = list(raster.properties.bands).index(bi)
+            required_bands[bi] = raster_value.read(idx + 1).astype("float32")
 
         ndvi = (required_bands["B08"] - required_bands["B04"]) / (required_bands["B08"] + required_bands["B04"])
         self.logger.info(f"shape of calculated ndvi raster: {ndvi.shape}")
@@ -76,7 +76,7 @@ This method will take the return value of `preprocess` as input. In this method 
 ```
 
 ### 4. Define `postprocess` method.
-This method will take the return value of `inference` as input. Here we are taking `ndvi` and `metda` as input returned from `inference`. We will create a tif file which will show the ndvi output on the input raster.
+This method will take the return value of `inference` as input. Here we are taking `ndvi` and `meta` as input returned from `inference`. We will create a tif file which will show the ndvi output on the input raster. The output has one `float32` band, so the code sets `dtype` and `count` in `meta`.
     
 ```python
 
@@ -84,7 +84,7 @@ This method will take the return value of `inference` as input. Here we are taki
         # perform any post-processing
         self.logger.info("In postprocessing")
         assert ndvi is not None
-        meta["dtype"] = "float32"
+        meta.update(dtype="float32", count=1)
         with rasterio.open("result.tif", "w+", **meta) as rst: 
             rst.write(ndvi.astype("float32"), 1)
 
@@ -114,8 +114,8 @@ This method will take the return value of `inference` as input. Here we are taki
                 "In pre-process. Use self.logger for all logging. Avoid print statements"
             )
         
-            if raster.Properties == None or raster.Properties.Collection != "sentinel-s2-l2a-cogs":
-                clay.failure(f"unsupported collection: {raster.Properties.Collection}")
+            if raster.properties.collection != "sentinel-s2-l2a-cogs":
+                clay.failure(f"unsupported collection: {raster.properties.collection!r}")
             self.logger.info("preprocess has been completed, moving on to inference")
             return {"raster": raster}
 
@@ -124,8 +124,8 @@ This method will take the return value of `inference` as input. Here we are taki
             required_bands = {}
             for bi in self.bands:
                 self.logger.info(f"looking for band {bi} in raster band-list")
-                idx = raster.Properties.Bands.index(bi)
-                required_bands[bi] = raster_value.read(idx)
+                idx = list(raster.properties.bands).index(bi)
+                required_bands[bi] = raster_value.read(idx + 1).astype("float32")
             ndvi = (required_bands["B08"] - required_bands["B04"]) / (required_bands["B08"] + required_bands["B04"])
             self.logger.info(f"shape of calculated ndvi raster: {ndvi.shape}")
             self.logger.info("inference has been completed, moving on to postprocess")
@@ -135,7 +135,7 @@ This method will take the return value of `inference` as input. Here we are taki
             # perform any post-processing
             self.logger.info("In postprocessing")
             assert ndvi is not None
-            meta["dtype"] = "float32"
+            meta.update(dtype="float32", count=1)
             with rasterio.open("result.tif", "w+", **meta) as rst: 
                 rst.write(ndvi.astype("float32"), 1)
             return {
@@ -187,7 +187,7 @@ Once you are done with the block implementation using the above defined interfac
           properties:
             collection: sentinel-s2-l2a-cogs
     ```
-     **Input name in the `postprocess` function needs to match input name from spec file. For e.g. we have used name `result`**
+    **The `name` of each datatype returned from `postprocess` needs to match an output name in the spec file. For e.g. we have used name `result`**
 
 
 ## Define sample input.
@@ -202,7 +202,7 @@ Now we will define the input for the above defined block and use this file for t
         "name": "raster",
         "type": "url",
         "format": "raster",
-        "value": "./latest_data.tiff",
+        "value": "s3://my-bucket/sentinel-2/latest_data.tiff",
         "properties": {
             "bands": [
                 "B01",
@@ -228,7 +228,7 @@ Now we will define the input for the above defined block and use this file for t
 !!! note
     You can also use the `stac_url` field instead of `value` if you want to provide a [STAC](https://stacspec.org/en) collection as input.
 
-We have a file `latest_data.tiff` on our local, you can give the path from where the raster will be taken as block input.
+The `value` must be a path the container can read. `clay run` does not mount local folders into the container, so a path on your machine will not work. Use a remote URL such as `s3://`, or a path to a file inside the image. The runner downloads the file before `preprocess` runs, so `raster.value` is a local path in your block code.
 
 ## Build block in docker image
 
@@ -246,26 +246,32 @@ Run the block using `clay run`:
 clay run ndvi:latest --input "$(cat tests/sample_block_inputs.json)"
 ```
 
-The output will look something like:
+The input file is on S3, so pass AWS credentials to the container with `-e`, for example `-e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=...`.
+
+The block logs one JSON object per line. The output will look something like this (shortened, callback lines left out):
 
 ```shell
-Using configuration located at: /path/to/NDVI/Ndvi/clay.yaml
-INFO - 2024-04-12 01:07:16,193 - core.py:346 - job_block_runner - Initializing Block...
-INFO - 2024-04-12 01:07:16,195 - core.py:348 - job_block_runner - Block initialization complete.
-WARNING - 2024-04-12 01:07:17,202 - block.py:17 - Ndvi - In pre-process. Use self.logger for all logging. Avoid print statements
-INFO - 2024-04-12 01:07:17,202 - block.py:23 - Ndvi - preprocess has been completed, moving on to inference
-INFO - 2024-04-12 01:07:17,241 - block.py:30 - Ndvi - looking for band B04 in raster band-list
-INFO - 2024-04-12 01:07:17,662 - block.py:30 - Ndvi - looking for band B08 in raster band-list
-block.py:34: RuntimeWarning: invalid value encountered in divide
-  ndvi = (required_bands["B08"] - required_bands["B04"]) / (required_bands["B08"] + required_bands["B04"])
-INFO - 2024-04-12 01:07:17,683 - block.py:35 - Ndvi - shape of calculated ndvi raster: (1390, 2834)
-INFO - 2024-04-12 01:07:17,683 - block.py:36 - Ndvi - inference has been completed, moving on to postprocess
-INFO - 2024-04-12 01:07:17,694 - block.py:41 - Ndvi - In postprocessing
-INFO - 2024-04-12 01:07:17,949 - runner.py:260 - job_block_runner - copying file from `result.tif` to `runs/wf123/job123/task123/outputs/result/result.tif`
-INFO - 2024-04-12 01:07:18,006 - runner.py:470 - job_block_runner - results: [Raster(Format='raster', Type='url', Name='result', Value='runs/wf123/job123/task123/outputs/result/result.tif', Default=None, IsArtifact=True, Properties=RasterProperties(Bands=None, Source=None, Collection='sentinel-s2-l2a-cogs', Dtype=None))]
+🧐 Searching image ndvi:latest
+Using configuration located at: /clay.yaml
+{"level": "INFO", "timestamp": "2026-11-23T07:16:32.006855Z", "logger": "Ndvi", "loc": "runner.py:start:351", "message": "\ud83c\udfac starting clay job runner version: 1.5.0"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:32.007011Z", "logger": "Ndvi", "loc": "runner.py:_init_block:190", "message": "initializing block constructor"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:32.009001Z", "logger": "Ndvi", "loc": "runner.py:_init_block:192", "message": "initializing block constructor completed"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:32.009025Z", "logger": "Ndvi", "loc": "runner.py:_collect_inputs:211", "message": "parsing inputs"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:32.041819Z", "logger": "Ndvi", "loc": "runner.py:_collect_inputs:218", "message": "processing input artifacts..."}
+Processing item: raster with source path: s3://my-bucket/sentinel-2/latest_data.tiff
+{"level": "INFO", "timestamp": "2026-11-23T07:16:32.048098Z", "logger": "Ndvi", "loc": "runner.py:_collect_inputs:221", "message": "\u2705 processing input artifacts completed"}
+{"level": "WARNING", "timestamp": "2026-11-23T07:16:33.264982Z", "logger": "Ndvi", "loc": "block.py:preprocess:14", "message": "In pre-process. Use self.logger for all logging. Avoid print statements"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.265132Z", "logger": "Ndvi", "loc": "block.py:preprocess:20", "message": "preprocess has been completed, moving on to inference"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.292228Z", "logger": "Ndvi", "loc": "block.py:inference:27", "message": "looking for band B04 in raster band-list"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.293657Z", "logger": "Ndvi", "loc": "block.py:inference:27", "message": "looking for band B08 in raster band-list"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.293827Z", "logger": "Ndvi", "loc": "block.py:inference:31", "message": "shape of calculated ndvi raster: (1390, 2834)"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.293872Z", "logger": "Ndvi", "loc": "block.py:inference:32", "message": "inference has been completed, moving on to postprocess"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.293972Z", "logger": "Ndvi", "loc": "block.py:postprocess:37", "message": "In postprocessing"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:33.333068Z", "logger": "Ndvi", "loc": "runner.py:success:224", "message": "sending callback for success"}
+{"level": "INFO", "timestamp": "2026-11-23T07:16:34.549203Z", "logger": "Ndvi", "loc": "runner.py:_create_output_json_files:293", "message": "Created output spec file: /tmp/clay/outputs/result/spec.json"}
 ```
 
-You can notice here that the output of the block has been generated at `runs/wf123/job123/task123/outputs/result/result.tif`
+The runner copies each output file to `$REMOTE_OUTPUT_PATH/<output name>/`. The default `REMOTE_OUTPUT_PATH` is `/tmp/clay/outputs`, so here the result is at `/tmp/clay/outputs/result/result.tif` inside the container. `clay run` removes the container when it exits, so to keep the result, set an S3 location, for example `-e REMOTE_OUTPUT_PATH=s3://my-bucket/ndvi-outputs/`. See [REMOTE_OUTPUT_PATH](env-requirements.md#6-remote_output_path).
 
 ## Next Steps
 

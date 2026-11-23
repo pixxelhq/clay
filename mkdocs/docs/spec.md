@@ -26,7 +26,7 @@ parameters:
     default: 5
 
 inputs:
-   - name: ndvi_raster
+  - name: ndvi_raster
     format: raster
     is_artifact: true
     type: url
@@ -100,6 +100,8 @@ Specifies what kind of entity this spec file represents. For blocks, this should
 | **Type** | `string` |
 | **Required** | Yes |
 | **Values** | `processing`, `source` |
+
+The registry also accepts `visualization`.
 
 Type of the block:
 
@@ -184,11 +186,13 @@ List of parameters passed to the block's `setup()` function during initializatio
 
 #### Parameter Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Parameter name (must match the argument name in `setup()`) |
-| `type` | string | Data type: `str`, `int`, `float`, `bool`, `list`, `dict` |
-| `default` | any | Default value if not provided at runtime |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Parameter name (must match the argument name in `setup()`) |
+| `type` | string | Yes | Data type: `str`, `int`, `float`, `bool`, `list`, `dict` |
+| `default` | any | Yes | The value passed to `setup()`. Clay converts it to `type` |
+
+Clay always passes `default` to `setup()`. If a parameter has no `default` or no `type`, the block fails at start with a `KeyError`. Setting parameters per run is planned.
 
 **Example:**
 ```yaml
@@ -228,7 +232,8 @@ List of inputs the block accepts. Each input must specify its format and type. S
 | `type` | string | Yes | Value type: `url`, `str`, `int`, `float`, `bool` |
 | `description` | string | No | Human-readable description |
 | `display_name` | string | No | Display name for UIs |
-| `is_artifact` | bool | No | Whether this is a file artifact (default: true for raster/vector) |
+| `is_artifact` | bool | No | Whether this is a file artifact. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
+| `default` | any | No | Used when the input's `value` is `""`. For a `raster` input with no `stac_url`, it is also used as `stac_url` |
 | `properties` | object | No | Format-specific properties |
 | `validation` | object | No | Validation rules — see [Validation Rules](#validation-rules) |
 
@@ -283,7 +288,7 @@ List of outputs the block produces. Each output must specify its format and type
 | `type` | string | Yes | Value type: `url`, `str`, `int`, `float`, `bool` |
 | `description` | string | No | Human-readable description |
 | `display_name` | string | No | Display name for UIs |
-| `is_artifact` | bool | No | Whether this is a file artifact |
+| `is_artifact` | bool | No | Whether this is a file artifact. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
 | `properties` | object | No | Format-specific properties |
 
 **Example:**
@@ -321,11 +326,11 @@ Build-time configuration for the Docker image.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value, because YAML reads `3.10` as the number `3.1` |
+| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value. YAML reads `3.10` as a number, and Clay stops with `cannot unmarshal number into Go struct field Config.build.python-version of type string` |
 | `gdal` | bool | `false` | Install GDAL and its Python bindings (`osgeo`). See [Base image](#base-image) |
 | `conda` | bool | `false` | Create a conda environment from the conda file in `requirements`. It does not add CUDA; to run on GPUs, set `gpu: true`. See [Base image](#base-image) |
-| `apt-get` | list[string] | `[]` | Additional OS packages, installed without recommended packages. The `python:<version>-slim` and OSGeo images have no C compiler; add `build-essential` if a package in `requirements` must be compiled |
-| `requirements` | string | - | Path to the `requirements.txt` file, or to the conda file if `conda` is `true` |
+| `apt-get` | list[string] | `[]` | Additional OS packages, installed without recommended packages. With `conda: true`, Clay always adds `libgl1`. The `python:<version>-slim` and OSGeo images have no C compiler; add `build-essential` if a package in `requirements` must be compiled |
+| `requirements` | string | Required | Path to the `requirements.txt` file, or to the conda file if `conda` is `true`. If it is missing or empty, the generated Dockerfile is broken (`COPY  .`) and the build fails |
 
 **Example:**
 ```yaml
@@ -375,7 +380,7 @@ The block runs as a non-root user: UID `10001`, or `mambauser` if `conda` is `tr
 | **Type** | `bool` |
 | **Default** | `false` |
 
-Whether the block requires GPU acceleration. When set to `true`, the block will be scheduled on GPU-enabled infrastructure, and `clay run` starts the container with `--gpus all`. This needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host.
+Whether the block needs a GPU. When set to `true`, `clay run` starts the container with `--gpus all`, and `clay publish` sends the value to the registry. This needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host.
 
 ```yaml
 gpu: true
@@ -391,7 +396,7 @@ gpu: true
 | **Type** | `object` |
 | **Required** | No |
 
-Environment variables to set in the container at runtime.
+Environment variables that the Clay runtime sets when the block starts. A variable that is already set in the container keeps its value. These variables are not written into the Dockerfile.
 
 ```yaml
 env:
@@ -406,7 +411,7 @@ env:
 
 ## Validation Rules
 
-Clay supports input validation to ensure data meets requirements before processing. Add a `validation` field to any input.
+Add a `validation` field to an input to check its value before processing. The runtime checks `string`, `number` and `date` inputs. Rules on other formats are accepted but not checked.
 
 ### Number Validation
 
@@ -443,8 +448,10 @@ inputs:
     format: string
     type: str
     validation:
-      regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-...'
+      regex_match: '^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$'
 ```
+
+`regex_match` uses Python's `re.match`, so the pattern only has to match the start of the value. End the pattern with `$` to match the whole value.
 
 ### String Allowed Values
 
@@ -485,13 +492,17 @@ unset rather than invalid, so a missing required input is reported as a missing
 input, not as an out-of-range date. A malformed bound in the spec is an error.
 
 !!! note "Defaults are not written into the published spec"
-    `clay publish` forwards `clay.yaml` to the registry as-is. Omitted fields
-    such as `date_format` are absent from the stored spec; the default is applied
-    by the validators at runtime, not materialised into the document. Anything
-    that reads specs from the registry must apply the same defaults itself.
-    This holds for every defaulted field in the schema, including `is_artifact`.
+    `clay publish` sends `parameters`, `inputs`, `outputs` and `env` to the
+    registry as written in `clay.yaml`. Omitted fields such as `date_format`
+    or `is_artifact` are absent from the stored spec; the runtime applies the
+    default. Anything that reads specs from the registry must apply the same
+    defaults itself. `build` is different: Clay rebuilds it from its known
+    build fields, so an omitted build field is stored as `""`, `false` or
+    `null`. Top-level keys that Clay does not know are not sent.
 
 ### Area Validation (Raster/Vector)
+
+`raster` and `vector` inputs accept `min_area` and `max_area`, in square meters. The runtime does not check them yet.
 
 ```yaml
 inputs:
@@ -499,8 +510,8 @@ inputs:
     format: raster
     type: url
     validation:
-      min_area: 10    # sq km
-      max_area: 1000  # sq km
+      min_area: 10
+      max_area: 1000
 ```
 
 ---

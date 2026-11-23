@@ -15,17 +15,25 @@ Docker containers without ever publishing to a registry.
 
 ## What the registry stores
 
-- Block definitions (name, kind, type, description)
+- Block definitions (name, kind, type)
 - Versions of each block
 - Docker image reference for each version
 - Documentation and thumbnail URLs
-- A copy of the structured catalog documentation (media, sample I/O, and content sections)
+- The URL of the published `catalog.yaml` (the catalog itself is not stored)
 - Block specification snapshots
 
 The registry is a Go HTTP service backed by PostgreSQL. Source lives under
 [`registry/`](https://github.com/pixxelhq/clay/tree/main/registry).
 
 ## Running a registry locally
+
+You need a running PostgreSQL server with an empty database. The default
+name is `clay_registry_dev` (see `sample.env`). The database user must be able
+to run `CREATE EXTENSION "uuid-ossp"`, because the first migration does that.
+
+```bash
+createdb clay_registry_dev
+```
 
 The registry ships with a `Makefile` that covers the common dev workflow. From
 the `registry/` directory:
@@ -34,13 +42,16 @@ the `registry/` directory:
 # Copy sample env and adjust DB credentials if needed
 make copy-config
 
-# Apply database migrations to a running Postgres
-make migrate-up
-
 # Build and run the server
 make build
 make run
 ```
+
+The server applies database migrations when it starts. You do not need to run
+them by hand. `make migrate-up` is optional. It needs
+[golang-migrate](https://github.com/golang-migrate/migrate) and does not read
+`app.env`; it uses the `DB_URL` in the `Makefile`. Override it if your database
+differs: `make migrate-up DB_URL="postgresql://user:pass@host:5432/db?sslmode=disable"`.
 
 Once the service is running, the OpenAPI/Swagger UI is available at
 `http://localhost:<port>/swagger/index.html` (port is configured via
@@ -74,6 +85,8 @@ clay publish \
 
 `clay publish` will:
 
-1. Build the block's Docker image using the spec in `clay.yaml`.
-2. Push the image to the configured Docker registry.
-3. Register the new block version with the Clay registry.
+1. Check that the block version is not already in the Clay registry. If it is, it stops.
+2. Build the block's Docker image. It uses `-f/--file` if given, else
+   `./Dockerfile` if it exists, else a Dockerfile generated from `clay.yaml`.
+3. Push the image to the configured Docker registry.
+4. Register the new block version with the Clay registry.

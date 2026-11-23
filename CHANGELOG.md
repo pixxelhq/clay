@@ -17,6 +17,12 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   uploads to `<url>/<key>/<filename>` and leaves your `catalog.yaml` unchanged.
 - `pixxel-clay` requires `boto3>=1.28.57`, the first version that reads
   `AWS_ENDPOINT_URL`.
+- The code samples in the progress, logging, I/O, tutorial and FAQ pages run
+  against the current SDK, and the YAML samples in the spec page parse.
+- The reference pages no longer describe features Clay does not have: API
+  generation, block chaining, raster and vector area checks, setting
+  parameters per run, and `CLAY_DEBUG`. They give the real defaults of the
+  runtime environment variables and the real registry setup steps.
 
 ## v1.5.0 - 2026-11-19
 ### Upgrading

@@ -13,6 +13,7 @@ This document details the environment variables used to configure and run a bloc
 
 - **Purpose**: Uniquely identifies each block run instance.
 - **Scope**: Used for tracing, auditing, and debugging execution logs and results. This ID is particularly important when the block communicates its status via callbacks, allowing the orchestrator to track which specific execution is reporting progress.
+- **Default Value**: `default_execution_id`
 - **Best Practice**: Set by the orchestrator; must be globally unique for each run.
 - **Usage in Callbacks**: When blocks report their status (success/failure, progress) to the callback endpoint, the EXECUTION_ID helps the orchestrator correlate the callback to the specific block run.
 
@@ -27,7 +28,7 @@ Input no longer arrives through a configurable env var. Clay parses two CLI flag
 | flag | carries |
 |------|---------|
 | `--input '<json>'` | the input array inline |
-| `--input-uri '<uri>'` | a URI Clay downloads the array from (`s3://…`, or any configured storage backend) |
+| `--input-uri '<uri>'` | an `s3://` URI Clay downloads the array from. Other schemes are not supported |
 
 ```bash
 # directly
@@ -52,19 +53,23 @@ If neither flag is given, Clay falls back to `INPUT_JSON_URI` and then `INPUT_JS
 ## 3. `INPUT_JSON_JQ_FILTER`
 
 - **Purpose**: A [jq](https://stedolan.github.io/jq/) filter applied to the input JSON before
-  Clay parses it. Set by Dexter on the **DAG/workflow** path only; never on the inference path.
-- **Current value**:
+  Clay parses it. It applies to input from any source (`--input`, `--input-uri`,
+  `INPUT_JSON_URI` or `INPUT_JSON`). If the filter fails, the block fails with
+  `Failed to process input JSON with jq filter`.
+- **Default**: unset, so the input JSON is used as is.
+- **Example value**:
   ```bash
   [.[] | .spec + {name: .name}]
   ```
 
-**Why it exists.** On the DAG path Dexter cannot emit a flat spec array. Each input value is an
-Argo reference (`{{inputs.parameters.<name>}}`) that Argo resolves to the *producing* task's
-output spec — and that spec's embedded `name` is the producer's **output** name, not the name
-this block declares. Argo substitutes plain text, so Dexter can only wrap the reference:
+**Why it exists.** An orchestrator can set a jq filter, for example to flatten specs that Argo
+wraps. In an Argo workflow, each input value can be an Argo reference
+(`{{inputs.parameters.<name>}}`) that Argo resolves to the *producing* task's output spec — and
+that spec's embedded `name` is the producer's **output** name, not the name this block declares.
+Argo substitutes plain text, so the orchestrator can only wrap the reference:
 
 ```bash
-# what Dexter emits
+# what the orchestrator emits
 --input '[{"name":"raster","spec":{{inputs.parameters.raster}}}]'
 
 # what Argo resolves it to, e.g. from an upstream block whose output is called "result"
@@ -77,11 +82,6 @@ this block declares. Argo substitutes plain text, so Dexter can only wrap the re
 Clay keys inputs by name and then calls `preprocess(**inputs)`, so without the rename the block
 would be invoked with `result=` instead of `raster=` and fail on a missing argument.
 
-!!! note "Transitional"
-    Block images ship their own copy of Clay, so this filter is what lets images built before
-    the `--input` flag keep working. Once every block is rebuilt, Dexter stops setting it, the
-    flatten moves into Clay, and the `jq` dependency is dropped.
-
 ***
 
 ## 4. `INPUT_JSON` and `INPUT_JSON_URI`
@@ -89,10 +89,12 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
 - **Purpose**: The env-var fallback for block input data, used when neither `--input` nor
   `--input-uri` is passed.
 - **Format**: JSON string (typically a list of dictionaries, specifying `name`, `type`, `format`, and `value`).
-- **Resolution order**: `--input-uri` → `--input` → `INPUT_JSON_URI` → `INPUT_JSON`. The first one
-  set wins; an empty value reads the same as unset.
-- **`INPUT_JSON_URI`**: a URI Clay downloads the array from instead of reading it inline. Dexter
-  offloads inference inputs larger than 100KB here so the pod spec stays small.
+- **Resolution order**: `--input-uri` → `--input` → `INPUT_JSON_URI` → `INPUT_JSON` → `[{}]`.
+  The first one that is set and not empty wins. An empty `--input-uri`, `--input` or
+  `INPUT_JSON_URI` reads the same as unset. `INPUT_JSON` is different: if it is set to an empty
+  string, Clay uses it and fails to parse it as JSON. If nothing is set, the input is `[{}]`.
+- **`INPUT_JSON_URI`**: an `s3://` URI Clay downloads the array from instead of reading it
+  inline. Use it for large inputs.
 - **Usage**: For local runs, set `INPUT_JSON` manually or use the test_block.py script, which sets
   it automatically. Prefer `--input` for new work.
 - **Example**:
@@ -105,7 +107,7 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
         "type": "url",
         "format": "raster",
         "value": "",
-        "is_artifact": "true",
+        "is_artifact": true,
         "stac_url": "./tests/example_stac.json",
         "properties": {
             "bands": [
@@ -136,7 +138,7 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
         "name": "vector",
         "type": "url",
         "format": "vector",
-        "is_artifact": "true",
+        "is_artifact": true,
         "value": "./tests/vector.geojson"
     }]
 ```
@@ -210,6 +212,9 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: Directory path where output specification files (e.g., `spec.json`) are stored locally.
 - **Default Value**: `/tmp/clay/outputs/`
+- **Layout**: Clay writes one file per output, to `<OUTPUT_JSON_PATH>/<output_name>/<OUTPUT_JSON_BASE_FILE_NAME>`.
+  If `REMOTE_OUTPUT_PATH` is an `s3://` path, Clay also uploads each file to
+  `<REMOTE_OUTPUT_PATH>/<output_name>/spec.json`.
 - **Usage**: Acts as a working directory for block outputs. The output specification file contains detailed metadata about the block's results including data properties, processing parameters, and other relevant information for end users.
 
 ***
@@ -218,7 +223,8 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: Name of the primary output specification file.
 - **Default Value**: `spec.json`
-- **Role**: This file contains the output specifications for end users, including detailed properties of the results such as raster properties, dates, metadata, and other output-specific information. The file is saved in the directory specified by `OUTPUT_JSON_PATH`.
+- **Role**: This file contains the output specifications for end users, including detailed properties of the results such as raster properties, dates, metadata, and other output-specific information. Clay writes one file per output, to `<OUTPUT_JSON_PATH>/<output_name>/<OUTPUT_JSON_BASE_FILE_NAME>`.
+- **Note**: The copy uploaded to `REMOTE_OUTPUT_PATH` is always named `spec.json`, whatever this variable says.
 - **Best Practice**: Avoid name collisions—ensure unique naming in parallel runs.
 
 ***
@@ -227,16 +233,21 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 ## 10. `CALLBACK_ENDPOINT`
 
 - **Purpose**: The URL endpoint for the block to communicate runtime status and progress updates to the orchestrator.
-- **Usage**: Facilitates reporting of block status (success/failure, progress metrics).
-- **Note**: When running locally, this variable can be omitted.
+- **Default Value**: `http://localhost:3000/callback`
+- **Usage**: Clay sends each status update as a `POST` with the body `{"data": …}`. It retries on
+  `500`, `502`, `503` and `504` (3 retries). If a callback still fails, Clay logs the error and the
+  block keeps running.
+- **Note**: When running locally, this variable can be omitted. Callbacks to the default URL then
+  fail and are only logged.
 
 ***
 
 ## 11. `CALLBACK_HEADERS`
 
-- **Purpose**: Provides additional headers (e.g., `userid`, `organisationid`) for authenticated callbacks.
-- **Format**: JSON string containing relevant authentication info.
-- **Note**: Skip this variable when running blocks locally.
+- **Purpose**: Extra HTTP headers sent with each callback, for example for authentication.
+- **Format**: A JSON object, for example `{"Authorization": "Bearer <token>"}`.
+- **Default Value**: `{}`
+- **Note**: If the value is not valid JSON, the block fails at start. Skip this variable when running blocks locally.
 
 ***
 
@@ -263,6 +274,6 @@ inside the block container). They mirror the corresponding command-line flags.
 
 - **Purpose**: URL of the Clay block registry that the CLI talks to.
 - **Equivalent flag**: `--clay-registry`.
-- **Used by**: `clay publish`, `clay block list`, `clay block describe`.
+- **Used by**: `clay publish`. `clay block list` and `clay block describe` do not read it; pass `--clay-registry` to them.
 
 ***

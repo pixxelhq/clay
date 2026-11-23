@@ -70,28 +70,33 @@ Use the appropriate log level based on the message importance:
 The logger is available as `self.logger` in any `BlockWrapper` method:
 
 ```python
-from clay.core import BlockWrapper
+from typing import Any, Dict
+
 import datatypes
+from clay.core import BlockWrapper
+
 
 class MyBlock(BlockWrapper):
-    def setup(self, **parameters):
+    def setup(self, **parameters: Any) -> None:
         self.logger.info("Block initialized")
 
-    async def preprocess(self, input_raster: datatypes.Raster):
+    async def preprocess(self, input_raster: datatypes.Raster) -> Dict[str, Any]:
         self.logger.info(f"Processing raster: {input_raster.value}")
-        return {"raster": input_raster}
+        return {"raster_path": input_raster.value}
 
-    async def inference(self, raster):
+    async def inference(self, raster_path: str) -> Dict[str, Any]:
         self.logger.debug("Starting inference")
-        # ... inference logic ...
+        result_path = raster_path  # ... inference logic ...
         self.logger.info("Inference complete")
-        return {"result": result}
+        return {"result_path": result_path}
 
-    async def postprocess(self, result):
-        if result is None:
-            self.logger.warning("Result is None, returning empty output")
-        return {"output": result}
+    async def postprocess(self, result_path: str) -> Dict[str, datatypes.Data]:
+        if not result_path:
+            self.logger.warning("Result path is empty")
+        return {"output": datatypes.Raster(name="output", type="url", value=result_path)}
 ```
+
+Every value returned from `postprocess` must be a datatype, such as `datatypes.Raster`.
 
 ## Creating Custom Loggers
 
@@ -108,7 +113,11 @@ logger = ClayLogger(logger_name='my-custom-logger', level=logging.INFO)
 logger.debug("This won't be shown if level is INFO")
 logger.info("This will be shown")
 logger.warning("Warnings for unexpected but non-fatal issues")
-logger.error("Errors when execution cannot proceed", exc_info=exception_object)
+
+try:
+    open("missing-file.txt")
+except OSError as exc:
+    logger.error("Errors when execution cannot proceed", exc_info=exc)
 ```
 
 ## Best Practices

@@ -185,7 +185,7 @@ Number represents numeric data types (integers, floats).
 | `format` | Format | Must be `number` |
 | `type` | string | Type (e.g., "int", "float") |
 | `name` | string | Unique identifier |
-| `value` | string | The numeric value (as string) |
+| `value` | string | The numeric value, stored as a string. Inside block methods, `.value` is cast by `type`: `int`, `float` or `bool` |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: false) |
@@ -289,6 +289,7 @@ Properties specific to raster data:
 | `satellite_look_angle` | double | Satellite look angle in degrees |
 | `sun_elevation` | double | Sun elevation angle in degrees |
 | `visualisation` | [Visualization](#visualization) | Visualization properties |
+| `date` | string | Date of the raster |
 | `discretization` | [Discretization](#discretization) | Discretization properties |
 | `images` | list[string] | STAC URLs of source images |
 
@@ -360,11 +361,11 @@ from new ones when the schema evolves.
 
 ## Input Validations
 
-Clay supports validating input values in your block specification. Validations are defined in the `validation` field of each input.
+Clay supports validating input values in your block specification. Validations are defined in the `validation` field of each input. Clay checks them before `preprocess` runs. If a check fails, the run fails with a validation error.
 
 ### Number Validation
 
-Check if a number is within a specified range:
+Check if a number is within a specified range, or is one of a set of allowed values:
 
 ```yaml
 inputs:
@@ -374,11 +375,18 @@ inputs:
     validation:
       min_value: 0.0
       max_value: 1.0
+  - name: tile_size
+    format: number
+    type: int
+    validation:
+      allowed_values: [256, 512, 1024]
 ```
+
+Both bounds are inclusive and optional. If you set `allowed_values` and a range, the value must pass both.
 
 ### String Validation
 
-Validate string values against a regular expression:
+Validate string values against a regular expression, or a set of allowed values:
 
 ```yaml
 inputs:
@@ -387,11 +395,41 @@ inputs:
     type: str
     validation:
       regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
+  - name: mode
+    format: string
+    type: str
+    validation:
+      allowed_values: ["fast", "accurate"]
 ```
 
-### Raster Validation
+`regex_match` must match at the start of the value. Add `^` and `$` to match the whole value. If you set both fields, the value must pass both.
 
-Validate the area of the raster's AOI (in square kilometers):
+### Date Validation
+
+Check that a date is in an allowed range:
+
+```yaml
+inputs:
+  - name: start_date
+    format: date
+    type: str
+    validation:
+      date_format: date_only
+      min_date: "2024-01-01"
+      max_date: "2024-12-31"
+```
+
+| Field | Description |
+|-------|-------------|
+| `date_format` | `date_only` (`YYYY-MM-DD`, the default) or `date_time` (RFC 3339 with a UTC offset, e.g. `2024-03-01T12:00:00Z`) |
+| `min_date` | Earliest allowed date, inclusive |
+| `max_date` | Latest allowed date, inclusive |
+
+The value and both bounds must use the encoding set by `date_format`. An empty value is not checked.
+
+### Raster and Vector Validation
+
+The spec accepts `min_area` and `max_area` (in square meters) for raster and vector inputs:
 
 ```yaml
 inputs:
@@ -399,23 +437,12 @@ inputs:
     format: raster
     type: url
     validation:
-      min_area: 10    # minimum 10 sq km
-      max_area: 1000  # maximum 1000 sq km
+      min_area: 10000000      # 10 sq km
+      max_area: 1000000000    # 1000 sq km
 ```
 
-### Vector Validation
-
-Validate the area of the vector's AOI (in square kilometers):
-
-```yaml
-inputs:
-  - name: boundary
-    format: vector
-    type: url
-    validation:
-      min_area: 1
-      max_area: 500
-```
+!!! note
+    The Clay runtime does not check `min_area` and `max_area` yet. Input validation for these fields is planned.
 
 ---
 
@@ -507,25 +534,37 @@ properties = datatypes.RasterProperties(
 Here's how to use datatypes in your Clay block:
 
 ```python
-from clay.core import BlockWrapper
+from typing import Any, Dict
+
 import datatypes
+from clay.core import BlockWrapper
+
 
 class MyBlock(BlockWrapper):
-    async def preprocess(self, input_raster: datatypes.Raster, threshold: datatypes.Number):
+    def setup(self, **parameters: Any) -> None:
+        self.logger.info("Block ready")
+
+    async def preprocess(self, input_raster: datatypes.Raster, threshold: datatypes.Number) -> Dict[str, Any]:
         # Access values using .value attribute
         self.logger.info(f"Processing raster: {input_raster.value}")
         self.logger.info(f"Using threshold: {threshold.value}")
 
         return {
             "raster_path": input_raster.value,
-            "threshold_value": float(threshold.value)
+            "threshold_value": threshold.value,  # already a float when the input's type is "float"
         }
 
-    async def postprocess(self, result_path: str):
+    async def inference(self, raster_path: str, threshold_value: float) -> Dict[str, Any]:
+        result_path = "result.tif"
+        self.logger.info(f"Writing {result_path} from {raster_path} with threshold {threshold_value}")
+        return {"result_path": result_path}
+
+    async def postprocess(self, result_path: str) -> Dict[str, datatypes.Data]:
         # Return outputs as datatypes
         return {
             "output": datatypes.Raster(
-                name="result",
+                name="output",
+                type="url",
                 value=result_path,
                 is_artifact=True
             )

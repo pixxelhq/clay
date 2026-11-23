@@ -5,7 +5,7 @@ order: 10
 
 # Indicating Block Progress
 
-Most of the blocks in our ecosystem are long running blocks. Hence, indicating the progress of an inference is a key component of the user experience.
+Many blocks run for a long time. Hence, indicating the progress of an inference is a key part of the user experience.
 
 Indicating the progress of a process, block or not, is _generally a tricky process_ without any standardised way to do it. For example,
 
@@ -19,30 +19,39 @@ Well, we have outlined our approach with usage examples below.
 
 ## Our Approach
 
-* The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Of which, the block has access to the `(5, 95)` range. The ranges `[0, 5]` and `[95, 100]` are reserved by Clay.
+* The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Progress starts at `0`. Clay reports `0` when the run starts and `100` when it finishes (on success or failure). In between, the block can set any value from `0` to `100`.
 
 * Clay exposes three progress APIs for the block author to use:
     * `add_progress` — _A relative, additive API._
     * `set_progress` — _An absolute, setter API._
     * `get_progress` — _A read-only getter for the current progress value._
 
-* Progress is tracked, internally by the base `BlockWrapper` class, which is the base class for all blocks.
+* Progress is tracked by the Clay runner. When the runner creates your block, it attaches these three methods to it. Each accepted update is sent to the callback endpoint.
 
 * Precision is welcomed wherever possible, but approximations also work.
 
 * Since these methods are an attribute of the `BlockWrapper` class and by extension, the subclassed block, the methods cannot be used in a third party function, out of the box. For example,
 
 ```python
-def some_function():
+from typing import Any, Dict
+
+import datatypes
+from clay.core import BlockWrapper
+
+
+def some_function() -> None:
     # cannot indicate progress in this function without passing down `self`.
+    pass
+
 
 class Block(BlockWrapper):
-    def inference(self, a: Raster):
+    async def inference(self, a: datatypes.Raster) -> Dict[str, Any]:
         # can indicate progress here
         self.add_progress(5)
 
         # cannot indicate progress in `some_function` without passing down `self` into `some_function`.
         some_function()
+        return {"a": a}
 ```
 
 ### `add_progress`
@@ -55,7 +64,7 @@ This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ t
 
 ### `get_progress`
 
-A read-only getter that returns the block's current progress as a `float` in the `(5, 95)` range Clay reserves for blocks. Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
+A read-only getter that returns the block's current progress as a `float`. Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
 
 ```python
 last = self.get_progress()
@@ -71,52 +80,47 @@ self.set_progress(last + per_iteration)
 
 * For standard points in the program, where progress is expected to be deterministic and static, you can use the `set_progress` method.
 
-* There is *never* going to be a runtime-exception because of progress reporting. In-case of an invalid value, clay would simply ignore the value and log a warning.
+* There is *never* going to be a runtime-exception because of progress reporting. Invalid values are dropped and logged:
+    * A value outside `0` to `100` (for `set_progress`), or a delta outside `0` to `100` (for `add_progress`), is ignored and logged as an error.
+    * A `set_progress` value lower than the current progress is ignored and logged as a warning.
+    * If `add_progress` would push the total above `100`, an error is logged and no update is sent. The internal counter still keeps the larger value, so `get_progress` returns more than `100` and later `set_progress` calls are rejected. Plan your deltas so they add up to `100` or less.
 
 ## Examples
 ### Simple usage of `add_progress`
 
 ```python
-class B(BlockWrapper):
-    def __init__(
-        self,
-        config: str,
-        protocol: str = "abfs",
-        logger: Optional[Logger] = None,
-        enable_debug_logs: Optional[bool] = None,
-    ) -> None:
-        super().__init__(config, protocol, logger, enable_debug_logs)
+from typing import Any, Dict
 
-    def setup(self):
+import datatypes
+from clay.core import BlockWrapper
+
+
+class B(BlockWrapper):
+    def setup(self, **kwargs: Any) -> None:
         pass
 
-    async def preprocess(self, string, raster) -> Any:
-        total_iterations = 5 # example
+    async def preprocess(self, string: datatypes.String, raster: datatypes.Raster) -> Dict[str, Any]:
+        total_iterations = 5  # example
         total_progress_at_the_end_of_for_loop = 20
         per_iteration = total_progress_at_the_end_of_for_loop / total_iterations
         for i in range(total_iterations):
-            print(i)
+            self.logger.info(f"iteration {i}")
             self.add_progress(per_iteration)
-        return {"raster": raster, "string": string}
+        return {"raster": raster.value, "string": string.value}
 
-    async def inference(self, raster, string) -> None:
-        dummy_raster = pathlib.Path("../clipped.tiff")
-        dummy_raster.touch()
+    async def inference(self, raster: str, string: str) -> Dict[str, Any]:
+        output_raster = "clipped.tif"
         self.add_progress(15)
-        return {"raster": str(dummy_raster), "string": "this is hello"}
+        return {"raster": output_raster, "string": "this is hello"}
 
-    async def postprocess(self, raster, string) -> Any:
+    async def postprocess(self, raster: str, string: str) -> Dict[str, datatypes.Data]:
         self.add_progress(25)
-        r = types.Raster(
-            name="result",
-            value=raster,
-        )
-        s = types.String(name="string", value=string)
+        r = datatypes.Raster(name="result", type="url", value=raster)
+        s = datatypes.String(name="string", value=string)
         return {
             "result": r,
             "string": s,
         }
-
 ```
 
 ### Simple usage of `set_progress`
@@ -127,47 +131,39 @@ class B(BlockWrapper):
     you have to indicate a current progress, meaning, you have to fetch the last value and then increment it with a certain value.
 
 ```python
-class B(BlockWrapper):
-    def __init__(
-        self,
-        config: str,
-        protocol: str = "abfs",
-        logger: Optional[Logger] = None,
-        enable_debug_logs: Optional[bool] = None,
-    ) -> None:
-        super().__init__(config, protocol, logger, enable_debug_logs)
+from typing import Any, Dict
 
-    def setup(self):
+import datatypes
+from clay.core import BlockWrapper
+
+
+class B(BlockWrapper):
+    def setup(self, **kwargs: Any) -> None:
         pass
 
-    async def preprocess(self, string, raster) -> Any:
+    async def preprocess(self, string: datatypes.String, raster: datatypes.Raster) -> Dict[str, Any]:
         total_iterations = 20
-        total_progress_at_the_end_of_forloop = 60
-        per_iteration = total_iterations / total_progress_at_the_end_of_forloop
-        for i in range(5):
-            print(i)
+        total_progress_at_the_end_of_for_loop = 40
+        per_iteration = total_progress_at_the_end_of_for_loop / total_iterations
+        for i in range(total_iterations):
+            self.logger.info(f"iteration {i}")
             last_progress = self.get_progress()
             self.set_progress(last_progress + per_iteration)
-        return {"raster": raster, "string": string}
+        return {"raster": raster.value, "string": string.value}
 
-    async def inference(self, raster, string) -> None:
-        dummy_raster = pathlib.Path("../clipped.tiff")
-        dummy_raster.touch()
+    async def inference(self, raster: str, string: str) -> Dict[str, Any]:
+        output_raster = "clipped.tif"
         self.set_progress(45)
-        return {"raster": str(dummy_raster), "string": "this is hello"}
+        return {"raster": output_raster, "string": "this is hello"}
 
-    async def postprocess(self, raster, string) -> Any:
+    async def postprocess(self, raster: str, string: str) -> Dict[str, datatypes.Data]:
         self.set_progress(95)
-        r = types.Raster(
-            name="result",
-            value=raster,
-        )
-        s = types.String(name="string", value=string)
+        r = datatypes.Raster(name="result", type="url", value=raster)
+        s = datatypes.String(name="string", value=string)
         return {
             "result": r,
             "string": s,
         }
-
 ```
 
 ### Setting progress from functions external to BlockWrapper
@@ -178,50 +174,43 @@ class B(BlockWrapper):
     an anti-pattern in the Python World.
 
 ```python
-def external_function(__block_self_, some_param: int) -> int:
-    __block_self_.add_progress(5)
+from typing import Any, Dict
+
+import datatypes
+from clay.core import BlockWrapper
+
+
+def external_function(block: BlockWrapper, some_param: int) -> int:
+    block.add_progress(5)
     return some_param + 100
 
-class B(BlockWrapper):
-    def __init__(
-        self,
-        config: str,
-        protocol: str = "abfs",
-        logger: Optional[Logger] = None,
-        enable_debug_logs: Optional[bool] = None,
-    ) -> None:
-        super().__init__(config, protocol, logger, enable_debug_logs)
 
-    def setup(self):
+class B(BlockWrapper):
+    def setup(self, **kwargs: Any) -> None:
         pass
 
-    async def preprocess(self, string, raster) -> Any:
+    async def preprocess(self, string: datatypes.String, raster: datatypes.Raster) -> Dict[str, Any]:
         total_iterations = 20
-        total_progress_at_the_end_of_forloop = 60
-        per_iteration = total_iterations / total_progress_at_the_end_of_forloop
-        for i in range(5):
-            print(i)
+        total_progress_at_the_end_of_for_loop = 40
+        per_iteration = total_progress_at_the_end_of_for_loop / total_iterations
+        for i in range(total_iterations):
+            self.logger.info(f"iteration {i}")
             last_progress = self.get_progress()
             self.set_progress(last_progress + per_iteration)
-        return {"raster": raster, "string": string}
+        return {"raster": raster.value, "string": string.value}
 
-    async def inference(self, raster, string) -> None:
-        dummy_raster = pathlib.Path("../clipped.tiff")
-        dummy_raster.touch()
+    async def inference(self, raster: str, string: str) -> Dict[str, Any]:
+        output_raster = "clipped.tif"
         self.set_progress(45)
         external_function(self, 123)
-        return {"raster": str(dummy_raster), "string": "this is hello"}
+        return {"raster": output_raster, "string": "this is hello"}
 
-    async def postprocess(self, raster, string) -> Any:
+    async def postprocess(self, raster: str, string: str) -> Dict[str, datatypes.Data]:
         self.set_progress(95)
-        r = types.Raster(
-            name="result",
-            value=raster,
-        )
-        s = types.String(name="string", value=string)
+        r = datatypes.Raster(name="result", type="url", value=raster)
+        s = datatypes.String(name="string", value=string)
         return {
             "result": r,
             "string": s,
         }
-
 ```
