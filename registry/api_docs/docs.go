@@ -195,9 +195,6 @@ const docTemplate = `{
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "kind": {
                     "type": "string"
                 },
@@ -206,9 +203,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -230,9 +224,6 @@ const docTemplate = `{
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -241,9 +232,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -268,9 +256,6 @@ const docTemplate = `{
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -282,9 +267,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"
@@ -306,9 +288,6 @@ const docTemplate = `{
                 "docker_image": {
                     "type": "string"
                 },
-                "documentation_url": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
@@ -320,9 +299,6 @@ const docTemplate = `{
                 },
                 "specification": {
                     "$ref": "#/definitions/http.Specification"
-                },
-                "thumbnail_url": {
-                    "type": "string"
                 },
                 "type": {
                     "type": "string"

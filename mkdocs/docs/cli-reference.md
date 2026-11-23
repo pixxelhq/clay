@@ -173,8 +173,6 @@ clay publish [flags]
 | `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
 | `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
 | `-f, --file` | Dockerfile path. Use your own Dockerfile instead of the generated one | — |
-| `--documentation-url` | Block documentation URL | — |
-| `--thumbnail-url` | Block thumbnail URL | — |
 
 Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything, so the image of a published version is never overwritten. Bump `version` in `clay.yaml` to publish a new version.
 

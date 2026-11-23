@@ -35,61 +35,53 @@ type Specification struct {
 }
 
 type CreateBlockRequest struct {
-	Name             string          `json:"name"`
-	Version          string          `json:"version"`
-	Kind             string          `json:"kind"`
-	Type             string          `json:"type"`
-	DockerImage      string          `json:"docker_image"`
-	DocumentationURL string          `json:"documentation_url"`
-	ThumbnailURL     string          `json:"thumbnail_url"`
-	Specification    *Specification  `json:"specification"`
-	CatalogURL       string          `json:"catalog_url,omitempty"`
+	Name          string         `json:"name"`
+	Version       string         `json:"version"`
+	Kind          string         `json:"kind"`
+	Type          string         `json:"type"`
+	DockerImage   string         `json:"docker_image"`
+	Specification *Specification `json:"specification"`
+	CatalogURL    string         `json:"catalog_url,omitempty"`
 }
 
 type CreateBlockResponse struct {
-	ID               string          `json:"id"`
-	Name             string          `json:"name"`
-	Version          string          `json:"version"`
-	Type             string          `json:"type"`
-	DockerImage      string          `json:"docker_image"`
-	DocumentationURL string          `json:"documentation_url"`
-	ThumbnailURL     string          `json:"thumbnail_url"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at"`
-	Specification    *Specification  `json:"specification"`
-	CatalogURL       string          `json:"catalog_url,omitempty"`
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Version       string         `json:"version"`
+	Type          string         `json:"type"`
+	DockerImage   string         `json:"docker_image"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Specification *Specification `json:"specification"`
+	CatalogURL    string         `json:"catalog_url,omitempty"`
 }
 
 type (
 	GetLatestBlocksResponse []*GetLatestBlock
 	GetLatestBlock          struct {
-		ID               string         `json:"id"`
-		Name             string         `json:"name"`
-		Version          string         `json:"version"`
-		Type             string         `json:"type"`
-		Kind             string         `json:"kind"`
-		DockerImage      string         `json:"docker_image"`
-		DocumentationURL string         `json:"documentation_url"`
-		ThumbnailURL     string         `json:"thumbnail_url"`
-		CreatedAt        time.Time      `json:"created_at"`
-		UpdatedAt        time.Time      `json:"updated_at"`
-		Specification    *Specification `json:"specification,omitempty"`
+		ID            string         `json:"id"`
+		Name          string         `json:"name"`
+		Version       string         `json:"version"`
+		Type          string         `json:"type"`
+		Kind          string         `json:"kind"`
+		DockerImage   string         `json:"docker_image"`
+		CreatedAt     time.Time      `json:"created_at"`
+		UpdatedAt     time.Time      `json:"updated_at"`
+		Specification *Specification `json:"specification,omitempty"`
 	}
 )
 
 type GetBlocksByNameResponse []*GetBlockByNameAndVersion
 
 type GetBlockByNameAndVersion struct {
-	ID               string          `json:"id"`
-	Name             string          `json:"name"`
-	Version          string          `json:"version"`
-	Kind             string          `json:"kind"`
-	Type             string          `json:"type"`
-	DockerImage      string          `json:"docker_image"`
-	DocumentationURL string          `json:"documentation_url"`
-	ThumbnailURL     string          `json:"thumbnail_url"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at"`
-	Specification    *Specification  `json:"specification"`
-	CatalogURL       string          `json:"catalog_url,omitempty"`
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Version       string         `json:"version"`
+	Kind          string         `json:"kind"`
+	Type          string         `json:"type"`
+	DockerImage   string         `json:"docker_image"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Specification *Specification `json:"specification"`
+	CatalogURL    string         `json:"catalog_url,omitempty"`
 }

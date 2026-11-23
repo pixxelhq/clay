@@ -329,8 +329,6 @@ one.
 
     - `--docker-registry` *(optional)* - Docker image registry to push to (env: `CLAY_DOCKER_REGISTRY`)
     - `--clay-registry` *(optional)* - Clay block registry URL (env: `CLAY_REGISTRY_HOST`)
-    - `--documentation-url` *(optional)* - URL for block documentation
-    - `--thumbnail-url` *(optional)* - URL for block thumbnail image
 
     **Example with custom registries:**
 
@@ -353,8 +351,7 @@ one.
         "kind": "block",
         "type": "processing",
         "version": "v1.0.0",
-        "docker_image": "registry-url/my-block:v1.0.0",
-        "documentation_url": "https://..."
+        "docker_image": "registry-url/my-block:v1.0.0"
       },
       {
         "id": "another-uuid",
@@ -362,8 +359,7 @@ one.
         "kind": "block",
         "type": "processing",
         "version": "v0.2.0",
-        "docker_image": "registry-url/another-block:v0.2.0",
-        "documentation_url": "https://..."
+        "docker_image": "registry-url/another-block:v0.2.0"
       }
     ]
     ```
@@ -383,8 +379,6 @@ one.
       "type": "processing",
       "version": "v1.0.0",
       "docker_image": "registry-url/my-block:v1.0.0",
-      "documentation_url": "https://...",
-      "thumbnail_url": "https://...",
       "specification": {
         "inputs": [ /* ... */ ],
         "outputs": [ /* ... */ ],
