@@ -326,7 +326,7 @@ Build-time configuration for the Docker image.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value. YAML reads `3.10` as a number, and Clay stops with `cannot unmarshal number into Go struct field Config.build.python-version of type string` |
+| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value. YAML reads `3.10` as a number, and Clay stops with `clay.yaml: build.python-version must be text, not a number` |
 | `gdal` | bool | `false` | Install GDAL and its Python bindings (`osgeo`). See [Base image](#base-image) |
 | `conda` | bool | `false` | Create a conda environment from the conda file in `requirements`. It does not add CUDA; to run on GPUs, set `gpu: true`. See [Base image](#base-image) |
 | `apt-get` | list[string] | `[]` | Additional OS packages, installed without recommended packages. With `conda: true`, Clay always adds `libgl1`. The `python:<version>-slim` and OSGeo images have no C compiler; add `build-essential` if a package in `requirements` must be compiled |
