@@ -192,7 +192,7 @@ Once you are done with the block implementation using the above defined interfac
 
 ## Define sample input.
 
-Clay generates the sample input file for us, which we will need to update with the correct input format. The file exists in the directory `./{Blockname}/sample_block_inputs.json`
+Clay generates the sample input file for us, which we will need to update with the correct input format. The file is `tests/sample_block_inputs.json`
 
 Now we will define the input for the above defined block and use this file for testing the block.
 
@@ -231,14 +231,19 @@ Now we will define the input for the above defined block and use this file for t
 We have a file `latest_data.tiff` on our local, you can give the path from where the raster will be taken as block input.
 
 ## Build block in docker image
-Run `clay build`
+
+```bash
+clay build --tag ndvi:latest
+```
+
+Without `--tag`, the image is tagged `<name>:<version>` from `clay.yaml`.
 
 ## Run the block locally
 
 Run the block using `clay run`:
 
 ```bash
-clay run -e INPUT_JSON="$(cat sample_block_inputs.json)" ndvi:latest
+clay run ndvi:latest --input "$(cat tests/sample_block_inputs.json)"
 ```
 
 The output will look something like:

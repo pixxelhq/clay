@@ -44,14 +44,14 @@ configures commit-message hooks.
 make init-requirements
 ```
 
-This installs Clay's runtime Python dependencies from public PyPI.
+This installs the local `pixxel-datatypes` package from `proto/python` and the development requirements.
 
 ## Development Workflow
 
 ### Build
 
 ```bash
-make package        # Build the Python distribution (sdist + wheel) under build/
+make package        # Build the Python distribution (sdist + wheel) under python/dist/
 make go-binaries    # Build the Clay CLI for macOS / Linux / Windows under bin/
 ```
 
@@ -60,16 +60,14 @@ make go-binaries    # Build the Clay CLI for macOS / Linux / Windows under bin/
 ```bash
 make test           # Run both Go and Python tests
 make test-python    # Python only
-make test-go        # Go only (excludes the registry service)
-make test-registry  # Registry service tests (requires a local Postgres)
+make test-go        # Go only (excludes pkg/registry)
+make test-registry  # Registry service tests; registry/ is a separate Go module
 ```
 
-Integration tests via Docker Compose:
+Docker integration tests (need a running Docker daemon):
 
 ```bash
-make test-with-runner     # Kubernetes executor
-make test-with-runnerv2   # Argo executor
-make tear-down            # Clean up Docker Compose resources afterwards
+make test-integration
 ```
 
 ### Format and lint
@@ -79,7 +77,7 @@ make format       # ruff format + pre-commit hooks
 make pre-commit   # Run the pre-commit hooks manually
 ```
 
-Run these before opening a pull request — CI enforces the same checks.
+Run these before opening a pull request. CI runs `ruff check`, pyright, the tests and a docs build.
 
 ### Documentation
 
@@ -96,8 +94,9 @@ make spell-check-docs   # Spell-check markdown
 1. Create a topic branch off `main` (`git checkout -b fix/short-description`).
 2. Make your changes. Keep commits focused — one logical change per commit.
 3. Add or update tests for any behavior change.
-4. Add an entry to [`CHANGELOG.md`](CHANGELOG.md) under the next unreleased
-   version, under `### New Features` or `### Fixes` as appropriate.
+4. Add an entry to [`CHANGELOG.md`](CHANGELOG.md) under
+   `## Unreleased`, under `### New Features`, `### Bug Fixes` or
+   `### Breaking Changes` as appropriate.
 5. Run `make format` and `make test` locally and make sure they pass.
 6. Push your branch and open a pull request against `main`. Fill out the PR
    template.

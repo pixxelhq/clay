@@ -5,6 +5,18 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+### Bug Fixes
+- The README, docs, `CLAUDE.md` and `clay build --help` describe only commands
+  and features that exist: the job runner (there is no HTTP runner), the
+  GoReleaser download names, and `clay block list` instead of
+  `clay list block`. MinIO works through `AWS_ENDPOINT_URL`; `clay block
+  assets` accepts AWS S3 URLs only.
+- The CLI reference and getting-started guide list `clay run --input` and
+  `--input-uri`, `clay publish --catalog-url`, and which publish flags are
+  required, and describe `clay block assets upload-catalog` as it works: it
+  uploads to `<url>/<key>/<filename>` and leaves your `catalog.yaml` unchanged.
+- `pixxel-clay` requires `boto3>=1.28.57`, the first version that reads
+  `AWS_ENDPOINT_URL`.
 
 ## v1.5.0 - 2026-11-19
 ### Upgrading

@@ -7,7 +7,7 @@
 
 **Clay** is an open-source framework for packaging ML models as deployable,
 declaratively-configured **blocks**. You describe your model — its inputs,
-outputs, resource needs, and runtime environment — in a single YAML file, and
+outputs, GPU needs, and build environment — in a single YAML file, and
 Clay takes care of the rest: generating a `Dockerfile`, building the container,
 and registering the block for an orchestrator to run.
 
@@ -18,16 +18,17 @@ code.
 
 ## Features
 
-- **Declarative block specs** — describe inputs, outputs, compute, and runtime
+- **Declarative block specs** — describe inputs, outputs, GPU use, and the build
   in one YAML file.
 - **Automatic container builds** — Clay generates a `Dockerfile` and builds an
   image tailored to your spec.
-- **HTTP and batch runners** — serve blocks as HTTP endpoints or run them as
-  one-shot jobs, with the same block code.
-- **Pluggable storage** — S3-compatible storage (including MinIO) out of the
-  box; local filesystem for development.
+- **Job runner** — runs a block as a one-shot job, locally with `clay run` or
+  under an orchestrator.
+- **Storage** — blocks read and write `s3://` paths on AWS S3, or on MinIO and
+  other S3-compatible stores when `AWS_ENDPOINT_URL` is set; local filesystem
+  for development. `clay block assets` supports AWS S3 URLs only.
 - **Optional block registry** — an HTTP service for tracking block versions
-  and metadata, runnable via Docker Compose.
+  and metadata, which you run yourself (see [Registry service](https://pixxelhq.github.io/clay/registry/)).
 - **Typed I/O** — first-class support for raster, vector, and scalar data
   types via the [`pixxel-datatypes`](proto/) schema package.
 
@@ -42,15 +43,19 @@ brew install clay --formula
 
 ### CLI — Pre-built binary
 
-Download the latest release for your platform from
+Download the archive for your platform from
 [GitHub Releases](https://github.com/pixxelhq/clay/releases), then put the
-binary somewhere on your `PATH`:
+`clay` binary somewhere on your `PATH`:
 
 ```bash
-# macOS (Apple Silicon)
-curl -L https://github.com/pixxelhq/clay/releases/latest/download/clay-<version>-macosx-arm64 -o /usr/local/bin/clay
-chmod +x /usr/local/bin/clay
+# macOS (Apple Silicon); set VERSION to the latest release, without the "v"
+VERSION=1.5.0
+curl -L https://github.com/pixxelhq/clay/releases/download/v${VERSION}/clay_${VERSION}_darwin_arm64.tar.gz | tar -xz clay
+sudo mv clay /usr/local/bin/
 ```
+
+Archives are named `clay_<version>_<os>_<arch>.tar.gz`, for `darwin`, `linux`
+and `windows` on `amd64` and `arm64`.
 
 ### Python SDK (PyPI)
 
@@ -60,8 +65,9 @@ pip install pixxel-clay
 uv pip install pixxel-clay
 ```
 
-Requires Python **3.10+**. `GDAL` must be installed and discoverable on your
-system for blocks that work with raster data.
+Requires Python **3.10+**. Clay does not need GDAL itself. If your block uses
+GDAL, install it locally for testing; in the image, `build.gdal: true` in
+`clay.yaml` provides it.
 
 ### From source
 
@@ -85,7 +91,7 @@ uv venv && source .venv/bin/activate
 uv pip install -r requirements-dev.txt
 
 # 3. Edit the generated spec and block code
-#    - clay.yaml          : inputs, outputs, resources
+#    - clay.yaml          : inputs, outputs, build settings
 #    - my_block/block.py  : setup/preprocess/inference/postprocess
 
 # 4. Test locally
@@ -130,11 +136,11 @@ Full reference: [**CLI Reference**](https://pixxelhq.github.io/clay/cli-referenc
 
 ```
 cmd/            Go CLI commands
-pkg/            Go packages (config, docker, registry client, logging)
+pkg/            Go packages (config, docker, registry client, storage, catalog)
 python/clay/    Python runtime library used by packaged blocks
 proto/          Protobuf datatypes + generated Python/Go bindings
 registry/       Go HTTP registry service (PostgreSQL backend)
-api/            Supporting Go backend services
+api/bootstrap/  Project templates for clay new and clay init
 examples/       Sample blocks and Docker Compose setups
 mkdocs/         Documentation site source
 ```
