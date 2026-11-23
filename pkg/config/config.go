@@ -48,7 +48,7 @@ func GetConfig(projectDir string) (*Config, error) {
 
 	dataJSON, err := yaml.YAMLToJSON(data)
 	if err != nil {
-		return nil, fmt.Errorf("error while converting config yaml to json")
+		return nil, fmt.Errorf("%s is not valid YAML: %w", configFilePath, err)
 	}
 
 	config := &Config{}
@@ -64,7 +64,7 @@ func getConfigFilePath(projectDir string) (string, error) {
 	configFilePath := filepath.Join(projectDir, configFileName) // assuming that scaffholding code has source
 	_, err := os.Stat(configFilePath)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("🙅‍♂️ %s file does not exist in: %s, please try to run the command in the root folder of the project", configFilePath, projectDir)
+		return "", fmt.Errorf("no %s in %s\nhint: run clay in the block's project folder, or create a block with 'clay new <path>'", configFileName, projectDir)
 	}
 	if err != nil {
 		return "", err

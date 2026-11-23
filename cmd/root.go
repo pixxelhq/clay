@@ -1,18 +1,21 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
 	newproject "github.com/pixxelhq/clay/cmd/newproject"
+	"github.com/pixxelhq/clay/pkg/docker"
 	"github.com/spf13/cobra"
 )
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:          "clay",
-	SilenceUsage: true,
-	Short:        "A tool to bridge gap between block development on local machines and deployment on the platform",
+	Use:           "clay",
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Short:         "A tool to bridge gap between block development on local machines and deployment on the platform",
 	Long: heredoc.Doc(`Clay provides the tooling and scaffolding needed to quickly:
 	1. Refactor your block into a pre-defined structure
 	2. Programmatically declare inputs, outputs, environment and compute requirements
@@ -28,11 +31,16 @@ func Execute() {
 	RootCmd.Version = Version
 	err := RootCmd.Execute()
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 }
 
 func init() {
+	RootCmd.PersistentFlags().BoolVar(&docker.Verbose, "verbose", false, "show the full output of docker build and docker push")
+	RootCmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		return fmt.Errorf("%w\nhint: run '%s --help' to see the flags", err, cmd.CommandPath())
+	})
 	RootCmd.AddCommand(newproject.NewCmd())
 	RootCmd.AddCommand(newproject.InitCmd())
 	RootCmd.AddCommand(VersionCmd())

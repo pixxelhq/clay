@@ -85,7 +85,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Push image to docker registry
+	fmt.Printf("📤 Pushing docker image %s\n", builtTag)
 	if err := docker.Push(builtTag); err != nil {
 		return fmt.Errorf("failed to push image %s: %w", builtTag, err)
 	}

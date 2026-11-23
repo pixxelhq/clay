@@ -3,6 +3,7 @@ package docker
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -318,4 +319,57 @@ func TestBuildDockerRunArgs_Gpu(t *testing.T) {
 
 	args = buildDockerRunArgs("demo:test", nil, &config.Config{})
 	assert.Equal(t, []string{"run", "--rm", "demo:test"}, args)
+}
+
+func shellCommand(script string) *exec.Cmd {
+	return exec.Command("/bin/sh", "-c", script)
+}
+
+func setVerbose(t *testing.T, verbose bool) {
+	old := Verbose
+	Verbose = verbose
+	t.Cleanup(func() { Verbose = old })
+}
+
+func TestRunDocker_QuietSuccessShowsNothing(t *testing.T) {
+	setVerbose(t, false)
+	var stdout, stderr bytes.Buffer
+
+	err := runDocker(shellCommand("echo step 1; echo step 2 >&2"), "docker build", &stdout, &stderr)
+
+	require.NoError(t, err)
+	assert.Empty(t, stdout.String())
+	assert.Empty(t, stderr.String())
+}
+
+func TestRunDocker_QuietFailureShowsLastLinesAndHint(t *testing.T) {
+	setVerbose(t, false)
+	var stdout, stderr bytes.Buffer
+
+	err := runDocker(shellCommand("for i in $(seq 1 30); do echo line $i; done; exit 3"), "docker build", &stdout, &stderr)
+
+	require.Error(t, err)
+	assert.Equal(t, "docker build failed (exit 3)\nhint: rerun with --verbose to see the build output", err.Error())
+	assert.NotContains(t, stderr.String(), "line 10\n")
+	assert.True(t, strings.HasPrefix(stderr.String(), "line 11\n"), stderr.String())
+	assert.True(t, strings.HasSuffix(stderr.String(), "line 30\n"), stderr.String())
+}
+
+func TestRunDocker_VerboseStreamsOutputWithoutHint(t *testing.T) {
+	setVerbose(t, true)
+	var stdout, stderr bytes.Buffer
+
+	err := runDocker(shellCommand("echo out; echo err >&2; exit 1"), "docker push", &stdout, &stderr)
+
+	require.Error(t, err)
+	assert.Equal(t, "docker push failed (exit 1)", err.Error())
+	assert.Equal(t, "out\n", stdout.String())
+	assert.Equal(t, "err\n", stderr.String())
+}
+
+func TestCommandError_NeverBareExitStatus(t *testing.T) {
+	err := commandError("docker run", shellCommand("exit 1").Run(), "")
+
+	assert.Equal(t, "docker run failed (exit 1)", err.Error())
+	assert.NotContains(t, err.Error(), "exit status")
 }
