@@ -5,16 +5,17 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
-### New Features
-- `--verbose` on every command. `clay build`, `clay push` and `clay publish`
-  now show the output of `docker build` and `docker push` only when it fails,
-  as its last 20 lines; `--verbose` shows the full output as it runs.
-
 ### Bug Fixes
-- Errors print once, as `error:` followed by a `hint:` line when there is a
-  next step. A failed Docker command names the command and its exit code,
-  for example `error: docker build failed (exit 1)`, instead of only
-  `Error: exit status 1`.
+- Errors print once, as `error:` followed by a `hint:` line when Clay can
+  tell what to do next. Docker output is still shown in full. A failed Docker
+  command names the command and its exit code, for example
+  `error: docker build failed (exit 1)`, instead of only `Error: exit status 1`.
+- Clearer errors, each with a hint, for: a `clay.yaml` value of the wrong type
+  (for example an unquoted `python-version: 3.10`), a missing argument, a
+  failed image lookup (now with Docker's message), a Clay registry that cannot
+  be reached or a URL that is not a Clay registry, a missing publish flag, an
+  already published version, and a failed `clay block assets` command, which
+  now points at the storage credentials and `--url`.
 - Fixed typos in `clay push` errors ("Serching", "does not exists").
 
 ## v1.5.0 - 2026-11-19

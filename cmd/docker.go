@@ -101,9 +101,6 @@ func buildImage(projectDir string, cfg *config.Config, tag, dockerfilePath strin
 		Platforms: platform,
 	}
 	fmt.Printf("🔨 Building docker image %s\n", tag)
-	if !docker.Verbose {
-		fmt.Println("   this can take a few minutes; use --verbose to see the build output")
-	}
 	if err := docker.Build(tag, dockerfile, bf); err != nil {
 		return "", err
 	}
@@ -167,7 +164,7 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("image %s does not exist\nhint: build it with 'clay build'", image)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to look up image %s: %w", image, err)
+		return fmt.Errorf("failed to look up image %s: %w\nhint: check that you can run 'docker images'", image, err)
 	}
 
 	fmt.Printf("📤 Pushing docker image %s\n", image)

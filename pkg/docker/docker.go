@@ -153,28 +153,15 @@ type BuildFlags struct {
 	NoCache                       bool
 }
 
-// Verbose makes docker build and push stream their output. Otherwise the
-// output is shown only when the command fails, as its last lines.
-var Verbose bool
-
-const failedOutputLines = 20
-
 func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
-	return runDocker(buildCommand(buildtag, dockerfilePath, bf), "docker build", os.Stdout, os.Stderr)
+	return runDocker(buildCommand(buildtag, dockerfilePath, bf), "docker build")
 }
 
-func runDocker(cmd *exec.Cmd, name string, stdout, stderr io.Writer) error {
-	if Verbose {
-		cmd.Stdout, cmd.Stderr = stdout, stderr
-		return commandError(name, cmd.Run(), "")
-	}
-	var output bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &output, &output
-	err := cmd.Run()
-	if err != nil {
-		fmt.Fprint(stderr, lastLines(output.String(), failedOutputLines))
-	}
-	return commandError(name, err, "rerun with --verbose to see the "+strings.TrimPrefix(name, "docker ")+" output")
+// runDocker streams the command's output and names the command if it fails.
+func runDocker(cmd *exec.Cmd, name string) error {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return commandError(name, cmd.Run(), "the "+name+" output above shows the cause")
 }
 
 // commandError names the failed command, so that users never see a bare
@@ -188,22 +175,13 @@ func commandError(name string, err error, hint string) error {
 		return fmt.Errorf("%s failed: %w", name, err)
 	}
 	message := fmt.Sprintf("%s failed (exit %d)", name, exitErr.ExitCode())
+	if killedBySignal := exitErr.ExitCode() == -1; killedBySignal {
+		message = fmt.Sprintf("%s was stopped (%s)", name, exitErr)
+	}
 	if hint != "" {
 		message += "\nhint: " + hint
 	}
 	return errors.New(message)
-}
-
-func lastLines(output string, n int) string {
-	output = strings.TrimRight(output, "\n")
-	if output == "" {
-		return ""
-	}
-	lines := strings.Split(output, "\n")
-	if len(lines) > n {
-		lines = lines[len(lines)-n:]
-	}
-	return strings.Join(lines, "\n") + "\n"
 }
 
 func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {
@@ -269,7 +247,7 @@ func CheckDaemon() error {
 }
 
 func Push(buildtag string) error {
-	return runDocker(exec.Command("docker", "push", buildtag), "docker push", os.Stdout, os.Stderr)
+	return runDocker(exec.Command("docker", "push", buildtag), "docker push")
 }
 
 func ImageExists(image string) error {
@@ -278,6 +256,8 @@ func ImageExists(image string) error {
 	}
 
 	listCmd := exec.Command("docker", "images", "-f", fmt.Sprintf("reference=%s", image))
+	var listStderr bytes.Buffer
+	listCmd.Stderr = &listStderr
 
 	repositoryName := strings.Split(image, ":")[0]
 	grepCmd := exec.Command("grep", repositoryName)
@@ -297,6 +277,9 @@ func ImageExists(image string) error {
 	}
 
 	if err := listCmd.Wait(); err != nil {
+		if dockerMessage := strings.TrimSpace(listStderr.String()); dockerMessage != "" {
+			return fmt.Errorf("%w: %s", commandError("docker images", err, ""), dockerMessage)
+		}
 		return commandError("docker images", err, "")
 	}
 
@@ -314,15 +297,12 @@ func Run(image string, args []string, envVars []string, cfg *config.Config) erro
 		return fmt.Errorf("image %s does not exist\nhint: build it with 'clay build', or pull it with 'docker pull'", image)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to look up image %s: %w", image, err)
+		return fmt.Errorf("failed to look up image %s: %w\nhint: check that you can run 'docker images'", image, err)
 	}
 
 	runArgs := buildDockerRunArgs(image, envVars, cfg)
 	runCmd := exec.Command("docker", append(runArgs, args...)...)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-
-	return commandError("docker run", runCmd.Run(), "see the block's output above")
+	return runDocker(runCmd, "docker run")
 }
 
 func buildDockerRunArgs(image string, envVars []string, cfg *config.Config) []string {

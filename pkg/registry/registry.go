@@ -95,7 +95,7 @@ func (r *Registry) Publish(req *PublishBlockRequest) error {
 
 	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
+		return unreachableError(r.host, err)
 	}
 	defer resp.Body.Close()
 
@@ -109,7 +109,7 @@ func (r *Registry) Publish(req *PublishBlockRequest) error {
 
 	var respData RegistryResponse[any]
 	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+		return notARegistryError(url, err.Error())
 	}
 
 	return fmt.Errorf("failed to publish block: %s, httpStatusCode: %v", respData.Error, resp.StatusCode)
@@ -127,13 +127,13 @@ func (r *Registry) ListBlocks() (Blocks, error) {
 
 	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request for list blocks: %w", err)
+		return nil, unreachableError(r.host, err)
 	}
 	defer resp.Body.Close()
 
 	var respData *RegistryResponse[Blocks]
 	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall response for list blocks: %w", err)
+		return nil, notARegistryError(url, err.Error())
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -154,13 +154,13 @@ func (r *Registry) GetBlockByName(name string) (Blocks, error) {
 
 	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request for list blocks with name %s: %w", name, err)
+		return nil, unreachableError(r.host, err)
 	}
 	defer resp.Body.Close()
 
 	var respData *RegistryResponse[Blocks]
 	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall response for list blocks with name %s: %w", name, err)
+		return nil, notARegistryError(url, err.Error())
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -181,13 +181,13 @@ func (r *Registry) GetBlockByNameAndVersion(name, version string) (*Block, error
 
 	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request for list block with name %s and version %s: %w", name, version, err)
+		return nil, unreachableError(r.host, err)
 	}
 	defer resp.Body.Close()
 
 	var respData *RegistryResponse[Block]
 	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-		return nil, fmt.Errorf("failed to unmarshall response for list block with name %s and version %s: %w", name, version, err)
+		return nil, notARegistryError(url, err.Error())
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -206,7 +206,7 @@ func (r *Registry) VersionExists(name, version string) (bool, error) {
 
 	resp, err := r.httpClient.Do(httpReq)
 	if err != nil {
-		return false, fmt.Errorf("failed to check block %s version %s in the registry: %w", name, version, err)
+		return false, unreachableError(r.host, err)
 	}
 	defer resp.Body.Close()
 
@@ -216,7 +216,7 @@ func (r *Registry) VersionExists(name, version string) (bool, error) {
 	case http.StatusNotFound:
 		var notFound RegistryResponse[any]
 		if err := json.NewDecoder(resp.Body).Decode(&notFound); err != nil || notFound.Error == "" {
-			return false, fmt.Errorf("unexpected 404 from %s: is --clay-registry correct?", url)
+			return false, notARegistryError(url, "HTTP 404 without a registry error")
 		}
 		return false, nil
 	}
@@ -224,4 +224,20 @@ func (r *Registry) VersionExists(name, version string) (bool, error) {
 	var respData RegistryResponse[any]
 	_ = json.NewDecoder(resp.Body).Decode(&respData)
 	return false, fmt.Errorf("failed to check block %s version %s in the registry: %s, httpStatusCode: %v", name, version, respData.Error, resp.StatusCode)
+}
+
+const (
+	hintRegistryUnreachable = "check that the registry is running and that --clay-registry is its URL"
+	hintRegistryURL         = "check that --clay-registry is the base URL of a Clay registry, for example https://clay.example.com"
+)
+
+func unreachableError(host string, err error) error {
+	if host == "" {
+		return errors.New("no Clay registry URL given\nhint: pass --clay-registry <url>")
+	}
+	return fmt.Errorf("cannot reach the Clay registry at %s: %w\nhint: %s", host, err, hintRegistryUnreachable)
+}
+
+func notARegistryError(url, reason string) error {
+	return fmt.Errorf("the response from %s is not from a Clay registry: %s\nhint: %s", url, reason, hintRegistryURL)
 }

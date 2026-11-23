@@ -6,7 +6,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	newproject "github.com/pixxelhq/clay/cmd/newproject"
-	"github.com/pixxelhq/clay/pkg/docker"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +36,6 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().BoolVar(&docker.Verbose, "verbose", false, "show the full output of docker build and docker push")
 	RootCmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
 		return fmt.Errorf("%w\nhint: run '%s --help' to see the flags", err, cmd.CommandPath())
 	})
@@ -50,4 +48,19 @@ func init() {
 	RootCmd.AddCommand(runDockerImageCmd())
 	RootCmd.AddCommand(publishBlockToRegistryCmd())
 	RootCmd.AddCommand(BlockCmd())
+	addHelpHintToArgErrors(RootCmd)
+}
+
+func addHelpHintToArgErrors(cmd *cobra.Command) {
+	if validateArgs := cmd.Args; validateArgs != nil {
+		cmd.Args = func(c *cobra.Command, args []string) error {
+			if err := validateArgs(c, args); err != nil {
+				return fmt.Errorf("%w\nhint: run '%s --help' to see its arguments", err, c.CommandPath())
+			}
+			return nil
+		}
+	}
+	for _, sub := range cmd.Commands() {
+		addHelpHintToArgErrors(sub)
+	}
 }

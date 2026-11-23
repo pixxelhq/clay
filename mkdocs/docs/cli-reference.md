@@ -25,16 +25,21 @@ Get help for any command.
 clay <command> --help
 ```
 
-### Errors and `--verbose`
+### Errors
 
-When a command fails, Clay prints one `error:` line that says what failed and, when it helps, a `hint:` line with what to do next:
+When a command fails, Clay prints one `error:` line that says what failed and, when it can tell what might be wrong, a `hint:` line with what to do next:
+
+```console
+error: clay.yaml: build.python-version must be text, not a number
+hint: put the value in quotes so that YAML reads it as text
+```
+
+`clay build`, `clay push`, `clay publish` and `clay run` show the full output of Docker as it runs. If Docker fails, Clay names the command and its exit code, and the cause is in the Docker output above:
 
 ```console
 error: docker build failed (exit 1)
-hint: rerun with --verbose to see the build output
+hint: the docker build output above shows the cause
 ```
-
-`clay build`, `clay push` and `clay publish` show the output of `docker build` and `docker push` only when it fails, as its last 20 lines. Add `--verbose` to any command to see the full output as it runs. `clay run` always shows the block's output.
 
 ---
 
@@ -125,7 +130,6 @@ clay build [flags]
 | `--secret` | Secret to expose to build | — |
 | `--build-arg` | Build-time variables | — |
 | `--platform` | Target platform for build | — |
-| `--verbose` | Show the full `docker build` output | `false` |
 
 If `-f` is not given and the project has a `Dockerfile` (for example from an older Clay version), `clay build` and `clay publish` build with it. Changes to `build:` in `clay.yaml` do not apply to it; delete it to use the generated one.
 

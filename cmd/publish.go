@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -27,12 +28,12 @@ func publishBlockToRegistryCmd() *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if dockerRegistry == "" {
 				if dockerRegistry = os.Getenv("CLAY_DOCKER_REGISTRY"); dockerRegistry == "" {
-					return fmt.Errorf("--docker-registry is required (or set CLAY_DOCKER_REGISTRY env var)")
+					return errors.New("no Docker registry given\nhint: pass --docker-registry <host> or set CLAY_DOCKER_REGISTRY")
 				}
 			}
 			if clayRegistry == "" {
 				if clayRegistry = os.Getenv("CLAY_REGISTRY_HOST"); clayRegistry == "" {
-					return fmt.Errorf("--clay-registry is required (or set CLAY_REGISTRY_HOST env var)")
+					return errors.New("no Clay registry URL given\nhint: pass --clay-registry <url> or set CLAY_REGISTRY_HOST")
 				}
 			}
 			return nil
@@ -95,7 +96,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 	//publish block to clay registry
 	err = r.Publish(req)
 	if err == registry.ErrAlreadyExists {
-		return fmt.Errorf("block %s with version %s already exists, skipping the publish", req.Name, req.Version)
+		return fmt.Errorf("%s %s is already published\nhint: bump `version` in clay.yaml", req.Name, req.Version)
 	}
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 func buildPublishBlockRequest(cfg *config.Config, catalogURL, dockerImage string) (*registry.PublishBlockRequest, error) {
 	buildJSON, err := json.Marshal(cfg.Bulid)
 	if err != nil {
-		return nil, fmt.Errorf("error while marshalling build json: %w", err)
+		return nil, fmt.Errorf("failed to encode the build section of clay.yaml: %w", err)
 	}
 
 	req := &registry.PublishBlockRequest{
