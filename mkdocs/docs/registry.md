@@ -18,7 +18,6 @@ Docker containers without ever publishing to a registry.
 - Block definitions (name, kind, type)
 - Versions of each block
 - Docker image reference for each version
-- Documentation and thumbnail URLs
 - The URL of the published `catalog.yaml` (the catalog itself is not stored)
 - Block specification snapshots
 

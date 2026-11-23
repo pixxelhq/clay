@@ -29,7 +29,6 @@ func TestListBlocks(t *testing.T) {
                         "type": "type1",
                         "version": "v1",
                         "docker_image": "image1",
-                        "documentation_url": "url1",
                         "specification": null
                     }
                 ],
@@ -38,14 +37,13 @@ func TestListBlocks(t *testing.T) {
 			serverStatus: http.StatusOK,
 			expectedBlocks: Blocks{
 				&Block{
-					ID:               "1",
-					Name:             "block1",
-					Kind:             "kind1",
-					Type:             "type1",
-					Version:          "v1",
-					DockerImage:      "image1",
-					DocumentationURL: "url1",
-					Specification:    nil,
+					ID:            "1",
+					Name:          "block1",
+					Kind:          "kind1",
+					Type:          "type1",
+					Version:       "v1",
+					DockerImage:   "image1",
+					Specification: nil,
 				},
 			},
 			expectedError: "",
