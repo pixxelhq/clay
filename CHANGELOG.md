@@ -5,7 +5,18 @@ All notable changes to the Clay SDK and CLI are recorded here. Both artifacts sh
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). Versions follow [PEP 440](https://peps.python.org/pep-0440/) so the same string works for PyPI and for GitHub tags (`v1.9.0`, `v1.9.0rc1`).
 
 ## Unreleased
+### New Features
+- `clay push --docker-registry <host>` (or `CLAY_DOCKER_REGISTRY`) tags
+  `<name>:<version>` from `clay.yaml` as `<host>/<name>:<version>` and pushes
+  it, as `clay publish` does. `clay push <image>` with a full image name no
+  longer needs `clay.yaml`.
+- `clay run` without an image runs `<name>:<version>` from `clay.yaml`, the
+  image that `clay build` makes.
+
 ### Bug Fixes
+- `clay push` no longer sends an image without a registry, such as the
+  default `<name>:<version>`, to `docker.io/library`, where the push always
+  failed. It now stops with an error that says how to name the registry.
 - Errors print once, as `error:` followed by a `hint:` line when Clay can
   tell what to do next. Docker output is still shown in full. A failed Docker
   command names the command and its exit code, for example

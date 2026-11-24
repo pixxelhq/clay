@@ -152,27 +152,47 @@ clay build -f Dockerfile
 
 ### Push
 
-Push a Docker image to the registry.
+Push a block's Docker image to a Docker registry.
 
 ```shell
-clay push [IMAGE]
+clay push [IMAGE] [flags]
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `IMAGE` | Docker image to push |
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `IMAGE` | Docker image to push, with its registry, for example `registry.example.com/my-block:v0.0.1` | — |
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--docker-registry` | Registry to push `<name>:<version>` to. Used only without `IMAGE` | `CLAY_DOCKER_REGISTRY` |
+
+Without `IMAGE`, run it in the project folder. `clay push` tags `<name>:<version>` from `clay.yaml`, the image that `clay build` makes, as `<registry>/<name>:<version>` and pushes it. The registry comes from `--docker-registry` or `CLAY_DOCKER_REGISTRY`, as in [`clay publish`](#publish):
+
+```shell
+clay push --docker-registry registry.example.com
+```
+
+With `IMAGE`, `clay push` pushes that image as it is named, and does not need `clay.yaml`. The name must include a registry or a Docker Hub account, for example `registry.example.com/my-block:v0.0.1` or `my-account/my-block:v0.0.1`. A name without `/`, such as `my-block:v0.0.1`, is rejected, because Docker would push it to `docker.io/library`, where only official images can be pushed.
 
 ### Run
 
-Run the Docker image locally.
+Run a block's Docker image locally. Run it in the project folder: it reads `gpu` from `clay.yaml`.
 
 ```shell
-clay run [IMAGE NAME] [ARG...] [flags]
+clay run [IMAGE] [flags]
 ```
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `IMAGE` | Docker image to run | `<name>:<version>` from `clay.yaml`, the image that `clay build` makes |
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-e, --env` | Set environment variables (`KEY=VALUE` format) | — |
+| `--input` | JSON input array to pass to the block | — |
+| `--input-uri` | URI of the input JSON, for example `s3://bucket/path/input.json` | — |
+
+For example, `clay run --input "$(cat tests/sample_block_inputs.json)"` runs the image that `clay build` made. See [Passing input](env-requirements.md#2-passing-input-input-and-input-uri).
 
 If `gpu: true` is set in `clay.yaml`, the container runs with `--gpus all`. This needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 

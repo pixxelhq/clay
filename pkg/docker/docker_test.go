@@ -358,3 +358,12 @@ func TestCommandError_KilledBySignal(t *testing.T) {
 
 	assert.Equal(t, "docker build was stopped (signal: killed)\nhint: the docker build output above shows the cause", err.Error())
 }
+
+func TestTag_FailureNamesCommand(t *testing.T) {
+	fakeDocker(t, "Error response from daemon: No such image: nope:1", 1)
+
+	err := Tag("nope:1", "registry.example.com/nope:1")
+
+	require.Error(t, err)
+	assert.Equal(t, "docker tag failed (exit 1)\nhint: the docker tag output above shows the cause", err.Error())
+}
