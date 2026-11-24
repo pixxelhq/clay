@@ -13,25 +13,27 @@ Clay gives every block the same baseline structure, tooling and runtime. This he
 
 2. **A generated Dockerfile.** `clay build` generates the `Dockerfile` from the `build` section of `clay.yaml` on every build, unless you pass `-f` or the project has its own `./Dockerfile`. You set the Python version, pip or conda, GDAL and apt packages there, so you do not need to write or maintain a `Dockerfile`, and blocks are built from the same templates.
 
-3. **Typed inputs and outputs.** Inputs and outputs are declared in `clay.yaml` and use the types from the `datatypes` package (`Raster`, `Vector`, `Tabular`, `Date`, `String`, `Number`). Before your code runs, string, number and date inputs are checked against the `validation` rules in the spec.
+3. **Typed inputs and outputs.** Inputs and outputs are declared in `clay.yaml` and use the types from the `datatypes` package (`Raster`, `Vector`, `Tabular`, `Date`, `String`, `Number`). After `setup` and the input download, and before `preprocess` runs, string, number and date inputs are checked against the `validation` rules in the spec. `validation` rules on raster, vector and tabular inputs are not checked.
 
-4. **A runtime that handles the plumbing.** The runner downloads input files, uploads output files, sends status and progress callbacks, and writes structured JSON logs. Your block code stays separate from these details.
+4. **A runtime that handles the plumbing.** The runner downloads input files, uploads output files, sends status and progress callbacks, and writes structured JSON logs. Your block code stays separate from these details. If `setup` or the input download fails, the runner sends no callback; the process exits with the exception.
 
 5. **A registry.** `clay publish` registers each block version in the Clay registry, so blocks can be found and versioned in one place.
 
 !!! warning
 
-    Deviation from `Clay` recommended tooling and structure is highly _not recommended_,
-    unless absolutely necessary.
+    Keep the structure that Clay generates. The Dockerfile that `clay build` generates expects
+    `clay.yaml` at the project root and the block package folder with `entry.py` next to it.
 
 ### What is the relevance of `is_artifact` in the data types?
 
-`is_artifact` basically means that that this data item has an asset associated with it. Generally, the location
-of the asset would be stored in the `value` attribute of the same data item.
+`is_artifact` means that the data item has a file, and `value` holds the location of that file. For example, a `Raster` with `is_artifact` set to `true` has a TIFF file, and `value` is its path or URL.
 
-For example, if the `is_artifact` attribute for the `Raster` datatype is set to `True`, this would mean that this
-data item has a supporting asset (in this case a TIFF file) and the location of the tiff file would be in the `value`
-parameter.
+It defaults to `true` for `Raster`, `Vector` and `Tabular`, and to `false` for `Date`, `String` and `Number`.
+
+The runner uses it to move files:
+
+* For an input with `is_artifact: true`, the runner downloads the file in `value` before `preprocess` runs and sets `value` to the local path. A `Vector` input whose `value` does not start with `http://`, `https://`, `s3://` or `file://` is treated as GeoJSON text and written to a `.geojson` file, so a local file path does not work as a vector input.
+* For an output with `is_artifact: true`, the runner uploads the file in `value` to `REMOTE_OUTPUT_PATH` after `postprocess` returns. If `value` is empty or is not an existing file, the output is skipped silently: nothing is uploaded and `value` is not changed.
 
 ### Why is there an `InferenceCtx` type and why does `infer` return one?
 
@@ -52,14 +54,14 @@ The type is metadata. The runner runs every block the same way, whatever its typ
 
 ### Rules about returning results from a block
 
-* Names of the block outputs should be exactly same as the output items defined in the spec file. Any deviation would result in a runtime exception.
-* Only standard type constructors (example: `Raster(...)` etc) should be used while returning outputs. Type constructors only allow the user to mutate *mutable fields of the type*.
-* Some types almost always would have a supporting asset. For example, if a block output is of the `Raster` type, then there *is going* to be a TIFF file that is present locally and needs to saved remotely as a block output. In situations like this the `value` attribute would simply be the *local path of the file*.
-* If a type support *properties* (`Raster`, `Vector`, `Date`, `Tabular`), by default, the *properties* defined in the output definition would be used in constructing the output. *If the user however* provides some custom properties within the block code, **these values would be used**.
+* `postprocess` returns a dict whose values are datatypes, such as `datatypes.Raster(...)`. Any other value, such as a plain number, a dict or one of the input objects that `preprocess` received, fails the run with `AssertionError`.
+* The `name` of each returned datatype must match an output in the spec file, or the run fails with `KeyError`. The dict keys are not checked. An output that is declared in the spec but not returned is not an error.
+* For an output with a file, such as a `Raster`, write the file locally and set `value` to its local path. The runner uploads it; see [`is_artifact`](#what-is-the-relevance-of-is_artifact-in-the-data-types).
+* For types with *properties* (`Raster`, `Vector`, `Date`, `Tabular`), the runner merges the *properties* from the output definition in the spec into the returned output. Where the block code sets a property that the spec also sets, the block code's value is used.
 
 !!! warning
 
-    This is an unsafe operation as it could lead to de-sync between the spec file and the actual block output. Going forward we will be putting more precise safeguards.
+    Properties set in the block code can then differ from the spec file. Clay does not check this.
 
 
 ### How to use `Discretization` in `RasterProperties`?
@@ -78,11 +80,11 @@ The object essentially communicates _three_ things,
 
 !!! note
 
-    We only support two types of discretization: `interval` and `index`.
+    Use `interval` or `index` as the discretization `type`. The field is a free string: Clay does not check its value.
 
 !!! note
 
-    When our discretization type is `interval` we specify the `range` attribute. When our discretization type is `index`, we specify the `value` attribute.
+    When the discretization type is `interval`, set `range` on each class. When it is `index`, set `value` on each class.
 
 **Example for `index`-based discretization**
 

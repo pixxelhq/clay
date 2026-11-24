@@ -5,32 +5,30 @@ order: 10
 
 # Indicating Block Progress
 
-Many blocks run for a long time. Hence, indicating the progress of an inference is a key part of the user experience.
+A block can report how far its run has progressed, as a number from `0` to `100`. The Clay runner sends each update to the callback endpoint, so the orchestrator that runs the block can show it.
 
-Indicating the progress of a process, block or not, is _generally a tricky process_ without any standardised way to do it. For example,
+## How Progress Is Reported
 
-* Who should be reporting this progress? Should it be the process itself or some sort of manager process?
-* If its the process, then how do we maintain state?
-* How do we even _measure_ progress?
-* How does all this work in concurrent environments?
-* etc etc.
+* Progress is a number from `0` to `100`. It starts at `0`. After the block is set up and its inputs are downloaded, the runner reports `0`. When the run finishes, the success or failure callback reports `100`. In between, the block can report any value from `0` to `100`.
 
-Well, we have outlined our approach with usage examples below.
+* If `setup` or the input download fails, the runner sends no callback at all, neither progress nor failure. The process exits with the exception. Errors after the `0` report, from input validation to the output upload, send a failure callback.
 
-## Our Approach
-
-* The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Progress starts at `0`. After the block is set up and its inputs are downloaded, Clay reports `0`; when the block's run finishes, on success or failure, it reports `100`. If `setup` or the input download fails, no progress is reported. In between, the block can set any value from `0` to `100`.
-
-* Clay exposes three progress APIs for the block author to use:
-    * `add_progress` — _A relative, additive API._
-    * `set_progress` — _An absolute, setter API._
+* The block reports progress with three methods:
+    * `add_progress` — _A relative, additive method._
+    * `set_progress` — _An absolute, setter method._
     * `get_progress` — _A read-only getter for the current progress value._
 
-* Progress is tracked by the Clay runner. When the runner creates your block, it attaches these three methods to it. Each accepted update is sent to the callback endpoint.
+* The runner attaches these methods to the block after the block's constructor returns. The constructor runs `setup`, so inside `setup` the base class versions are used: `add_progress` and `set_progress` do nothing, and `get_progress` returns `None`. Report progress from `preprocess`, `inference` and `postprocess`.
 
-* Precision is welcomed wherever possible, but approximations also work.
+* Each accepted update is sent as an HTTP `POST` to [`CALLBACK_ENDPOINT`](env-requirements.md#10-callback_endpoint), with the headers in [`CALLBACK_HEADERS`](env-requirements.md#11-callback_headers). The body looks like this:
 
-* Since the runner attaches these methods to your block instance, they cannot be used in a third party function, out of the box. For example,
+    ```json
+    {"data": {"id": "<EXECUTION_ID>", "progress": 40, "start_time": "2026-11-24T07:52:00.644807+00:00", "metadata": {}, "status": "inprogress"}}
+    ```
+
+    `id` is the value of [`EXECUTION_ID`](env-requirements.md#1-execution_id) and `start_time` is when the runner started, in UTC. A response with status `200`, `202` or `204` counts as success. Connection errors are retried up to 3 times. If the callback still fails, or the endpoint answers with another status, the runner logs an error and the block keeps running.
+
+* Since the runner attaches these methods to your block instance, a function outside the block class cannot report progress unless you pass it the block. For example,
 
 ```python
 from typing import Any, Dict
@@ -48,6 +46,8 @@ class Block(BlockWrapper):
     def setup(self, **kwargs: Any) -> None:
         pass
 
+    # preprocess and postprocess omitted
+
     async def inference(self, a: datatypes.Raster) -> Dict[str, Any]:
         # can indicate progress here
         self.add_progress(5)
@@ -59,22 +59,22 @@ class Block(BlockWrapper):
 
 ### `add_progress`
 
-Simply put, this is an _additive API_. Meaning, it simply _adds_ a certain value to whatever the existing progress of the block is. If you are going to use this endpoint to indicate the progress of the block, post the execution of a certain block of code, it is helpful to ask yourself, something like, _"How much % of the total execution of my block is this code block responsible for, approximately?"_. The answer is the input that you should send to `add_progress`.
+`add_progress(delta)` adds `delta` to the current progress and reports the new total. After a piece of code runs, pass the share of the whole run, in percent, that this code accounts for.
 
 ### `set_progress`
 
-This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ the current progress of the block to a particular value. Of-course, the value needs to pass a set of internal validations. If you intend to use this endpoint to indicate the progress of a block, post the execution of a block of code, it would be helpful to ask yourself a question like, _"What do I expect the current progress of execution to be at this particular point in my code?"_.
+`set_progress(value)` sets the current progress to `value` and reports it. The value must pass the checks in [Rules of Thumb](#rules-of-thumb). Pass the progress you expect the run to have reached at that point in the code.
 
 ### `get_progress`
 
-A read-only getter that returns the block's current progress: `0.0` at the start, otherwise the last value that was accepted. Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
+A read-only getter that returns the runner's current progress: `0.0` at the start, then the value of the last accepted update. After an `add_progress` call that pushes the total above `100`, it returns that total (see [Rules of Thumb](#rules-of-thumb)). Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
 
 ```python
 last = self.get_progress()
 self.set_progress(last + per_iteration)
 ```
 
-`get_progress` never raises and has no side effects.
+`get_progress` does not raise and does not send a callback.
 
 ## Rules of Thumb
 
@@ -83,10 +83,11 @@ self.set_progress(last + per_iteration)
 
 * For standard points in the program, where progress is expected to be deterministic and static, you can use the `set_progress` method.
 
-* There is *never* going to be a runtime-exception because of progress reporting. Invalid values are dropped and logged:
+* Out-of-range numbers do not stop the block. They are dropped and logged:
     * A value outside `0` to `100` (for `set_progress`), or a delta outside `0` to `100` (for `add_progress`), is ignored and logged as an error.
     * A `set_progress` value lower than the current progress is ignored and logged as a warning.
     * If `add_progress` would push the total above `100`, an error is logged and no update is sent. The internal counter still keeps the larger value, so `get_progress` returns more than `100` and later `set_progress` calls are rejected. Plan your deltas so they add up to `100` or less.
+* A value that is not a number, such as a string or `None`, raises `TypeError`, and the run fails.
 
 ## Examples
 ### Simple usage of `add_progress`
@@ -130,8 +131,7 @@ class B(BlockWrapper):
 
 !!! note
 
-    As you can see here, using `set_progress` within a loop is probably not a good idea and would require a lot of work, since in every iteration
-    you have to indicate a current progress, meaning, you have to fetch the last value and then increment it with a certain value.
+    In a loop, `set_progress` needs the last value on every iteration, as shown here. `add_progress` is simpler there.
 
 ```python
 from typing import Any, Dict
@@ -173,8 +173,7 @@ class B(BlockWrapper):
 
 !!! warning
 
-    Generally, try to avoid this as much as possible. Passing down `self` to external functions is generally considered
-    an anti-pattern in the Python World.
+    Avoid this where you can. Passing `self` to other functions ties them to the block class. Prefer reporting progress from the block's own methods.
 
 ```python
 from typing import Any, Dict

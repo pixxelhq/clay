@@ -5,7 +5,7 @@ order: 8
 
 # Block Assets Management
 
-Clay's `block assets` commands let you upload, list, and download files associated with your blocks in cloud storage. The interface is platform-agnostic: every command takes a single `--url` flag that names a complete storage location. The URL's scheme tells Clay which backend to use.
+Clay's `block assets` commands let you upload, list, and download files associated with your blocks in AWS S3. Every command takes a single `--url` flag that names a complete storage location. Only AWS S3 is supported.
 
 ## Overview
 
@@ -27,7 +27,7 @@ Only AWS S3 virtual-hosted HTTPS URLs are supported:
 https://<bucket>.s3.<region>.amazonaws.com/<prefix>/
 ```
 
-The bucket and region are parsed out of the host. The region must be in the URL. Bucket names that contain dots are rejected. `s3://` URIs and other hosts return an error. Support for `s3://` URLs and custom S3 endpoints is planned.
+The bucket and region are parsed out of the host. The region must be in the URL. Bucket names that contain dots are rejected. `s3://` URIs, other hosts, path-style URLs (`https://s3.<region>.amazonaws.com/<bucket>/...`), hosts without a region (`<bucket>.s3.amazonaws.com`) and URLs with a query string or fragment return an error.
 
 ## Commands
 
@@ -43,11 +43,13 @@ clay block assets upload block.pkl \
   --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 ```
 
+A directory's contents are uploaded under `--url`, keeping their paths relative to the directory. The directory's own name is not added: `./blocks/model.pt` goes to `.../my-block/v1.0.0/model.pt`. A single file goes to `<--url>/<filename>`.
+
 ### Upload catalog media with `upload-catalog`
 
-`clay block assets upload-catalog` publishes the media declared in the `catalog.yaml` in the current working directory (run it from the model repo root). It takes no path argument — only `--url`. To start a `catalog.yaml`, create the project with `clay new <path> --with catalog`. Clay:
+`clay block assets upload-catalog` publishes the media declared in the `catalog.yaml` in the current working directory (run it from the model repo root). It takes no path argument — only `--url`. To start a `catalog.yaml`, create the project with `clay new <path> --with catalog`. Its `media:` section lists `thumbnail.png`, `sample_input.png` and `sample_output.png`, which are not created. Add these files or change the paths before you run `upload-catalog`; otherwise it stops with an error such as `catalog media "thumbnail": declared file "thumbnail.png" does not exist`. Clay:
 
-1. reads the `media:` section (which maps keys to relative file paths). The section must not be empty.
+1. reads the `media:` section (which maps keys to relative file paths). The section must not be empty. Each path must name an existing file inside the current directory. Absolute paths, paths that leave the directory with `..`, symlinks that point outside it, and directories are rejected.
 2. uploads each file to `<your --url>/<key>/<filename>`. The local folders are dropped.
 3. makes a copy of `catalog.yaml` with each `media:` value set to its uploaded URL. The copy is re-serialized, so comments and formatting are not kept in it.
 4. uploads that copy to `<your --url>/catalog.yaml`, next to the media, and prints its URL.
@@ -85,6 +87,8 @@ uploads `catalog_readme/thumbnail.png` to `.../my-block/v1.0.0/thumbnail/thumbna
 clay block assets list --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/
 ```
 
+`list` shows every key that starts with the path in `--url`, so end `--url` with `/` to list one folder: `.../my-block/v1` also matches `.../my-block/v10/`. The list is printed to standard error.
+
 ### Download Assets
 
 `--url` must point at a single file.
@@ -99,6 +103,8 @@ clay block assets download \
   --url https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1.0.0/configs/inference.yaml \
   --output ./my-config.yaml
 ```
+
+If `--output` is an existing directory, the file is saved in it under its remote name. Otherwise `--output` is the file path, and missing parent directories are created. An existing local file is overwritten.
 
 ## Authentication
 
@@ -120,7 +126,7 @@ The region always comes from the `--url` host. `AWS_REGION` is not needed.
 
 ## Best Practices
 
-- Encode your organization's layout directly in the `--url` (e.g. `https://<bucket>.s3.<region>.amazonaws.com/blocks/<name>/<version>/`). The CLI doesn't impose a convention.
+- Encode your layout directly in the `--url` (e.g. `https://<bucket>.s3.<region>.amazonaws.com/blocks/<name>/<version>/`). The CLI doesn't impose a convention.
 - Keep related assets together in directories and upload them as a single `clay block assets upload` call.
 - Never commit credentials to version control; prefer IAM roles.
 - Restrict bucket permissions to what the block workflow actually needs.

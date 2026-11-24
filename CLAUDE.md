@@ -26,8 +26,8 @@ The repository is organized as follows:
 ## Development Commands
 
 ### Testing
-- `make test` - Run all tests (Go + Python)
-- `make test-go` - Go tests only (excludes `pkg/registry`)
+- `make test` - Go tests of the root module (`go test ./...`) and Python tests; does not run the `registry/` module's tests
+- `make test-go` - Go tests of the root module, except packages whose path contains `registry` (that is, `pkg/registry`, the CLI's registry client)
 - `make test-python` - Python tests only (`python/` and `proto/python/`)
 - `make test-registry` - Registry service tests (`registry/` is a separate Go module)
 
@@ -93,7 +93,7 @@ The repository is organized as follows:
 ## Testing Notes
 
 - Python tests use pytest
-- `make test-go` does not cover the registry service; run `make test-registry`
+- `make test` and `make test-go` do not run the registry service tests in `registry/`; run `make test-registry`. `make test-go` also skips `pkg/registry`
 - Docker integration tests: `make test-integration`
 - `examples/raster_vector_clipper` has a Docker Compose setup with MinIO for trying a block end to end
 

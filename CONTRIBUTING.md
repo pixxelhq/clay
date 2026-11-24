@@ -31,12 +31,17 @@ cd clay
 
 ### 2. Install development dependencies
 
+`make init` and `make init-requirements` install with `uv pip install`, which
+needs a virtual environment. Create and activate one first:
+
 ```bash
+python3 -m venv .venv && source .venv/bin/activate
 make init
 ```
 
-This installs Python dev requirements, sets up pre-commit hooks, and
-configures commit-message hooks.
+If `uv` is not on your `PATH`, `make init` installs it with uv's install
+script. `make init` installs the Python dev requirements, sets up pre-commit
+hooks, and configures commit-message hooks.
 
 ### 3. Install project requirements
 
@@ -58,9 +63,9 @@ make go-binaries    # Build the Clay CLI for macOS / Linux / Windows under bin/
 ### Test
 
 ```bash
-make test           # Run both Go and Python tests
+make test           # Go tests of the root module and Python tests (not registry/)
 make test-python    # Python only
-make test-go        # Go only (excludes pkg/registry)
+make test-go        # Go tests of the root module, except pkg/registry (the CLI's registry client)
 make test-registry  # Registry service tests; registry/ is a separate Go module
 ```
 
@@ -95,7 +100,7 @@ make spell-check-docs   # Spell-check markdown
 2. Make your changes. Keep commits focused — one logical change per commit.
 3. Add or update tests for any behavior change.
 4. Add an entry to [`CHANGELOG.md`](CHANGELOG.md) under
-   `## Unreleased`, under `### New Features`, `### Bug Fixes` or
+   `## Unreleased`, under `### Upgrading`, `### New Features`, `### Bug Fixes` or
    `### Breaking Changes` as appropriate.
 5. Run `make format` and `make test` locally and make sure they pass.
 6. Push your branch and open a pull request against `main`. Fill out the PR

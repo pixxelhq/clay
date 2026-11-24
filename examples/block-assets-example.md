@@ -24,7 +24,7 @@ clay block assets upload ./block.pkl \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
-Upload a directory:
+Upload a directory. Its contents go under `--url`; the directory name `weights` is not added:
 ```bash
 clay block assets upload ./weights \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
@@ -38,7 +38,7 @@ clay block assets upload-catalog \
 
 ### 2. List Assets
 
-List all assets at a storage location:
+List the assets whose keys start with the path in `--url` (end it with `/` to list one folder). The list is printed to standard error:
 ```bash
 clay block assets list \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
@@ -67,7 +67,7 @@ All commands take a single `--url` flag. Only AWS S3 virtual-hosted HTTPS URLs a
 https://<bucket>.s3.<region>.amazonaws.com/<prefix>/
 ```
 
-The bucket and region are parsed from the hostname. Bucket names with dots are not supported. `s3://` URIs are not supported yet; support for them is planned.
+The bucket and region are parsed from the hostname. Bucket names with dots are not supported. `s3://` URIs are not supported.
 
 ## Authentication
 

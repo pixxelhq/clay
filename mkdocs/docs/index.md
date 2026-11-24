@@ -17,17 +17,16 @@ Clay lets you focus on defining your block while abstracting away all the engine
 
 * **Any ML Framework**: Package blocks built with PyTorch, TensorFlow, scikit-learn, or any framework
 * **Geospatial Support**: Built-in handling for raster and vector data types used in satellite imagery
-* **Less Boilerplate**: Generates the `Dockerfile` from `clay.yaml` and builds the image. The block runs as a one-shot job; an HTTP serve mode is planned
+* **Less Boilerplate**: Generates the `Dockerfile` from `clay.yaml` and builds the image. The block runs as a one-shot job
 * **Run Anywhere**: Clay builds and pushes standard Docker images, so any container platform can run them, such as Kubernetes, cloud container services, or your own servers
-* **Block Registry**: Version, discover, and manage blocks across your organization
-* **Storage Abstraction**: AWS S3 for cloud artifacts (MinIO and other S3-compatible stores through `AWS_ENDPOINT_URL`), and the local filesystem for development. Support for GCS and Azure is on the roadmap and not yet available.
+* **Block Registry**: An optional registry service, which you run yourself, that records each published block version with its image and specification
+* **Storage Abstraction**: AWS S3 for cloud artifacts (MinIO and other S3-compatible stores through `AWS_ENDPOINT_URL`), and the local filesystem for development
 
 ## Who is Clay For?
 
 * **Data Scientists**: Focus on model (block) development without worrying about deployment complexities
 * **ML Engineers**: Standardize model (block) deployment across different environments
 * **Platform Teams**: Integrate ML models/blocks into existing infrastructure
-* **Organizations**: Enable model discovery and versioning through the block registry
 
 ## How Clay Works
 

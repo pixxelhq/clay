@@ -5,23 +5,7 @@ order: 4
 
 # Input/Output & Datatypes
 
-An ML block can be considered as a black box function that takes something as input and returns something which is treated as output. Clay enforces the block to have input and output of certain `types`. We call these types `datatypes`.
-
-## Why do we need Types?
-
-You might be wondering, *why do we even need types? What is this additional layer of complexity? Why should I learn one more thing?* The answer boils down to this:
-
-> For blocks to work together and with each other, they need to speak the same language.
-
-Since blocks are developed in silos and as independent entities, *but* are expected to work with each other in connected chains, they need to have a common *dialect* that they and the broader system understands. Using this *dialect*, the blocks specify their *inputs* and their *outputs*. Since all blocks and the system speak the same language, they can determine whether the output of one block can be compatible with the input of another block.
-
-For example, if `BlockA` outputs a `GeoTiff` file and `BlockB` accepts a `GeoJSON` as input, the output of `BlockA` cannot be provided as input to `BlockB`, because they are of different `Types`.
-
-![types-1](assets/types-1.png)
-
-But this works:
-
-![types-2](assets/types-2.png)
+A block receives its inputs and returns its outputs as typed values from the `datatypes` package. Each value has a format, such as `raster` or `number`, that says what kind of data it holds. Clay does not check whether the outputs of one block fit the inputs of another.
 
 ## Supported Types
 
@@ -48,15 +32,15 @@ All datatypes share these common attributes:
 
 | Attribute | Required | Description |
 |-----------|----------|-------------|
-| `format` | Yes | The data format (raster, vector, tabular, string, number, date) |
-| `type` | Yes | The data type of the value (url, string, int, float, bool, list, dict) |
-| `name` | Yes | Unique identifier that matches the parameter name in your block |
-| `value` | Yes | The actual data or URL to the data |
+| `format` | Yes | The data format (raster, vector, tabular, string, number, date). A run input without `format` fails with `KeyError: 'format'` |
+| `type` | No | The data type of the value, such as `url`, `str`, `int`, `float` or `bool`. For inputs, Clay casts `.value` to `int`, `float` or `bool` (also written `boolean`) when `type` says so; with any other or no `type`, `.value` is a string |
+| `name` | Yes | For inputs, the argument name in `preprocess()`. For outputs, the `name` declared in `clay.yaml` |
+| `value` | No | The data, or the path or URI of the file. Defaults to `""` |
 | `description` | No | Human readable description |
 | `display_name` | No | Name to display in UIs |
-| `is_artifact` | No | Whether this is a generated artifact |
+| `is_artifact` | No | Whether `value` is a file. Clay downloads the file of an artifact input before `preprocess()`, and uploads the file of an artifact output after `postprocess()`. Defaults to `true` for `raster`, `vector` and `tabular`, and `false` for the others |
 | `properties` | No | Format-specific metadata |
-| `metadata` | No | Additional key-value pairs |
+| `metadata` | No | Additional key-value pairs. Clay adds `block-name` to each output |
 
 ??? abstract "Disambiguation between `format` and `type`"
 
@@ -77,16 +61,16 @@ Raster represents TIFF/GeoTIFF data, commonly used for satellite imagery and geo
 | `format` | Format | Must be `raster` |
 | `type` | string | Type of the raster data (e.g., "url") |
 | `name` | string | Unique identifier for the raster |
-| `value` | string | Actual raster data/URL |
+| `value` | string | Path of the raster file: a local path or an `s3://` URI. For an artifact input, Clay copies or downloads the file and sets `value` to the local copy. Other URI schemes, such as `http(s)://` and `file://`, fail |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
-| `is_artifact` | bool | Whether this is a generated artifact (default: true) |
+| `is_artifact` | bool | Whether `value` is a file that Clay downloads (inputs) or uploads (outputs) (default: true) |
 | `group` | string | Optional grouping identifier — useful for relating multiple I/O fields to the same logical entity |
-| `default` | string | Default value applied when none is provided at runtime |
+| `default` | string | Stored with the value. The runtime does not read it; it uses the input's `default` in `clay.yaml` |
 | `properties` | [RasterProperties](#rasterproperties) | Raster-specific properties |
 | `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
 | `version` | [Version](#version) | Schema version (default: `v2`) |
-| `stac_url` | string | STAC item URL |
+| `stac_url` | string | STAC item: a local path or an `http(s)` URL. For an artifact input, Clay saves the item as `stac.json` next to the downloaded file and sets `stac_url` to that path |
 | `area` | double | Area covered in square meters |
 
 **Example:**
@@ -118,12 +102,12 @@ Vector represents GeoJSON data, used for polygons, points, and other geometric d
 | `format` | Format | Must be `vector` |
 | `type` | string | Type of the vector data (e.g., "url") |
 | `name` | string | Unique identifier for the vector |
-| `value` | string | Actual vector data/URL |
+| `value` | string | An `s3://` URI of a GeoJSON file, or the GeoJSON itself as text. For an artifact input, a value that does not start with `http://`, `https://`, `s3://` or `file://` is read as GeoJSON text and written to `<name>.geojson`, so a local file path does not work. `http(s)://` and `file://` fail |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
-| `is_artifact` | bool | Whether this is a generated artifact (default: true) |
+| `is_artifact` | bool | Whether `value` is a file that Clay downloads (inputs) or uploads (outputs) (default: true) |
 | `group` | string | Optional grouping identifier |
-| `default` | string | Default value applied when none is provided at runtime |
+| `default` | string | Stored with the value. The runtime does not read it; it uses the input's `default` in `clay.yaml` |
 | `properties` | [VectorProperties](#vectorproperties) | Vector-specific properties |
 | `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
 | `version` | [Version](#version) | Schema version (default: `v2`) |
@@ -152,12 +136,12 @@ Tabular represents table-based data like CSV files.
 | `format` | Format | Must be `tabular` |
 | `type` | string | Type of the tabular data (e.g., "url") |
 | `name` | string | Unique identifier for the tabular data |
-| `value` | string | Actual tabular data/URL |
+| `value` | string | Path of the file: a local path or an `s3://` URI. For an artifact input, Clay copies or downloads the file and sets `value` to the local copy. Other URI schemes, such as `http(s)://` and `file://`, fail |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
-| `is_artifact` | bool | Whether this is a generated artifact (default: true) |
+| `is_artifact` | bool | Whether `value` is a file that Clay downloads (inputs) or uploads (outputs) (default: true) |
 | `group` | string | Optional grouping identifier |
-| `default` | string | Default value applied when none is provided at runtime |
+| `default` | string | Stored with the value. The runtime does not read it; it uses the input's `default` in `clay.yaml` |
 | `properties` | [TabularProperties](#tabularproperties) | Tabular-specific properties |
 | `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
 | `version` | [Version](#version) | Schema version (default: `v2`) |
@@ -188,9 +172,9 @@ Number represents numeric data types (integers, floats).
 | `value` | string | The numeric value, stored as a string. For the inputs passed to `preprocess`, `.value` is cast by `type`: `int`, `float`, or `bool`/`boolean`; any other `type` stays a string |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
-| `is_artifact` | bool | Whether this is a generated artifact (default: false) |
+| `is_artifact` | bool | Whether `value` is a file that Clay downloads (inputs) or uploads (outputs) (default: false) |
 | `group` | string | Optional grouping identifier |
-| `default` | string | Default value applied when none is provided at runtime |
+| `default` | string | Stored with the value. The runtime does not read it; it uses the input's `default` in `clay.yaml` |
 | `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
 | `version` | [Version](#version) | Schema version (default: `v2`) |
 | `area` | double | Area covered in square meters |
@@ -223,9 +207,9 @@ String represents text data.
 | `value` | string | The string value |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
-| `is_artifact` | bool | Whether this is a generated artifact (default: false) |
+| `is_artifact` | bool | Whether `value` is a file that Clay downloads (inputs) or uploads (outputs) (default: false) |
 | `group` | string | Optional grouping identifier |
-| `default` | string | Default value applied when none is provided at runtime |
+| `default` | string | Stored with the value. The runtime does not read it; it uses the input's `default` in `clay.yaml` |
 | `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
 | `version` | [Version](#version) | Schema version (default: `v2`) |
 | `area` | double | Area covered in square meters |
@@ -251,12 +235,12 @@ Date represents date/time data.
 | `format` | Format | Must be `date` |
 | `type` | string | Type (e.g., "str") |
 | `name` | string | Unique identifier |
-| `value` | string | The date value (ISO 8601 format) |
+| `value` | string | The date as text. Clay checks its form only when the input has [date validation](#date-validation): `YYYY-MM-DD`, or RFC 3339 with a UTC offset for `date_format: date_time` |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
-| `is_artifact` | bool | Whether this is a generated artifact (default: false) |
+| `is_artifact` | bool | Whether `value` is a file that Clay downloads (inputs) or uploads (outputs) (default: false) |
 | `group` | string | Optional grouping identifier |
-| `default` | string | Default value applied when none is provided at runtime |
+| `default` | string | Stored with the value. The runtime does not read it; it uses the input's `default` in `clay.yaml` |
 | `properties` | [DateProperties](#dateproperties) | Date-specific properties |
 | `asset_source` | [AssetSource](#assetsource) | Provenance information for the asset |
 | `version` | [Version](#version) | Schema version (default: `v2`) |
@@ -337,10 +321,7 @@ results = datatypes.Tabular(
 
 ### AssetSource
 
-Provenance information attached to any input or output value. Useful when the
-same logical asset can come from multiple upstream producers (a satellite
-provider, an internal pipeline, a third-party feed) and downstream consumers
-need to disambiguate them.
+Provenance information that can be attached to any input or output value. Clay stores it with the value but does not read it.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -350,8 +331,7 @@ need to disambiguate them.
 
 ### Version
 
-Schema version of a datatype value. Lets the runtime tell apart older payloads
-from new ones when the schema evolves.
+Schema version of a datatype value. The only value is `v2`. The runtime does not read it.
 
 | Value | Description |
 |-------|-------------|
@@ -361,7 +341,7 @@ from new ones when the schema evolves.
 
 ## Input Validations
 
-Clay supports validating input values in your block specification. Validations are defined in the `validation` field of each input. Clay checks them before `preprocess` runs. If a check fails, the run fails with a validation error.
+Validations are defined in the `validation` field of each input in `clay.yaml`. Clay checks only `string`, `number` and `date` inputs, using the `format` of the run input. The check runs after the input files are downloaded and the start callback is sent, before `preprocess()`. If a check fails, the run fails with `Validation failed for '<name>': <reason>`, and the failure callback has `failure_type` `runtime_exception`.
 
 ### Number Validation
 
@@ -382,7 +362,7 @@ inputs:
       allowed_values: [256, 512, 1024]
 ```
 
-Both bounds are inclusive and optional. If you set `allowed_values` and a range, the value must pass both.
+Both bounds are inclusive and optional. If you set `allowed_values` and a range, the value must pass both. An empty value fails, because it is not a number.
 
 ### String Validation
 
@@ -394,7 +374,7 @@ inputs:
     format: string
     type: str
     validation:
-      regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
+      regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\Z'
   - name: mode
     format: string
     type: str
@@ -442,7 +422,7 @@ inputs:
 ```
 
 !!! note
-    The Clay runtime does not check `min_area` and `max_area`.
+    The Python runtime does not check `min_area` and `max_area`. The Go `datatypes` package (`proto/go`) checks them against the value's `area` field.
 
 ---
 
@@ -551,7 +531,7 @@ class MyBlock(BlockWrapper):
 
         return {
             "raster_path": input_raster.value,
-            "threshold_value": threshold.value,  # already a float when the input's type is "float"
+            "threshold_value": threshold.value,  # a float when the run input's type is "float"
         }
 
     async def inference(self, raster_path: str, threshold_value: float) -> Dict[str, Any]:

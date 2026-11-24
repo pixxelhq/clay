@@ -5,8 +5,9 @@ and associated metadata. It is backed by PostgreSQL and exposes an OpenAPI /
 Swagger-documented REST API.
 
 Running a registry is optional — you can build and run Clay blocks without one.
-When you do run one, the Clay CLI talks to it via `--clay-registry` (or
-`CLAY_REGISTRY_HOST`).
+When you do run one, the Clay CLI talks to it via `--clay-registry`.
+`clay publish` also reads `CLAY_REGISTRY_HOST`; `clay block list` and
+`clay block describe` do not.
 
 ## Prerequisites
 
@@ -71,9 +72,13 @@ make new-migration name=<name>         # Create a new migration pair
 ## Build and Run
 
 ```bash
+make run     # Starts the service from source with `go run`
 make build   # Produces the `clay-registry` binary
-make run     # Starts the service
 ```
+
+`make run` does not use the binary from `make build`. Start the binary from
+this directory (`./clay-registry`): the server reads `app.env` and the
+migrations relative to the current directory.
 
 Once the service is running, the Swagger UI is available at
 `http://localhost:<port>/swagger/index.html` (port comes from `app.env`).

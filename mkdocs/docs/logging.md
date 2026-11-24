@@ -9,7 +9,7 @@ Clay provides structured JSON logging through the `BlockWrapper`'s `self.logger`
 
 ## Why Use Clay's Logger?
 
-We prefer using the `logger` instead of `print` statements because it provides additional context for free, which is helpful during debugging and monitoring.
+Use `self.logger` instead of `print`. Each log line is a JSON object with the level, the time, the logger name and the code location, which helps with debugging and monitoring.
 
 ### Without Clay Logger
 
@@ -48,11 +48,23 @@ Clay's logger automatically includes:
 
 | Field | Description |
 |-------|-------------|
-| `level` | Severity of the message: `DEBUG`, `INFO`, `WARNING`, or `ERROR` |
-| `timestamp` | Exact time the message was logged (ISO 8601 format) |
-| `logger` | Name of the logger object (typically your block class name) |
-| `loc` | File, function, and line number where the log was triggered |
-| `message` | Your actual log message |
+| `level` | Severity of the message: `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL` |
+| `timestamp` | Time the message was logged, in UTC, in ISO 8601 format ending in `Z` |
+| `logger` | Name of the logger. `self.logger` is named after the block class. The runner's lines use the `name` passed to `clay.Run` in `entry.py`; generated projects pass the class name, so all lines show the same name |
+| `loc` | File, function and line number of the logging call, as `file:function:line` |
+| `message` | Your log message |
+
+The fields always come in this order. If you log with `exc_info`, the JSON object is followed by plain text lines: the message again, then the traceback.
+
+## Where Logs Go
+
+The logger writes to standard output. In a generated project, `entry.py` calls `clay.Run`, which creates the runner's logger with level `DEBUG`. `entry.py` passes the block class name as `name`, so the block reuses the runner's logger: `DEBUG` messages from your block are shown, and so are the runner's `DEBUG` lines, such as each callback payload.
+
+When the block is created, the log shows this `WARNING` line. It is expected, and comes from the block reusing the runner's logger:
+
+```json
+{"level": "WARNING", "timestamp": "2026-11-24T07:48:21.242794Z", "logger": "MyBlock", "loc": "logger.py:ClayLogger:238", "message": "Using existing logger without re-initialising."}
+```
 
 ## Log Levels
 
@@ -64,6 +76,7 @@ Use the appropriate log level based on the message importance:
 | `INFO` | Confirmation that things are working as expected |
 | `WARNING` | Something unexpected happened, but execution continues |
 | `ERROR` | A serious problem that prevented an operation |
+| `CRITICAL` | A more severe error than `ERROR`; logging it does not stop the block |
 
 ## Using the Logger in Blocks
 
@@ -100,7 +113,7 @@ Every value returned from `postprocess` must be a datatype, such as `datatypes.R
 
 ## Creating Custom Loggers
 
-You can create additional loggers using `ClayLogger`:
+You can create additional loggers using `ClayLogger`. It writes JSON lines to standard output, like `self.logger`. If a logger with the same name already exists, `ClayLogger` returns it unchanged, ignores `level`, and logs `Using existing logger without re-initialising.`
 
 ```python
 import logging

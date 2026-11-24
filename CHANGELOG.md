@@ -23,6 +23,18 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   generation, block chaining, raster and vector area checks, setting
   parameters per run, and `CLAY_DEBUG`. They give the real defaults of the
   runtime environment variables and the real registry setup steps.
+- The NDVI tutorial works as written: it starts with `clay new ndvi`, so the
+  class matches the one that `entry.py` imports.
+- The docs describe what the code checks and when: a new table in the spec
+  page lists the checks of the CLI, the registry and the runtime. Outputs are
+  matched by the `name` of the returned datatype, not the dict key; an input
+  `default` must be text; vector inputs take an `s3://` URI or GeoJSON text,
+  not a local path; a block with no inputs needs `--input '[]'`; and errors in
+  `setup` or the input download send no callback.
+- The docs say that only `clay publish` reads `CLAY_REGISTRY_HOST`, that the
+  registry stores versions without a leading `v`, and how that affects the
+  publish check and `clay block describe -v`. They no longer mention planned
+  features.
 
 ## v1.5.0 - 2026-11-19
 ### Upgrading

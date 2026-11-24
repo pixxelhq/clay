@@ -41,10 +41,13 @@ the `registry/` directory:
 # Copy sample env and adjust DB credentials if needed
 make copy-config
 
-# Build and run the server
-make build
+# Start the server from source (go run)
 make run
 ```
+
+`make run` does not use a built binary. `make build` writes a `clay-registry`
+binary; start it from the `registry/` directory (`./clay-registry`), because the
+server reads `app.env` and the migrations relative to the current directory.
 
 The server applies database migrations when it starts. You do not need to run
 them by hand. `make migrate-up` is optional. It needs
@@ -61,15 +64,16 @@ for migration, testing, and `sqlc` code generation details.
 
 ## CLI commands that talk to a registry
 
-The Clay CLI speaks to any registry implementation that matches the public API.
-Point it at your instance with the `--clay-registry` flag or the
-`CLAY_REGISTRY_HOST` environment variable.
+The CLI calls the registry's HTTP API under `/v1/blocks`. Point it at your
+instance with the `--clay-registry` flag. `clay publish` also reads the
+`CLAY_REGISTRY_HOST` environment variable; `clay block list` and
+`clay block describe` do not, so pass `--clay-registry` to them.
 
 | Command | Purpose |
 |---------|---------|
 | `clay publish` | Publish the current block (builds + pushes the image + registers the version). |
-| `clay block list` | List blocks in the registry. Supports `-n, --name` and `-v, --version` filters. |
-| `clay block describe <name>` | Show details for a block (optionally a specific `-v, --version`). |
+| `clay block list` | Without flags, list the latest version of each block. `-n, --name` lists all versions of a block; `-v, --version` with `--name` shows one version. |
+| `clay block describe <name>` | List all versions of a block, or show one with `-v, --version`. |
 
 See the [CLI Reference](cli-reference.md) for the complete flag list.
 
@@ -85,7 +89,13 @@ clay publish \
 `clay publish` will:
 
 1. Check that the block version is not already in the Clay registry. If it is, it stops.
+   The check uses `version` as written in `clay.yaml`, and the registry stores
+   versions without a leading `v`, so a `v`-prefixed version such as `v0.0.1`
+   passes this check even when it is published (see
+   [Publish](cli-reference.md#publish)).
 2. Build the block's Docker image. It uses `-f/--file` if given, else
    `./Dockerfile` if it exists, else a Dockerfile generated from `clay.yaml`.
 3. Push the image to the configured Docker registry.
-4. Register the new block version with the Clay registry.
+4. Register the new block version with the Clay registry. The registry stores
+   the version in semantic-version form (`v0.0.1` becomes `0.0.1`) and rejects
+   a version that is already published or is not a semantic version.
