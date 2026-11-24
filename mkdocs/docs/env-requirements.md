@@ -90,6 +90,8 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
   `--input-uri` is passed.
 - **Format**: JSON string (typically a list of dictionaries, specifying `name`, `type`, `format`, and `value`).
 - **Resolution order**: `--input-uri` → `--input` → `INPUT_JSON_URI` → `INPUT_JSON` → `[{}]`.
+  When a block is started from Python with `run(input_uri=..., input_json=...)`, those arguments
+  come after the CLI flags and before the environment variables.
   The first one that is set and not empty wins. An empty `--input-uri`, `--input` or
   `INPUT_JSON_URI` reads the same as unset. `INPUT_JSON` is different: if it is set to an empty
   string, Clay uses it and fails to parse it as JSON. If nothing is set, the input is `[{}]`.
@@ -234,8 +236,8 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: The URL endpoint for the block to communicate runtime status and progress updates to the orchestrator.
 - **Default Value**: `http://localhost:3000/callback`
-- **Usage**: Clay sends each status update as a `POST` with the body `{"data": …}`. It retries on
-  `500`, `502`, `503` and `504` (3 retries). If a callback still fails, Clay logs the error and the
+- **Usage**: Clay sends each status update as a `POST` with the body `{"data": …}`. It retries up to
+  3 times when it cannot connect. A callback that gets an HTTP error status is not retried. If a callback fails, Clay logs the error and the
   block keeps running.
 - **Note**: When running locally, this variable can be omitted. Callbacks to the default URL then
   fail and are only logged.

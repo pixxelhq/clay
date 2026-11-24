@@ -232,7 +232,7 @@ List of inputs the block accepts. Each input must specify its format and type. S
 | `type` | string | Yes | Value type: `url`, `str`, `int`, `float`, `bool` |
 | `description` | string | No | Human-readable description |
 | `display_name` | string | No | Display name for UIs |
-| `is_artifact` | bool | No | Whether this is a file artifact. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
+| `is_artifact` | bool | No | Whether this is a file artifact. Clay does not read this field from `clay.yaml`; it is stored with the spec in the registry. At runtime, the `is_artifact` of the run's input (for inputs) or of the datatype the block returns (for outputs) decides. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
 | `default` | any | No | Used when the input's `value` is `""`. For a `raster` input with no `stac_url`, it is also used as `stac_url` |
 | `properties` | object | No | Format-specific properties |
 | `validation` | object | No | Validation rules — see [Validation Rules](#validation-rules) |
@@ -288,7 +288,7 @@ List of outputs the block produces. Each output must specify its format and type
 | `type` | string | Yes | Value type: `url`, `str`, `int`, `float`, `bool` |
 | `description` | string | No | Human-readable description |
 | `display_name` | string | No | Display name for UIs |
-| `is_artifact` | bool | No | Whether this is a file artifact. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
+| `is_artifact` | bool | No | Whether this is a file artifact. Clay does not read this field from `clay.yaml`; it is stored with the spec in the registry. At runtime, the `is_artifact` of the run's input (for inputs) or of the datatype the block returns (for outputs) decides. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
 | `properties` | object | No | Format-specific properties |
 
 **Example:**
@@ -448,10 +448,10 @@ inputs:
     format: string
     type: str
     validation:
-      regex_match: '^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$'
+      regex_match: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\Z'
 ```
 
-`regex_match` uses Python's `re.match`, so the pattern only has to match the start of the value. End the pattern with `$` to match the whole value.
+`regex_match` uses Python's `re.match`, so the pattern only has to match the start of the value. End the pattern with `\Z` to match the whole value. Do not use `$`: in Python it also matches before a trailing newline.
 
 ### String Allowed Values
 
@@ -493,8 +493,8 @@ input, not as an out-of-range date. A malformed bound in the spec is an error.
 
 !!! note "Defaults are not written into the published spec"
     `clay publish` sends `parameters`, `inputs`, `outputs` and `env` to the
-    registry as written in `clay.yaml`. Omitted fields such as `date_format`
-    or `is_artifact` are absent from the stored spec; the runtime applies the
+    registry as written in `clay.yaml`, converted to JSON. Omitted fields such as
+    `date_format` are absent from the stored spec; the runtime applies the
     default. Anything that reads specs from the registry must apply the same
     defaults itself. `build` is different: Clay rebuilds it from its known
     build fields, so an omitted build field is stored as `""`, `false` or
@@ -502,7 +502,7 @@ input, not as an out-of-range date. A malformed bound in the spec is an error.
 
 ### Area Validation (Raster/Vector)
 
-`raster` and `vector` inputs accept `min_area` and `max_area`, in square meters. The runtime does not check them yet.
+`raster` and `vector` inputs accept `min_area` and `max_area`, in square meters. The runtime does not check them.
 
 ```yaml
 inputs:

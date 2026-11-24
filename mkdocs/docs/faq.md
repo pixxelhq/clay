@@ -11,7 +11,7 @@ Clay gives every block the same baseline structure, tooling and runtime. This he
 
 1. **A common project structure.** `clay new` and `clay init` create the same layout for every block: `clay.yaml`, a `block.py` with the `setup`, `preprocess`, `inference` and `postprocess` methods, sample inputs and a test. If you know one Clay block, you can read another.
 
-2. **A generated Dockerfile.** `clay build` generates the `Dockerfile` from the `build` section of `clay.yaml` on every build. You set the Python version, pip or conda, GDAL and apt packages there. You do not write or maintain your own `Dockerfile`, and every block is built from the same tested templates.
+2. **A generated Dockerfile.** `clay build` generates the `Dockerfile` from the `build` section of `clay.yaml` on every build, unless you pass `-f` or the project has its own `./Dockerfile`. You set the Python version, pip or conda, GDAL and apt packages there, so you do not need to write or maintain a `Dockerfile`, and blocks are built from the same templates.
 
 3. **Typed inputs and outputs.** Inputs and outputs are declared in `clay.yaml` and use the types from the `datatypes` package (`Raster`, `Vector`, `Tabular`, `Date`, `String`, `Number`). Before your code runs, string, number and date inputs are checked against the `validation` rules in the spec.
 
@@ -42,6 +42,8 @@ parameter.
 ### Difference between `processing` and `source` blocks
 
 The `type` field in `clay.yaml` says what kind of block it is:
+
+By convention:
 
 * **`processing`**: the block reads input data and analyses or transforms it, for example NDVI from a raster.
 * **`source`**: the block fetches or generates data without needing input data, for example downloading imagery for an area.

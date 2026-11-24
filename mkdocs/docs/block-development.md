@@ -232,6 +232,12 @@ The `value` must be a path the container can read. `clay run` does not mount loc
 
 ## Build block in docker image
 
+The block imports `rasterio`, which the base image does not include. Add it to `requirements.txt`:
+
+```text
+rasterio
+```
+
 ```bash
 clay build --tag ndvi:latest
 ```
@@ -248,7 +254,7 @@ clay run ndvi:latest --input "$(cat tests/sample_block_inputs.json)"
 
 The input file is on S3, so pass AWS credentials to the container with `-e`, for example `-e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=...`.
 
-The block logs one JSON object per line. The output will look something like this (shortened, callback lines left out):
+The block logs one JSON object per line. The output will look something like this (shortened):
 
 ```shell
 🧐 Searching image ndvi:latest

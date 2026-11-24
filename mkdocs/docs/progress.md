@@ -19,7 +19,7 @@ Well, we have outlined our approach with usage examples below.
 
 ## Our Approach
 
-* The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Progress starts at `0`. Clay reports `0` when the run starts and `100` when it finishes (on success or failure). In between, the block can set any value from `0` to `100`.
+* The total progress of the block is bounded between 0 and 100, i.e. `[0, 100]`. Progress starts at `0`. After the block is set up and its inputs are downloaded, Clay reports `0`; when the block's run finishes, on success or failure, it reports `100`. If `setup` or the input download fails, no progress is reported. In between, the block can set any value from `0` to `100`.
 
 * Clay exposes three progress APIs for the block author to use:
     * `add_progress` — _A relative, additive API._
@@ -30,7 +30,7 @@ Well, we have outlined our approach with usage examples below.
 
 * Precision is welcomed wherever possible, but approximations also work.
 
-* Since these methods are an attribute of the `BlockWrapper` class and by extension, the subclassed block, the methods cannot be used in a third party function, out of the box. For example,
+* Since the runner attaches these methods to your block instance, they cannot be used in a third party function, out of the box. For example,
 
 ```python
 from typing import Any, Dict
@@ -45,6 +45,9 @@ def some_function() -> None:
 
 
 class Block(BlockWrapper):
+    def setup(self, **kwargs: Any) -> None:
+        pass
+
     async def inference(self, a: datatypes.Raster) -> Dict[str, Any]:
         # can indicate progress here
         self.add_progress(5)
@@ -64,7 +67,7 @@ This on the other hand, is an _absolute, setter API_. Meaning, it simply _set_ t
 
 ### `get_progress`
 
-A read-only getter that returns the block's current progress as a `float`. Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
+A read-only getter that returns the block's current progress: `0.0` at the start, otherwise the last value that was accepted. Useful when you want to compute the next value relative to whatever the current progress happens to be — typically pairing with `set_progress` inside a loop:
 
 ```python
 last = self.get_progress()

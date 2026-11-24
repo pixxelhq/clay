@@ -185,7 +185,7 @@ Number represents numeric data types (integers, floats).
 | `format` | Format | Must be `number` |
 | `type` | string | Type (e.g., "int", "float") |
 | `name` | string | Unique identifier |
-| `value` | string | The numeric value, stored as a string. Inside block methods, `.value` is cast by `type`: `int`, `float` or `bool` |
+| `value` | string | The numeric value, stored as a string. For the inputs passed to `preprocess`, `.value` is cast by `type`: `int`, `float`, or `bool`/`boolean`; any other `type` stays a string |
 | `description` | string | Human readable description |
 | `display_name` | string | Name to display in UIs |
 | `is_artifact` | bool | Whether this is a generated artifact (default: false) |
@@ -402,7 +402,7 @@ inputs:
       allowed_values: ["fast", "accurate"]
 ```
 
-`regex_match` must match at the start of the value. Add `^` and `$` to match the whole value. If you set both fields, the value must pass both.
+`regex_match` must match at the start of the value. To match the whole value, end the pattern with `\Z`. Do not use `$`: in Python it also matches before a trailing newline. If you set both fields, the value must pass both.
 
 ### Date Validation
 
@@ -442,7 +442,7 @@ inputs:
 ```
 
 !!! note
-    The Clay runtime does not check `min_area` and `max_area` yet. Input validation for these fields is planned.
+    The Clay runtime does not check `min_area` and `max_area`.
 
 ---
 

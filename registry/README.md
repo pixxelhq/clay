@@ -63,7 +63,7 @@ database differs:
 
 ```bash
 make migrate-up                        # Apply all pending migrations
-make migrate-down                      # Revert all migrations
+make migrate-down                      # Revert all migrations (asks for confirmation)
 make migrate-up DB_URL="postgresql://user:pass@host:5432/db?sslmode=disable"
 make new-migration name=<name>         # Create a new migration pair
 ```

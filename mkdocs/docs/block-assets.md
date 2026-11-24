@@ -138,4 +138,4 @@ You passed an `s3://` URI. Put the bucket and region in the HTTPS host instead.
 Verify `--url` exactly matches the remote path and is case-sensitive.
 
 **Authentication failures**
-For example `NoCredentialProviders: no valid providers in chain`, `InvalidAccessKeyId` or `AccessDenied`. Confirm AWS credentials are configured (see [Authentication](#authentication)) and that they have the required S3 permissions on the target bucket.
+For example `NoCredentialProviders: no valid providers in chain`, `InvalidAccessKeyId`, `AccessDenied`, or `Forbidden` (from `download`, which checks the object first). Confirm AWS credentials are configured (see [Authentication](#authentication)) and that they have the required S3 permissions on the target bucket.
