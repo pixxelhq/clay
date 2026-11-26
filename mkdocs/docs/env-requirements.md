@@ -5,29 +5,28 @@ order: 6
 
 # Environment Variables Reference
 
-This document details the environment variables used to configure and run a block locally or through an orchestrator. Each variable controls a distinct aspect of execution, data management, or orchestration. Understanding and setting these variables correctly ensures smooth and reproducible runs—whether executing single-block insights or workflows of chained blocks.
+These variables configure how the Clay runtime inside the block container reads its input, stores files and reports status. Clay reads sections 1 to 11 when the block starts, before it applies the [`env`](spec.md#env) section of `clay.yaml`, so `env` cannot set them. The last section lists the variables that the Clay CLI reads on the host.
 
 ***
 
 ## 1. `EXECUTION_ID`
 
-- **Purpose**: Uniquely identifies each block run instance.
-- **Scope**: Used for tracing, auditing, and debugging execution logs and results. This ID is particularly important when the block communicates its status via callbacks, allowing the orchestrator to track which specific execution is reporting progress.
-- **Best Practice**: Set by the orchestrator; must be globally unique for each run.
-- **Usage in Callbacks**: When blocks report their status (success/failure, progress) to the callback endpoint, the EXECUTION_ID helps the orchestrator correlate the callback to the specific block run.
+- **Purpose**: The ID of the run. Clay sends it as `id` in every callback, so the receiver can tell runs apart.
+- **Default Value**: `default_execution_id`
+- **Note**: Clay does not check that it is unique.
 
 ***
 
 
 ## 2. Passing input: `--input` and `--input-uri`
 
-Input no longer arrives through a configurable env var. Clay parses two CLI flags in
-`clay.Run()`, and they take precedence over every environment variable below:
+`clay.Run()` reads two command-line flags. They take precedence over the `input_json` and
+`input_uri` arguments of `clay.Run()` and over `INPUT_JSON_URI` and `INPUT_JSON` (section 4):
 
 | flag | carries |
 |------|---------|
 | `--input '<json>'` | the input array inline |
-| `--input-uri '<uri>'` | a URI Clay downloads the array from (`s3://…`, or any configured storage backend) |
+| `--input-uri '<uri>'` | an `s3://` URI Clay downloads the array from. Other schemes are not supported |
 
 ```bash
 # directly
@@ -41,46 +40,33 @@ clay run my-block:v1.0.0 --input "$(cat sample-input.json)"
 If neither flag is given, Clay falls back to `INPUT_JSON_URI` and then `INPUT_JSON`
 (section 4).
 
-!!! warning "`INPUT_JSON_ENV_KEY` was removed"
-    Clay used to read this to decide *which* env var held the input, which let Argo point
-    it at `ARGO_TEMPLATE`. Argo stopped injecting `ARGO_TEMPLATE` into the main container in
-    v3.6, so the indirection was dropped. Clay now always reads `INPUT_JSON`. Setting
-    `INPUT_JSON_ENV_KEY` has no effect.
+!!! note
+    Clay does not read `INPUT_JSON_ENV_KEY`. It always reads `INPUT_JSON`.
 
 ***
 
 ## 3. `INPUT_JSON_JQ_FILTER`
 
-- **Purpose**: A [jq](https://stedolan.github.io/jq/) filter applied to the input JSON before
-  Clay parses it. Set by Dexter on the **DAG/workflow** path only; never on the inference path.
-- **Current value**:
+- **Purpose**: A [jq](https://jqlang.github.io/jq/) filter applied to the input JSON before
+  Clay parses it. It applies to input from any source (`--input`, `--input-uri`,
+  `INPUT_JSON_URI` or `INPUT_JSON`). If the filter fails, the block fails with
+  `Failed to process input JSON with jq filter`.
+- **Default**: unset, so the input JSON is used as is.
+- **Example value**:
   ```bash
   [.[] | .spec + {name: .name}]
   ```
 
-**Why it exists.** On the DAG path Dexter cannot emit a flat spec array. Each input value is an
-Argo reference (`{{inputs.parameters.<name>}}`) that Argo resolves to the *producing* task's
-output spec — and that spec's embedded `name` is the producer's **output** name, not the name
-this block declares. Argo substitutes plain text, so Dexter can only wrap the reference:
+Use it when the tool that starts the block produces input JSON in another shape. With the
+filter above:
 
 ```bash
-# what Dexter emits
---input '[{"name":"raster","spec":{{inputs.parameters.raster}}}]'
-
-# what Argo resolves it to, e.g. from an upstream block whose output is called "result"
+# input
 [{"name":"raster","spec":{"format":"raster","type":"url","name":"result","value":"s3://…"}}]
 
-# what the filter turns it into — note `+ {name: .name}` overrides "result" with "raster"
+# after the filter: the input is named "raster", as preprocess() expects
 [{"format":"raster","type":"url","name":"raster","value":"s3://…"}]
 ```
-
-Clay keys inputs by name and then calls `preprocess(**inputs)`, so without the rename the block
-would be invoked with `result=` instead of `raster=` and fail on a missing argument.
-
-!!! note "Transitional"
-    Block images ship their own copy of Clay, so this filter is what lets images built before
-    the `--input` flag keep working. Once every block is rebuilt, Dexter stops setting it, the
-    flatten moves into Clay, and the `jq` dependency is dropped.
 
 ***
 
@@ -89,10 +75,19 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
 - **Purpose**: The env-var fallback for block input data, used when neither `--input` nor
   `--input-uri` is passed.
 - **Format**: JSON string (typically a list of dictionaries, specifying `name`, `type`, `format`, and `value`).
-- **Resolution order**: `--input-uri` → `--input` → `INPUT_JSON_URI` → `INPUT_JSON`. The first one
-  set wins; an empty value reads the same as unset.
-- **`INPUT_JSON_URI`**: a URI Clay downloads the array from instead of reading it inline. Dexter
-  offloads inference inputs larger than 100KB here so the pod spec stays small.
+- **Resolution order**: `--input-uri` → `--input` → `INPUT_JSON_URI` → `INPUT_JSON` → `[{}]`.
+  When a block is started from Python with
+  `clay.Run(block, name, cfg_path, input_json=..., input_uri=...)`, those arguments come after
+  the CLI flags and before the environment variables. If either CLI flag is passed, even empty,
+  Clay ignores both arguments.
+  The first one that is set and not empty wins. An empty `--input-uri`, `--input` or
+  `INPUT_JSON_URI` reads the same as unset. `INPUT_JSON` is different: if it is set to an empty
+  string, Clay uses it and fails to parse it as JSON.
+- **No input**: If nothing is set, the input is `[{}]`. That item has no `format`, so the block
+  fails with `KeyError: 'format'` before it sends any callback. A block with no inputs must get an
+  empty list, for example `--input '[]'`.
+- **`INPUT_JSON_URI`**: an `s3://` URI Clay downloads the array from instead of reading it
+  inline. Use it for large inputs.
 - **Usage**: For local runs, set `INPUT_JSON` manually or use the test_block.py script, which sets
   it automatically. Prefer `--input` for new work.
 - **Example**:
@@ -105,7 +100,7 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
         "type": "url",
         "format": "raster",
         "value": "",
-        "is_artifact": "true",
+        "is_artifact": true,
         "stac_url": "./tests/example_stac.json",
         "properties": {
             "bands": [
@@ -136,8 +131,8 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
         "name": "vector",
         "type": "url",
         "format": "vector",
-        "is_artifact": "true",
-        "value": "./tests/vector.geojson"
+        "is_artifact": true,
+        "value": "s3://my-bucket/aoi/vector.geojson"
     }]
 ```
 </details>
@@ -146,61 +141,58 @@ would be invoked with `result=` instead of `raster=` and fail on a missing argum
 
 ## 5. `LOCAL_ARTIFACT_DOWNLOAD_PATH`
 
-- **Purpose**: Directory path on the local file system where downloaded artifacts (input files, data resources) are stored.
+- **Purpose**: Local directory where Clay puts the input files before `preprocess()`.
 - **Default Value**: `/tmp/inputs`
-- **Role**: Used for processing files (such as raster or vector data) needed by the block. Clay downloads remote files referenced in the input to this location before processing.
-- **Best Practice**: Ensure path is writable and has enough storage when handling large datasets.
+- **Layout**: For each input whose `is_artifact` is `true`, Clay copies the local file or downloads
+  the `s3://` file to `<LOCAL_ARTIFACT_DOWNLOAD_PATH>/<input_name>/<file>` and sets the input's
+  `value` to that path. Other inputs are not fetched. Every input, artifact or not, also gets
+  `<LOCAL_ARTIFACT_DOWNLOAD_PATH>/<input_name>/spec.json` with the input as JSON. For an artifact
+  `raster` input with a `stac_url`, Clay also writes `stac.json` there. See
+  [Input/Output & Datatypes](IO.md) for the values that work for each format.
 
 **Example:**
 ```bash
-# Using default path:
-# Files will be downloaded to /tmp/inputs/
-
-# Custom download location:
 export LOCAL_ARTIFACT_DOWNLOAD_PATH="/workspace/block_inputs"
-# Files will be downloaded to /workspace/block_inputs/
+# An artifact input "raster" with value s3://my-bucket/scene.tif is downloaded to
+# /workspace/block_inputs/raster/scene.tif
 ```
 
 ***
 
 ## 6. `REMOTE_OUTPUT_PATH`
 
-- **Purpose**: Specifies where to upload output artifacts produced by a block run.
+- **Purpose**: Where Clay puts the output files after `postprocess()`. A local path or an `s3://` URI.
 - **Default Value**: `/tmp/clay/outputs`
-- **Usage**: Output files which include result data are transferred to this remote location for downstream processing or client access. This can be a local path or an S3 location.
+- **Behavior**: For each output whose `is_artifact` is `true` and whose `value` is an existing
+  local file, Clay copies or uploads the file to `<REMOTE_OUTPUT_PATH>/<output_name>/<file>` and
+  sets the output's `value` to that path. Other outputs are skipped without a message.
 
 **Example:**
 ```bash
-# Using default local path:
-# Outputs will be uploaded to /tmp/clay/outputs/
-
-# S3 remote storage:
 export REMOTE_OUTPUT_PATH="s3://my-bucket/block-outputs/run-123/"
-# Outputs will be uploaded to the specified S3 location
-
-# Custom local path:
-export REMOTE_OUTPUT_PATH="/shared/storage/outputs"
+# An artifact output "result" with value /tmp/result.tif is uploaded to
+# s3://my-bucket/block-outputs/run-123/result/result.tif
 ```
 
 ***
 
 ## 7. `REMOTE_INPUT_PATH`
 
-- **Purpose**: Specifies the remote path for uploading input files before block execution.
+- **Purpose**: Where Clay keeps a copy of the inputs. A local path or an `s3://` URI.
 - **Default Value**: `/tmp/clay/inputs`
-- **Role**: Remote path (local or S3) where input files are uploaded after being downloaded from their original sources. This provides a staging area for block inputs.
+- **Behavior**: After it fetches the inputs, Clay copies or uploads everything in
+  `LOCAL_ARTIFACT_DOWNLOAD_PATH`, including each input's `spec.json`, to this path, keeping the
+  same layout.
+- **`add_asset()`**: `self.add_asset(file_path, io_name, is_input)` uploads a file to
+  `<REMOTE_INPUT_PATH>/inputs/<io_name>/<file>`, or `.../outputs/<io_name>/<file>` when
+  `is_input` is `False`. It works only when `REMOTE_INPUT_PATH` is an `s3://` URI; with a local
+  path it fails with `No storage provider available for protocol: file`.
 
 **Example:**
 ```bash
-# Using default local path:
-# Inputs will be uploaded to /tmp/clay/inputs/
-
-# S3 remote storage:
 export REMOTE_INPUT_PATH="s3://my-bucket/block-inputs/run-123/"
-# Input files will be uploaded to the specified S3 location
-
-# Custom local path:
-export REMOTE_INPUT_PATH="/shared/storage/inputs"
+# /tmp/inputs/raster/scene.tif is uploaded to
+# s3://my-bucket/block-inputs/run-123/raster/scene.tif
 ```
 
 ***
@@ -210,7 +202,11 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: Directory path where output specification files (e.g., `spec.json`) are stored locally.
 - **Default Value**: `/tmp/clay/outputs/`
-- **Usage**: Acts as a working directory for block outputs. The output specification file contains detailed metadata about the block's results including data properties, processing parameters, and other relevant information for end users.
+- **Layout**: Clay writes one file per output, to `<OUTPUT_JSON_PATH>/<output_name>/<OUTPUT_JSON_BASE_FILE_NAME>`.
+  If `REMOTE_OUTPUT_PATH` is an `s3://` path, Clay also uploads each file to
+  `<REMOTE_OUTPUT_PATH>/<output_name>/spec.json`.
+- **Content**: Each file is one output as JSON, the same as in the success callback. Clay writes
+  the files after it sends the success callback.
 
 ***
 
@@ -218,33 +214,47 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 - **Purpose**: Name of the primary output specification file.
 - **Default Value**: `spec.json`
-- **Role**: This file contains the output specifications for end users, including detailed properties of the results such as raster properties, dates, metadata, and other output-specific information. The file is saved in the directory specified by `OUTPUT_JSON_PATH`.
-- **Best Practice**: Avoid name collisions—ensure unique naming in parallel runs.
+- **Role**: The file name of each output's JSON file, written to `<OUTPUT_JSON_PATH>/<output_name>/<OUTPUT_JSON_BASE_FILE_NAME>`.
+- **Note**: The copy uploaded to `REMOTE_OUTPUT_PATH` is always named `spec.json`, whatever this variable says.
 
 ***
 
 
 ## 10. `CALLBACK_ENDPOINT`
 
-- **Purpose**: The URL endpoint for the block to communicate runtime status and progress updates to the orchestrator.
-- **Usage**: Facilitates reporting of block status (success/failure, progress metrics).
-- **Note**: When running locally, this variable can be omitted.
+- **Purpose**: The URL that the block sends its status and progress updates to.
+- **Default Value**: `http://localhost:3000/callback`
+- **Usage**: Clay sends each status update as a `POST` with the body `{"data": …}`. It retries up to
+  3 times when it cannot connect. A callback that gets an HTTP error status is not retried. Only
+  `200`, `202` and `204` count as success. If a callback fails, Clay logs the error and the
+  block keeps running.
+- **Errors without a callback**: An error in `setup()`, in reading the input JSON or in fetching
+  the input files stops the block before the start callback, and Clay sends no failure callback.
+  The container exits with an error and the traceback is in its log.
+- **Note**: When running locally, this variable can be omitted. Callbacks to the default URL then
+  fail and are only logged.
 
 ***
 
 ## 11. `CALLBACK_HEADERS`
 
-- **Purpose**: Provides additional headers (e.g., `userid`, `organisationid`) for authenticated callbacks.
-- **Format**: JSON string containing relevant authentication info.
-- **Note**: Skip this variable when running blocks locally.
+- **Purpose**: Extra HTTP headers sent with each callback, for example for authentication.
+- **Format**: A JSON object, for example `{"Authorization": "Bearer <token>"}`.
+- **Default Value**: `{}`
+- **Note**: If the value is not valid JSON, the block fails at start. Skip this variable when running blocks locally.
 
 ***
 
 ## 12. `AWS_ENDPOINT_URL`
 
 - **Purpose**: Points the block's `s3://` reads and writes at an S3-compatible store other than AWS, such as MinIO.
-- **Example**: `clay run my-block:v1.0.0 -e AWS_ENDPOINT_URL=http://minio:9000 -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --input "$(cat tests/sample_block_inputs.json)"`
-- **Note**: Read by boto3 inside the block container, together with the usual AWS credential variables. `clay block assets` does not use it and accepts AWS S3 URLs only.
+- **Example**: `clay run my-block:v1.0.0 -e AWS_ENDPOINT_URL=http://host.docker.internal:9000 -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --input "$(cat tests/sample_block_inputs.json)"`
+- **Note**: Read by boto3 inside the block container, together with the usual AWS credential
+  variables. Set it with `-e`, not in the `env` section of `clay.yaml`: Clay downloads the
+  `--input-uri` file before it applies `env`. `clay run` starts the container without a
+  `--network` option, so use a host that the container can reach, such as
+  `host.docker.internal` on Docker Desktop, not `localhost`. `clay block assets` does not use
+  it and accepts AWS S3 URLs only.
 
 ***
 
@@ -255,14 +265,14 @@ inside the block container). They mirror the corresponding command-line flags.
 
 ### `CLAY_DOCKER_REGISTRY`
 
-- **Purpose**: Docker image registry that `clay publish` pushes block images to.
-- **Equivalent flag**: `--docker-registry`.
-- **Used by**: `clay publish`.
+- **Purpose**: Docker image registry that `clay publish` and `clay push` push block images to.
+- **Equivalent flag**: `--docker-registry`. The flag wins over the variable.
+- **Used by**: `clay publish`, and `clay push` when no image is given.
 
 ### `CLAY_REGISTRY_HOST`
 
 - **Purpose**: URL of the Clay block registry that the CLI talks to.
-- **Equivalent flag**: `--clay-registry`.
-- **Used by**: `clay publish`, `clay block list`, `clay block describe`.
+- **Equivalent flag**: `--clay-registry`. The flag wins over the variable.
+- **Used by**: `clay publish`. `clay block list` and `clay block describe` do not read it; pass `--clay-registry` to them.
 
 ***

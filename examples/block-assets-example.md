@@ -24,13 +24,13 @@ clay block assets upload ./block.pkl \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
-Upload a directory:
+Upload a directory. Its contents go under `--url`; the directory name `weights` is not added:
 ```bash
 clay block assets upload ./weights \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
 ```
 
-Upload catalog media and rewrite `catalog.yaml` in place (uploads each file in its `media:` section, rewrites the values to absolute URLs, then uploads the catalog itself). Run it from the model repo root — it reads `catalog.yaml` from the current directory and takes no path argument:
+Upload catalog media. Each file in the `media:` section of `catalog.yaml` is uploaded to `<--url>/<key>/<filename>`. Then a copy of `catalog.yaml`, with each `media:` value set to its uploaded URL, is uploaded next to the media, and its URL is printed for `clay publish --catalog-url`. Your `catalog.yaml` is not changed. Run it from the model repo root. It reads `catalog.yaml` from the current directory and takes no path argument:
 ```bash
 clay block assets upload-catalog \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
@@ -38,7 +38,7 @@ clay block assets upload-catalog \
 
 ### 2. List Assets
 
-List all assets at a storage location:
+List the assets whose keys start with the path in `--url` (end it with `/` to list one folder). The list is printed to standard error:
 ```bash
 clay block assets list \
   --url https://my-clay-assets.s3.us-east-1.amazonaws.com/image-classifier/v1.0.0/
@@ -67,7 +67,7 @@ All commands take a single `--url` flag. Only AWS S3 virtual-hosted HTTPS URLs a
 https://<bucket>.s3.<region>.amazonaws.com/<prefix>/
 ```
 
-The bucket and region are parsed from the hostname. `s3://` URIs are not supported.
+The bucket and region are parsed from the hostname. Bucket names with dots are not supported. `s3://` URIs are not supported.
 
 ## Authentication
 
@@ -76,13 +76,14 @@ Set AWS credentials using environment variables:
 ```bash
 export AWS_ACCESS_KEY_ID=your-key-id
 export AWS_SECRET_ACCESS_KEY=your-secret-key
-export AWS_REGION=us-east-1
 ```
 
-Or use AWS CLI configuration:
+Or use AWS CLI configuration, or a named profile with `AWS_PROFILE` (SSO profiles work too):
 ```bash
 aws configure
 ```
+
+The region comes from the `--url` host. `AWS_REGION` is not needed.
 
 ## Best Practices
 

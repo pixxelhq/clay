@@ -212,7 +212,14 @@ clay publish [flags]
 | `-f, --file` | Dockerfile path. Use your own Dockerfile instead of the generated one | — |
 | `--catalog-url` | URL of the published `catalog.yaml` (see [Upload Catalog Media](#upload-catalog-media)) | — |
 
-Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything, so the image of a published version is never overwritten. Bump `version` in `clay.yaml` to publish a new version.
+Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything. Bump `version` in `clay.yaml` to publish a new version.
+
+The check sends `version` exactly as written in `clay.yaml`, but the registry stores each version in full `MAJOR.MINOR.PATCH` form, without a leading `v`: `v0.0.1` is stored as `0.0.1`, and `0.1` as `0.1.0`. So:
+
+- With all three parts and no `v`, such as `0.0.1`, the check works: a published version is found before anything is built.
+- With a `v`-prefixed version such as `v0.0.1`, which is what `clay new` and `clay init` write, or a short version such as `0.1`, the check does not find it. `clay publish` then builds the image and pushes it under the same tag as the published image, and only after that does the registry reject the version as already published.
+
+The registry also rejects a `version` that is not a semantic version, after the image has been pushed.
 
 ---
 
@@ -222,7 +229,7 @@ Commands for managing blocks in the registry.
 
 ### List Blocks
 
-List available blocks in the registry.
+List blocks in the registry, as JSON.
 
 ```shell
 clay block list [flags]
@@ -230,9 +237,13 @@ clay block list [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-n, --name` | Filter by block name | — |
-| `-v, --version` | Specific version to list | — |
+| `-n, --name` | List all versions of this block | — |
+| `-v, --version` | With `--name`, show only this version | — |
 | `--clay-registry` | Clay block registry URL (required) | — |
+
+Without flags, `clay block list` shows the latest version of each block: the highest semantic version. `-v` is ignored without `-n`. Pass the version as the registry stores it, without a leading `v` (see [Publish](#publish)); `-v latest` shows the highest version.
+
+`clay block list` and `clay block describe` do not read `CLAY_REGISTRY_HOST`: pass `--clay-registry`. Only `clay publish` reads the variable.
 
 ### Describe Block
 
@@ -251,6 +262,8 @@ clay block describe <name> [flags]
 | `-v, --version` | Specific version to describe | — |
 | `--clay-registry` | Clay block registry URL (required) | — |
 
+As with `clay block list`, pass the version without a leading `v`, for example `-v 0.0.1` for `version: v0.0.1`. `-v latest` describes the highest version.
+
 ---
 
 ## Block Assets Commands
@@ -261,11 +274,11 @@ Supported URL form (AWS S3 virtual-hosted HTTPS):
 
 - `https://<bucket>.s3.<region>.amazonaws.com/<prefix>/`
 
-The region must be in the URL. `s3://` URIs and other hosts are rejected.
+The region must be in the URL. `s3://` URIs, other hosts (including path-style `https://s3.<region>.amazonaws.com/<bucket>/` URLs and hosts without a region), and URLs with a query string or fragment are rejected. See [Block Assets](block-assets.md).
 
 ### Upload Assets
 
-Upload a file or directory to cloud storage at the location given by `--url`.
+Upload a file or directory to cloud storage at the location given by `--url`. A file is uploaded to `<--url>/<filename>`. For a directory, its contents are uploaded under `--url` with their paths relative to the directory; the directory's own name is not added.
 
 ```shell
 clay block assets upload <path> [flags]
@@ -279,6 +292,8 @@ clay block assets upload <path> [flags]
 
 Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<key>/<filename>`; the local folders are dropped. Then a copy of `catalog.yaml`, with each `media:` value set to its uploaded URL, is uploaded next to the media, and its URL is printed for `clay publish --catalog-url`. Your `catalog.yaml` is not changed. `media:` values that are already `http(s)` URLs are not uploaded again. Bake the block/version into `--url`.
 
+Each local `media:` path must name an existing file inside the current directory, relative to it. Absolute paths, paths that leave the directory with `..`, symlinks that point outside it, and directories are rejected. The `catalog.yaml` that `clay new --with catalog` creates lists `thumbnail.png`, `sample_input.png` and `sample_output.png`, which it does not create; add them or change the paths first.
+
 ```shell
 clay block assets upload-catalog [flags]
 ```
@@ -289,7 +304,7 @@ clay block assets upload-catalog [flags]
 
 ### List Assets
 
-List all assets at the location given by `--url`.
+List the assets whose keys start with the path in `--url`. End `--url` with `/` to list one folder: `.../my-block/v1` also matches `.../my-block/v10/`. The list is printed to standard error.
 
 ```shell
 clay block assets list [flags]
@@ -301,7 +316,7 @@ clay block assets list [flags]
 
 ### Download Assets
 
-Download the asset at `--url` to the local filesystem. `--url` must point at a single file.
+Download the asset at `--url` to the local filesystem. `--url` must point at a single file. If `--output` is an existing directory, the file is saved in it under its remote name; otherwise `--output` is the file path, and missing parent directories are created. An existing file at that path is overwritten.
 
 ```shell
 clay block assets download [flags]
