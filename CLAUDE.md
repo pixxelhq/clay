@@ -88,7 +88,7 @@ The repository is organized as follows:
 - `clay block list` - List blocks in the registry
 - `clay block describe <name>` - Show versions and details for a block
 - `clay publish` - Build, push and register a block
-- Point the CLI at a registry with `--clay-registry`; `clay publish` also reads `CLAY_REGISTRY_HOST`
+- Point the CLI at a registry with `--clay-registry` or `CLAY_REGISTRY_HOST` (the flag wins when both are set)
 
 ## Testing Notes
 

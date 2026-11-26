@@ -239,11 +239,11 @@ clay block list [flags]
 |------|-------------|---------|
 | `-n, --name` | List all versions of this block | — |
 | `-v, --version` | With `--name`, show only this version | — |
-| `--clay-registry` | Clay block registry URL (required) | — |
+| `--clay-registry` | Clay block registry URL. Required unless `CLAY_REGISTRY_HOST` is set | — |
 
 Without flags, `clay block list` shows the latest version of each block: the highest semantic version. `-v` is ignored without `-n`. Pass the version as the registry stores it, without a leading `v` (see [Publish](#publish)); `-v latest` shows the highest version.
 
-`clay block list` and `clay block describe` do not read `CLAY_REGISTRY_HOST`: pass `--clay-registry`. Only `clay publish` reads the variable.
+Both `clay block list` and `clay block describe` read `--clay-registry`, falling back to `CLAY_REGISTRY_HOST` when the flag is omitted (the flag wins when both are set).
 
 ### Describe Block
 
@@ -260,7 +260,7 @@ clay block describe <name> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-v, --version` | Specific version to describe | — |
-| `--clay-registry` | Clay block registry URL (required) | — |
+| `--clay-registry` | Clay block registry URL. Required unless `CLAY_REGISTRY_HOST` is set | — |
 
 As with `clay block list`, pass the version without a leading `v`, for example `-v 0.0.1` for `version: v0.0.1`. `-v latest` describes the highest version.
 

@@ -1,6 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
@@ -18,4 +23,23 @@ func BlockCmd() *cobra.Command {
 	cmd.AddCommand(BlockAssetsCmd())
 
 	return cmd
+}
+
+func resolveClayRegistryHost() (string, error) {
+	if clayRegistryHost != "" {
+		return clayRegistryHost, nil
+	}
+	if host := os.Getenv("CLAY_REGISTRY_HOST"); host != "" {
+		return host, nil
+	}
+	return "", errors.New("no Clay registry URL given\nhint: pass --clay-registry <url> or set CLAY_REGISTRY_HOST")
+}
+
+func writePrettyJSON(v any) error {
+	prettyJSON, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to generate pretty JSON: %w", err)
+	}
+	_, err = fmt.Println(string(prettyJSON))
+	return err
 }

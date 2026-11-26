@@ -273,6 +273,6 @@ inside the block container). They mirror the corresponding command-line flags.
 
 - **Purpose**: URL of the Clay block registry that the CLI talks to.
 - **Equivalent flag**: `--clay-registry`. The flag wins over the variable.
-- **Used by**: `clay publish`. `clay block list` and `clay block describe` do not read it; pass `--clay-registry` to them.
+- **Used by**: `clay publish`, `clay block list`, and `clay block describe`.
 
 ***

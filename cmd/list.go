@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
@@ -29,53 +27,36 @@ func ListBlockRegistryCmd() *cobra.Command {
 		RunE:    listBlockRegistryCmd,
 	}
 
-	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (required)")
+	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of block")
 	cmd.Flags().StringVarP(&version, "version", "v", "", "Version of the block")
 	return cmd
 }
 
-func listBlockRegistryCmd(cmd *cobra.Command, args []string) error {
-	r := registry.New(clayRegistryHost, 5*time.Second)
-	var (
-		blocks registry.Blocks
-		err    error
-		block  *registry.Block
-	)
+func listBlockRegistryCmd(_ *cobra.Command, _ []string) error {
+	host, err := resolveClayRegistryHost()
+	if err != nil {
+		return err
+	}
+	r := registry.New(host, 5*time.Second)
 
 	if name != "" && version != "" {
-		block, err = r.GetBlockByNameAndVersion(name, version)
+		block, err := r.GetBlockByNameAndVersion(name, version)
 		if err != nil {
 			return err
 		}
-
-		prettyJSON, err := json.MarshalIndent(block, "", "  ")
-		if err != nil {
-			fmt.Printf("Failed to generate pretty JSON: %s\n", err)
-		}
-
-		fmt.Println(string(prettyJSON))
-		return nil
+		return writePrettyJSON(block)
 	}
 
+	var blocks registry.Blocks
 	if name != "" {
 		blocks, err = r.GetBlockByName(name)
-		if err != nil {
-			return err
-		}
-
 	} else {
 		blocks, err = r.ListBlocks()
-		if err != nil {
-			return err
-		}
-
 	}
-
-	prettyJSON, err := json.MarshalIndent(blocks, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to generate pretty JSON: %w", err)
+		return err
 	}
-	fmt.Println(string(prettyJSON))
-	return nil
+
+	return writePrettyJSON(blocks)
 }
