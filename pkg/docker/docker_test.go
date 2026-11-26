@@ -2,7 +2,9 @@ package docker
 
 import (
 	"bytes"
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -318,4 +320,51 @@ func TestBuildDockerRunArgs_Gpu(t *testing.T) {
 
 	args = buildDockerRunArgs("demo:test", nil, &config.Config{})
 	assert.Equal(t, []string{"run", "--rm", "demo:test"}, args)
+}
+
+func shellCommand(script string) *exec.Cmd {
+	return exec.Command("/bin/sh", "-c", script)
+}
+
+func TestRunDocker_SuccessReturnsNil(t *testing.T) {
+	assert.NoError(t, runDocker(shellCommand("exit 0"), "docker build"))
+}
+
+func TestRunDocker_FailureNamesCommandAndPointsAtOutput(t *testing.T) {
+	err := runDocker(shellCommand("exit 3"), "docker build")
+
+	require.Error(t, err)
+	assert.Equal(t, "docker build failed (exit 3)\nhint: the docker build output above shows the cause", err.Error())
+}
+
+func TestCommandError_NeverBareExitStatus(t *testing.T) {
+	err := commandError("docker run", shellCommand("exit 1").Run(), "")
+
+	assert.Equal(t, "docker run failed (exit 1)", err.Error())
+	assert.NotContains(t, err.Error(), "exit status")
+}
+
+func TestImageExists_LookupFailureShowsDockerMessage(t *testing.T) {
+	fakeDocker(t, "permission denied while listing images", 4)
+	t.Setenv("PATH", os.Getenv("PATH")+":/usr/bin:/bin")
+
+	err := ImageExists("my-block:0.1.0")
+
+	require.Error(t, err)
+	assert.Equal(t, "docker images failed (exit 4): permission denied while listing images", err.Error())
+}
+
+func TestCommandError_KilledBySignal(t *testing.T) {
+	err := commandError("docker build", shellCommand("kill -9 $$").Run(), "the docker build output above shows the cause")
+
+	assert.Equal(t, "docker build was stopped (signal: killed)\nhint: the docker build output above shows the cause", err.Error())
+}
+
+func TestCommandError_KeepsExitCode(t *testing.T) {
+	err := commandError("docker build", exec.Command("sh", "-c", "exit 3").Run(), "")
+
+	var exitErr *exec.ExitError
+	require.True(t, errors.As(err, &exitErr))
+	assert.Equal(t, 3, exitErr.ExitCode())
+	assert.Equal(t, "docker build failed (exit 3)", err.Error())
 }

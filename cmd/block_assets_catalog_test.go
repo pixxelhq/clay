@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -225,4 +226,22 @@ func TestRunCatalogUpload_NotFound(t *testing.T) {
 	err := uploadCatalog(context.Background(), fake, "", t.TempDir())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "catalog file not found")
+}
+
+type failingUploadProvider struct{ *fakeProvider }
+
+func (failingUploadProvider) Upload(ctx context.Context, localPath, remotePath string) error {
+	return errors.New("no credentials in chain")
+}
+
+func TestUploadFile_StorageFailureHintsAtCredentialsAndURL(t *testing.T) {
+	saveFlags(t)
+	storageURL = "https://my-bucket.s3.us-east-1.amazonaws.com/my-block/v1/"
+	local := filepath.Join(t.TempDir(), "a.txt")
+	require.NoError(t, os.WriteFile(local, []byte("x"), 0644))
+
+	_, err := uploadFile(context.Background(), failingUploadProvider{newFakeProvider()}, "my-block/v1", local, "a.txt")
+
+	require.Error(t, err)
+	assert.Equal(t, "failed to upload a.txt: no credentials in chain\nhint: "+hintStorageAccess, err.Error())
 }

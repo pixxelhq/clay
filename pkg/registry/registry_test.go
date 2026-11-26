@@ -58,9 +58,16 @@ func TestListBlocks(t *testing.T) {
 		{
 			name:           "invalid JSON response",
 			serverResponse: `{"data": [}`,
-			serverStatus:   http.StatusInternalServerError,
+			serverStatus:   http.StatusOK,
 			expectedBlocks: nil,
-			expectedError:  "failed to unmarshall response for list blocks: invalid character '}' looking for beginning of value",
+			expectedError:  "the response from {{host}}/v1/blocks is not from a Clay registry (HTTP 200): invalid character '}' looking for beginning of value\nhint: " + hintRegistryURL,
+		},
+		{
+			name:           "proxy error page",
+			serverResponse: `<html>Bad Gateway</html>`,
+			serverStatus:   http.StatusBadGateway,
+			expectedBlocks: nil,
+			expectedError:  "the response from {{host}}/v1/blocks is not from a Clay registry (HTTP 502): invalid character '<' looking for beginning of value\nhint: " + hintRegistryUnreachable,
 		},
 	}
 
@@ -80,8 +87,9 @@ func TestListBlocks(t *testing.T) {
 			blocks, err := r.ListBlocks()
 
 			// Check the expected error
-			if tt.expectedError != "" && err.Error() != tt.expectedError {
-				t.Errorf("expected error: %v, got: %v", tt.expectedError, err)
+			wantErr := strings.ReplaceAll(tt.expectedError, "{{host}}", server.URL)
+			if tt.expectedError != "" && err.Error() != wantErr {
+				t.Errorf("expected error: %v, got: %v", wantErr, err)
 			}
 
 			// Check the expected blocks
@@ -144,7 +152,7 @@ func TestVersionExists(t *testing.T) {
 			name:          "404 from a non-registry route",
 			serverStatus:  http.StatusNotFound,
 			serverBody:    "404 page not found",
-			expectedError: "unexpected 404 from {{host}}/v1/blocks/myblock/versions/0.0.1: is --clay-registry correct?",
+			expectedError: "the response from {{host}}/v1/blocks/myblock/versions/0.0.1 is not from a Clay registry (HTTP 404): no registry error in the response\nhint: " + hintRegistryURL,
 		},
 		{
 			name:          "registry error",
@@ -181,6 +189,43 @@ func TestVersionExists(t *testing.T) {
 			}
 			if exists != tt.expected {
 				t.Errorf("expected exists=%v, got %v", tt.expected, exists)
+			}
+		})
+	}
+}
+
+func TestRegistry_UnreachableSaysToCheckRegistry(t *testing.T) {
+	server := httptest.NewServer(http.NotFoundHandler())
+	host := server.URL
+	server.Close()
+
+	_, err := New(host, 2*time.Second).ListBlocks()
+
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if !strings.HasPrefix(err.Error(), "cannot reach the Clay registry at "+host+": ") ||
+		!strings.HasSuffix(err.Error(), "\nhint: "+hintRegistryUnreachable) {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRegistry_NoURLSaysToPassIt(t *testing.T) {
+	_, err := New("", 2*time.Second).ListBlocks()
+
+	if err == nil || err.Error() != "no Clay registry URL given\nhint: pass --clay-registry <url>" {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRegistry_URLWithoutSchemeSaysToAddIt(t *testing.T) {
+	for _, host := range []string{"localhost:9", "192.168.1.1:8080", "clay.example.com"} {
+		t.Run(host, func(t *testing.T) {
+			_, err := New(host, 2*time.Second).ListBlocks()
+
+			want := "--clay-registry must start with http:// or https://, got " + host
+			if err == nil || err.Error() != want {
+				t.Errorf("got %v, want %q", err, want)
 			}
 		})
 	}

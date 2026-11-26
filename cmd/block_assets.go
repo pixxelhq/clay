@@ -153,14 +153,14 @@ func runBlockAssetsUpload(cmd *cobra.Command, args []string) error {
 	if info.IsDir() {
 		fmt.Fprintf(os.Stderr, "Uploading directory %s to %s...\n", localPath, storageURL)
 		if err := provider.UploadDirectory(ctx, localPath, remotePrefix); err != nil {
-			return fmt.Errorf("upload failed: %w", err)
+			return storageError("upload failed", err)
 		}
 	} else {
 		filename := filepath.Base(localPath)
 		fullRemote := path.Join(remotePrefix, filename)
 		fmt.Fprintf(os.Stderr, "Uploading file %s to %s/%s...\n", localPath, strings.TrimRight(storageURL, "/"), filename)
 		if err := provider.Upload(ctx, localPath, fullRemote); err != nil {
-			return fmt.Errorf("upload failed: %w", err)
+			return storageError("upload failed", err)
 		}
 	}
 
@@ -181,7 +181,7 @@ func runBlockAssetsList(cmd *cobra.Command, args []string) error {
 
 	objects, err := provider.List(ctx, remotePrefix)
 	if err != nil {
-		return fmt.Errorf("failed to list assets: %w", err)
+		return storageError("failed to list assets", err)
 	}
 
 	if len(objects) == 0 {
@@ -228,16 +228,16 @@ func runBlockAssetsDownload(cmd *cobra.Command, args []string) error {
 
 	exists, err := provider.Exists(ctx, remotePath)
 	if err != nil {
-		return fmt.Errorf("failed to check asset existence: %w", err)
+		return storageError("failed to check asset existence", err)
 	}
 	if !exists {
-		return fmt.Errorf("asset not found: %s", storageURL)
+		return fmt.Errorf("asset not found: %s\nhint: check the path in --url; 'clay block assets list --url <folder>' shows what is there", storageURL)
 	}
 
 	fmt.Fprintf(os.Stderr, "Downloading %s to %s...\n", storageURL, localPath)
 
 	if err := provider.Download(ctx, remotePath, localPath); err != nil {
-		return fmt.Errorf("download failed: %w", err)
+		return storageError("download failed", err)
 	}
 
 	fmt.Fprintln(os.Stderr, "✓ Download completed successfully")
@@ -389,7 +389,14 @@ func uploadFile(ctx context.Context, provider storage.Provider, remotePrefix, lo
 	}
 	fmt.Fprintf(os.Stderr, "Uploading %s → %s...\n", relPath, remoteURL)
 	if err := provider.Upload(ctx, localPath, path.Join(remotePrefix, relPath)); err != nil {
-		return "", fmt.Errorf("failed to upload %s: %w", relPath, err)
+		return "", storageError("failed to upload "+relPath, err)
 	}
 	return remoteURL, nil
+}
+
+const hintStorageAccess = "check that your storage credentials are set and allowed to use this location, " +
+	"and that --url is correct (see https://pixxelhq.github.io/clay/block-assets/#authentication)"
+
+func storageError(action string, err error) error {
+	return fmt.Errorf("%s: %w\nhint: %s", action, err, hintStorageAccess)
 }

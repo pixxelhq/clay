@@ -20,6 +20,21 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   read it.
 - `pixxel-clay` requires `boto3>=1.28.0`, the first version that reads
   `AWS_ENDPOINT_URL`.
+- Errors print once, as `error:` followed by a `hint:` line when Clay can
+  tell what to do next. Docker output is still shown in full. A failed Docker
+  command names the command and its exit code, for example
+  `error: docker build failed (exit 1)`, instead of only `Error: exit status 1`.
+- Clearer errors, each with a hint, for: a `clay.yaml` value of the wrong type
+  (for example an unquoted `python-version: 3.10`), a missing argument, a
+  failed image lookup (now with Docker's message), a Clay registry that cannot
+  be reached or a URL that is not a Clay registry, a missing publish flag, an
+  already published version, and a failed `clay block assets` command, which
+  now points at the storage credentials and `--url`.
+- A `--clay-registry` URL without `http://` or `https://` is reported as
+  such, instead of as a registry that cannot be reached. A registry response
+  that Clay cannot read names its HTTP status, so a proxy's `502` page is
+  not mistaken for a wrong URL.
+- Fixed typos in `clay push` errors ("Serching", "does not exists").
 
 ## v1.5.0 - 2026-11-19
 ### Upgrading

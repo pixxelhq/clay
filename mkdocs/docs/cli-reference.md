@@ -25,6 +25,22 @@ Get help for any command.
 clay <command> --help
 ```
 
+### Errors
+
+When a command fails, Clay prints one `error:` line that says what failed and, when it can tell what might be wrong, a `hint:` line with what to do next:
+
+```console
+error: clay.yaml: build.python-version must be text, not a number
+hint: put the value in quotes so that YAML reads it as text
+```
+
+`clay build`, `clay push`, `clay publish` and `clay run` show the full output of Docker as it runs. If Docker fails, Clay names the command and its exit code, and the cause is in the Docker output above:
+
+```console
+error: docker build failed (exit 1)
+hint: the docker build output above shows the cause
+```
+
 ---
 
 ## Project Commands
