@@ -26,10 +26,8 @@ func publishBlockToRegistryCmd() *cobra.Command {
 		Long:    "Check that the version is not already in the Clay registry, build a Docker image, push it to the configured Docker registry, and then publish the block to the Clay registry.\nOf the build flags, only -f/--file is accepted; use `clay build` for --no-cache, --secret, --build-arg and --platform.",
 		Example: "clay publish --docker-registry registry.example.com --clay-registry https://clay.example.com",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if dockerRegistry == "" {
-				if dockerRegistry = os.Getenv("CLAY_DOCKER_REGISTRY"); dockerRegistry == "" {
-					return errors.New("no Docker registry given\nhint: pass --docker-registry <host> or set CLAY_DOCKER_REGISTRY")
-				}
+			if dockerRegistry = dockerRegistryFromFlagOrEnv(dockerRegistry); dockerRegistry == "" {
+				return errors.New("no Docker registry given\nhint: pass --docker-registry <host> or set CLAY_DOCKER_REGISTRY")
 			}
 			if clayRegistry == "" {
 				if clayRegistry = os.Getenv("CLAY_REGISTRY_HOST"); clayRegistry == "" {
@@ -72,7 +70,7 @@ func publishBlockCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s %s is already published\nhint: bump `version` in clay.yaml", cfg.Name, cfg.Version)
 	}
 
-	image := fmt.Sprintf("%s/%s:%s", dockerRegistry, cfg.Name, cfg.Version)
+	image := fmt.Sprintf("%s/%s", dockerRegistry, defaultImage(cfg))
 
 	// Build the docker image. Pass the fully-qualified image (including the
 	// docker registry host) as the tag so the build output is directly

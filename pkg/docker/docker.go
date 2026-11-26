@@ -239,6 +239,10 @@ func CheckDaemon() error {
 	return fmt.Errorf("%w: %s\nhint: %s", ErrDaemonUnavailable, cause, hint)
 }
 
+func Tag(source, target string) error {
+	return runDocker(exec.Command("docker", "tag", source, target), "docker tag")
+}
+
 func Push(buildtag string) error {
 	return runDocker(exec.Command("docker", "push", buildtag), "docker push")
 }
@@ -286,7 +290,7 @@ func ImageExists(image string) error {
 func Run(image string, args []string, envVars []string, cfg *config.Config) error {
 	fmt.Printf("🧐 Searching image %s \n", image)
 	err := ImageExists(image)
-	if err == ErrDoesNotExists {
+	if errors.Is(err, ErrDoesNotExists) {
 		return fmt.Errorf("image %s does not exist\nhint: build it with 'clay build', or pull it with 'docker pull'", image)
 	}
 	if err != nil {
