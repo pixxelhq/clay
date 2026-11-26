@@ -152,27 +152,31 @@ clay build -f Dockerfile
 
 ### Push
 
-Push a Docker image to the registry.
+Push a Docker image to the registry. Run it in the project folder: it reads `clay.yaml`.
 
 ```shell
 clay push [IMAGE]
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `IMAGE` | Docker image to push |
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `IMAGE` | Docker image to push | `<name>:<version>` from `clay.yaml` |
 
 ### Run
 
-Run the Docker image locally.
+Run a block's Docker image locally. Run it in the project folder: it reads `gpu` from `clay.yaml`.
 
 ```shell
-clay run [IMAGE NAME] [ARG...] [flags]
+clay run <image> [args...] [flags]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-e, --env` | Set environment variables (`KEY=VALUE` format) | — |
+| `--input` | JSON input array to pass to the block | — |
+| `--input-uri` | URI of the input JSON, for example `s3://bucket/path/input.json` | — |
+
+For example, `clay run my-block:v0.0.1 --input "$(cat tests/sample_block_inputs.json)"`. See [Passing input](env-requirements.md#2-passing-input-input-and-input-uri).
 
 If `gpu: true` is set in `clay.yaml`, the container runs with `--gpus all`. This needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
@@ -186,9 +190,10 @@ clay publish [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
-| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `--docker-registry` | Docker image registry. Required unless `CLAY_DOCKER_REGISTRY` is set | — |
+| `--clay-registry` | Clay block registry URL. Required unless `CLAY_REGISTRY_HOST` is set | — |
 | `-f, --file` | Dockerfile path. Use your own Dockerfile instead of the generated one | — |
+| `--catalog-url` | URL of the published `catalog.yaml` (see [Upload Catalog Media](#upload-catalog-media)) | — |
 
 Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything, so the image of a published version is never overwritten. Bump `version` in `clay.yaml` to publish a new version.
 
@@ -210,7 +215,7 @@ clay block list [flags]
 |------|-------------|---------|
 | `-n, --name` | Filter by block name | — |
 | `-v, --version` | Specific version to list | — |
-| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `--clay-registry` | Clay block registry URL (required) | — |
 
 ### Describe Block
 
@@ -227,7 +232,7 @@ clay block describe <name> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-v, --version` | Specific version to describe | — |
-| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `--clay-registry` | Clay block registry URL (required) | — |
 
 ---
 
@@ -255,7 +260,7 @@ clay block assets upload <path> [flags]
 
 ### Upload Catalog Media
 
-Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<relative-path>` and its value is rewritten to the uploaded URL, in place; the rewritten `catalog.yaml` is then uploaded alongside its media. Already-uploaded URLs are skipped, so re-running is idempotent. Bake the block/version into `--url`.
+Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<key>/<filename>`; the local folders are dropped. Then a copy of `catalog.yaml`, with each `media:` value set to its uploaded URL, is uploaded next to the media, and its URL is printed for `clay publish --catalog-url`. Your `catalog.yaml` is not changed. `media:` values that are already `http(s)` URLs are not uploaded again. Bake the block/version into `--url`.
 
 ```shell
 clay block assets upload-catalog [flags]

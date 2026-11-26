@@ -240,6 +240,14 @@ export REMOTE_INPUT_PATH="/shared/storage/inputs"
 
 ***
 
+## 12. `AWS_ENDPOINT_URL`
+
+- **Purpose**: Points the block's `s3://` reads and writes at an S3-compatible store other than AWS, such as MinIO.
+- **Example**: `clay run my-block:v1.0.0 -e AWS_ENDPOINT_URL=http://minio:9000 -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --input "$(cat tests/sample_block_inputs.json)"`
+- **Note**: Read by boto3 inside the block container, together with the usual AWS credential variables. `clay block assets` does not use it and accepts AWS S3 URLs only.
+
+***
+
 ## CLI environment variables
 
 These variables configure the Clay CLI itself and are read on the host (not
