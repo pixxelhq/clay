@@ -65,9 +65,8 @@ for migration, testing, and `sqlc` code generation details.
 ## CLI commands that talk to a registry
 
 The CLI calls the registry's HTTP API under `/v1/blocks`. Point it at your
-instance with the `--clay-registry` flag. `clay publish` also reads the
-`CLAY_REGISTRY_HOST` environment variable; `clay block list` and
-`clay block describe` do not, so pass `--clay-registry` to them.
+instance with `--clay-registry` or the `CLAY_REGISTRY_HOST` environment
+variable (the flag wins when both are set).
 
 | Command | Purpose |
 |---------|---------|

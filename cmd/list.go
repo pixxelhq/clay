@@ -27,14 +27,18 @@ func ListBlockRegistryCmd() *cobra.Command {
 		RunE:    listBlockRegistryCmd,
 	}
 
-	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (required)")
+	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of block")
 	cmd.Flags().StringVarP(&version, "version", "v", "", "Version of the block")
 	return cmd
 }
 
 func listBlockRegistryCmd(_ *cobra.Command, _ []string) error {
-	r := registry.New(clayRegistryHost, 5*time.Second)
+	host, err := resolveClayRegistryHost()
+	if err != nil {
+		return err
+	}
+	r := registry.New(host, 5*time.Second)
 
 	if name != "" && version != "" {
 		block, err := r.GetBlockByNameAndVersion(name, version)
@@ -44,10 +48,7 @@ func listBlockRegistryCmd(_ *cobra.Command, _ []string) error {
 		return writePrettyJSON(block)
 	}
 
-	var (
-		blocks registry.Blocks
-		err    error
-	)
+	var blocks registry.Blocks
 	if name != "" {
 		blocks, err = r.GetBlockByName(name)
 	} else {

@@ -12,6 +12,9 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   longer needs `clay.yaml`.
 - `clay run` without an image runs `<name>:<version>` from `clay.yaml`, the
   image that `clay build` makes.
+- `clay block list` and `clay block describe` fall back to `CLAY_REGISTRY_HOST`
+  when `--clay-registry` is omitted or empty (with the flag taking precedence),
+  and their `--help` text and docs match.
 
 ### Bug Fixes
 - `clay block list --version` and `clay block describe --version` now return
@@ -25,9 +28,6 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   `--input-uri`, `clay publish --catalog-url`, and which publish flags are
   required, and describe `clay block assets upload-catalog` as it works: it
   uploads to `<url>/<key>/<filename>` and leaves your `catalog.yaml` unchanged.
-- `clay block list --help` and `clay block describe --help` no longer say that
-  `--clay-registry` can be set with `CLAY_REGISTRY_HOST`; these commands do not
-  read it.
 - `pixxel-clay` requires `boto3>=1.28.0`, the first version that reads
   `AWS_ENDPOINT_URL`.
 - The code samples in the progress, logging, I/O, tutorial and FAQ pages run
@@ -45,11 +45,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   `default` must be text; vector inputs take an `s3://` URI or GeoJSON text,
   not a local path; a block with no inputs needs `--input '[]'`; and errors in
   `setup` or the input download send no callback.
-- The docs say that only `clay publish` reads `CLAY_REGISTRY_HOST`, that the
-  registry stores versions in full `MAJOR.MINOR.PATCH` form without a leading
-  `v` (`1.2` becomes `1.2.0`), and how that affects the
-  publish check and `clay block describe -v`. They no longer mention planned
-  features.
+- The docs say that the registry stores versions in full `MAJOR.MINOR.PATCH`
+  form without a leading `v` (`1.2` becomes `1.2.0`), and how that affects
+  the publish check and `clay block describe -v`. They no longer mention
+  planned features.
 - `clay push` no longer sends an image without a registry, such as the
   default `<name>:<version>`, to `docker.io/library`, where the push always
   failed. It now stops with an error that says how to name the registry.

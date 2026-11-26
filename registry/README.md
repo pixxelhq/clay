@@ -5,9 +5,8 @@ and associated metadata. It is backed by PostgreSQL and exposes an OpenAPI /
 Swagger-documented REST API.
 
 Running a registry is optional — you can build and run Clay blocks without one.
-When you do run one, the Clay CLI talks to it via `--clay-registry`.
-`clay publish` also reads `CLAY_REGISTRY_HOST`; `clay block list` and
-`clay block describe` do not.
+When you do run one, the Clay CLI talks to it via `--clay-registry` or
+`CLAY_REGISTRY_HOST` (the flag wins when both are set).
 
 ## Prerequisites
 

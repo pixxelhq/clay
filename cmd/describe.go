@@ -25,7 +25,7 @@ func DescribeBlockCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE:    describeBlockCmd,
 	}
-	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (required)")
+	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
 	cmd.Flags().StringVarP(&describeCmdVersion, "version", "v", "", "Specific version to describe (omit to list all versions)")
 	return cmd
 }
@@ -33,7 +33,11 @@ func DescribeBlockCmd() *cobra.Command {
 func describeBlockCmd(_ *cobra.Command, args []string) error {
 	blockName := args[0]
 
-	r := registry.New(clayRegistryHost, 5*time.Second)
+	host, err := resolveClayRegistryHost()
+	if err != nil {
+		return err
+	}
+	r := registry.New(host, 5*time.Second)
 
 	if describeCmdVersion != "" {
 		block, err := r.GetBlockByNameAndVersion(blockName, describeCmdVersion)
