@@ -242,7 +242,7 @@ clay block list [flags]
 
 Without flags, `clay block list` shows the latest version of each block: the highest semantic version. `-v` is ignored without `-n`. Pass the version as the registry stores it, without a leading `v` (see [Publish](#publish)); `-v latest` shows the highest version.
 
-`clay block list` and `clay block describe` do not read `CLAY_REGISTRY_HOST`, although their `--help` mentions it: pass `--clay-registry`. Only `clay publish` reads the variable.
+`clay block list` and `clay block describe` do not read `CLAY_REGISTRY_HOST`: pass `--clay-registry`. Only `clay publish` reads the variable.
 
 ### Describe Block
 
