@@ -41,21 +41,24 @@ brew install clay --formula
 
 ### Option 2 — Download a pre-built binary
 
-Download the latest release for your platform from
-[GitHub Releases](https://github.com/pixxelhq/clay/releases) and move it onto
-your `PATH`:
+Download the archive for your platform from
+[GitHub Releases](https://github.com/pixxelhq/clay/releases) and move the
+`clay` binary onto your `PATH`. Set `VERSION` to the latest release, without
+the "v":
 
 ```shell
+VERSION=1.5.0
+
 # macOS (Apple Silicon)
-curl -L https://github.com/pixxelhq/clay/releases/latest/download/clay-<version>-macosx-arm64 -o /usr/local/bin/clay
-chmod +x /usr/local/bin/clay
+curl -L https://github.com/pixxelhq/clay/releases/download/v${VERSION}/clay_${VERSION}_darwin_arm64.tar.gz | tar -xz clay
 
 # Linux (amd64)
-curl -L https://github.com/pixxelhq/clay/releases/latest/download/clay-<version>-linux-amd64 -o /usr/local/bin/clay
-chmod +x /usr/local/bin/clay
+curl -L https://github.com/pixxelhq/clay/releases/download/v${VERSION}/clay_${VERSION}_linux_amd64.tar.gz | tar -xz clay
+
+sudo mv clay /usr/local/bin/
 ```
 
-Binaries are published for macOS (amd64, arm64), Linux (amd64, arm64), and Windows (amd64).
+Archives are named `clay_<version>_<os>_<arch>.tar.gz` and are published for macOS, Linux and Windows on `amd64` and `arm64`.
 
 ### Option 3 — Build from source
 
@@ -64,8 +67,11 @@ Requires Go 1.22+.
 ```shell
 git clone https://github.com/pixxelhq/clay.git
 cd clay
-make go-binaries        # output goes to ./bin/
+go build -o clay .
+sudo mv clay /usr/local/bin/
 ```
+
+`make go-binaries` builds the CLI for every platform into `./bin/`, with the version and platform in each file name.
 
 ### Verify installation
 
@@ -166,7 +172,7 @@ class MyBlock(BlockWrapper):
 <details markdown="1">
 <summary><strong>clay.yaml</strong> — configuration file</summary>
 
-Defines your block's grammar and dependency requirements:
+Defines your block's grammar and dependency requirements. An excerpt of the generated file:
 
 ```yaml
 name: my-block
@@ -182,6 +188,10 @@ inputs:      # Block inputs
     format: string
     type: str
 
+  - name: input2
+    format: number
+    type: int
+
 outputs:     # Block outputs
   - name: output1
     format: number
@@ -189,6 +199,7 @@ outputs:     # Block outputs
 
 build:       # Build configuration
   python-version: "3.10"
+  gdal: true             # base image with GDAL installed
   requirements: requirements.txt
 
 gpu: false   # Set to true for GPU blocks
@@ -199,12 +210,7 @@ gpu: false   # Set to true for GPU blocks
 <details markdown="1">
 <summary><strong>README.md</strong> — block documentation</summary>
 
-User-facing documentation for your block. Provide a complete overview, including:
-
-- What does the block do?
-- What are the satellite images used as input?
-- What is the resolution of the output images?
-- Any specific parameters or configurations that end-users would find useful?
+How to set up, test, build and run the block. Add what the block does, its inputs and outputs, and its parameters for the people who use it.
 
 </details>
 
@@ -212,7 +218,7 @@ User-facing documentation for your block. Provide a complete overview, including
 
 1. **Edit `my_block/block.py`** — Implement your block logic
 2. **Update `clay.yaml`** — Define inputs, outputs, and requirements
-3. **Modify `sample_block_inputs.json`** — Add realistic test data
+3. **Modify `tests/sample_block_inputs.json`** — Add realistic test data
 
 **Files you won't need to modify:**
 
@@ -248,7 +254,7 @@ Now that your project is set up, let's build and test it locally.
 
 * **Configure Dependencies**
 
-    Update the `build.requirements` field in `clay.yaml` to specify your dependency manager file. By default, it is set to `requirements.txt`. If you use a different file like `conda.yaml`, update `build.requirements` accordingly.
+    Update the `build.requirements` field in `clay.yaml` to specify your dependency manager file. By default, it is set to `requirements.txt`. To install packages with conda, set `build.conda: true` and `build.requirements: conda.yaml`, or create the project with `clay new <path> --with conda`.
 
     Put only what the block needs at runtime in `requirements.txt`; it is installed in the image. It lists `pixxel-clay` without a version, because the image gets the version of the `clay` CLI that builds it. Do not add a version there, or the build fails after a CLI upgrade. To use the same version locally, run `pip install pixxel-clay==<version>` with the version from `clay --version`. Development tools go in `requirements-dev.txt`, which starts with `-r requirements.txt` and is never installed in the image. For local development, run `pip install -r requirements-dev.txt`.
 
@@ -273,24 +279,19 @@ Now that your project is set up, let's build and test it locally.
 * **Run Locally**
 
     ```shell
-    clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" my-block:v0.0.1
+    clay run my-block:v0.0.1 --input "$(cat tests/sample_block_inputs.json)"
     ```
 
-    Expected output:
+    Clay logs one JSON line per event. The last lines look like this (shortened):
     ```
-    Using configuration located at: /app/specifications/block_specification_dev.yaml
-    WARNING - 2024-04-02 09:01:26,122 - job_runner.py:195 - job_block_runner - 'remote-prefix'
-    INFO - 2024-04-02 09:01:26,123 - core.py:346 - job_block_runner - Initializing block...
-    INFO - 2024-04-02 09:01:26,125 - core.py:348 - job_block_runner - Block initialization complete.
-    WARNING - 2024-04-02 09:01:27,130 - core.py:372 - job_block_runner - `CALLBACK_URL` not set
-    WARNING - 2024-04-02 09:01:27,133 - block.py:22 - TestBlock - In pre-process
-    INFO - 2024-04-02 09:01:27,133 - block.py:25 - TestBlock - Input1 is starting-point
-    INFO - 2024-04-02 09:01:27,133 - block.py:31 - TestBlock - In inference
-    INFO - 2024-04-02 09:01:27,133 - block.py:36 - TestBlock - In postprocessing
-    INFO - 2024-04-02 09:01:27,138 - job_runner.py:470 - job_block_runner - results: [Number(...)]
+    {"level": "INFO", "logger": "MyBlock", "loc": "block.py:preprocess:69", "message": "Preprocessing: input1=starting-point, input2=5"}
+    {"level": "INFO", "logger": "MyBlock", "loc": "block.py:inference:85", "message": "Running inference"}
+    {"level": "INFO", "logger": "MyBlock", "loc": "block.py:postprocess:108", "message": "Postprocessing: result=25"}
+    {"level": "INFO", "logger": "MyBlock", "loc": "runner.py:success:224", "message": "sending callback for success"}
+    {"level": "INFO", "logger": "MyBlock", "loc": "runner.py:_create_output_json_files:293", "message": "Created output spec file: /tmp/clay/outputs/output1/spec.json"}
     ```
 
-    > **Note:** Warnings about `CALLBACK_URL` are expected when running locally. This is only used when blocks are deployed via an orchestrator.
+    > **Note:** `Error sending callback` lines for `localhost:3000` are expected when running locally. The callback is only used when an orchestrator runs the block; see [`CALLBACK_ENDPOINT`](env-requirements.md#10-callback_endpoint).
 
 
 
@@ -324,11 +325,12 @@ one.
     clay publish
     ```
 
-    **Available Flags** (all optional — fall back to environment variables or
-    values in `clay.yaml` when omitted):
+    **Available Flags**:
 
-    - `--docker-registry` *(optional)* - Docker image registry to push to (env: `CLAY_DOCKER_REGISTRY`)
-    - `--clay-registry` *(optional)* - Clay block registry URL (env: `CLAY_REGISTRY_HOST`)
+    - `--docker-registry` *(required unless `CLAY_DOCKER_REGISTRY` is set)* - Docker image registry to push to
+    - `--clay-registry` *(required unless `CLAY_REGISTRY_HOST` is set)* - Clay block registry URL
+    - `--catalog-url` *(optional)* - URL of the published `catalog.yaml` (see `clay block assets upload-catalog`)
+    - `-f, --file` *(optional)* - Dockerfile to build with, as in `clay build`
 
     **Example with custom registries:**
 
@@ -339,10 +341,10 @@ one.
 * **List Available Blocks**
 
     ```shell
-    clay block list
+    clay block list --clay-registry https://clay.example.com
     ```
 
-    Sample output (the CLI prints one JSON object per block):
+    Sample output (the CLI prints a JSON array of blocks):
     ```json
     [
       {
@@ -367,7 +369,7 @@ one.
 * **Describe Block Version**
 
     ```shell
-    clay block describe my-block --version v1.0.0
+    clay block describe my-block --version v1.0.0 --clay-registry https://clay.example.com
     ```
 
     Sample output:

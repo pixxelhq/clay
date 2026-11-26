@@ -79,7 +79,7 @@ Command-line tool for block development:
 clay new my-block
 cd my-block
 clay build
-clay run  -e INPUT_JSON=\"$(cat <SAMPLE_input_file.json>)\" my-block:v0.0.1
+clay run my-block:v0.0.1 --input "$(cat tests/sample_block_inputs.json)"
 ```
 For complete reference, see [Command Reference](cli-reference.md)
 
@@ -90,7 +90,7 @@ Runtime library providing:
 * **BlockWrapper**: Base class for all blocks
 * **Type System**: Raster, Vector, Number, String, Date, Tabular
 * **Runners**: Clay's execution engine that handles block lifecycle, input/output processing, and  communication with the orchestrator.
-* **Storage**: Abstraction over S3-compatible storage (including MinIO) and the local filesystem
+* **Storage**: Abstraction over AWS S3 and the local filesystem. Set `AWS_ENDPOINT_URL` to use MinIO or another S3-compatible store
 * **Logging**: [Structured JSON logging](logging.md)
 * **Progress Tracking**: [Built-in progress reporting](progress.md)
 
@@ -122,7 +122,7 @@ Cloud storage for block-related files:
 * Upload, download, and list assets via CLI
 * Name-level assets shared across all versions
 * Version-specific assets for particular releases
-* Backed by any S3-compatible object store (AWS S3, MinIO, etc.)
+* Backed by AWS S3; the CLI accepts `https://<bucket>.s3.<region>.amazonaws.com` URLs only
 
 For complete reference, see [Block Assets Management](block-assets.md).
 
@@ -178,17 +178,18 @@ In addition to the four lifecycle methods above, `BlockWrapper` exposes a small 
 * `self.add_progress(delta)` — bump the current progress by a relative amount
 * `self.set_progress(value)` — set the current progress to an absolute value
 * `self.get_progress()` — read the current progress
+* `self.add_asset(file_path, io_name, is_input=True)` — upload an extra file for an input or output to `REMOTE_INPUT_PATH/inputs|outputs/<io_name>/`
 
 See [Indicating Progress](progress.md) for usage patterns.
 
 ### Execution Flow
 
 1. **Startup**: Runner calls `setup()` with parameters from specification
-2. **Input Processing**: Runner validates inputs against specification, downloads files if needed
+2. **Input Processing**: Runner downloads input files if needed and checks the `validation` rules of string, number and date inputs
 3. **Preprocessing**: Runner calls `preprocess()` with validated inputs
 4. **Inference**: Runner calls `inference()` with preprocessed data
 5. **Postprocessing**: Runner calls `postprocess()` with inference results
-6. **Output Handling**: Runner validates outputs, uploads files to storage
+6. **Output Handling**: Runner checks that each output is a Clay datatype declared in the specification, then uploads files to storage
 7. **Completion**: Runner reports success/failure to orchestrator
 
 For tutorial on how to build a block, see [Tutorial](block-development.md)

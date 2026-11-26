@@ -20,7 +20,7 @@ Clay lets you focus on defining your block while abstracting away all the engine
 * **Zero Boilerplate**: Auto-generates Dockerfiles, APIs, and container configurations
 * **Deploy Anywhere**: Run on Kubernetes, cloud services, or on-premise infrastructure
 * **Block Registry**: Version, discover, and manage blocks across your organization
-* **Storage Abstraction**: S3-compatible storage (including MinIO) for cloud artifacts, and the local filesystem for development. Support for GCS and Azure is on the roadmap and not yet available.
+* **Storage Abstraction**: AWS S3 for cloud artifacts (MinIO and other S3-compatible stores through `AWS_ENDPOINT_URL`), and the local filesystem for development. Support for GCS and Azure is on the roadmap and not yet available.
 
 ## Who is Clay For?
 

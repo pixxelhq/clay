@@ -12,13 +12,13 @@ Clay is an open-source framework for packaging ML models as deployable blocks. I
 
 The repository is organized as follows:
 
-- `cmd/` - Go CLI commands (create, list, publish, etc.)
-- `pkg/` - Go packages for config, docker, registry, logging
+- `cmd/` - Go CLI commands (new, init, build, run, push, publish, block, etc.)
+- `pkg/` - Go packages for config, docker, registry client, storage, catalog, block names, logging
 - `python/clay/` - Python runtime library
-  - `runners/` - Model execution engines (HTTP, job-based)
+  - `runners/` - Job runner that drives the block lifecycle
   - `storage/` - File system abstractions (S3, local)
   - `callback/` - Progress reporting mechanisms
-- `api/` - Go backend services
+- `api/bootstrap/` - Project templates for `clay new` and `clay init`
 - `registry/` - Model registry service with PostgreSQL backend
 - `examples/` - Sample models and Docker Compose setups
 - `mkdocs/` - Documentation site
@@ -27,9 +27,9 @@ The repository is organized as follows:
 
 ### Testing
 - `make test` - Run all tests (Go + Python)
-- `make test-go` - Go tests only (excludes registry)
-- `make test-python` - Python tests only (`cd python; pytest -vv`)
-- `make test-registry` - Registry service tests
+- `make test-go` - Go tests only (excludes `pkg/registry`)
+- `make test-python` - Python tests only (`python/` and `proto/python/`)
+- `make test-registry` - Registry service tests (`registry/` is a separate Go module)
 
 ### Code Quality
 - `make format` - Format Python code with ruff and run pre-commit hooks
@@ -45,17 +45,15 @@ The repository is organized as follows:
 - `make spell-check-docs` - Check documentation spelling
 
 ### Docker Testing
-- `make test-with-runner` - Test with Kubernetes executor
-- `make test-with-runnerv2` - Test with Argo executor
-- `make tear-down` - Clean up Docker Compose test environment
+- `make test-integration` - Docker integration tests for `pkg/docker` (needs a running Docker daemon)
 
 ## Architecture
 
 ### Block Execution Flow
 1. Blocks are packaged with `clay build` (the `Dockerfile` is generated from the spec on each build; `clay dockerfile` prints it)
 2. The Python clay library provides the `BlockWrapper` base class with `setup()`, `preprocess()`, `inference()`, `postprocess()` methods
-3. Blocks run via the unified runner in `python/clay/runners/runner.py` (HTTP server or batch job mode)
-4. Storage abstraction handles S3-compatible / local file operations
+3. Blocks run via the unified runner in `python/clay/runners/runner.py` (one-shot job)
+4. Storage abstraction handles S3 (AWS, or MinIO via `AWS_ENDPOINT_URL`) / local file operations
 5. Progress callbacks report execution status
 
 ### Registry System
@@ -72,7 +70,7 @@ The repository is organized as follows:
 ## Configuration
 
 - Python linting: `ruff` (config in `pyproject.toml`)
-- Type checking: `pyright` (config in `pyproject.toml`)
+- Type checking: `pyright` (config in `pyrightconfig.json`)
 - Pre-commit hooks configured for formatting and validation
 - Go version: 1.22+ (see `go.mod`)
 - Python version: 3.10+ target
@@ -87,17 +85,17 @@ The repository is organized as follows:
 5. Package and run with `clay build` then `clay run`
 
 ### Registry Operations
-- `clay list block` - List available models
-- `clay add block <specFile>` - Register new model
-- `clay update block <specFile>` - Update existing model
-- Use `-e dev|stg|prod` to specify environment
+- `clay block list` - List blocks in the registry
+- `clay block describe <name>` - Show versions and details for a block
+- `clay publish` - Build, push and register a block
+- Point the CLI at a registry with `--clay-registry`; `clay publish` also reads `CLAY_REGISTRY_HOST`
 
 ## Testing Notes
 
-- Python tests use pytest with asyncio support
-- Go tests exclude registry by default (separate DB required)
-- Integration tests available with Docker Compose setup
-- Model testing requires MinIO S3 storage backend
+- Python tests use pytest
+- `make test-go` does not cover the registry service; run `make test-registry`
+- Docker integration tests: `make test-integration`
+- `examples/raster_vector_clipper` has a Docker Compose setup with MinIO for trying a block end to end
 
 <!-- ## Coding style
 While writing code you should follow the following books philosophy of software development:
