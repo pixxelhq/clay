@@ -179,12 +179,13 @@ With `IMAGE`, `clay push` pushes that image as it is named, and does not need `c
 Run a block's Docker image locally. Run it in the project folder: it reads `gpu` from `clay.yaml`.
 
 ```shell
-clay run [IMAGE] [flags]
+clay run [IMAGE] [ARGS...] [flags]
 ```
 
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `IMAGE` | Docker image to run | `<name>:<version>` from `clay.yaml`, the image that `clay build` makes |
+| `ARGS` | Arguments passed to the container. They need `IMAGE` before them, or the first one is taken as the image | — |
 
 | Flag | Description | Default |
 |------|-------------|---------|

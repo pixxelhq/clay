@@ -26,6 +26,12 @@ func TestDockerRegistryFromFlagOrEnv(t *testing.T) {
 	assert.Equal(t, "", dockerRegistryFromFlagOrEnv(""))
 }
 
+func TestDockerRegistryFromFlagOrEnv_TrimsTrailingSlash(t *testing.T) {
+	t.Setenv("CLAY_DOCKER_REGISTRY", "env.example.com/")
+	assert.Equal(t, "flag.example.com", dockerRegistryFromFlagOrEnv("flag.example.com/"))
+	assert.Equal(t, "env.example.com", dockerRegistryFromFlagOrEnv(""))
+}
+
 func TestImageToPush_DefaultUsesRegistry(t *testing.T) {
 	t.Setenv("CLAY_DOCKER_REGISTRY", "")
 

@@ -222,10 +222,10 @@ func imageToPush(args []string, registryFlag, projectDir string) (local, target 
 }
 
 func dockerRegistryFromFlagOrEnv(flag string) string {
-	if flag != "" {
-		return flag
+	if flag == "" {
+		flag = os.Getenv("CLAY_DOCKER_REGISTRY")
 	}
-	return os.Getenv("CLAY_DOCKER_REGISTRY")
+	return strings.TrimSuffix(flag, "/")
 }
 
 func packageDir(projectDir string, cfg *config.Config) (string, error) {
@@ -289,13 +289,16 @@ func printDockerfile(cmd *cobra.Command, args []string) error {
 
 func runDockerImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run [image]",
+		Use:   "run [image] [args...]",
 		Short: "Run a block's Docker image locally",
 		Long: heredoc.Doc(`
 			Run a block's Docker image locally.
 
 			[image] is the Docker image to run. Without it, clay run uses
 			<name>:<version> from clay.yaml, the image that clay build makes.
+
+			[args...] are passed to the container. They need [image] before
+			them, or the first one is taken as the image.
 		`),
 		Example: heredoc.Doc(`
 			clay run --input "$(cat tests/sample_block_inputs.json)"

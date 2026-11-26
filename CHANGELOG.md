@@ -17,6 +17,9 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
 - `clay push` no longer sends an image without a registry, such as the
   default `<name>:<version>`, to `docker.io/library`, where the push always
   failed. It now stops with an error that says how to name the registry.
+- A trailing `/` in `--docker-registry` or `CLAY_DOCKER_REGISTRY` is ignored,
+  so `clay push` and `clay publish` no longer fail with "invalid reference
+  format".
 - Errors print once, as `error:` followed by a `hint:` line when Clay can
   tell what to do next. Docker output is still shown in full. A failed Docker
   command names the command and its exit code, for example
