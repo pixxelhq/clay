@@ -137,7 +137,7 @@ The registry keeps one block per `name`. If you change `name`, `clay publish` cr
 
 Version of the block, as a [semantic version](https://semver.org/) (for example `v0.0.1` or `1.2.3`).
 
-The value as written is the Docker image tag (`<name>:<version>`). The registry rejects a value that is not a semantic version, and stores it without the leading `v`: `v1.2.3` is stored as `1.2.3`.
+The value as written is the Docker image tag (`<name>:<version>`). The registry rejects a value that it cannot read as a semantic version, and stores it in full `MAJOR.MINOR.PATCH` form without the leading `v`: `v1.2.3` is stored as `1.2.3`, and `1.2` as `1.2.0`. Always write all three parts.
 
 !!! tip "Recommendation"
     Version your blocks as you would software releases. Increment the version when making changes to inputs, outputs, or block behavior.

@@ -27,12 +27,14 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   class matches the one that `entry.py` imports.
 - The docs describe what the code checks and when: a new table in the spec
   page lists the checks of the CLI, the registry and the runtime. Outputs are
-  matched by the `name` of the returned datatype, not the dict key; an input
+  matched by the `name` of the returned datatype, not the dict key (the
+  `block.py` that `clay new` writes now says so too); an input
   `default` must be text; vector inputs take an `s3://` URI or GeoJSON text,
   not a local path; a block with no inputs needs `--input '[]'`; and errors in
   `setup` or the input download send no callback.
 - The docs say that only `clay publish` reads `CLAY_REGISTRY_HOST`, that the
-  registry stores versions without a leading `v`, and how that affects the
+  registry stores versions in full `MAJOR.MINOR.PATCH` form without a leading
+  `v` (`1.2` becomes `1.2.0`), and how that affects the
   publish check and `clay block describe -v`. They no longer mention planned
   features.
 

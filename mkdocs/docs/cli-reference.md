@@ -213,10 +213,10 @@ clay publish [flags]
 
 Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything. Bump `version` in `clay.yaml` to publish a new version.
 
-The check sends `version` exactly as written in `clay.yaml`, but the registry stores each version in semantic-version form, without a leading `v`: `v0.0.1` is stored as `0.0.1`. So:
+The check sends `version` exactly as written in `clay.yaml`, but the registry stores each version in full `MAJOR.MINOR.PATCH` form, without a leading `v`: `v0.0.1` is stored as `0.0.1`, and `0.1` as `0.1.0`. So:
 
-- With a version such as `0.0.1`, the check works: a published version is found before anything is built.
-- With a `v`-prefixed version such as `v0.0.1`, which is what `clay new` and `clay init` write, the check does not find it. `clay publish` then builds the image and pushes it under the same tag as the published image, and only after that does the registry reject the version as already published.
+- With all three parts and no `v`, such as `0.0.1`, the check works: a published version is found before anything is built.
+- With a `v`-prefixed version such as `v0.0.1`, which is what `clay new` and `clay init` write, or a short version such as `0.1`, the check does not find it. `clay publish` then builds the image and pushes it under the same tag as the published image, and only after that does the registry reject the version as already published.
 
 The registry also rejects a `version` that is not a semantic version, after the image has been pushed.
 
