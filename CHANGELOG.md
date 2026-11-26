@@ -15,7 +15,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   `--input-uri`, `clay publish --catalog-url`, and which publish flags are
   required, and describe `clay block assets upload-catalog` as it works: it
   uploads to `<url>/<key>/<filename>` and leaves your `catalog.yaml` unchanged.
-- `pixxel-clay` requires `boto3>=1.28.57`, the first version that reads
+- `clay block list --help` and `clay block describe --help` no longer say that
+  `--clay-registry` can be set with `CLAY_REGISTRY_HOST`; these commands do not
+  read it.
+- `pixxel-clay` requires `boto3>=1.28.0`, the first version that reads
   `AWS_ENDPOINT_URL`.
 - The code samples in the progress, logging, I/O, tutorial and FAQ pages run
   against the current SDK, and the YAML samples in the spec page parse.
