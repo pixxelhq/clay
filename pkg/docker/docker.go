@@ -154,11 +154,27 @@ type BuildFlags struct {
 }
 
 func Build(buildtag, dockerfilePath string, bf BuildFlags) error {
-	buildCmd := buildCommand(buildtag, dockerfilePath, bf)
-	buildCmd.Stdout = os.Stdout
-	buildCmd.Stderr = os.Stderr
+	return runDocker(buildCommand(buildtag, dockerfilePath, bf), "docker build")
+}
 
-	return buildCmd.Run()
+// runDocker streams the command's output and names the command if it fails.
+func runDocker(cmd *exec.Cmd, name string) error {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return commandError(name, cmd.Run(), "the "+name+" output above shows the cause")
+}
+
+// commandError names the failed command, so that users never see a bare
+// "exit status 1".
+func commandError(name string, err error, hint string) error {
+	if err == nil {
+		return nil
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		return fmt.Errorf("%s failed: %w", name, err)
+	}
+	return &CommandError{Name: name, Hint: hint, Err: exitErr}
 }
 
 func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {
@@ -224,11 +240,7 @@ func CheckDaemon() error {
 }
 
 func Push(buildtag string) error {
-	pushCmd := exec.Command("docker", "push", buildtag)
-	pushCmd.Stdout = os.Stdout
-	pushCmd.Stderr = os.Stderr
-
-	return pushCmd.Run()
+	return runDocker(exec.Command("docker", "push", buildtag), "docker push")
 }
 
 func ImageExists(image string) error {
@@ -237,6 +249,8 @@ func ImageExists(image string) error {
 	}
 
 	listCmd := exec.Command("docker", "images", "-f", fmt.Sprintf("reference=%s", image))
+	var listStderr bytes.Buffer
+	listCmd.Stderr = &listStderr
 
 	repositoryName := strings.Split(image, ":")[0]
 	grepCmd := exec.Command("grep", repositoryName)
@@ -256,7 +270,10 @@ func ImageExists(image string) error {
 	}
 
 	if err := listCmd.Wait(); err != nil {
-		return err
+		if dockerMessage := strings.TrimSpace(listStderr.String()); dockerMessage != "" {
+			return fmt.Errorf("%w: %s", commandError("docker images", err, ""), dockerMessage)
+		}
+		return commandError("docker images", err, "")
 	}
 
 	if err := grepCmd.Wait(); err != nil {
@@ -270,18 +287,15 @@ func Run(image string, args []string, envVars []string, cfg *config.Config) erro
 	fmt.Printf("🧐 Searching image %s \n", image)
 	err := ImageExists(image)
 	if err == ErrDoesNotExists {
-		return fmt.Errorf("oops image %s does not exist. First build the image using `clay build` command to build this image", image)
+		return fmt.Errorf("image %s does not exist\nhint: build it with 'clay build', or pull it with 'docker pull'", image)
 	}
 	if err != nil {
-		return fmt.Errorf("error while searching image %s: %w", image, err)
+		return fmt.Errorf("failed to look up image %s: %w\nhint: check that you can run 'docker images'", image, err)
 	}
 
 	runArgs := buildDockerRunArgs(image, envVars, cfg)
 	runCmd := exec.Command("docker", append(runArgs, args...)...)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-
-	return runCmd.Run()
+	return runDocker(runCmd, "docker run")
 }
 
 func buildDockerRunArgs(image string, envVars []string, cfg *config.Config) []string {

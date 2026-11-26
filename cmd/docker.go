@@ -159,20 +159,16 @@ func pushCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("🧐 Serching image %s \n", image)
 	err = docker.ImageExists(image)
 	if err == docker.ErrDoesNotExists {
-		return fmt.Errorf("oops image %s does not exists. First build the image using `clay build` command to build this image", image)
+		return fmt.Errorf("image %s does not exist\nhint: build it with 'clay build'", image)
 	}
 	if err != nil {
-		return fmt.Errorf("error while searching image %s in docker image list: %w", image, err)
+		return fmt.Errorf("failed to look up image %s: %w\nhint: check that you can run 'docker images'", image, err)
 	}
 
-	err = docker.Push(image)
-	if err == docker.ErrDoesNotExists {
-		return fmt.Errorf("image %s does not exists", image)
-	}
-	if err != nil {
+	fmt.Printf("📤 Pushing docker image %s\n", image)
+	if err := docker.Push(image); err != nil {
 		return err
 	}
 

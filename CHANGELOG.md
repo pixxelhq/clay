@@ -40,6 +40,21 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   `v` (`1.2` becomes `1.2.0`), and how that affects the
   publish check and `clay block describe -v`. They no longer mention planned
   features.
+- Errors print once, as `error:` followed by a `hint:` line when Clay can
+  tell what to do next. Docker output is still shown in full. A failed Docker
+  command names the command and its exit code, for example
+  `error: docker build failed (exit 1)`, instead of only `Error: exit status 1`.
+- Clearer errors, each with a hint, for: a `clay.yaml` value of the wrong type
+  (for example an unquoted `python-version: 3.10`), a missing argument, a
+  failed image lookup (now with Docker's message), a Clay registry that cannot
+  be reached or a URL that is not a Clay registry, a missing publish flag, an
+  already published version, and a failed `clay block assets` command, which
+  now points at the storage credentials and `--url`.
+- A `--clay-registry` URL without `http://` or `https://` is reported as
+  such, instead of as a registry that cannot be reached. A registry response
+  that Clay cannot read names its HTTP status, so a proxy's `502` page is
+  not mistaken for a wrong URL.
+- Fixed typos in `clay push` errors ("Serching", "does not exists").
 
 ## v1.5.0 - 2026-11-19
 ### Upgrading

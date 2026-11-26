@@ -46,7 +46,7 @@ func LoadFile(path string) (*Catalog, error) {
 
 	c := &Catalog{}
 	if err := yaml.Unmarshal(raw, c); err != nil {
-		return nil, fmt.Errorf("error parsing %s: %w", filepath.Base(path), err)
+		return nil, fmt.Errorf("%s is not valid YAML: %w", filepath.Base(path), err)
 	}
 
 	return c, nil
@@ -55,7 +55,7 @@ func LoadFile(path string) (*Catalog, error) {
 func (c *Catalog) Bytes() ([]byte, error) {
 	out, err := yaml.Marshal(c)
 	if err != nil {
-		return nil, fmt.Errorf("error serializing %s: %w", catalogFileName, err)
+		return nil, fmt.Errorf("failed to write %s as YAML: %w", catalogFileName, err)
 	}
 	return out, nil
 }
@@ -84,7 +84,7 @@ func (c *Catalog) JSON() ([]byte, error) {
 
 	out, err := json.Marshal(doc)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding %s to json: %w", catalogFileName, err)
+		return nil, fmt.Errorf("failed to encode %s as JSON: %w", catalogFileName, err)
 	}
 	return out, nil
 }
