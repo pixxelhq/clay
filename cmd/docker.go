@@ -32,7 +32,7 @@ func buildDockerImageCmd() *cobra.Command {
 		Use:     "build",
 		Short:   "Build a Docker image locally from clay.yaml",
 		Long:    "Build a Docker image locally from clay.yaml.\nIf --tag is not provided, the image is tagged as `<name>:<version>` using the values from clay.yaml.\nThe image stays on this machine. To push it and register the block, use `clay publish`.",
-		Example: "clay build --tag my-block:0.1.0 --file ./Dockerfile",
+		Example: "clay build --tag my-block:0.1.0\nclay dockerfile > Dockerfile && clay build --file Dockerfile",
 		RunE:    buildCmd,
 	}
 

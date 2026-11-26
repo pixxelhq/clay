@@ -29,7 +29,7 @@ func ListBlockRegistryCmd() *cobra.Command {
 		RunE:    listBlockRegistryCmd,
 	}
 
-	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (env: CLAY_REGISTRY_HOST)")
+	cmd.Flags().StringVar(&clayRegistryHost, "clay-registry", "", "Clay block registry URL (required)")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of block")
 	cmd.Flags().StringVarP(&version, "version", "v", "", "Version of the block")
 	return cmd

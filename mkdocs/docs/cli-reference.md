@@ -207,9 +207,10 @@ clay publish [flags]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--docker-registry` | Docker image registry (env: `CLAY_DOCKER_REGISTRY`) | — |
-| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `--docker-registry` | Docker image registry. Required unless `CLAY_DOCKER_REGISTRY` is set | — |
+| `--clay-registry` | Clay block registry URL. Required unless `CLAY_REGISTRY_HOST` is set | — |
 | `-f, --file` | Dockerfile path. Use your own Dockerfile instead of the generated one | — |
+| `--catalog-url` | URL of the published `catalog.yaml` (see [Upload Catalog Media](#upload-catalog-media)) | — |
 
 Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything, so the image of a published version is never overwritten. Bump `version` in `clay.yaml` to publish a new version.
 
@@ -231,7 +232,7 @@ clay block list [flags]
 |------|-------------|---------|
 | `-n, --name` | Filter by block name | — |
 | `-v, --version` | Specific version to list | — |
-| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `--clay-registry` | Clay block registry URL (required) | — |
 
 ### Describe Block
 
@@ -248,7 +249,7 @@ clay block describe <name> [flags]
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-v, --version` | Specific version to describe | — |
-| `--clay-registry` | Clay block registry URL (env: `CLAY_REGISTRY_HOST`) | — |
+| `--clay-registry` | Clay block registry URL (required) | — |
 
 ---
 
@@ -276,7 +277,7 @@ clay block assets upload <path> [flags]
 
 ### Upload Catalog Media
 
-Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<relative-path>` and its value is rewritten to the uploaded URL, in place; the rewritten `catalog.yaml` is then uploaded alongside its media. Already-uploaded URLs are skipped, so re-running is idempotent. Bake the block/version into `--url`.
+Publish the media declared in the `catalog.yaml` in the current working directory. Each file in its `media:` section is uploaded to `<--url>/<key>/<filename>`; the local folders are dropped. Then a copy of `catalog.yaml`, with each `media:` value set to its uploaded URL, is uploaded next to the media, and its URL is printed for `clay publish --catalog-url`. Your `catalog.yaml` is not changed. `media:` values that are already `http(s)` URLs are not uploaded again. Bake the block/version into `--url`.
 
 ```shell
 clay block assets upload-catalog [flags]

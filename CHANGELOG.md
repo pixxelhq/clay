@@ -14,6 +14,20 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   image that `clay build` makes.
 
 ### Bug Fixes
+- The README, docs, `CLAUDE.md` and `clay build --help` describe only commands
+  and features that exist: the job runner (there is no HTTP runner), the
+  GoReleaser download names, and `clay block list` instead of
+  `clay list block`. MinIO works through `AWS_ENDPOINT_URL`; `clay block
+  assets` accepts AWS S3 URLs only.
+- The CLI reference and getting-started guide list `clay run --input` and
+  `--input-uri`, `clay publish --catalog-url`, and which publish flags are
+  required, and describe `clay block assets upload-catalog` as it works: it
+  uploads to `<url>/<key>/<filename>` and leaves your `catalog.yaml` unchanged.
+- `clay block list --help` and `clay block describe --help` no longer say that
+  `--clay-registry` can be set with `CLAY_REGISTRY_HOST`; these commands do not
+  read it.
+- `pixxel-clay` requires `boto3>=1.28.0`, the first version that reads
+  `AWS_ENDPOINT_URL`.
 - `clay push` no longer sends an image without a registry, such as the
   default `<name>:<version>`, to `docker.io/library`, where the push always
   failed. It now stops with an error that says how to name the registry.
