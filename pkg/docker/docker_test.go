@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -366,4 +367,13 @@ func TestTag_FailureNamesCommand(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Equal(t, "docker tag failed (exit 1)\nhint: the docker tag output above shows the cause", err.Error())
+}
+
+func TestCommandError_KeepsExitCode(t *testing.T) {
+	err := commandError("docker build", exec.Command("sh", "-c", "exit 3").Run(), "")
+
+	var exitErr *exec.ExitError
+	require.True(t, errors.As(err, &exitErr))
+	assert.Equal(t, 3, exitErr.ExitCode())
+	assert.Equal(t, "docker build failed (exit 3)", err.Error())
 }
