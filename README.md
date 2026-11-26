@@ -111,11 +111,11 @@ Full walkthrough: [**Getting Started**](https://pixxelhq.github.io/clay/getting-
 | `clay init` | Make the current directory a block project, keeping the files already in it |
 | `clay build` | Build a Docker image locally from `clay.yaml` (generates the `Dockerfile` on each build) |
 | `clay dockerfile` | Print the `Dockerfile` that `clay build` generates |
-| `clay run <image>` | Run a block image locally |
-| `clay push <image>` | Push a block image to a Docker registry |
+| `clay run [image]` | Run a block image locally; without `image`, runs `<name>:<version>` from `clay.yaml` |
+| `clay push [image]` | Push a block image to a Docker registry; without `image`, pushes `<name>:<version>` from `clay.yaml` to `--docker-registry` or `CLAY_DOCKER_REGISTRY` |
 | `clay publish` | Build, push, and register a block in one command |
-| `clay block list` | List blocks in a Clay registry |
-| `clay block describe <name>` | Show versions and details for a block |
+| `clay block list --clay-registry <url>` | List blocks in a Clay registry |
+| `clay block describe <name> --clay-registry <url>` | Show versions and details for a block |
 | `clay block assets upload <path> --url <s3-url>` | Upload block assets to S3 |
 | `clay block assets list --url <s3-url>` | List assets at a storage URL |
 | `clay block assets download --url <s3-url> -o <path>` | Download a block asset |

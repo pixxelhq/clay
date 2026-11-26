@@ -17,9 +17,9 @@ This document provides a high-level overview of Clay's architecture, components,
 
 * **Runner**: Clay's execution engine that handles block lifecycle, input/output processing, and communication with the orchestrator.
 
-* **Registry**: Centralized service storing block metadata, versions, and specifications.
+* **Registry**: An optional HTTP service, which you run yourself, that stores block metadata, versions, and specifications.
 
-* **Block Assets**: Files stored in cloud storage (S3) associated with a block, such as pre-trained block weights, configuration files, or reference data. Assets can be shared across all versions or version-specific.
+* **Block Assets**: Files stored in cloud storage (S3) associated with a block, such as pre-trained block weights, configuration files, or reference data. You choose the storage layout through the URL you pass.
 
 * **Type System**: Clay's standardized data types (Raster, Vector, Number, etc.) that enable blocks to communicate.
 
@@ -79,7 +79,7 @@ Command-line tool for block development:
 clay new my-block
 cd my-block
 clay build
-clay run my-block:v0.0.1 --input "$(cat tests/sample_block_inputs.json)"
+clay run --input "$(cat tests/sample_block_inputs.json)"
 ```
 For complete reference, see [Command Reference](cli-reference.md)
 
@@ -106,12 +106,12 @@ For complete reference, see [Block Specifications](spec.md).
 
 ### 4. Clay Registry
 
-Centralized block management:
+An optional HTTP service that you run yourself:
 
-* REST API for registry operations
+* REST API under `/v1/blocks`
 * PostgreSQL backend for metadata
-* Version tracking and history
-* Block discovery and querying
+* Records each published version with its Docker image and specification
+* `clay block list` and `clay block describe` query it
 
 For complete reference, see [Clay Registry](registry.md).
 
@@ -120,8 +120,7 @@ For complete reference, see [Clay Registry](registry.md).
 Cloud storage for block-related files:
 
 * Upload, download, and list assets via CLI
-* Name-level assets shared across all versions
-* Version-specific assets for particular releases
+* Each command takes one `--url`; the layout, such as one folder per block version, is up to you
 * Backed by AWS S3; the CLI accepts `https://<bucket>.s3.<region>.amazonaws.com` URLs only
 
 For complete reference, see [Block Assets Management](block-assets.md).
@@ -178,7 +177,7 @@ In addition to the four lifecycle methods above, `BlockWrapper` exposes a small 
 * `self.add_progress(delta)` — bump the current progress by a relative amount
 * `self.set_progress(value)` — set the current progress to an absolute value
 * `self.get_progress()` — read the current progress
-* `self.add_asset(file_path, io_name, is_input=True)` — upload an extra file for an input or output to `REMOTE_INPUT_PATH/inputs|outputs/<io_name>/`
+* `self.add_asset(file_path, io_name, is_input=True)` — upload an extra file for an input or output to `REMOTE_INPUT_PATH/inputs|outputs/<io_name>/`. `REMOTE_INPUT_PATH` must be an `s3://` path; with the default local path `/tmp/clay/inputs`, `add_asset` raises `ValueError`
 
 See [Indicating Progress](progress.md) for usage patterns.
 

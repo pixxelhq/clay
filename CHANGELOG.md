@@ -20,6 +20,26 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   read it.
 - `pixxel-clay` requires `boto3>=1.28.0`, the first version that reads
   `AWS_ENDPOINT_URL`.
+- The code samples in the progress, logging, I/O, tutorial and FAQ pages run
+  against the current SDK, and the YAML samples in the spec page parse.
+- The reference pages no longer describe features Clay does not have: API
+  generation, block chaining, raster and vector area checks, setting
+  parameters per run, and `CLAY_DEBUG`. They give the real defaults of the
+  runtime environment variables and the real registry setup steps.
+- The NDVI tutorial works as written: it starts with `clay new ndvi`, so the
+  class matches the one that `entry.py` imports.
+- The docs describe what the code checks and when: a new table in the spec
+  page lists the checks of the CLI, the registry and the runtime. Outputs are
+  matched by the `name` of the returned datatype, not the dict key (the
+  `block.py` that `clay new` writes now says so too); an input
+  `default` must be text; vector inputs take an `s3://` URI or GeoJSON text,
+  not a local path; a block with no inputs needs `--input '[]'`; and errors in
+  `setup` or the input download send no callback.
+- The docs say that only `clay publish` reads `CLAY_REGISTRY_HOST`, that the
+  registry stores versions in full `MAJOR.MINOR.PATCH` form without a leading
+  `v` (`1.2` becomes `1.2.0`), and how that affects the
+  publish check and `clay block describe -v`. They no longer mention planned
+  features.
 - Errors print once, as `error:` followed by a `hint:` line when Clay can
   tell what to do next. Docker output is still shown in full. A failed Docker
   command names the command and its exit code, for example

@@ -16,7 +16,7 @@ class {{.Class}}(BlockWrapper):
     Important:
         - Parameter names in setup() must match the "parameters" names in clay.yaml.
         - Argument names in preprocess() must match the "inputs" names in clay.yaml.
-        - Keys returned from postprocess() must match the "outputs" names in clay.yaml.
+        - The `name` of each datatype returned from postprocess() must match an "outputs" name in clay.yaml.
 
     Supported datatypes (import as `datatypes` or `datatypes as T`):
         T.String  — Text data          (format: "string")

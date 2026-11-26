@@ -5,75 +5,63 @@ order: 13
 
 # FAQ
 
-### Why should we create projects with Clay?
+### Why should I create projects with Clay?
 
-You should create projects with _Clay_ since it enforces a uniformity in baseline project structure,
-tooling, coding practices, automation and quality control.
+Clay gives every block the same baseline structure, tooling and runtime. This helps in the following ways:
 
-Enforcing a baseline uniformity helps us in the following ways,
+1. **A common project structure.** `clay new` and `clay init` create the same layout for every block: `clay.yaml`, a `block.py` with the `setup`, `preprocess`, `inference` and `postprocess` methods, sample inputs and a test. If you know one Clay block, you can read another.
 
-1. Having a _minimum_ common structure allows the marketplace team to apply a _bunch of automations_
-that help all teams speed up their _build, test and deployment_ lifecycles. For example, automated
-_tag_ creation during promoting a block to _staging_ environment from _development_ allows us to track
-block deployment histories more effectively. A common structure allows makes life really easier for the
-marketplace team to debug issues as they happen post deployment.
+2. **A generated Dockerfile.** `clay build` generates the `Dockerfile` from the `build` section of `clay.yaml` on every build, unless you pass `-f` or the project has its own `./Dockerfile`. You set the Python version, pip or conda, GDAL and apt packages there, so you do not need to write or maintain a `Dockerfile`, and blocks are built from the same templates.
 
-2. It's no secret that Python's packaging tools are _not the best_. Changing from a well-known environment
-manager to a new hot thing, would often mean the introduction of silent dependency bugs that would show up
-weeks or even months later. All these problems and we haven't yet gotten to the complicated dance between CUDA, GDAL and
-Kubernetes. Over the last couple of months, the marketplace team has deployed and managed, both GPU and non-GPU based
-blocks and dealt with their fair share of runtime bugs and complexity. Having undergone the baptism, _we have settled
-on two baseline environment configurations_ that we feel fairly confident in their efficacy and flexibility and
-our ability to maintain and debug such environments on and off production.
+3. **Typed inputs and outputs.** Inputs and outputs are declared in `clay.yaml` and use the types from the `datatypes` package (`Raster`, `Vector`, `Tabular`, `Date`, `String`, `Number`). After `setup` and the input download, and before `preprocess` runs, string, number and date inputs are checked against the `validation` rules in the spec. `validation` rules on raster, vector and tabular inputs are not checked.
 
-3. Standard coding practices across blocks codebases allow for the proliferation of common standards of code hygiene
-and style. Not only this allows for the better _and more beautiful_ code output, on a more practical note, it makes
-a new hire's onboarding process much easier, since they don't have to adapt to every new codebase over and over again.
+4. **A runtime that handles the plumbing.** The runner downloads input files, uploads output files, sends status and progress callbacks, and writes structured JSON logs. Your block code stays separate from these details. If `setup` or the input download fails, the runner sends no callback; the process exits with the exception.
 
-4. Clay provides tooling that help blocks run on our infrastructure. A prime example of this are _callbacks_. Status
-and metric reporting via callbacks, IO processing and management, logging etc are all abstracted away from the block
-code to ensure that it is insulated from the details of the infrastructure as much as possible.
+5. **A registry.** `clay publish` registers each block version in the Clay registry, so blocks can be found and versioned in one place.
 
 !!! warning
 
-    Deviation from `Clay` recommended tooling and structure is highly _not recommended_,
-    unless absolutely necessary.
+    Keep the structure that Clay generates. The Dockerfile that `clay build` generates expects
+    `clay.yaml` at the project root and the block package folder with `entry.py` next to it.
 
 ### What is the relevance of `is_artifact` in the data types?
 
-`is_artifact` basically means that that this data item has an asset associated with it. Generally, the location
-of the asset would be stored in the `value` attribute of the same data item.
+`is_artifact` means that the data item has a file, and `value` holds the location of that file. For example, a `Raster` with `is_artifact` set to `true` has a TIFF file, and `value` is its path or URL.
 
-For example, if the `is_artifact` attribute for the `Raster` datatype is set to `True`, this would mean that this
-data item has a supporting asset (in this case a TIFF file) and the location of the tiff file would be in the `Value`
-parameter.
+It defaults to `true` for `Raster`, `Vector` and `Tabular`, and to `false` for `Date`, `String` and `Number`.
 
-### Why do we have a `InferenceCtx` type and why does `infer` return a `InferenceCtx`?
+The runner uses it to move files:
 
-There are two reasons for taking this approach,
+* For an input with `is_artifact: true`, the runner downloads the file in `value` before `preprocess` runs and sets `value` to the local path. A `Vector` input whose `value` does not start with `http://`, `https://`, `s3://` or `file://` is treated as GeoJSON text and written to a `.geojson` file, so a local file path does not work as a vector input.
+* For an output with `is_artifact: true`, the runner uploads the file in `value` to `REMOTE_OUTPUT_PATH` after `postprocess` returns. If `value` is empty or is not an existing file, the output is skipped silently: nothing is uploaded and `value` is not changed.
 
-1. Certain data points, unrelated to the block inputs but related to the particular inference run are required for reporting data back
-to the orchestrator like status, errors, time of execution among other things. Injecting these scoped data items into the pod environment _would mean
-that we won't be able to support persistent pods_ should the need arise in the future. Hence adopting this methodology, gives us the flexibility and freedom to support trainsient pods now and persistent pods in the future if required.
+### Why is there an `InferenceCtx` type and why does `infer` return one?
 
-2. Another reason, is that the block is an attribute of the runner. Hence, we need a common set of arguments to pass into the block and a
-a common set of return values. The problem is that each block can have a variable number of inputs and outputs and the runner becomes aware
-of the IO specification of the block only at runtime. Hence we we pass an `InferenceCtx` object in and out of the block. Inputs and outputs
-are lists defined on the object, thus solving their variable length problem. On top this, `InferenceCtx` has inference specific data items
-that the `BlockWrapper` can use to fire callbacks to the orchestrator updating state, time metrics etc.
+`BlockWrapper.infer()` runs `preprocess`, `inference` and `postprocess` in order. Each block returns a different number of outputs, and the runner only learns them at runtime. So `infer()` collects every datatype that `postprocess` returns into an `InferenceCtx` object and returns it. The runner then reads the outputs from that object, uploads their files and writes their spec files.
+
+`InferenceCtx` only holds the outputs. It does not carry inputs or callback data. The runner sends status and progress callbacks itself, and reads run settings such as `EXECUTION_ID` and `CALLBACK_ENDPOINT` from environment variables.
 
 ### Difference between `processing` and `source` blocks
 
+The `type` field in `clay.yaml` says what kind of block it is:
+
+By convention:
+
+* **`processing`**: the block reads input data and analyses or transforms it, for example NDVI from a raster.
+* **`source`**: the block fetches or generates data without needing input data, for example downloading imagery for an area.
+
+The type is metadata. The runner runs every block the same way, whatever its type. The Clay registry checks the field when a block is added and accepts `processing`, `source` and `visualization`.
+
 ### Rules about returning results from a block
 
-* Names of the block outputs should be exactly same as the output items defined in the spec file. Any deviation would result in a runtime exception.
-* Only standard type constructors (example: `Raster(...)` etc) should be used while returning outputs. Type constructors only allow the user to mutate *mutable fields of the type*.
-* Some types almost always would have a supporting asset. For example, if a block output is of the `Raster` type, then there *is going* to be a TIFF file that is present locally and needs to saved remotely as a block output. In situations like this the `Value` attribute would simply be the *local path of the file*.
-* If a type support *properties* (`Raster`, `Vector`, `Date`, `Tabular`), by default, the *properties* defined in the output definition would be used in constructing the output. *If the user however* provides some custom properties within the block code, **these values would be used**.
+* `postprocess` returns a dict whose values are datatypes, such as `datatypes.Raster(...)`. Any other value, such as a plain number, a dict or one of the input objects that `preprocess` received, fails the run with `AssertionError`.
+* The `name` of each returned datatype must match an output in the spec file, or the run fails with `KeyError`. The dict keys are not checked. An output that is declared in the spec but not returned is not an error.
+* For an output with a file, such as a `Raster`, write the file locally and set `value` to its local path. The runner uploads it; see [`is_artifact`](#what-is-the-relevance-of-is_artifact-in-the-data-types).
+* For types with *properties* (`Raster`, `Vector`, `Date`, `Tabular`), the runner merges the *properties* from the output definition in the spec into the returned output. Where the block code sets a property that the spec also sets, the block code's value is used.
 
 !!! warning
 
-    This is an unsafe operation as it could lead to de-sync between the spec file and the actual block output. Going forward we will be putting more precise safeguards.
+    Properties set in the block code can then differ from the spec file. Clay does not check this.
 
 
 ### How to use `Discretization` in `RasterProperties`?
@@ -92,46 +80,50 @@ The object essentially communicates _three_ things,
 
 !!! note
 
-    We only support two types of discretization: `interval` and `index`.
+    Use `interval` or `index` as the discretization `type`. The field is a free string: Clay does not check its value.
 
 !!! note
 
-    When our discretization type is `interval` we specify the `range` attribute. When our discretization type is `index`, we specify the `value` attribute.
+    When the discretization type is `interval`, set `range` on each class. When it is `index`, set `value` on each class.
 
 **Example for `index`-based discretization**
 
 ```python
-target = types.Raster(
-        name="raster",
-        type="url",
-        value="some.tiff",
-        properties=types.RasterProperties(
-            Discretization=types.RasterDiscretization(
-                Type="index",
-                Classes=[
-                    types.DiscretizationItem(Name="low-stress", Value="1", Color="blue"),
-                    types.DiscretizationItem(Name="high-stress", Value="2", Color="red"),
-                ],
-            )
-        ),
-    )
+import datatypes
+
+target = datatypes.Raster(
+    name="raster",
+    type="url",
+    value="some.tiff",
+    properties=datatypes.RasterProperties(
+        discretization=datatypes.Discretization(
+            type="index",
+            classes=[
+                datatypes.DiscretizationClass(name="low-stress", value="1", color="#0000ff"),
+                datatypes.DiscretizationClass(name="high-stress", value="2", color="#ff0000"),
+            ],
+        )
+    ),
+)
 ```
 
 **Example for `interval`-based discretization**
 
 ```python
-target = types.Raster(
-        name="raster",
-        type="url",
-        value="some.tiff",
-        properties=types.RasterProperties(
-            Discretization=types.RasterDiscretization(
-                Type="interval",
-                Classes=[
-                    types.DiscretizationItem(Name="low-stress", Range=[-2, -1], Color="blue"),
-                    types.DiscretizationItem(Name="high-stress", Range=[1, 2], Color="red"),
-                ],
-            )
-        ),
-    )
+import datatypes
+
+target = datatypes.Raster(
+    name="raster",
+    type="url",
+    value="some.tiff",
+    properties=datatypes.RasterProperties(
+        discretization=datatypes.Discretization(
+            type="interval",
+            classes=[
+                datatypes.DiscretizationClass(name="low-stress", range=datatypes.Range(min=-2, max=-1), color="#0000ff"),
+                datatypes.DiscretizationClass(name="high-stress", range=datatypes.Range(min=1, max=2), color="#ff0000"),
+            ],
+        )
+    ),
+)
 ```
