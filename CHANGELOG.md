@@ -14,6 +14,8 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   image that `clay build` makes.
 
 ### Bug Fixes
+- `clay block list --version` and `clay block describe --version` now return
+  `json.MarshalIndent` errors instead of printing and ignoring them.
 - The README, docs, `CLAUDE.md` and `clay build --help` describe only commands
   and features that exist: the job runner (there is no HTTP runner), the
   GoReleaser download names, and `clay block list` instead of

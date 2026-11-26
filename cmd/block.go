@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -18,4 +21,13 @@ func BlockCmd() *cobra.Command {
 	cmd.AddCommand(BlockAssetsCmd())
 
 	return cmd
+}
+
+func writePrettyJSON(v any) error {
+	prettyJSON, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to generate pretty JSON: %w", err)
+	}
+	_, err = fmt.Println(string(prettyJSON))
+	return err
 }

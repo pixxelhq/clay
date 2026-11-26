@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
@@ -32,40 +30,23 @@ func DescribeBlockCmd() *cobra.Command {
 	return cmd
 }
 
-func describeBlockCmd(cmd *cobra.Command, args []string) error {
-	name := args[0]
+func describeBlockCmd(_ *cobra.Command, args []string) error {
+	blockName := args[0]
 
 	r := registry.New(clayRegistryHost, 5*time.Second)
-	var (
-		blocks registry.Blocks
-		err    error
-		block  *registry.Block
-	)
 
 	if describeCmdVersion != "" {
-		block, err = r.GetBlockByNameAndVersion(name, describeCmdVersion)
+		block, err := r.GetBlockByNameAndVersion(blockName, describeCmdVersion)
 		if err != nil {
 			return err
 		}
-
-		prettyJSON, err := json.MarshalIndent(block, "", "  ")
-		if err != nil {
-			fmt.Printf("Failed to generate pretty JSON: %s\n", err)
-		}
-
-		fmt.Println(string(prettyJSON))
-		return nil
+		return writePrettyJSON(block)
 	}
 
-	blocks, err = r.GetBlockByName(name)
+	blocks, err := r.GetBlockByName(blockName)
 	if err != nil {
 		return err
 	}
 
-	prettyJSON, err := json.MarshalIndent(blocks, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to generate pretty JSON: %w", err)
-	}
-	fmt.Println(string(prettyJSON))
-	return nil
+	return writePrettyJSON(blocks)
 }
