@@ -174,14 +174,7 @@ func commandError(name string, err error, hint string) error {
 	if !errors.As(err, &exitErr) {
 		return fmt.Errorf("%s failed: %w", name, err)
 	}
-	message := fmt.Sprintf("%s failed (exit %d)", name, exitErr.ExitCode())
-	if killedBySignal := exitErr.ExitCode() == -1; killedBySignal {
-		message = fmt.Sprintf("%s was stopped (%s)", name, exitErr)
-	}
-	if hint != "" {
-		message += "\nhint: " + hint
-	}
-	return errors.New(message)
+	return &CommandError{Name: name, Hint: hint, Err: exitErr}
 }
 
 func buildCommand(buildtag, dockerfilePath string, bf BuildFlags) *exec.Cmd {

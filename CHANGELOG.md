@@ -16,6 +16,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   be reached or a URL that is not a Clay registry, a missing publish flag, an
   already published version, and a failed `clay block assets` command, which
   now points at the storage credentials and `--url`.
+- A `--clay-registry` URL without `http://` or `https://` is reported as
+  such, instead of as a registry that cannot be reached. A registry response
+  that Clay cannot read names its HTTP status, so a proxy's `502` page is
+  not mistaken for a wrong URL.
 - Fixed typos in `clay push` errors ("Serching", "does not exists").
 
 ## v1.5.0 - 2026-11-19
