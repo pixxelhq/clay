@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"sigs.k8s.io/yaml"
 )
 
@@ -51,6 +53,16 @@ func GetConfig(projectDir string) (*Config, error) {
 	dataJSON, err := yaml.YAMLToJSON(data)
 	if err != nil {
 		return nil, fmt.Errorf("%s is not valid YAML: %w\nhint: check the indentation and quotes at the line named above", configFilePath, err)
+	}
+
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(dataJSON))
+	if err != nil {
+		return nil, fmt.Errorf("%s could not be read: %w", configFilePath, err)
+	}
+	if fields, ok := doc.(map[string]any); ok && fields["apiVersion"] == apiVersionV1 {
+		if err := validateV1(doc); err != nil {
+			return nil, err
+		}
 	}
 
 	config := &Config{}

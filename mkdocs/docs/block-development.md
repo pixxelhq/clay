@@ -9,7 +9,7 @@ This tutorial builds a block that computes NDVI from a Sentinel-2 raster.
 ## Prerequisite
 
 * Install the Clay CLI as described in [Getting Started](getting-started.md).
-* Create the project with `clay new ndvi`, then `cd ndvi`. The block name `ndvi` gives the package folder `ndvi/`, the class `Ndvi` and the image `ndvi:v0.0.1`. `ndvi/entry.py` and `tests/test_block.py` import the class `Ndvi` from `ndvi/block.py`, so keep that class name.
+* Create the project with `clay new ndvi`, then `cd ndvi`. The block name `ndvi` gives the package folder `ndvi/`, the class `Ndvi` and the image `ndvi:0.0.1`. `ndvi/entry.py` and `tests/test_block.py` import the class `Ndvi` from `ndvi/block.py`, so keep that class name.
 * Familiarity with [Types](IO.md) and the [Block Specification Format](spec.md).
 
 
@@ -240,7 +240,7 @@ Then build the image in the project folder:
 clay build
 ```
 
-The image is tagged `<name>:<version>` from `clay.yaml`, here `ndvi:v0.0.1`. Use `--tag` to choose another tag.
+The image is tagged `<name>:<version>` from `clay.yaml`, here `ndvi:0.0.1`. Use `--tag` to choose another tag.
 
 ## Run the block locally
 
@@ -250,12 +250,12 @@ The input file is on S3, so pass AWS credentials to the container with `-e`. `cl
 clay run -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... --input "$(cat tests/sample_block_inputs.json)"
 ```
 
-Without an image name, `clay run` runs `ndvi:v0.0.1`, the image that `clay build` made. For temporary credentials, also pass `-e AWS_SESSION_TOKEN=...`. To set the region, pass `-e AWS_DEFAULT_REGION=...`. `-e NAME` without a value passes the value of `NAME` from your shell, as with `docker run`.
+Without an image name, `clay run` runs `ndvi:0.0.1`, the image that `clay build` made. For temporary credentials, also pass `-e AWS_SESSION_TOKEN=...`. To set the region, pass `-e AWS_DEFAULT_REGION=...`. `-e NAME` without a value passes the value of `NAME` from your shell, as with `docker run`.
 
 The block logs one JSON object per line. The log level is `DEBUG`, so the log includes a `WARNING` line, `Using existing logger without re-initialising.`, when the block is created, and `DEBUG` lines with each callback and its payload. The `Processing item` line is printed by the runner, not logged. The output looks like this (callback payloads and errors are shortened):
 
 ```text
-🧐 Searching image ndvi:v0.0.1
+🧐 Searching image ndvi:0.0.1
 Using configuration located at: /clay.yaml
 {"level": "INFO", "timestamp": "2026-11-24T07:52:00.644313Z", "logger": "Ndvi", "loc": "runner.py:start:351", "message": "\ud83c\udfac starting clay job runner version: 1.5.0"}
 {"level": "INFO", "timestamp": "2026-11-24T07:52:00.644827Z", "logger": "Ndvi", "loc": "runner.py:_init_block:190", "message": "initializing block constructor"}

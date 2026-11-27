@@ -91,9 +91,9 @@ clay publish \
 1. Check that the block version is not already in the Clay registry. If it is, it stops.
    The check uses `version` as written in `clay.yaml`, and the registry stores
    versions in full `MAJOR.MINOR.PATCH` form without a leading `v`, so a
-   `v`-prefixed version such as `v0.0.1`, or a short one such as `0.1`,
-   passes this check even when it is published (see
-   [Publish](cli-reference.md#publish)).
+   `v`-prefixed version such as `v0.0.1`, or a short one such as `0.1`
+   (possible only without `apiVersion: clay/v1`), passes this check even
+   when it is published (see [Publish](cli-reference.md#publish)).
 2. Build the block's Docker image. It uses `-f/--file` if given, else
    `./Dockerfile` if it exists, else a Dockerfile generated from `clay.yaml`.
 3. Push the image to the configured Docker registry.

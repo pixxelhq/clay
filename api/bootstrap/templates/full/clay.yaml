@@ -1,8 +1,9 @@
-apiVersion: 0.0.1
+# yaml-language-server: $schema=https://pixxelhq.github.io/clay/schema/v1.json
+apiVersion: clay/v1
 kind: block
 type: processing
 name: {{.Slug}}
-version: v0.0.1
+version: 0.0.1
 author: <please-fill-in-here>
 tags:
   - imagery

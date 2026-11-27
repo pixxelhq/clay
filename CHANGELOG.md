@@ -12,6 +12,16 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/). 
   longer needs `clay.yaml`.
 - `clay run` without an image runs `<name>:<version>` from `clay.yaml`, the
   image that `clay build` makes.
+- `clay.yaml` has a JSON Schema at
+  `https://pixxelhq.github.io/clay/schema/v1.json`, for `apiVersion: clay/v1`.
+  With the YAML language server (in VS Code, the Red Hat YAML extension),
+  editors complete keys and values and mark errors. When `apiVersion` is
+  `clay/v1`, every command that reads `clay.yaml` checks it against the schema
+  and lists each problem, including unknown keys. Files with another
+  `apiVersion` are read as before.
+- `clay new` and `clay init` write `apiVersion: clay/v1`, `version: 0.0.1`
+  (without a `v`, so the image is `<name>:0.0.1`) and the `$schema` comment
+  that editors read.
 
 ### Bug Fixes
 - The README, docs, `CLAUDE.md` and `clay build --help` describe only commands

@@ -216,8 +216,8 @@ Before building, `clay publish` asks the Clay registry whether the `name` and `v
 
 The check sends `version` exactly as written in `clay.yaml`, but the registry stores each version in full `MAJOR.MINOR.PATCH` form, without a leading `v`: `v0.0.1` is stored as `0.0.1`, and `0.1` as `0.1.0`. So:
 
-- With all three parts and no `v`, such as `0.0.1`, the check works: a published version is found before anything is built.
-- With a `v`-prefixed version such as `v0.0.1`, which is what `clay new` and `clay init` write, or a short version such as `0.1`, the check does not find it. `clay publish` then builds the image and pushes it under the same tag as the published image, and only after that does the registry reject the version as already published.
+- With all three parts and no `v`, such as `0.0.1`, the check works: a published version is found before anything is built. A `clay.yaml` with `apiVersion: clay/v1`, which is what `clay new` and `clay init` write, only accepts this form.
+- With a `v`-prefixed version such as `v0.0.1`, or a short version such as `0.1`, both possible only without `apiVersion: clay/v1`, the check does not find it. `clay publish` then builds the image and pushes it under the same tag as the published image, and only after that does the registry reject the version as already published.
 
 The registry also rejects a `version` that is not a semantic version, after the image has been pushed.
 
@@ -262,7 +262,7 @@ clay block describe <name> [flags]
 | `-v, --version` | Specific version to describe | — |
 | `--clay-registry` | Clay block registry URL (required) | — |
 
-As with `clay block list`, pass the version without a leading `v`, for example `-v 0.0.1` for `version: v0.0.1`. `-v latest` describes the highest version.
+As with `clay block list`, pass the version without a leading `v`, for example `-v 0.0.1` for `version: v0.0.1` in an older `clay.yaml`. `-v latest` describes the highest version.
 
 ---
 

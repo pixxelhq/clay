@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/pixxelhq/clay/api/bootstrap"
+	"github.com/pixxelhq/clay/pkg/config"
 )
 
 func TestNewCmd_Metadata(t *testing.T) {
@@ -32,8 +33,8 @@ func TestNewCmd_RunEScaffoldsProject(t *testing.T) {
 		t.Fatalf("RunE returned error: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(projectRoot, "clay.yaml")); err != nil {
-		t.Errorf("expected generated clay.yaml: %v", err)
+	if _, err := config.GetConfig(projectRoot); err != nil {
+		t.Errorf("expected generated clay.yaml to match the v1 schema: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(projectRoot, "weather_forecaster", "block.py")); err != nil {
 		t.Errorf("expected generated block.py: %v", err)
