@@ -1,0 +1,254 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://pixxelhq.github.io/clay/schema/v1.json",
+  "title": "Clay block specification (clay.yaml), apiVersion clay/v1",
+  "description": "Reference: https://pixxelhq.github.io/clay/spec/",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "type", "name", "version", "author", "inputs", "outputs", "build"],
+  "properties": {
+    "apiVersion": {
+      "description": "Version of the clay.yaml format. With clay/v1, Clay checks the file against this schema.",
+      "const": "clay/v1"
+    },
+    "kind": {
+      "description": "What the file describes. Always block.",
+      "const": "block"
+    },
+    "type": {
+      "description": "Type of the block. processing: analyses or transforms input data. source: generates or fetches data without input data.",
+      "enum": ["processing", "source", "visualization"]
+    },
+    "name": {
+      "description": "Name of the block. The Docker image is <name>:<version>, and the registry stores the block under this name.",
+      "type": "string",
+      "pattern": "^[a-z]([a-z0-9_-]*[a-z0-9])?$"
+    },
+    "version": {
+      "description": "Version of the block, as a semantic version without a leading v, for example 1.2.3. It is the Docker image tag.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "author": {
+      "description": "Person or team that maintains the block.",
+      "type": "string",
+      "minLength": 1
+    },
+    "tags": {
+      "description": "Tags for finding the block.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "parameters": {
+      "description": "Values passed to the block's setup() when the block starts.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/parameter" }
+    },
+    "inputs": {
+      "description": "Inputs the block accepts. Use [] for a block without inputs.",
+      "type": "array",
+      "items": { "$ref": "#/definitions/data" }
+    },
+    "outputs": {
+      "description": "Outputs the block produces.",
+      "type": "array",
+      "items": { "$ref": "#/definitions/data" }
+    },
+    "build": {
+      "description": "How Clay generates the Dockerfile.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "python-version": {
+          "description": "Python version of the block. Quote it: YAML reads 3.10 as the number 3.1.",
+          "type": "string",
+          "enum": ["3.10", "3.11", "3.12"],
+          "default": "3.10"
+        },
+        "conda": {
+          "description": "Create a conda environment from the conda file in requirements.",
+          "type": "boolean",
+          "default": false
+        },
+        "gdal": {
+          "description": "Install GDAL and its Python bindings (osgeo).",
+          "type": "boolean",
+          "default": false
+        },
+        "apt-get": {
+          "description": "Additional OS packages to install.",
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        },
+        "requirements": {
+          "description": "Path to the pip requirements file, usually requirements.txt, or, when conda is true, to the conda environment file, usually conda.yaml.",
+          "type": "string",
+          "examples": ["requirements.txt", "conda.yaml"]
+        }
+      }
+    },
+    "gpu": {
+      "description": "Whether the block needs a GPU. clay run then starts the container with --gpus all.",
+      "type": "boolean",
+      "default": false
+    },
+    "env": {
+      "description": "Environment variables the runtime sets before setup(), unless already set. Do not put secrets here: clay publish sends env to the registry.",
+      "type": "object",
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    }
+  },
+  "definitions": {
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "default"],
+      "properties": {
+        "name": {
+          "description": "Name of the setup() argument.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Python type that default is converted to.",
+          "enum": ["str", "string", "url", "path", "int", "float", "bool", "boolean", "list", "dict"]
+        },
+        "default": {
+          "description": "Value passed to setup()."
+        },
+        "format": {
+          "description": "Data format of the value.",
+          "$ref": "#/definitions/format"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "format": {
+      "enum": ["raster", "vector", "tabular", "string", "number", "date"]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "format", "type"],
+      "properties": {
+        "name": {
+          "description": "Name of the input or output.",
+          "type": "string"
+        },
+        "format": {
+          "description": "Data format.",
+          "$ref": "#/definitions/format"
+        },
+        "type": {
+          "description": "Type of the value: url for files, otherwise the value's type.",
+          "enum": ["url", "str", "int", "float", "bool", "boolean"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "display_name": {
+          "description": "Name shown in UIs.",
+          "type": "string"
+        },
+        "is_artifact": {
+          "description": "Whether the value is a file artifact.",
+          "type": "boolean"
+        },
+        "group": {
+          "description": "Outputs with the same group are shown together.",
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "asset_source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "type": "string" },
+            "layer_name": { "type": "string" }
+          }
+        },
+        "version": {
+          "description": "Version of the datatype schema.",
+          "enum": ["v2"]
+        },
+        "default": {
+          "description": "Inputs only: used when the input's value is empty. Write it as text.",
+          "type": "string"
+        },
+        "properties": {
+          "description": "Format-specific properties.",
+          "type": ["object", "null"]
+        },
+        "validation": {
+          "description": "Rules the input's value must meet.",
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "format": { "enum": ["raster", "vector"] } } },
+          "then": { "properties": { "validation": { "$ref": "#/definitions/areaValidation" } } }
+        },
+        {
+          "if": { "properties": { "format": { "const": "tabular" } } },
+          "then": { "properties": { "validation": { "type": "object", "additionalProperties": false } } }
+        },
+        {
+          "if": { "properties": { "format": { "const": "string" } } },
+          "then": { "properties": { "validation": { "$ref": "#/definitions/stringValidation" } } }
+        },
+        {
+          "if": { "properties": { "format": { "const": "number" } } },
+          "then": { "properties": { "validation": { "$ref": "#/definitions/numberValidation" } } }
+        },
+        {
+          "if": { "properties": { "format": { "const": "date" } } },
+          "then": { "properties": { "validation": { "$ref": "#/definitions/dateValidation" } } }
+        }
+      ]
+    },
+    "areaValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_area": { "description": "Minimum area in square meters.", "type": "number" },
+        "max_area": { "description": "Maximum area in square meters.", "type": "number" }
+      }
+    },
+    "stringValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "regex_match": { "description": "Regular expression the value must match.", "type": "string" },
+        "allowed_values": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "numberValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_value": { "type": "number" },
+        "max_value": { "type": "number" },
+        "allowed_values": { "type": "array", "items": { "type": "number" } }
+      }
+    },
+    "dateValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_date": { "description": "Earliest allowed date, inclusive.", "type": "string" },
+        "max_date": { "description": "Latest allowed date, inclusive.", "type": "string" },
+        "date_format": {
+          "description": "date_only: YYYY-MM-DD. date_time: RFC 3339 with a UTC offset.",
+          "enum": ["date_only", "date_time"],
+          "default": "date_only"
+        }
+      }
+    }
+  }
+}

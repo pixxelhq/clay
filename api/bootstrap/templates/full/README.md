@@ -36,10 +36,11 @@ python tests/test_block.py
 
 ```shell
 clay build
-clay run {{.Slug}}:v0.0.1 --input "$(cat tests/sample_block_inputs.json)"
+clay run --input "$(cat tests/sample_block_inputs.json)"
 ```
 
-`clay build` tags the image with the `name` and `version` in `clay.yaml`.
+`clay build` tags the image with the `name` and `version` in `clay.yaml`, and
+`clay run` without an image runs that image.
 
 ## Dependencies
 {{if .WithConda}}

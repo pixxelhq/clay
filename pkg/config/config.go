@@ -1,13 +1,13 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"sigs.k8s.io/yaml"
 )
 
@@ -53,13 +53,16 @@ func GetConfig(projectDir string) (*Config, error) {
 		return nil, fmt.Errorf("%s is not valid YAML: %w\nhint: check the indentation and quotes at the line named above", configFilePath, err)
 	}
 
-	config := &Config{}
-	err = json.Unmarshal(dataJSON, config)
-	var typeErr *json.UnmarshalTypeError
-	if errors.As(err, &typeErr) {
-		return nil, wrongTypeError(typeErr)
-	}
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(dataJSON))
 	if err != nil {
+		return nil, fmt.Errorf("%s could not be read: %w", configFilePath, err)
+	}
+	if err := validate(doc); err != nil {
+		return nil, err
+	}
+
+	config := &Config{}
+	if err := json.Unmarshal(dataJSON, config); err != nil {
 		return nil, fmt.Errorf("%s could not be read: %w", configFilePath, err)
 	}
 
@@ -77,36 +80,4 @@ func getConfigFilePath(projectDir string) (string, error) {
 	}
 
 	return configFilePath, nil
-}
-
-func wrongTypeError(err *json.UnmarshalTypeError) error {
-	expected := map[reflect.Kind]string{
-		reflect.String: "text",
-		reflect.Bool:   "true or false",
-		reflect.Slice:  "a list",
-		reflect.Struct: "a mapping",
-		reflect.Map:    "a mapping",
-	}[err.Type.Kind()]
-	if expected == "" {
-		expected = "a number"
-	}
-	found := map[string]string{
-		"number": "a number",
-		"string": "text",
-		"bool":   "true or false",
-		"array":  "a list",
-		"object": "a mapping",
-	}[err.Value]
-	if found == "" {
-		found = err.Value
-	}
-	hint := "see the clay.yaml reference: https://pixxelhq.github.io/clay/spec/"
-	if err.Type.Kind() == reflect.String && err.Value == "number" {
-		hint = "put the value in quotes so that YAML reads it as text"
-	}
-	subject := configFileName + ": " + err.Field
-	if err.Field == "" {
-		subject = configFileName
-	}
-	return fmt.Errorf("%s must be %s, not %s\nhint: %s", subject, expected, found, hint)
 }

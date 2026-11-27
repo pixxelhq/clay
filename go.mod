@@ -8,8 +8,10 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/aws/aws-sdk-go v1.45.14
 	github.com/rs/zerolog v1.33.0
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/mod v0.17.0
+	golang.org/x/text v0.18.0
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	sigs.k8s.io/yaml v1.3.0

@@ -13,7 +13,7 @@ import (
 func pushRunProject(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "clay.yaml"), []byte("name: my-block\nversion: v0.1.0\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "clay.yaml"), []byte(v1Spec("name: my-block\nversion: 0.1.0\nbuild:\n  requirements: requirements.txt\n")), 0644))
 	return dir
 }
 
@@ -38,8 +38,8 @@ func TestImageToPush_DefaultUsesRegistry(t *testing.T) {
 	local, target, err := imageToPush(nil, "registry.example.com", pushRunProject(t))
 
 	require.NoError(t, err)
-	assert.Equal(t, "my-block:v0.1.0", local)
-	assert.Equal(t, "registry.example.com/my-block:v0.1.0", target)
+	assert.Equal(t, "my-block:0.1.0", local)
+	assert.Equal(t, "registry.example.com/my-block:0.1.0", target)
 }
 
 func TestImageToPush_DefaultReadsRegistryFromEnv(t *testing.T) {
@@ -48,7 +48,7 @@ func TestImageToPush_DefaultReadsRegistryFromEnv(t *testing.T) {
 	_, target, err := imageToPush(nil, "", pushRunProject(t))
 
 	require.NoError(t, err)
-	assert.Equal(t, "env.example.com/my-block:v0.1.0", target)
+	assert.Equal(t, "env.example.com/my-block:0.1.0", target)
 }
 
 func TestImageToPush_DefaultWithoutRegistry(t *testing.T) {

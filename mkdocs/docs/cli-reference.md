@@ -30,8 +30,8 @@ clay <command> --help
 When a command fails, Clay prints one `error:` line that says what failed and, when it can tell what might be wrong, a `hint:` line with what to do next:
 
 ```console
-error: clay.yaml: build.python-version must be text, not a number
-hint: put the value in quotes so that YAML reads it as text
+error: clay.yaml: apiVersion "0.0.1" is not supported by this version of Clay; supported: clay/v1
+hint: to move an older clay.yaml to clay/v1, see https://pixxelhq.github.io/clay/spec/#moving-to-clayv1; for a newer apiVersion, upgrade Clay
 ```
 
 `clay build`, `clay push`, `clay publish` and `clay run` show the full output of Docker as it runs. If Docker fails, Clay names the command and its exit code, and the cause is in the Docker output above:
@@ -160,7 +160,7 @@ clay push [IMAGE] [flags]
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `IMAGE` | Docker image to push, with its registry, for example `registry.example.com/my-block:v0.0.1` | — |
+| `IMAGE` | Docker image to push, with its registry, for example `registry.example.com/my-block:0.0.1` | — |
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -172,7 +172,7 @@ Without `IMAGE`, run it in the project folder. `clay push` tags `<name>:<version
 clay push --docker-registry registry.example.com
 ```
 
-With `IMAGE`, `clay push` pushes that image as it is named, and does not need `clay.yaml`. The name must include a registry or a Docker Hub account, for example `registry.example.com/my-block:v0.0.1` or `my-account/my-block:v0.0.1`. A name without `/`, such as `my-block:v0.0.1`, is rejected, because Docker would push it to `docker.io/library`, where only official images can be pushed.
+With `IMAGE`, `clay push` pushes that image as it is named, and does not need `clay.yaml`. The name must include a registry or a Docker Hub account, for example `registry.example.com/my-block:0.0.1` or `my-account/my-block:0.0.1`. A name without `/`, such as `my-block:0.0.1`, is rejected, because Docker would push it to `docker.io/library`, where only official images can be pushed.
 
 ### Run
 
@@ -214,12 +214,7 @@ clay publish [flags]
 
 Before building, `clay publish` asks the Clay registry whether the `name` and `version` from `clay.yaml` are already published. If they are, it stops with an error before building or pushing anything. Bump `version` in `clay.yaml` to publish a new version.
 
-The check sends `version` exactly as written in `clay.yaml`, but the registry stores each version in full `MAJOR.MINOR.PATCH` form, without a leading `v`: `v0.0.1` is stored as `0.0.1`, and `0.1` as `0.1.0`. So:
-
-- With all three parts and no `v`, such as `0.0.1`, the check works: a published version is found before anything is built.
-- With a `v`-prefixed version such as `v0.0.1`, which is what `clay new` and `clay init` write, or a short version such as `0.1`, the check does not find it. `clay publish` then builds the image and pushes it under the same tag as the published image, and only after that does the registry reject the version as already published.
-
-The registry also rejects a `version` that is not a semantic version, after the image has been pushed.
+The check sends `version` as written in `clay.yaml`. Clay only accepts a full version without a leading `v`, such as `0.0.1`, which is also the form the registry stores, so a published version is always found.
 
 ---
 
@@ -241,7 +236,7 @@ clay block list [flags]
 | `-v, --version` | With `--name`, show only this version | — |
 | `--clay-registry` | Clay block registry URL (required) | — |
 
-Without flags, `clay block list` shows the latest version of each block: the highest semantic version. `-v` is ignored without `-n`. Pass the version as the registry stores it, without a leading `v` (see [Publish](#publish)); `-v latest` shows the highest version.
+Without flags, `clay block list` shows the latest version of each block: the highest semantic version. `-v` is ignored without `-n`. Pass the version without a leading `v`, as in `clay.yaml`; `-v latest` shows the highest version.
 
 `clay block list` and `clay block describe` do not read `CLAY_REGISTRY_HOST`: pass `--clay-registry`. Only `clay publish` reads the variable.
 
@@ -262,7 +257,7 @@ clay block describe <name> [flags]
 | `-v, --version` | Specific version to describe | — |
 | `--clay-registry` | Clay block registry URL (required) | — |
 
-As with `clay block list`, pass the version without a leading `v`, for example `-v 0.0.1` for `version: v0.0.1`. `-v latest` describes the highest version.
+As with `clay block list`, pass the version without a leading `v`, for example `-v 0.0.1`. `-v latest` describes the highest version.
 
 ---
 

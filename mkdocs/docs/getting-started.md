@@ -178,8 +178,10 @@ class MyBlock(BlockWrapper):
 Defines your block's grammar and dependency requirements. An excerpt of the generated file:
 
 ```yaml
+# yaml-language-server: $schema=https://pixxelhq.github.io/clay/schema/v1.json
+apiVersion: clay/v1
 name: my-block
-version: v0.0.1
+version: 0.0.1
 
 parameters:  # Setup parameters
   - name: weight
@@ -248,7 +250,7 @@ Build and test the block locally.
     ```shell
     clay build
     ```
-    Run it in the project folder. This generates a Dockerfile from `clay.yaml` and builds an image named after the `name` and `version` in `clay.yaml`. For example, if the `name` is `my-block` and the `version` is `v0.0.1`, the image is `my-block:v0.0.1`.
+    Run it in the project folder. This generates a Dockerfile from `clay.yaml` and builds an image named after the `name` and `version` in `clay.yaml`. For example, if the `name` is `my-block` and the `version` is `0.0.1`, the image is `my-block:0.0.1`.
 
     **Common flags:**
 
@@ -317,7 +319,7 @@ one.
 
     Update the version in `clay.yaml` before publishing:
     ```yaml
-    version: v1.0.0  # Follow semantic versioning
+    version: 1.0.0  # Follow semantic versioning
     ```
 
 * **Publish to Registry**
