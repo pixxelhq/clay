@@ -49,7 +49,7 @@ func newFakeRegistry(t *testing.T, versionStatus int) (*fakeRegistry, *httptest.
 func setupPublishProject(t *testing.T, registryURL string) string {
 	t.Helper()
 	projectDir := t.TempDir()
-	clayYAML := "name: myblock\nversion: 0.0.1\nbuild:\n  python_version: \"3.10\"\n"
+	clayYAML := v1Spec("name: myblock\nversion: 0.0.1\nbuild:\n  python-version: \"3.10\"\n")
 	require.NoError(t, os.WriteFile(filepath.Join(projectDir, "clay.yaml"), []byte(clayYAML), 0644))
 
 	wd, err := os.Getwd()

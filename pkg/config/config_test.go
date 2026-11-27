@@ -18,23 +18,20 @@ func projectWithSpec(t *testing.T, spec string) string {
 }
 
 func TestGetConfig_UnquotedPythonVersionSaysToQuoteIt(t *testing.T) {
-	dir := projectWithSpec(t, "name: demo\nbuild:\n  python-version: 3.10\n")
+	spec := strings.Replace(validV1Spec, `python-version: "3.10"`, "python-version: 3.10", 1)
 
-	_, err := GetConfig(dir)
+	_, err := GetConfig(projectWithSpec(t, spec))
 
 	require.Error(t, err)
-	assert.Equal(t, "clay.yaml: build.python-version must be text, not a number\n"+
-		"hint: put the value in quotes so that YAML reads it as text", err.Error())
+	assert.Contains(t, err.Error(), "clay.yaml: build.python-version: must be text, not a number; "+
+		"put the value in quotes so that YAML reads it as text")
 }
 
 func TestGetConfig_WrongTypeNamesFieldAndExpectedType(t *testing.T) {
-	dir := projectWithSpec(t, "name: demo\ngpu: \"yes\"\n")
-
-	_, err := GetConfig(dir)
+	_, err := GetConfig(projectWithSpec(t, validV1Spec+"gpu: \"yes\"\n"))
 
 	require.Error(t, err)
-	assert.Equal(t, "clay.yaml: gpu must be true or false, not text\n"+
-		"hint: see the clay.yaml reference: https://pixxelhq.github.io/clay/spec/", err.Error())
+	assert.Contains(t, err.Error(), "clay.yaml: gpu: got string, want boolean")
 }
 
 func TestGetConfig_InvalidYAML(t *testing.T) {
@@ -139,11 +136,25 @@ func TestGetConfig_V1ReportsEveryProblem(t *testing.T) {
 	assert.Contains(t, err.Error(), "clay.yaml: build.python-version: ")
 }
 
-func TestGetConfig_LegacyIgnoresUnknownKeys(t *testing.T) {
-	cfg, err := GetConfig(projectWithSpec(t, "apiVersion: 0.0.1\nname: demo\nversion: v1.0.0\ntitle: Demo\n"))
+func TestGetConfig_MissingAPIVersion(t *testing.T) {
+	spec := strings.Replace(validV1Spec, "apiVersion: clay/v1\n", "", 1)
 
-	require.NoError(t, err)
-	assert.Equal(t, "v1.0.0", cfg.Version)
+	_, err := GetConfig(projectWithSpec(t, spec))
+
+	require.Error(t, err)
+	assert.Equal(t, "clay.yaml has no apiVersion\n"+
+		"hint: add apiVersion: clay/v1, see https://pixxelhq.github.io/clay/spec/#moving-to-clayv1", err.Error())
+}
+
+func TestGetConfig_UnsupportedAPIVersion(t *testing.T) {
+	spec := strings.Replace(validV1Spec, "apiVersion: clay/v1", "apiVersion: 0.0.1", 1)
+
+	_, err := GetConfig(projectWithSpec(t, spec))
+
+	require.Error(t, err)
+	assert.Equal(t, "clay.yaml: apiVersion \"0.0.1\" is not supported by this version of Clay; supported: clay/v1\n"+
+		"hint: to move an older clay.yaml to clay/v1, see https://pixxelhq.github.io/clay/spec/#moving-to-clayv1; "+
+		"for a newer apiVersion, upgrade Clay", err.Error())
 }
 
 func TestSchemaV1_PublishedCopyMatches(t *testing.T) {

@@ -65,9 +65,14 @@ func newBlockProject(t *testing.T, pythonVersion string) string {
 	return projectDir
 }
 
+// v1Spec returns a clay.yaml with the keys that every clay/v1 file needs, followed by body.
+func v1Spec(body string) string {
+	return "apiVersion: clay/v1\nkind: block\ntype: processing\nauthor: test\ninputs: []\noutputs: []\n" + body
+}
+
 func writeClayYaml(t *testing.T, projectDir, pythonVersion string) {
 	t.Helper()
-	spec := "name: my-block\nversion: 0.1.0\nbuild:\n  python-version: \"" + pythonVersion + "\"\n  requirements: requirements.txt\n"
+	spec := v1Spec("name: my-block\nversion: 0.1.0\nbuild:\n  python-version: \"" + pythonVersion + "\"\n  requirements: requirements.txt\n")
 	if err := os.WriteFile(filepath.Join(projectDir, "clay.yaml"), []byte(spec), 0644); err != nil {
 		t.Fatalf("setup: %v", err)
 	}

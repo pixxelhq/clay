@@ -84,8 +84,8 @@ type. In VS Code, install the
 To use the schema in an older `clay.yaml`, add the line and change
 `apiVersion` to `clay/v1`.
 
-When `apiVersion` is `clay/v1`, every Clay command that reads `clay.yaml`
-checks the file against the schema and lists each problem, for example:
+Every Clay command that reads `clay.yaml` checks the file against the schema
+of its `apiVersion` and lists each problem, for example:
 
 ```text
 error: clay.yaml does not match the clay/v1 schema:
@@ -94,8 +94,30 @@ error: clay.yaml does not match the clay/v1 schema:
   clay.yaml: version: must be a semantic version without a leading v, such as 1.2.3
 ```
 
-A `clay.yaml` with any other `apiVersion` is read as before: Clay does not
-check it against the schema and ignores keys it does not know.
+Clay stops if `apiVersion` is missing or is not one that this version of
+Clay supports. The only supported value is `clay/v1`.
+
+---
+
+## Moving to clay/v1
+
+A `clay.yaml` made by an older Clay has `apiVersion: 0.0.1` and a version
+such as `v0.0.1`. To build or publish it with this version of Clay:
+
+1. Set `apiVersion: clay/v1`, and add the schema line at the top so that your
+   editor checks the file:
+
+    ```yaml
+    # yaml-language-server: $schema=https://pixxelhq.github.io/clay/schema/v1.json
+    apiVersion: clay/v1
+    ```
+
+2. Remove the leading `v` from `version`: `v1.2.3` becomes `1.2.3`. The image
+   is then tagged `<name>:1.2.3`. The registry already stores versions without
+   the `v`, so published versions keep their numbers.
+3. Run `clay dockerfile`. It reads `clay.yaml` without Docker and lists every
+   key that does not match the schema. Fix each one, or remove keys that Clay
+   does not know.
 
 ---
 
@@ -109,7 +131,7 @@ check it against the schema and ignores keys it does not know.
 | **Type** | `string` |
 | **Required** | Yes |
 
-The version of the specification format. New projects use `clay/v1`: Clay then checks the file against the [schema](#schema-and-editor-support). With any other value, such as `0.0.1` in older projects, Clay does not check the file against the schema. The registry requires a non-empty value when you run `clay publish`.
+The version of the specification format. Clay checks the file against the [schema](#schema-and-editor-support) of this version, and stops if the version is missing or not supported. The only supported value is `clay/v1`. A `clay.yaml` made by an older Clay has `0.0.1`; see [Moving to clay/v1](#moving-to-clayv1).
 
 ---
 
@@ -155,7 +177,7 @@ For more information, see [FAQ: Difference between processing and source blocks]
 
 The name of the block. `clay build`, `clay run` and `clay push` use `<name>:<version>` as the Docker image name, and the registry stores the block under this name.
 
-With `apiVersion: clay/v1`, `name` must start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, `-` and `_`. Without `clay/v1`, Clay does not check `name`, but Docker does: an image name may contain only lowercase letters, digits and the separators `.`, `_` and `-`. With uppercase letters or other characters, `docker build` fails. Use the form that `clay new` writes, such as `my-block`.
+`name` must start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, `-` and `_`, so it is also a valid Docker image name. Use the form that `clay new` writes, such as `my-block`.
 
 The registry keeps one block per `name`. If you change `name`, `clay publish` creates a new block; the versions published under the old name stay there.
 
@@ -169,9 +191,9 @@ The registry keeps one block per `name`. If you change `name`, `clay publish` cr
 | **Type** | `string` |
 | **Required** | Yes |
 
-Version of the block, as a [semantic version](https://semver.org/). With `apiVersion: clay/v1`, write all three parts without a leading `v`, for example `1.2.3` or `1.2.3-rc.1`; Clay rejects `v1.2.3`, `1.2` and build metadata such as `1.2.3+abc`. Without `clay/v1`, Clay does not check `version`.
+Version of the block, as a [semantic version](https://semver.org/) with all three parts and without a leading `v`, for example `1.2.3` or `1.2.3-rc.1`. Clay rejects `v1.2.3`, `1.2` and build metadata such as `1.2.3+abc`.
 
-The value as written is the Docker image tag (`<name>:<version>`). The registry rejects a value that it cannot read as a semantic version, and stores it in full `MAJOR.MINOR.PATCH` form without the leading `v`: `v1.2.3` is stored as `1.2.3`, and `1.2` as `1.2.0`. Always write all three parts.
+The value is the Docker image tag (`<name>:<version>`), and the registry stores the block version under it.
 
 !!! tip "Recommendation"
     Version your blocks as you would software releases. Increment the version when making changes to inputs, outputs, or block behavior.
@@ -186,7 +208,7 @@ The value as written is the Docker image tag (`<name>:<version>`). The registry 
 | **Type** | `string` |
 | **Required** | Yes |
 
-The individual or team responsible for maintaining this block. The registry requires a non-empty value when you run `clay publish`, and with `apiVersion: clay/v1` Clay checks this when it reads `clay.yaml`.
+The individual or team responsible for maintaining this block. Clay checks that it is not empty when it reads `clay.yaml`; the registry requires it too.
 
 ---
 
@@ -230,7 +252,7 @@ List of parameters passed to the block's `setup()` function during initializatio
 | `format` | string | No | Data format: `raster`, `vector`, `tabular`, `string`, `number`, `date`. Clay does not read it |
 | `description` | string | No | Human-readable description. Clay does not read it |
 
-Clay always passes `default` to `setup()`. If a parameter has no `name`, `type` or `default`, the block fails at start with a `KeyError`; with `apiVersion: clay/v1`, Clay reports it when it reads `clay.yaml`. A block without parameters can leave out `parameters` or leave it empty.
+Clay always passes `default` to `setup()`. Clay reports a parameter without `name`, `type` or `default` when it reads `clay.yaml`. A block without parameters can leave out `parameters` or leave it empty.
 
 Clay converts `default` with the Python function for `type`. For `bool` this is `bool()`, so write `true` or `false` without quotes: the quoted string `"false"` becomes `True`. `list` and `dict` values are passed as they are, and an unknown `type` is converted with `str()`.
 
@@ -275,7 +297,7 @@ List of inputs the block accepts. See [Input/Output & Datatypes](IO.md) for supp
 | `is_artifact` | bool | No | Whether this is a file artifact. Clay does not read this field from `clay.yaml`; it is stored with the spec in the registry. At runtime, the `is_artifact` of the run's input (for inputs) or of the datatype the block returns (for outputs) decides. Default: `true` for `raster`, `vector` and `tabular`; `false` for the others |
 | `default` | string | No | Used when the input's `value` is `""`. See the note below |
 | `properties` | object | No | Format-specific properties |
-| `validation` | object | No | Validation rules — see [Validation Rules](#validation-rules). With `apiVersion: clay/v1`, Clay rejects a rule that does not belong to the input's `format` |
+| `validation` | object | No | Validation rules — see [Validation Rules](#validation-rules). Clay rejects a rule that does not belong to the input's `format` |
 | `group` | string | No | Group name. Clay does not read it; it is stored with the spec in the registry |
 | `metadata` | mapping of text to text | No | Free-form metadata. Clay does not read it from `clay.yaml`; it is stored with the spec in the registry |
 | `asset_source` | object | No | Where the data comes from: `id`, `type` and `layer_name`, all text. Clay does not read it from `clay.yaml`; it is stored with the spec in the registry |
@@ -284,7 +306,7 @@ List of inputs the block accepts. See [Input/Output & Datatypes](IO.md) for supp
 !!! note "What the runtime reads"
     At run time, `format`, `type` and `is_artifact` come from the run's input JSON, not from `clay.yaml`. From each input in `clay.yaml`, the runtime reads only `name`, `default` and `validation`.
 
-    `default` applies only to inputs that are in the run's input list. Write it as text: a number such as `default: 5` makes the run fail with a `TypeError`, and with `apiVersion: clay/v1` Clay rejects it when it reads `clay.yaml`; write `default: "5"`. For a `raster` input whose run input has no `stac_url`, Clay also sets `stac_url` to `default` and reads it as a STAC JSON file (a local path or an `http(s)` URL), even when `value` is set. If the `default` of a `raster` input is not a STAC item, pass `stac_url` in every run.
+    `default` applies only to inputs that are in the run's input list. Write it as text: Clay rejects a number such as `default: 5` when it reads `clay.yaml`; write `default: "5"`. For a `raster` input whose run input has no `stac_url`, Clay also sets `stac_url` to `default` and reads it as a STAC JSON file (a local path or an `http(s)` URL), even when `value` is set. If the `default` of a `raster` input is not a STAC item, pass `stac_url` in every run.
 
 **Example:**
 ```yaml
@@ -373,15 +395,15 @@ outputs:
 |---|---|
 | **Key** | `build` |
 | **Type** | `object` |
-| **Required** | When Clay generates the Dockerfile |
+| **Required** | Yes |
 
-Build-time configuration for the Docker image. Clay uses it only when it generates the Dockerfile: when the project has no `./Dockerfile` and `-f` is not given. Otherwise `build` is ignored. If Clay generates the Dockerfile and `build` is missing, Clay stops with ``clay.yaml has no `build` section``.
+Build-time configuration for the Docker image. Clay uses it only when it generates the Dockerfile: when the project has no `./Dockerfile` and `-f` is not given. With your own Dockerfile, its values are not used, but `clay.yaml` still needs `build`, for example `build: {}`: `clay publish` sends it to the registry, which requires it.
 
 #### Build Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value. YAML reads `3.10` as a number, and Clay stops with `clay.yaml: build.python-version must be text, not a number` |
+| `python-version` | string | `"3.10"` | Python version of the block: `"3.10"`, `"3.11"` or `"3.12"`. Quote the value. YAML reads `3.10` as a number, and Clay stops with `clay.yaml: build.python-version: must be text, not a number` |
 | `gdal` | bool | `false` | Install GDAL and its Python bindings (`osgeo`). See [Base image](#base-image) |
 | `conda` | bool | `false` | Create a conda environment from the conda file in `requirements`. It does not add CUDA. See [Base image](#base-image) |
 | `apt-get` | list[string] | `[]` | Additional OS packages, installed without recommended packages. With `conda: true`, Clay always adds `libgl1`. The `python:<version>-slim` and OSGeo images have no C compiler; add `build-essential` if a package in `requirements` must be compiled |
@@ -470,9 +492,8 @@ env:
 
 | When | Checked by | What |
 |---|---|---|
-| Every command that reads `clay.yaml`: `clay build`, `clay run`, `clay push` without an image, `clay publish`, `clay dockerfile` | Clay CLI | YAML syntax, and the type of each top-level field and of each `build` field (text, number, list, `true`/`false`) |
-| Every command that reads `clay.yaml`, when `apiVersion` is `clay/v1` | Clay CLI | The whole file against the [schema](#schema-and-editor-support): no unknown keys, required keys present, the allowed values of `kind`, `type`, `format`, `python-version` and the other fields, the form of `name` and `version`, and the `validation` rules allowed for each `format`. Without `clay/v1`, unknown keys are ignored |
-| When Clay generates the Dockerfile | Clay CLI | `build` exists, `python-version` is `"3.10"`, `"3.11"` or `"3.12"`, `gdal: true` is not used with `"3.11"` without conda, and the project has a block package with an `entry.py` |
+| Every command that reads `clay.yaml`: `clay build`, `clay run`, `clay push` without an image, `clay publish`, `clay dockerfile` | Clay CLI | YAML syntax, that `apiVersion` is supported, and the whole file against its [schema](#schema-and-editor-support): no unknown keys, required keys present, the type of each value, the allowed values of `kind`, `type`, `format`, `python-version` and the other fields, the form of `name` and `version`, and the `validation` rules allowed for each `format` |
+| When Clay generates the Dockerfile | Clay CLI | `gdal: true` is not used with `"3.11"` without conda, and the project has a block package with an `entry.py` |
 | `clay publish`, before the build | Clay CLI, by asking the registry | `name` and `version` are not already published |
 | `clay publish`, after the image is built and pushed | Clay registry | `version` is a semantic version, `kind` is `block`, `type` is `processing`, `source` or `visualization`, and `name`, `apiVersion` and `author` are not empty |
 | Block start | Python runtime | `inputs` and `outputs` exist (a block with no inputs needs `inputs: []`), and each parameter has `name`, `type` and `default` |
@@ -486,7 +507,7 @@ env:
     default. Anything that reads specs from the registry must apply the same
     defaults itself. `build` is different: Clay rebuilds it from its known
     build fields, so an omitted build field is stored as `""`, `false` or
-    `null`. Top-level keys that Clay does not know are not sent.
+    `null`.
 
 ---
 

@@ -14,34 +14,62 @@ import (
 	"golang.org/x/text/message"
 )
 
-const apiVersionV1 = "clay/v1"
-
-const schemaV1URL = "https://pixxelhq.github.io/clay/schema/v1.json"
+const (
+	specReference  = "https://pixxelhq.github.io/clay/spec/"
+	migrationGuide = specReference + "#moving-to-clayv1"
+)
 
 //go:embed schema/v1.json
 var schemaV1JSON []byte
 
-var schemaV1 = mustCompileSchemaV1()
+var schemas = map[string]*jsonschema.Schema{
+	"clay/v1": mustCompile("https://pixxelhq.github.io/clay/schema/v1.json", schemaV1JSON),
+}
 
 var patternRules = map[string]string{
 	"name":    "must start with a lowercase letter, end with a lowercase letter or digit, and use only lowercase letters, digits, '-' and '_'",
 	"version": "must be a semantic version without a leading v, such as 1.2.3",
 }
 
-func mustCompileSchemaV1() *jsonschema.Schema {
-	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schemaV1JSON))
+func mustCompile(url string, schemaJSON []byte) *jsonschema.Schema {
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schemaJSON))
 	if err != nil {
 		panic(err)
 	}
 	compiler := jsonschema.NewCompiler()
-	if err := compiler.AddResource(schemaV1URL, doc); err != nil {
+	if err := compiler.AddResource(url, doc); err != nil {
 		panic(err)
 	}
-	return compiler.MustCompile(schemaV1URL)
+	return compiler.MustCompile(url)
 }
 
-func validateV1(doc any) error {
-	err := schemaV1.Validate(doc)
+func supportedAPIVersions() string {
+	versions := make([]string, 0, len(schemas))
+	for version := range schemas {
+		versions = append(versions, version)
+	}
+	slices.Sort(versions)
+	return strings.Join(versions, ", ")
+}
+
+func validate(doc any) error {
+	fields, ok := doc.(map[string]any)
+	if !ok {
+		return fmt.Errorf("%s must be a mapping, not %s\nhint: see the clay.yaml reference: %s", configFileName, jsonKind(doc), specReference)
+	}
+
+	apiVersion, ok := fields["apiVersion"]
+	if !ok {
+		return fmt.Errorf("%s has no apiVersion\nhint: add apiVersion: clay/v1, see %s", configFileName, migrationGuide)
+	}
+	schema, ok := schemas[fmt.Sprint(apiVersion)]
+	if !ok {
+		return fmt.Errorf("%s: apiVersion %q is not supported by this version of Clay; supported: %s\n"+
+			"hint: to move an older clay.yaml to clay/v1, see %s; for a newer apiVersion, upgrade Clay",
+			configFileName, fmt.Sprint(apiVersion), supportedAPIVersions(), migrationGuide)
+	}
+
+	err := schema.Validate(doc)
 	var validationErr *jsonschema.ValidationError
 	if !errors.As(err, &validationErr) {
 		return err
@@ -53,17 +81,39 @@ func validateV1(doc any) error {
 		problems = append(problems, fmt.Sprintf("%s: %s", subjectAt(leaf.InstanceLocation), describe(leaf, printer)))
 	}
 	slices.Sort(problems)
-	return fmt.Errorf("%s does not match the %s schema:\n  %s\nhint: see the clay.yaml reference: https://pixxelhq.github.io/clay/spec/",
-		configFileName, apiVersionV1, strings.Join(problems, "\n  "))
+	return fmt.Errorf("%s does not match the %s schema:\n  %s\nhint: see the clay.yaml reference: %s",
+		configFileName, apiVersion, strings.Join(problems, "\n  "), specReference)
 }
 
 func describe(err *jsonschema.ValidationError, printer *message.Printer) string {
-	if _, ok := err.ErrorKind.(*kind.Pattern); ok && len(err.InstanceLocation) == 1 {
-		if rule, ok := patternRules[err.InstanceLocation[0]]; ok {
-			return rule
+	switch k := err.ErrorKind.(type) {
+	case *kind.Pattern:
+		if len(err.InstanceLocation) == 1 {
+			if rule, ok := patternRules[err.InstanceLocation[0]]; ok {
+				return rule
+			}
+		}
+	case *kind.Type:
+		if k.Got == "number" && slices.Contains(k.Want, "string") {
+			return "must be text, not a number; put the value in quotes so that YAML reads it as text"
 		}
 	}
 	return err.ErrorKind.LocalizedString(printer)
+}
+
+func jsonKind(v any) string {
+	switch v.(type) {
+	case nil:
+		return "empty"
+	case []any:
+		return "a list"
+	case string:
+		return "text"
+	case bool:
+		return "true or false"
+	default:
+		return "a number"
+	}
 }
 
 func leafErrors(err *jsonschema.ValidationError) []*jsonschema.ValidationError {
@@ -77,7 +127,7 @@ func leafErrors(err *jsonschema.ValidationError) []*jsonschema.ValidationError {
 	return leaves
 }
 
-// subjectAt names a location the way wrongTypeError does: inputs[0].format.
+// subjectAt names a location as inputs[0].format.
 func subjectAt(location []string) string {
 	var subject strings.Builder
 	subject.WriteString(configFileName)
